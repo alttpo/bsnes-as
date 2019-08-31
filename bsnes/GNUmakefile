@@ -12,6 +12,11 @@ ifeq ($(profile),true)
   options += -pg
 endif
 
+ifeq ($(debug),true)
+  flags += -g
+  options += -g
+endif
+
 # binaries built with this flag are faster, but are not portable to multiple machines.
 ifeq ($(local),true)
   flags += -march=native
