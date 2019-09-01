@@ -14,6 +14,17 @@ auto System::run() -> void {
   if(scheduler.event == Scheduler::Event::Frame) {
     ppu.refresh();
 
+    for(auto i : range(16)) {
+	auto y = bus.read(0x0D00u+i) | (bus.read(0x0D20u+i) << 8u);
+	auto x = bus.read(0x0D10u+i) | (bus.read(0x0D30u+i) << 8u);
+	auto t = bus.read(0x0E20u+i);
+	auto state = bus.read(0x0DD0u+i);
+
+	if (t != 0 && state != 0) {
+	    printf("[%x] x=%04x,y=%04x t=%02x\n", i, x, y, t);
+	}
+    }
+
     //refresh all cheat codes once per frame
     Memory::GlobalWriteEnable = true;
     for(auto& code : cheat.codes) {
