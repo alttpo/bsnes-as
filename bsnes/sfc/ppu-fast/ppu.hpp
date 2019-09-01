@@ -340,6 +340,9 @@ public:
     uint width = 0;
     uint height = 0;
   } frame;
+
+  // [jsd]: postRender function
+  function<void (uint16_t*, uint, uint, uint)> postRender;
 };
 
 extern PPU ppufast;

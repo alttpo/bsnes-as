@@ -8,22 +8,49 @@ Random random;
 Cheat cheat;
 #include "serialization.cpp"
 
+struct ALTTP {
+    int16_t xoffs, yoffs;
+    int16_t sprx[16];
+    int16_t spry[16];
+    uint8_t sprt[16];
+    uint8_t sprs[16];
+} alttp;
+
+auto System::postRender(uint16_t *data, uint pitch, uint width, uint height) -> void {
+  auto plot = [&](int x, int y, uint16_t color) -> void {
+    if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
+      data[y * pitch + x] = color;
+    }
+  };
+
+  auto hline = [&](int lx, int ty, int w, uint16_t color) {
+    for (int x = lx; x < lx + w; ++x)
+      plot(x, ty, color);
+  };
+
+  auto vline = [&](int lx, int ty, int h, uint16_t color) {
+    for (int y = ty; y < ty + h; ++y)
+      plot(lx, y, color);
+  };
+
+  for (auto i : range(16)) {
+    if (alttp.sprt[i] != 0 && alttp.sprs[i] != 0) {
+      auto rx = (int16_t)alttp.sprx[i] - (int16_t)alttp.xoffs;
+      auto ry = (int16_t)alttp.spry[i] - (int16_t)alttp.yoffs;
+      hline(rx     , ry     , 16, 0xcccf);
+      vline(rx     , ry     , 16, 0xcccf);
+      hline(rx     , ry + 15, 16, 0xcccf);
+      vline(rx + 15, ry     , 16, 0xcccf);
+      //printf("[%x] x=%04x,y=%04x t=%02x\n", i, x, y, t);
+    }
+  }
+}
+
 auto System::run() -> void {
   scheduler.mode = Scheduler::Mode::Run;
   scheduler.enter();
   if(scheduler.event == Scheduler::Event::Frame) {
     ppu.refresh();
-
-    for(auto i : range(16)) {
-	auto y = bus.read(0x0D00u+i) | (bus.read(0x0D20u+i) << 8u);
-	auto x = bus.read(0x0D10u+i) | (bus.read(0x0D30u+i) << 8u);
-	auto t = bus.read(0x0E20u+i);
-	auto state = bus.read(0x0DD0u+i);
-
-	if (t != 0 && state != 0) {
-	    printf("[%x] x=%04x,y=%04x t=%02x\n", i, x, y, t);
-	}
-    }
 
     //refresh all cheat codes once per frame
     Memory::GlobalWriteEnable = true;
@@ -33,6 +60,16 @@ auto System::run() -> void {
       }
     }
     Memory::GlobalWriteEnable = false;
+
+    alttp.xoffs = bus.read(0x00E2) | (bus.read(0x00E3) << 8u);
+    alttp.yoffs = bus.read(0x00E8) | (bus.read(0x00E9) << 8u);
+
+    for(auto i : range(16)) {
+      alttp.spry[i] = bus.read(0x0D00u + i) | (bus.read(0x0D20u + i) << 8u);
+      alttp.sprx[i] = bus.read(0x0D10u + i) | (bus.read(0x0D30u + i) << 8u);
+      alttp.sprt[i] = bus.read(0x0E20u + i);
+      alttp.sprs[i] = bus.read(0x0DD0u + i);
+    }
   }
 }
 
@@ -124,6 +161,8 @@ auto System::power(bool reset) -> void {
   if(configuration.hacks.entropy == "None") random.entropy(Random::Entropy::None);
   if(configuration.hacks.entropy == "Low" ) random.entropy(Random::Entropy::Low );
   if(configuration.hacks.entropy == "High") random.entropy(Random::Entropy::High);
+
+  ppufast.postRender = {&System::postRender, this};
 
   cpu.power(reset);
   smp.power(reset);

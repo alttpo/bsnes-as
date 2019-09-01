@@ -43,6 +43,9 @@ private:
   auto serializeAll(serializer&) -> void;
   auto serializeInit() -> void;
 
+  // [jsd]
+  auto postRender(uint16_t* data, uint pitch, uint width, uint height) -> void;
+
   friend class Cartridge;
 };
 
