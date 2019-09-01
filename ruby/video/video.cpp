@@ -321,6 +321,7 @@ auto Video::hasMonitors() -> vector<Monitor> {
       monitor.y = rectangle.origin.y;
       monitor.width = rectangle.size.width;
       monitor.height = rectangle.size.height;
+#if 0
       //getting the name of the monitor on macOS: "Think Different"
       auto screenDictionary = [screen deviceDescription];
       auto screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
@@ -341,6 +342,7 @@ auto Video::hasMonitors() -> vector<Monitor> {
         CFRelease(orderLanguageKeys);
       }
       CFRelease(dictionary);
+#endif
       monitors.append(monitor);
     }
   }
