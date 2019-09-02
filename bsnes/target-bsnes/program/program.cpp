@@ -17,8 +17,46 @@
 #include "viewport.cpp"
 Program program;
 
+// Implement a simple message callback function
+void MessageCallback(const asSMessageInfo *msg, void *param)
+{
+  const char *type = "ERR ";
+  if( msg->type == asMSGTYPE_WARNING )
+    type = "WARN";
+  else if( msg->type == asMSGTYPE_INFORMATION )
+    type = "INFO";
+  // [jsd] todo: hook this up to better systems available in bsens
+  printf("%s (%d, %d) : %s : %s\n", msg->section, msg->row, msg->col, type, msg->message);
+}
+
+void gfx_plot(int x, int y, uint16_t color) {
+
+}
+
 auto Program::create() -> void {
   Emulator::platform = this;
+
+  // [jsd] initialize angelscript
+  script.engine = asCreateScriptEngine();
+  // Set the message callback to receive information on errors in human readable form.
+  int r = script.engine->SetMessageCallback(asFUNCTION(MessageCallback), 0, asCALL_CDECL);
+  assert(r >= 0);
+
+  // register a function the script can call:
+  r = script.engine->RegisterGlobalFunction("void gfx_plot(int,int,uint16)", asFUNCTION(gfx_plot), asCALL_CDECL);
+  assert(r >= 0);
+
+  // load script from file:
+  string scriptSource = string::read("test.as");
+
+  // add script into module:
+  asIScriptModule *mod = script.engine->GetModule(0, asGM_ALWAYS_CREATE);
+  r = mod->AddScriptSection("script", scriptSource.begin(), scriptSource.length());
+  assert(r >= 0);
+
+  // compile module:
+  r = mod->Build();
+  assert(r >= 0);
 
   presentation.create();
   presentation.setVisible();

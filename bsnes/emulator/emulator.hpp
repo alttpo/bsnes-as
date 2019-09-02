@@ -27,6 +27,9 @@ using namespace nall;
 #include <emulator/memory/writable.hpp>
 #include <emulator/audio/audio.hpp>
 
+// [jsd] add support for AngelScript
+#include <angelscript.h>
+
 namespace Emulator {
   static const string Name    = "bsnes";
   static const string Version = "108.14";

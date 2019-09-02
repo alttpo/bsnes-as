@@ -1,3 +1,5 @@
+#include <angelscript.h>
+
 struct Program : Lock, Emulator::Platform {
   Application::Namespace tr{"Program"};
 
@@ -199,6 +201,11 @@ public:
     Rewind      = 1 << 4,
   };};
   uint mute = 0;
+
+  // [jsd] add support for AngelScript
+  struct AngelScript {
+    asIScriptEngine *engine;
+  } script;
 };
 
 extern Program program;
