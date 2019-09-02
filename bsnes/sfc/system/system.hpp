@@ -35,6 +35,8 @@ private:
 
   struct Hacks {
     bool fastPPU = false;
+    // [jsd]
+    bool alttp = true;
   } hacks;
 
   uint serializeSize = 0;

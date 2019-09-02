@@ -9,11 +9,12 @@ Cheat cheat;
 #include "serialization.cpp"
 
 struct ALTTP {
-    int16_t xoffs, yoffs;
-    int16_t sprx[16];
-    int16_t spry[16];
-    uint8_t sprt[16];
-    uint8_t sprs[16];
+    uint32_t room = 0;
+    int16_t xoffs = 0, yoffs = 0;
+    int16_t sprx[16] = {0};
+    int16_t spry[16] = {0};
+    uint8_t sprt[16] = {0};
+    uint8_t sprs[16] = {0};
 } alttp;
 
 auto System::postRender(uint16_t *data, uint pitch, uint width, uint height) -> void {
@@ -37,10 +38,10 @@ auto System::postRender(uint16_t *data, uint pitch, uint width, uint height) -> 
     if (alttp.sprt[i] != 0 && alttp.sprs[i] != 0) {
       auto rx = (int16_t)alttp.sprx[i] - (int16_t)alttp.xoffs;
       auto ry = (int16_t)alttp.spry[i] - (int16_t)alttp.yoffs;
-      hline(rx     , ry     , 16, 0xcccf);
-      vline(rx     , ry     , 16, 0xcccf);
-      hline(rx     , ry + 15, 16, 0xcccf);
-      vline(rx + 15, ry     , 16, 0xcccf);
+      hline(rx     , ry     , 16, 0x7fff);
+      vline(rx     , ry     , 16, 0x7fff);
+      hline(rx     , ry + 15, 16, 0x7fff);
+      vline(rx + 15, ry     , 16, 0x7fff);
       //printf("[%x] x=%04x,y=%04x t=%02x\n", i, x, y, t);
     }
   }
@@ -61,14 +62,23 @@ auto System::run() -> void {
     }
     Memory::GlobalWriteEnable = false;
 
-    alttp.xoffs = bus.read(0x00E2) | (bus.read(0x00E3) << 8u);
-    alttp.yoffs = bus.read(0x00E8) | (bus.read(0x00E9) << 8u);
+    if (system.hacks.alttp) {
+      auto in_dark_world = bus.read(0x0FFF);
+      auto in_dungeon = bus.read(0x001B);
+      auto room_overworld = bus.read(0x008A) | (bus.read(0x008B) << 8u);
+      auto room_dungeon = bus.read(0x00A0) | (bus.read(0x00A1) << 8u);
 
-    for(auto i : range(16)) {
-      alttp.spry[i] = bus.read(0x0D00u + i) | (bus.read(0x0D20u + i) << 8u);
-      alttp.sprx[i] = bus.read(0x0D10u + i) | (bus.read(0x0D30u + i) << 8u);
-      alttp.sprt[i] = bus.read(0x0E20u + i);
-      alttp.sprs[i] = bus.read(0x0DD0u + i);
+      alttp.room = ((in_dark_world & 1) << 18) | ((in_dungeon & 1) << 17) | (in_dungeon ? room_dungeon : room_overworld);
+
+      alttp.xoffs = bus.read(0x00E2) | (bus.read(0x00E3) << 8u);
+      alttp.yoffs = bus.read(0x00E8) | (bus.read(0x00E9) << 8u);
+
+      for (auto i : range(16)) {
+	alttp.spry[i] = bus.read(0x0D00u + i) | (bus.read(0x0D20u + i) << 8u);
+	alttp.sprx[i] = bus.read(0x0D10u + i) | (bus.read(0x0D30u + i) << 8u);
+	alttp.sprt[i] = bus.read(0x0E20u + i);
+	alttp.sprs[i] = bus.read(0x0DD0u + i);
+      }
     }
   }
 }
