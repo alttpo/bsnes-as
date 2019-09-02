@@ -5,7 +5,9 @@ else
   angel.flags := $(flags.cpp) -DAS_X64_GCC
 endif
 
-angel.flags += -fPIC -fno-strict-aliasing -I$(angel.path)/include -I$(angel.path)/source
+flags += -I$(angel.path)/include
+
+angel.flags += -fPIC -fno-strict-aliasing -I$(angel.path)/source
 
 angel.options :=
 
