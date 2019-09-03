@@ -1,6 +1,11 @@
 struct ScriptFrame {
   int y_offset = 8;
 
+  uint16_t *&output = ppuFrame.output;
+  uint &pitch = ppuFrame.pitch;
+  uint &width = ppuFrame.width;
+  uint &height = ppuFrame.height;
+
   auto get_y_offset() -> int {
     return y_offset;
   }
@@ -11,15 +16,15 @@ struct ScriptFrame {
 
   auto set(int x, int y, uint16_t color) -> void {
     y += y_offset;
-    if (x >= 0 && y >= 0 && x < (int) ppuFrame.width && y < (int) ppuFrame.height) {
-      ppuFrame.output[y * ppuFrame.pitch + x] = color;
+    if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
+      output[y * pitch + x] = color;
     }
   }
 
   auto get(int x, int y) -> uint16_t {
     y += y_offset;
-    if (x >= 0 && y >= 0 && x < (int) ppuFrame.width && y < (int) ppuFrame.height) {
-      return ppuFrame.output[y * ppuFrame.pitch + x];
+    if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
+      return output[y * pitch + x];
     }
     // impossible color on 15-bit RGB system:
     return 0xffff;
