@@ -63,6 +63,14 @@ auto System::run() -> void {
     }
     Memory::GlobalWriteEnable = false;
 
+    script.context->Prepare(script.funcs.main);
+
+    if (script.funcs.main) {
+      script.context->Prepare(script.funcs.main);
+      script.context->Execute();
+    }
+
+#if 0
     if (system.hacks.alttp) {
       auto in_dark_world = bus.read(0x0FFF);
       auto in_dungeon = bus.read(0x001B);
@@ -81,6 +89,7 @@ auto System::run() -> void {
 	alttp.sprs[i] = bus.read(0x0DD0u + i);
       }
     }
+#endif
   }
 }
 

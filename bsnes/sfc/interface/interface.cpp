@@ -1,4 +1,5 @@
 #include <sfc/sfc.hpp>
+#include <bsnes/sfc/sfc.hpp>
 
 namespace SuperFamicom {
 
@@ -349,9 +350,18 @@ auto Interface::registerScriptDefs() -> void {
 
   // register global functions for the script to use:
   auto defaultNamespace = script.engine->GetDefaultNamespace();
+  // default SNES:Bus memory functions:
   r = script.engine->SetDefaultNamespace("SNES::Bus"); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32)",  asFUNCTION(script_bus_read_u8),  asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint8 read_u16(uint32)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
+  //todo[jsd] add write functions
+
+  // define SNES::PPU::Frame object type:
+  r = script.engine->SetDefaultNamespace("SNES::PPU"); assert(r >= 0);
+  r = script.engine->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "uint16 get(int x, int y)", asMETHODPR(PPUFrame, get, (int, int), uint16_t), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "void set(int x, int y, uint16 color)", asMETHODPR(PPUFrame, set, (int, int, uint16_t), void), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("frame", &ppuFrame); assert(r >= 0);
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 
   // load script from file:
@@ -366,7 +376,9 @@ auto Interface::registerScriptDefs() -> void {
   r = script.module->Build();
   assert(r >= 0);
 
-  //script.module->GetFunctionByDecl("void ppuRefresh()");
+  // bind to functions in the script:
+  script.funcs.main = script.module->GetFunctionByDecl("void main()");
+  script.funcs.postRender = script.module->GetFunctionByDecl("void postRender()");
 
   // create context:
   script.context = script.engine->CreateContext();

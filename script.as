@@ -16,6 +16,26 @@ void main() {
   }
 }
 
-void postRender() {
+void hline(int lx, int ty, int w, uint16 color) {
+  for (int x = lx; x < lx + w; ++x)
+    SNES::PPU::frame.set(x, ty, color);
+}
 
+void vline(int lx, int ty, int h, uint16 color) {
+  for (int y = ty; y < ty + h; ++y)
+    SNES::PPU::frame.set(lx, y, color);
+}
+
+void postRender() {
+  for (int i = 0; i < 16; i++) {
+    if (sprt[i] != 0 && sprs[i] != 0) {
+      auto rx = (int16)sprx[i] - (int16)xoffs;
+      auto ry = (int16)spry[i] - (int16)yoffs;
+      hline(rx     , ry     , 16, 0x7fff);
+      vline(rx     , ry     , 16, 0x7fff);
+      hline(rx     , ry + 15, 16, 0x7fff);
+      vline(rx + 15, ry     , 16, 0x7fff);
+      //printf("[%x] x=%04x,y=%04x t=%02x\n", i, x, y, t);
+    }
+  }
 }

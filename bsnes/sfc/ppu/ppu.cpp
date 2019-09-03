@@ -3,6 +3,7 @@
 namespace SuperFamicom {
 
 PPU ppu;
+PPUFrame ppuFrame;
 
 #include "io.cpp"
 #include "background.cpp"

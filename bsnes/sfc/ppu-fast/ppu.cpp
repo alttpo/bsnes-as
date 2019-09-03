@@ -1,4 +1,5 @@
 #include <sfc/sfc.hpp>
+#include <bsnes/sfc/sfc.hpp>
 
 namespace SuperFamicom {
 
@@ -155,7 +156,16 @@ auto PPU::refresh() -> void {
     if(auto device = controllerPort2.device) device->draw(output, pitch * sizeof(uint16), width, height);
 
     // [jsd]: post-render function
-    if(postRender) postRender(output, pitch, width, height);
+    //if(postRender) postRender(output, pitch, width, height);
+    if (script.funcs.postRender) {
+      ppuFrame.output = output;
+      ppuFrame.pitch = pitch;
+      ppuFrame.width = width;
+      ppuFrame.height = height;
+      script.context->Prepare(script.funcs.postRender);
+      script.context->Execute();
+    }
+
     platform->videoFrame(output, pitch * sizeof(uint16), width, height, hd() ? hdScale() : 1);
 
     frame.pitch  = pitch;

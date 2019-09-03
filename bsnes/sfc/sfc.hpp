@@ -79,11 +79,40 @@ namespace SuperFamicom {
   };
 
   struct Script {
-    asIScriptEngine  *engine;
-    asIScriptContext *context;
-    asIScriptModule  *module;
+    asIScriptEngine  *engine = nullptr;
+    asIScriptContext *context = nullptr;
+    asIScriptModule  *module = nullptr;
+
+    struct {
+      bool bound = false;
+      asIScriptFunction *main = nullptr;
+      asIScriptFunction *postRender = nullptr;
+    } funcs;
   };
   extern Script script;
+
+  // used for scripts to read/write to PPU frame:
+  struct PPUFrame {
+    uint16_t *output = nullptr;
+    uint pitch = 512;
+    uint width = 512;
+    uint height = 480;
+
+    auto set(int x, int y, uint16_t color) -> void {
+      if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
+	output[y * pitch + x] = color;
+      }
+    }
+
+    auto get(int x, int y) -> uint16_t {
+      if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
+	return output[y * pitch + x];
+      }
+      // impossible color on 15-bit RGB system:
+      return 0xffff;
+    }
+  };
+  extern PPUFrame ppuFrame;
 
   #include <sfc/system/system.hpp>
   #include <sfc/memory/memory.hpp>
