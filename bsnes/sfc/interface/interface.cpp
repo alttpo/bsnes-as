@@ -352,8 +352,8 @@ auto Interface::registerScriptDefs() -> void {
   auto defaultNamespace = script.engine->GetDefaultNamespace();
   // default SNES:Bus memory functions:
   r = script.engine->SetDefaultNamespace("SNES::Bus"); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32)",  asFUNCTION(script_bus_read_u8), asCALL_CDECL); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32, uint32)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(script_bus_read_u8), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32 addr0, uint32 addr1)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
   //todo[jsd] add write functions
 
   // define SNES::PPU::Frame object type:
