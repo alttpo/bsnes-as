@@ -6,11 +6,10 @@ As a working proof of concept of the AngelScript scripting engine and the basic 
 
 1. clone this repository
 2. `cd` to repository working copy directory
-3. `git checkout 00cf4de1111d8cda3c4c0f7942390b25492ca958`
-4. `make -C bsnes`
-5. `./test.sh`
-
-You will have to modify `test.sh` to override the location of your ALTTP ROM file as it's highly unlikely to be identical to mine.
+3. `make -C bsnes`
+4. `./test.sh`. **NOTE:** You will have to modify `test.sh` to override the location of your ALTTP ROM file as it's highly unlikely to be identical to mine.
+5. Tools > Load Script ... > Browse to `script.as` in repository root
+6. Load a saved state or play through the game to see white rectangles surrounding in-game sprites
 
 ![screenshot](screenshots/alttp-rectangles.png)
 
@@ -23,32 +22,38 @@ uint16[] spry(16);
 uint8[]  sprs(16);
 uint8[]  sprt(16);
 
+void init() {
+  // initialize script state here.
+}
+
 void main() {
   // get screen x,y offset by reading BG2 scroll registers:
-  xoffs = SNES::Bus::read_u16(0x00E2, 0x00E3);
-  yoffs = SNES::Bus::read_u16(0x00E8, 0x00E9);
+  xoffs = SNES::Bus::read_u16(0x7E00E2, 0x7E00E3);
+  yoffs = SNES::Bus::read_u16(0x7E00E8, 0x7E00E9);
 
   for (int i = 0; i < 16; i++) {
     // sprite x,y coords are absolute from BG2 top-left:
-    spry[i] = SNES::Bus::read_u16(0x0D00 + i, 0x0D20 + i);
-    sprx[i] = SNES::Bus::read_u16(0x0D10 + i, 0x0D30 + i);
+    spry[i] = SNES::Bus::read_u16(0x7E0D00 + i, 0x7E0D20 + i);
+    sprx[i] = SNES::Bus::read_u16(0x7E0D10 + i, 0x7E0D30 + i);
     // sprite state (0 = dead, else alive):
-    sprs[i] = SNES::Bus::read_u8(0x0DD0 + i);
+    sprs[i] = SNES::Bus::read_u8(0x7E0DD0 + i);
     // sprite kind:
-    sprt[i] = SNES::Bus::read_u8(0x0E20 + i);
+    sprt[i] = SNES::Bus::read_u8(0x7E0E20 + i);
   }
 }
 
 // draw a horizontal line from x=lx to lx+w on y=ty:
 void hline(int lx, int ty, int w, uint16 color) {
-  for (int x = lx; x < lx + w; ++x)
+  for (int x = lx; x < lx + w; ++x) {
     SNES::PPU::frame.set(x, ty, color);
+  }
 }
 
 // draw a vertical line from y=ty to ty+h on x=lx:
 void vline(int lx, int ty, int h, uint16 color) {
-  for (int y = ty; y < ty + h; ++y)
+  for (int y = ty; y < ty + h; ++y) {
     SNES::PPU::frame.set(lx, y, color);
+  }
 }
 
 void postRender() {
@@ -131,12 +136,29 @@ Lua array indices start at 1 (by convention) which makes for some unnecessarily 
 AngelScript Interface
 =====================
 
-bsnes can bind to these functions optionally defined by scripts:
+Two new options are available in the Tools menu:
+  * Load Script ...
+  * Reload Script
 
-* `void postRender()` - called after a frame is rendered by the PPU but before being swapped to the display
+Load Script will open a dialog to select the AngelScript file to load. Scripts are always reloaded from files and are not cached.
+
+Reload Script will reopen the previously selected AngelScript file and recompile it, replacing any existing script.
+
+bsnes can bind to these optional functions defined by scripts:
+
+* `void init()` - called once immediately after script loaded or reloaded
 * `void main()` - called after a frame is swapped to the display
+* `void postRender()` - called after a frame is rendered by the PPU but before it is swapped to the display
 
-Generally, in `main()` you will want to read memory values and store them in script variables, and in `postRender()` you may want to draw on top of the rendered frame. This is done to avoid a 1-frame latency for drawing.
+No other functions than these are called by the emulator so you must use these to control your script behavior.
+
+In `void init()` you'll want to initialize any state for your script or set properties on the emulator.
+
+In `void main()` you will want to read (or write) memory values and store them in your script variables. **Do not** call frame drawing functions in this method as the frame has already been copied to the display and its contents cleared.
+
+In `void postRender()` you may draw on top of the rendered frame using the `SNES::PPU::frame` object.
+
+`void main()` and `void postRender()` are split to avoid a 1-frame latency for drawing.
 
 Memory
 ------
@@ -153,10 +175,11 @@ PPU Frame Access
 All properties and types in this section are defined in the `SNES::PPU` namespace, e.g. `SNES::PPU::frame`.
 
 * `frame` is a global property that is no-handle reference to the rendered PPU frame which offers read/write access to draw things on top of
+* Coordinate system used: x = 0 up to 512 from left to right, y = 0 up to 480 from top to bottom; both coordinates depend on scaling settings, interlace mode, etc.
+* `uint16` is used for representing 15-bit RGB colors, where each color channel is allocated 5 bits each, from least-significant bits for blue, to most-significant bits for red. The most significant bit of the `uint16` value for color should always be `0`. `0x7fff` is full-white and `0x0000` is full black.
 
 * `Frame` object type:
-  * Coordinate system used: x = 0 up to 512 from left to right, y = 0 up to 480 from top to bottom; both coordinates depend on scaling settings, interlace mode, etc.
-  * `uint16` is used for representing 15-bit RGB colors, where each color channel is allocated 5 bits each, from least-significant bits for blue, to most-significant bits for red. The most significant bit of the `uint16` value for color should always be `0`. `0x7fff` is full-white and `0x0000` is full black.
+  * `int y_offset { get; set; }` - property to adjust Y-offset of drawing functions (default to +8 to skip top overscan area)
   * `uint16 get(int x, int y)` - gets the 15-bit RGB color at the x,y coordinate in the PPU frame
   * `void set(int x, int y, uint16 color)` - sets the 15-bit RGB color at the x,y coordinate in the PPU frame
 
