@@ -1,0 +1,6 @@
+.DS_Store
+.idea/
+angelscript/
+cmake-build-debug/
+bsnes/out/
+*.mov
