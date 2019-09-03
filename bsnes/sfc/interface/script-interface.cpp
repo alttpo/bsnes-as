@@ -53,13 +53,6 @@ struct ScriptFrame {
   auto get_y_offset() -> int { return y_offset; }
   auto set_y_offset(int y_offs) -> void { y_offset = y_offs; }
 
-  auto draw_pixel(int x, int y) -> void {
-    y += y_offset;
-    if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
-      draw(&output[y * pitch + x]);
-    }
-  }
-
   auto read_pixel(int x, int y) -> uint16_t {
     y += y_offset;
     if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
@@ -68,6 +61,36 @@ struct ScriptFrame {
     // impossible color on 15-bit RGB system:
     return 0xffff;
   }
+
+  auto pixel(int x, int y) -> void {
+    y += y_offset;
+    if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
+      draw(&output[y * pitch + x]);
+    }
+  }
+
+  // draw a horizontal line from x=lx to lx+w on y=ty:
+  auto hline(int lx, int ty, int w) -> void {
+    for (int x = lx; x < lx + w; ++x) {
+      pixel(x, ty);
+    }
+  }
+
+  // draw a vertical line from y=ty to ty+h on x=lx:
+  auto vline(int lx, int ty, int h) -> void {
+    for (int y = ty; y < ty + h; ++y) {
+      pixel(lx, y);
+    }
+  }
+
+  // draw a rectangle:
+  auto rect(int x, int y, int w, int h) -> void {
+    hline(x, y, w);
+    hline(x + 1, y + h - 1, w - 1);
+    vline(x, y + 1, h - 1);
+    vline(x + w - 1, y + 1, h - 2);
+  }
+
 } scriptFrame;
 
 uint8_t script_bus_read_u8(uint32_t addr) {
@@ -119,7 +142,12 @@ auto Interface::registerScriptDefs() -> void {
 
   // pixel access functions:
   r = script.engine->RegisterObjectMethod("Frame", "uint16 read_pixel(int x, int y)", asMETHODPR(ScriptFrame, read_pixel, (int, int), uint16_t), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void draw_pixel(int x, int y)", asMETHODPR(ScriptFrame, draw_pixel, (int, int), void), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "void pixel(int x, int y)", asMETHODPR(ScriptFrame, pixel, (int, int), void), asCALL_THISCALL); assert(r >= 0);
+
+  // primitive drawing functions:
+  r = script.engine->RegisterObjectMethod("Frame", "void hline(int lx, int ty, int w)", asMETHODPR(ScriptFrame, hline, (int, int, int), void), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "void vline(int lx, int ty, int h)", asMETHODPR(ScriptFrame, vline, (int, int, int), void), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "void rect(int x, int y, int w, int h)", asMETHODPR(ScriptFrame, rect, (int, int, int, int), void), asCALL_THISCALL); assert(r >= 0);
 
   // global property to access current frame:
   r = script.engine->RegisterGlobalProperty("Frame frame", &scriptFrame); assert(r >= 0);

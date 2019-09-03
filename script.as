@@ -25,25 +25,11 @@ void main() {
   }
 }
 
-// draw a horizontal line from x=lx to lx+w on y=ty:
-void hline(int lx, int ty, int w) {
-  for (int x = lx; x < lx + w; ++x) {
-    SNES::PPU::frame.draw_pixel(x, ty);
-  }
-}
-
-// draw a vertical line from y=ty to ty+h on x=lx:
-void vline(int lx, int ty, int h) {
-  for (int y = ty; y < ty + h; ++y) {
-    SNES::PPU::frame.draw_pixel(lx, y);
-  }
-}
-
 void postRender() {
   // set drawing state:
   SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
   SNES::PPU::frame.color = 0x7fff;
-  SNES::PPU::frame.alpha = 24;
+  SNES::PPU::frame.alpha = 20;
 
   for (int i = 0; i < 16; i++) {
     // skip dead sprites:
@@ -53,10 +39,7 @@ void postRender() {
     int16 rx = int16(sprx[i]) - int16(xoffs);
     int16 ry = int16(spry[i]) - int16(yoffs);
 
-    // draw white rectangle:
-    hline(rx     , ry     , 16);
-    vline(rx     , ry +  1, 15);
-    hline(rx +  1, ry + 15, 15);
-    vline(rx + 15, ry +  1, 14);
+    // draw rectangle around the sprite:
+    SNES::PPU::frame.rect(rx, ry, 16, 16);
   }
 }
