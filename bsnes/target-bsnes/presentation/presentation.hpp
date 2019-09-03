@@ -85,8 +85,9 @@ struct Presentation : Window {
       MenuItem inputSettings{&settingsMenu};
       MenuItem hotkeySettings{&settingsMenu};
       MenuItem pathSettings{&settingsMenu};
-      MenuItem speedSettings{&settingsMenu};
       MenuItem emulatorSettings{&settingsMenu};
+      MenuItem enhancementSettings{&settingsMenu};
+      MenuItem compatibilitySettings{&settingsMenu};
       MenuItem driverSettings{&settingsMenu};
     Menu toolsMenu{&menuBar};
       Menu saveState{&toolsMenu};
@@ -121,8 +122,8 @@ struct Presentation : Window {
     Menu helpMenu{&menuBar};
       MenuItem documentation{&helpMenu};
       MenuSeparator helpSeparator{&helpMenu};
-      MenuItem about{&helpMenu};
       MenuItem aboutSameBoy{&helpMenu};
+      MenuItem about{&helpMenu};
 
   VerticalLayout layout{this};
     HorizontalLayout viewportLayout{&layout, Size{~0, ~0}, 0};

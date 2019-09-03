@@ -25,14 +25,17 @@ struct Configuration {
   } video;
 
   struct Hacks {
+    bool hotfixes = true;
     string entropy = "Low";
     struct CPU {
       uint overclock = 100;
+      bool fastMath = false;
     } cpu;
     struct PPU {
       bool fast = true;
       bool deinterlace = true;
       bool noSpriteLimit = false;
+      bool noVRAMBlocking = false;
       uint renderCycle = 512;
       struct Mode7 {
         uint scale = 1;
@@ -44,6 +47,7 @@ struct Configuration {
     struct DSP {
       bool fast = true;
       bool cubic = false;
+      bool echoShadow = false;
     } dsp;
     struct Coprocessor {
       bool delayedSync = true;
