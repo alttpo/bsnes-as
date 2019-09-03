@@ -7,6 +7,7 @@ uint8[]  sprt(16);
 
 void init() {
   // initialize script state here.
+  message("hello world!");
 }
 
 void main() {
