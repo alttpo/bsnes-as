@@ -1,3 +1,51 @@
+AngelScript
+===========
+I have embedded the [AngelScript v2.33.0](https://www.angelcode.com/angelscript/) engine into the bsnes code and created some rudimentary script function bindings between the bsnes emulator and AngelScript scripts.
+
+As a working proof of concept of the scripting engine and the basic bindings set up, I've developed a script that draws white squares surrounding in-game sprites as they are defined in RAM by Zelda 3: A Link To The Past. To test this proof of concept:
+
+1. clone this repository
+2. `cd` to repository working copy directory
+3. `git checkout 00cf4de1111d8cda3c4c0f7942390b25492ca958`
+4. `make -C bsnes`
+5. `./test.sh`
+
+You will have to modify `test.sh` to override the location of your ALTTP ROM file as it's highly unlikely to be identical to mine.
+
+Script Interface
+----------------
+
+bsnes can bind to these functions optionally defined by scripts:
+
+* `void postRender()` - called after a frame is rendered by the PPU but before being swapped to the display
+* `void main()` - called after a frame is swapped to the display
+
+Generally, in `main()` you will want to read memory values and store them in script variables, and in `postRender()` you may want to draw on top of the rendered frame. This is done to avoid a 1-frame latency for drawing.
+
+Memory
+------
+
+All definitions in this section are defined in the `SNES::Bus` namespace, e.g. `SNES::Bus::read_u8`.
+
+* `uint8 read_u8(uint32 addr)` - reads a `uint8` value from the given bus address (24-bit)
+* `uint16 read_u16(uint32 addr0, uint32 addr1)` - reads a `uint16` value from the given bus addresses, using `addr0` for the low byte and `addr1` for the high byte. `addr0` and `addr1` can be any address or even the same address. `addr0` is always read before `addr1` is read.
+* TODO: add write functions
+
+PPU Frame Access
+----------------
+
+All properties and types in this section are defined in the `SNES::PPU` namespace, e.g. `SNES::PPU::frame`.
+
+* `frame` is a global property that is no-handle reference to the rendered PPU frame which offers read/write access to draw things on top of
+
+* `Frame` object type:
+  * Coordinate system used: x = 0 up to 512 from left to right, y = 0 up to 480 from top to bottom; both coordinates depend on scaling settings, interlace mode, etc.
+  * `uint16` is used for representing 15-bit RGB colors, where each color channel is allocated 5 bits each, from least-significant bits for blue, to most-significant bits for red. The most significant bit of the `uint16` value for color should always be `0`. `0x7fff` is full-white and `0x0000` is full black.
+  * `uint16 get(int x, int y)` - gets the 15-bit RGB color at the x,y coordinate in the PPU frame
+  * `void set(int x, int y, uint16 color)` - sets the 15-bit RGB color at the x,y coordinate in the PPU frame
+
+
+
 bsnes
 =====
 
