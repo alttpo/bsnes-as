@@ -204,10 +204,7 @@ public:
   uint mute = 0;
 
   // [jsd] add support for AngelScript
-  struct AngelScript {
-    asIScriptEngine  *engine;
-    asIScriptContext *ctx;
-  } script;
+  asIScriptEngine  *engine;
 };
 
 extern Program program;

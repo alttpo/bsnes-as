@@ -15,10 +15,10 @@ void MessageCallback(const asSMessageInfo *msg, void *param)
 
 auto Program::scriptInit() -> void {
   // initialize angelscript
-  script.engine = asCreateScriptEngine();
+  engine = asCreateScriptEngine();
 
   // Set the message callback to receive information on errors in human readable form.
-  int r = script.engine->SetMessageCallback(asFUNCTION(MessageCallback), 0, asCALL_CDECL);
+  int r = engine->SetMessageCallback(asFUNCTION(MessageCallback), 0, asCALL_CDECL);
   assert(r >= 0);
 
   // Let the emulator register its script definitions:
@@ -28,17 +28,13 @@ auto Program::scriptInit() -> void {
   string scriptSource = string::read("script.as");
 
   // add script into module:
-  asIScriptModule *mod = script.engine->GetModule(0, asGM_ALWAYS_CREATE);
+  asIScriptModule *mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
   r = mod->AddScriptSection("script", scriptSource.begin(), scriptSource.length());
   assert(r >= 0);
 
   // compile module:
   r = mod->Build();
   assert(r >= 0);
-
-  // create context:
-  script.ctx = script.engine->CreateContext();
-  // todo: eventually ctx->Release()
 }
 
 
