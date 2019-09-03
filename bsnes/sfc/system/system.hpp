@@ -35,8 +35,6 @@ private:
 
   struct Hacks {
     bool fastPPU = false;
-    // [jsd]
-    bool alttp = true;
   } hacks;
 
   uint serializeSize = 0;
@@ -44,9 +42,6 @@ private:
   auto serialize(serializer&) -> void;
   auto serializeAll(serializer&) -> void;
   auto serializeInit() -> void;
-
-  // [jsd]
-  auto postRender(uint16_t* data, uint pitch, uint width, uint height) -> void;
 
   friend class Cartridge;
 };

@@ -155,8 +155,6 @@ auto PPU::refresh() -> void {
 
     if(auto device = controllerPort2.device) device->draw(output, pitch * sizeof(uint16), width, height);
 
-    // [jsd]: post-render function
-    //if(postRender) postRender(output, pitch, width, height);
     if (script.funcs.postRender) {
       ppuFrame.output = output;
       ppuFrame.pitch = pitch;

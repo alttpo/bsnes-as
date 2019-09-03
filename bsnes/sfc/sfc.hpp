@@ -84,7 +84,6 @@ namespace SuperFamicom {
     asIScriptModule  *module = nullptr;
 
     struct {
-      bool bound = false;
       asIScriptFunction *main = nullptr;
       asIScriptFunction *postRender = nullptr;
     } funcs;
