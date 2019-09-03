@@ -23,18 +23,6 @@ auto Program::scriptInit() -> void {
 
   // Let the emulator register its script definitions:
   emulator->registerScriptDefs();
-
-  // load script from file:
-  string scriptSource = string::read("script.as");
-
-  // add script into module:
-  asIScriptModule *mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
-  r = mod->AddScriptSection("script", scriptSource.begin(), scriptSource.length());
-  assert(r >= 0);
-
-  // compile module:
-  r = mod->Build();
-  assert(r >= 0);
 }
 
 

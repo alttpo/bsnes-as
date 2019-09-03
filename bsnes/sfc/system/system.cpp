@@ -6,6 +6,7 @@ System system;
 Scheduler scheduler;
 Random random;
 Cheat cheat;
+Script script;
 #include "serialization.cpp"
 
 struct ALTTP {

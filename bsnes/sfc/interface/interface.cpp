@@ -345,14 +345,31 @@ uint8_t script_bus_read_u16(uint32_t addr) {
 auto Interface::registerScriptDefs() -> void {
   int r;
 
-  asIScriptEngine *engine = platform->scriptEngine();
+  script.engine = platform->scriptEngine();
 
   // register global functions for the script to use:
-  auto defaultNamespace = engine->GetDefaultNamespace();
-  r = engine->SetDefaultNamespace("SNES::Bus"); assert(r >= 0);
-  r = engine->RegisterGlobalFunction("uint8 read_u8(uint32)",  asFUNCTION(script_bus_read_u8),  asCALL_CDECL); assert(r >= 0);
-  r = engine->RegisterGlobalFunction("uint8 read_u16(uint32)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
-  r = engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
+  auto defaultNamespace = script.engine->GetDefaultNamespace();
+  r = script.engine->SetDefaultNamespace("SNES::Bus"); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32)",  asFUNCTION(script_bus_read_u8),  asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint8 read_u16(uint32)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
+
+  // load script from file:
+  string scriptSource = string::read("script.as");
+
+  // add script into module:
+  script.module = script.engine->GetModule(0, asGM_ALWAYS_CREATE);
+  r = script.module->AddScriptSection("script", scriptSource.begin(), scriptSource.length());
+  assert(r >= 0);
+
+  // compile module:
+  r = script.module->Build();
+  assert(r >= 0);
+
+  //script.module->GetFunctionByDecl("void ppuRefresh()");
+
+  // create context:
+  script.context = script.engine->CreateContext();
 }
 
 }

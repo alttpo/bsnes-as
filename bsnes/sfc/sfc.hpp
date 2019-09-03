@@ -78,6 +78,13 @@ namespace SuperFamicom {
     static inline auto PAL() -> bool;
   };
 
+  struct Script {
+    asIScriptEngine  *engine;
+    asIScriptContext *context;
+    asIScriptModule  *module;
+  };
+  extern Script script;
+
   #include <sfc/system/system.hpp>
   #include <sfc/memory/memory.hpp>
   #include <sfc/ppu/counter/counter.hpp>
