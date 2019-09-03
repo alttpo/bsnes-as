@@ -50,11 +50,12 @@ auto Program::scriptLoad() -> void {
   settings.path.recent.script = Location::dir(script.location);
 
   emulator->loadScript(script.location);
+  showMessage({"Script file '", Location::file(script.location), "' loaded"});
 }
 
 auto Program::scriptReload() -> void {
   if(!inode::exists(script.location)) {
-    showMessage("Script file not found");
+    showMessage({"Script file '", Location::file(script.location), "' not found"});
     return;
   }
 
