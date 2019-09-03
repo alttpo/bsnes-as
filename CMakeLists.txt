@@ -501,6 +501,7 @@ add_executable(bsnes
         bsnes/sfc/interface/configuration.hpp
         bsnes/sfc/interface/interface.cpp
         bsnes/sfc/interface/interface.hpp
+        bsnes/sfc/interface/script-interface.cpp
         bsnes/sfc/memory/memory-inline.hpp
         bsnes/sfc/memory/memory.cpp
         bsnes/sfc/memory/memory.hpp
@@ -586,7 +587,6 @@ add_executable(bsnes
         bsnes/target-bsnes/settings/paths.cpp
         bsnes/target-bsnes/settings/settings.cpp
         bsnes/target-bsnes/settings/settings.hpp
-        bsnes/target-bsnes/settings/speed.cpp
         bsnes/target-bsnes/settings/video.cpp
         bsnes/target-bsnes/tools/cheat-editor.cpp
         bsnes/target-bsnes/tools/cheat-finder.cpp
