@@ -339,8 +339,8 @@ uint8_t script_bus_read_u8(uint32_t addr) {
   return bus.read(addr, 0);
 }
 
-uint8_t script_bus_read_u16(uint32_t addr) {
-  return bus.read(addr, 0) | (bus.read(addr+1,0) << 8u);
+uint16_t script_bus_read_u16(uint32_t addr0, uint32_t addr1) {
+  return bus.read(addr0, 0) | (bus.read(addr1,0) << 8u);
 }
 
 auto Interface::registerScriptDefs() -> void {
@@ -352,8 +352,8 @@ auto Interface::registerScriptDefs() -> void {
   auto defaultNamespace = script.engine->GetDefaultNamespace();
   // default SNES:Bus memory functions:
   r = script.engine->SetDefaultNamespace("SNES::Bus"); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32)",  asFUNCTION(script_bus_read_u8),  asCALL_CDECL); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("uint8 read_u16(uint32)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32)",  asFUNCTION(script_bus_read_u8), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32, uint32)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
   //todo[jsd] add write functions
 
   // define SNES::PPU::Frame object type:
@@ -361,7 +361,7 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "uint16 get(int x, int y)", asMETHODPR(PPUFrame, get, (int, int), uint16_t), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void set(int x, int y, uint16 color)", asMETHODPR(PPUFrame, set, (int, int, uint16_t), void), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterGlobalProperty("frame", &ppuFrame); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("Frame frame", &ppuFrame); assert(r >= 0);
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 
   // load script from file:
