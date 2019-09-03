@@ -13,7 +13,6 @@ struct Program : Lock, Emulator::Platform {
   auto audioFrame(const float* samples, uint channels) -> void override;
   auto inputPoll(uint port, uint device, uint input) -> int16 override;
   auto inputRumble(uint port, uint device, uint input, bool enable) -> void override;
-  auto scriptEngine() -> asIScriptEngine* override;
 
   //game.cpp
   auto load() -> void;
@@ -138,7 +137,11 @@ struct Program : Lock, Emulator::Platform {
   auto viewportRefresh() -> void;
 
   //script.cpp
+  auto scriptEngine() -> asIScriptEngine* override;
   auto scriptInit() -> void;
+  auto scriptLoad() -> void;
+  auto scriptReload() -> void;
+
 public:
   struct Game {
     explicit operator bool() const { return (bool)location; }
@@ -204,7 +207,11 @@ public:
   uint mute = 0;
 
   // [jsd] add support for AngelScript
-  asIScriptEngine  *engine;
+  struct Script {
+    asIScriptEngine *engine;
+
+    string location;
+  } script;
 };
 
 extern Program program;

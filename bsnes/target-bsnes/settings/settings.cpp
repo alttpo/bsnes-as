@@ -92,12 +92,14 @@ auto Settings::process(bool load) -> void {
   bind(text,    "Path/Cheats",      path.cheats);
   bind(text,    "Path/States",      path.states);
   bind(text,    "Path/Screenshots", path.screenshots);
+  bind(text,    "Path/Scripts",     path.scripts);
 
   bind(text,    "Path/Recent/SuperFamicom", path.recent.superFamicom);
   bind(text,    "Path/Recent/GameBoy",      path.recent.gameBoy);
   bind(text,    "Path/Recent/BSMemory",     path.recent.bsMemory);
   bind(text,    "Path/Recent/SufamiTurboA", path.recent.sufamiTurboA);
   bind(text,    "Path/Recent/SufamiTurboB", path.recent.sufamiTurboB);
+  bind(text,    "Path/Recent/Script",       path.recent.script);
 
   bind(natural, "FastForward/FrameSkip", fastForward.frameSkip);
   bind(natural, "FastForward/Limiter",   fastForward.limiter);

@@ -1,6 +1,10 @@
 
 //#include <bsnes/target-bsnes/bsnes.hpp>
 
+auto Program::scriptEngine() -> asIScriptEngine* {
+  return script.engine;
+}
+
 // Implement a simple message callback function
 void MessageCallback(const asSMessageInfo *msg, void *param)
 {
@@ -15,17 +19,45 @@ void MessageCallback(const asSMessageInfo *msg, void *param)
 
 auto Program::scriptInit() -> void {
   // initialize angelscript
-  engine = asCreateScriptEngine();
+  script.engine = asCreateScriptEngine();
 
   // Set the message callback to receive information on errors in human readable form.
-  int r = engine->SetMessageCallback(asFUNCTION(MessageCallback), 0, asCALL_CDECL);
+  int r = script.engine->SetMessageCallback(asFUNCTION(MessageCallback), 0, asCALL_CDECL);
   assert(r >= 0);
 
   // Register script-array extension:
-  RegisterScriptArray(engine, true /* bool defaultArrayType */);
+  RegisterScriptArray(script.engine, true /* bool defaultArrayType */);
 
   // Let the emulator register its script definitions:
   emulator->registerScriptDefs();
 }
 
+auto Program::scriptLoad() -> void {
+  BrowserDialog dialog;
+  dialog.setAlignment(*presentation);
 
+  dialog.setTitle("Load AngelScript");
+  dialog.setPath(path("Scripts", settings.path.recent.script));
+  dialog.setFilters({string{"AngelScripts|*.as"}, string{"All Files|*"}});
+
+  auto location = dialog.openObject();
+  if(!inode::exists(location)) {
+    showMessage("Script file not found");
+    return;
+  }
+
+  script.location = location;
+  settings.path.recent.script = Location::dir(script.location);
+
+  emulator->loadScript(script.location);
+}
+
+auto Program::scriptReload() -> void {
+  if(!inode::exists(script.location)) {
+    showMessage("Script file not found");
+    return;
+  }
+
+  emulator->loadScript(script.location);
+  showMessage({"Script file '", Location::file(script.location), "' loaded"});
+}

@@ -5,6 +5,11 @@ uint16[] spry(16);
 uint8[]  sprs(16);
 uint8[]  sprt(16);
 
+void init() {
+  // skip overscan area at top of screen when drawing:
+  SNES::PPU::frame.y_offset = 8;
+}
+
 void main() {
   // get screen x,y offset by reading BG2 scroll registers:
   xoffs = SNES::Bus::read_u16(0x00E2, 0x00E3);

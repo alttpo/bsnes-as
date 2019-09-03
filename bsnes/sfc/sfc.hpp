@@ -84,6 +84,7 @@ namespace SuperFamicom {
     asIScriptModule  *module = nullptr;
 
     struct {
+      asIScriptFunction *init = nullptr;
       asIScriptFunction *main = nullptr;
       asIScriptFunction *postRender = nullptr;
     } funcs;
@@ -96,14 +97,24 @@ namespace SuperFamicom {
     uint pitch = 512;
     uint width = 512;
     uint height = 480;
+    int y_offset = 0;
+
+    auto get_y_offset() -> int {
+      return y_offset;
+    }
+    auto set_y_offset(int y_offs) -> void {
+      y_offset = y_offs;
+    }
 
     auto set(int x, int y, uint16_t color) -> void {
+      y += y_offset;
       if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
 	output[y * pitch + x] = color;
       }
     }
 
     auto get(int x, int y) -> uint16_t {
+      y += y_offset;
       if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
 	return output[y * pitch + x];
       }

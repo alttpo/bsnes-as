@@ -28,6 +28,10 @@ auto Program::path(string type, string location, string extension) -> string {
     if(auto path = settings.path.screenshots) pathname = path;
   }
 
+  if(type == "Scripts") {
+    if(auto path = settings.path.scripts) pathname = path;
+  }
+
   return {pathname, prefix, suffix};
 }
 

@@ -359,16 +359,34 @@ auto Interface::registerScriptDefs() -> void {
   // define SNES::PPU::Frame object type:
   r = script.engine->SetDefaultNamespace("SNES::PPU"); assert(r >= 0);
   r = script.engine->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "int get_y_offset()", asMETHODPR(PPUFrame, get_y_offset, (), int), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "void set_y_offset(int y_offs)", asMETHODPR(PPUFrame, set_y_offset, (int), void), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "uint16 get(int x, int y)", asMETHODPR(PPUFrame, get, (int, int), uint16_t), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void set(int x, int y, uint16 color)", asMETHODPR(PPUFrame, set, (int, int, uint16_t), void), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterGlobalProperty("Frame frame", &ppuFrame); assert(r >= 0);
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 
+  // create context:
+  script.context = script.engine->CreateContext();
+}
+
+auto Interface::loadScript(string location) -> void {
+  int r;
+
+  if (!inode::exists(location)) return;
+
+//  if (script.context) {
+//    script.context->Release();
+//  }
+  if (script.module) {
+    script.module->Discard();
+  }
+
   // load script from file:
-  string scriptSource = string::read("script.as");
+  string scriptSource = string::read(location);
 
   // add script into module:
-  script.module = script.engine->GetModule(0, asGM_ALWAYS_CREATE);
+  script.module = script.engine->GetModule(nullptr, asGM_ALWAYS_CREATE);
   r = script.module->AddScriptSection("script", scriptSource.begin(), scriptSource.length());
   assert(r >= 0);
 
@@ -377,11 +395,14 @@ auto Interface::registerScriptDefs() -> void {
   assert(r >= 0);
 
   // bind to functions in the script:
+  script.funcs.init = script.module->GetFunctionByDecl("void init()");
   script.funcs.main = script.module->GetFunctionByDecl("void main()");
   script.funcs.postRender = script.module->GetFunctionByDecl("void postRender()");
 
-  // create context:
-  script.context = script.engine->CreateContext();
+  if (script.funcs.init) {
+    script.context->Prepare(script.funcs.init);
+    script.context->Execute();
+  }
 }
 
 }

@@ -104,6 +104,7 @@ struct Interface {
 
   //scripting
   virtual auto registerScriptDefs() -> void {}
+  virtual auto loadScript(string location) -> void {}
 };
 
 }

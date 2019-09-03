@@ -65,12 +65,14 @@ struct Settings : Markup::Node {
     string cheats;
     string states;
     string screenshots;
+    string scripts;
     struct Recent {
       string superFamicom;
       string gameBoy;
       string bsMemory;
       string sufamiTurboA;
       string sufamiTurboB;
+      string script;
     } recent;
   } path;
 

@@ -175,6 +175,8 @@ auto Presentation::create() -> void {
   cheatEditor.setIcon(Icon::Edit::Replace).setText("Cheat Editor ...").onActivate([&] { toolsWindow.show(1); });
   stateManager.setIcon(Icon::Application::FileManager).setText("State Manager ...").onActivate([&] { toolsWindow.show(2); });
   manifestViewer.setIcon(Icon::Emblem::Text).setText("Manifest Viewer ...").onActivate([&] { toolsWindow.show(3); });
+  scriptLoad.setIcon(Icon::Emblem::Text).setText("Load Script ...").onActivate([&] { program.scriptLoad(); });
+  scriptReload.setIcon(Icon::Emblem::Text).setText("Reload Script").onActivate([&] { program.scriptReload(); });
 
   helpMenu.setText(tr("Help"));
   documentation.setIcon(Icon::Application::Browser).setText({tr("Documentation"), " ..."}).onActivate([&] {

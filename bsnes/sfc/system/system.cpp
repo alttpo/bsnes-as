@@ -24,8 +24,6 @@ auto System::run() -> void {
     }
     Memory::GlobalWriteEnable = false;
 
-    script.context->Prepare(script.funcs.main);
-
     if (script.funcs.main) {
       script.context->Prepare(script.funcs.main);
       script.context->Execute();
