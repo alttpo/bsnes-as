@@ -6,8 +6,7 @@ uint8[]  sprs(16);
 uint8[]  sprt(16);
 
 void init() {
-  // skip overscan area at top of screen when drawing:
-  SNES::PPU::frame.y_offset = 8;
+  // initialize script state here.
 }
 
 void main() {
@@ -28,14 +27,16 @@ void main() {
 
 // draw a horizontal line from x=lx to lx+w on y=ty:
 void hline(int lx, int ty, int w, uint16 color) {
-  for (int x = lx; x < lx + w; ++x)
+  for (int x = lx; x < lx + w; ++x) {
     SNES::PPU::frame.set(x, ty, color);
+  }
 }
 
 // draw a vertical line from y=ty to ty+h on x=lx:
 void vline(int lx, int ty, int h, uint16 color) {
-  for (int y = ty; y < ty + h; ++y)
+  for (int y = ty; y < ty + h; ++y) {
     SNES::PPU::frame.set(lx, y, color);
+  }
 }
 
 void postRender() {

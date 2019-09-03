@@ -97,7 +97,7 @@ namespace SuperFamicom {
     uint pitch = 512;
     uint width = 512;
     uint height = 480;
-    int y_offset = 0;
+    int y_offset = 8;
 
     auto get_y_offset() -> int {
       return y_offset;
