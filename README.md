@@ -2,6 +2,18 @@ AngelScript
 ===========
 I have embedded the [AngelScript v2.33.0](https://www.angelcode.com/angelscript/) engine into the bsnes code and created some rudimentary script function bindings between the bsnes emulator and AngelScript scripts.
 
+As a working proof of concept of the AngelScript scripting engine and the basic bindings set up, I've developed a script targeted at Zelda 3: A Link To The Past that draws white squares around in-game sprites as they are defined in RAM. To test this proof of concept:
+
+1. clone this repository
+2. `cd` to repository working copy directory
+3. `git checkout 00cf4de1111d8cda3c4c0f7942390b25492ca958`
+4. `make -C bsnes`
+5. `./test.sh`
+
+You will have to modify `test.sh` to override the location of your ALTTP ROM file as it's highly unlikely to be identical to mine.
+
+![screenshot](screenshots/alttp-rectangles.png)
+
 My Goals
 --------
 I want to create an emulator add-on defined entirely via scripts that enables a real-time networked multiplayer experience for *Zelda 3: A Link To The Past*. This game has an active and vibrant community surrounding it with things like Randomizer, Crowd Control, and Tournaments.
@@ -57,21 +69,10 @@ Lua has fast execution of its own scripts and even has a JIT, however, this spee
 
 Lua array indices start at 1 (by convention) which makes for some unnecessarily different code practices and mental gymnastics when one is used to working with 0-based array indices which most other mainstream languages use.
 
-AngelScript
-===========
+---
 
-As a working proof of concept of the AngelScript scripting engine and the basic bindings set up, I've developed a script targeted at Zelda 3: A Link To The Past that draws white squares around in-game sprites as they are defined in RAM. To test this proof of concept:
-
-1. clone this repository
-2. `cd` to repository working copy directory
-3. `git checkout 00cf4de1111d8cda3c4c0f7942390b25492ca958`
-4. `make -C bsnes`
-5. `./test.sh`
-
-You will have to modify `test.sh` to override the location of your ALTTP ROM file as it's highly unlikely to be identical to mine.
-
-Script Interface
-----------------
+AngelScript Interface
+=====================
 
 bsnes can bind to these functions optionally defined by scripts:
 
@@ -102,7 +103,7 @@ All properties and types in this section are defined in the `SNES::PPU` namespac
   * `uint16 get(int x, int y)` - gets the 15-bit RGB color at the x,y coordinate in the PPU frame
   * `void set(int x, int y, uint16 color)` - sets the 15-bit RGB color at the x,y coordinate in the PPU frame
 
-
+---
 
 bsnes
 =====
