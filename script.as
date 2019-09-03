@@ -41,9 +41,9 @@ void vline(int lx, int ty, int h) {
 
 void postRender() {
   // set drawing state:
-  SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_solid;
+  SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
   SNES::PPU::frame.color = 0x7fff;
-  SNES::PPU::frame.alpha = 31;
+  SNES::PPU::frame.alpha = 24;
 
   for (int i = 0; i < 16; i++) {
     // skip dead sprites:
@@ -55,8 +55,8 @@ void postRender() {
 
     // draw white rectangle:
     hline(rx     , ry     , 16);
-    vline(rx     , ry     , 16);
-    hline(rx     , ry + 15, 16);
-    vline(rx + 15, ry     , 16);
+    vline(rx     , ry +  1, 15);
+    hline(rx +  1, ry + 15, 15);
+    vline(rx + 15, ry +  1, 14);
   }
 }

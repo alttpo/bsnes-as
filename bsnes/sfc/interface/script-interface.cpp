@@ -7,7 +7,7 @@ struct ScriptFrame {
 
   uint16_t color = 0x7fff;
   auto get_color() -> uint16_t { return color; }
-  auto set_color(uint16_t color_p) -> void { color = color_p; }
+  auto set_color(uint16_t color_p) -> void { color = uclamp<15>(color_p); }
 
   enum DrawOp : int {
     op_solid,
@@ -19,7 +19,7 @@ struct ScriptFrame {
 
   uint8 alpha = 255;
   auto get_alpha() -> uint8 { return alpha; }
-  auto set_alpha(uint8 alpha_p) { alpha = alpha_p; }
+  auto set_alpha(uint8 alpha_p) { alpha = uclamp<5>(alpha_p); }
 
   auto inline draw(uint16_t *p) {
     switch (draw_op) {
@@ -32,9 +32,9 @@ struct ScriptFrame {
 	uint sb = (color & 0x7c00) >> 10;
 
 	*p =
-	  (((sr * 31) + (dr * (31 - alpha))) / 31) |
-	  (((sg * 31) + (dg * (31 - alpha))) / 31) << 5 |
-	  (((sb * 31) + (db * (31 - alpha))) / 31) << 10;
+	  (((sr * alpha) + (dr * (31 - alpha))) / 31) |
+	  (((sg * alpha) + (dg * (31 - alpha))) / 31) << 5 |
+	  (((sb * alpha) + (db * (31 - alpha))) / 31) << 10;
 	break;
       }
 
