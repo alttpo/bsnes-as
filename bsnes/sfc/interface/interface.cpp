@@ -359,10 +359,16 @@ auto Interface::registerScriptDefs() -> void {
   // define SNES::PPU::Frame object type:
   r = script.engine->SetDefaultNamespace("SNES::PPU"); assert(r >= 0);
   r = script.engine->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+
+  // adjust y_offset of drawing functions:
   r = script.engine->RegisterObjectMethod("Frame", "int get_y_offset()", asMETHODPR(PPUFrame, get_y_offset, (), int), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void set_y_offset(int y_offs)", asMETHODPR(PPUFrame, set_y_offset, (int), void), asCALL_THISCALL); assert(r >= 0);
+
+  // pixel access functions:
   r = script.engine->RegisterObjectMethod("Frame", "uint16 get(int x, int y)", asMETHODPR(PPUFrame, get, (int, int), uint16_t), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void set(int x, int y, uint16 color)", asMETHODPR(PPUFrame, set, (int, int, uint16_t), void), asCALL_THISCALL); assert(r >= 0);
+
+  // global property to access current frame:
   r = script.engine->RegisterGlobalProperty("Frame frame", &ppuFrame); assert(r >= 0);
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 
