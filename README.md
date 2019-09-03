@@ -89,23 +89,23 @@ Why AngelScript?
 I came up with an ideal set of criteria for a scripting language to adhere to in order to seamlessly integrate with bsnes:
 
 1. Easy integration with an existing C/C++ codebase (bsnes)
-  * Should be available for direct embedding within bsnes or at least accessible via static library
-  * If directly embeddable, must seamlessly integrate with existing build system (bsnes's composed `GNUmakefile`s)
+  1. Should be available for direct embedding within bsnes or at least accessible via static library
+  1. If directly embeddable, must seamlessly integrate with existing build system (bsnes's composed `GNUmakefile`s)
 2. Low developer overhead
-  * Should be easy to define interfaces, functions, and properties for bsnes to expose to scripts and vice-versa
-  * Avoid proxy code and data marshalling at runtime used for calling functions bidirectionally
+  1. Should be easy to define interfaces, functions, and properties for bsnes to expose to scripts and vice-versa
+  1. Avoid proxy code and data marshalling at runtime used for calling functions bidirectionally
 3. Low runtime overhead
-  * Script functions should ideally have compatible calling conventions with bsnes (CDECL or THISCALL) to cut down on per-call overhead
+  1. Script functions should ideally have compatible calling conventions with bsnes (CDECL or THISCALL) to cut down on per-call overhead
 4. Fast performance since script functions will likely be called at least once per frame
 5. Familiar script syntax and similar language conventions to C/C++ code to avoid surprises for script developers
-  * Primitive data types can be shared between bsnes and scripts to avoid proxying and marshalling
-  * Must have first-class support for native integer types (int, uint, uint8, uint16, uint32, etc.)
-  * Must have first-class support for binary operations on integer types (and, or, not, xor, bit shifting, etc.)
-  * Must have support for array types; array indices must start at `0` (looking at you, Lua)
+  1. Primitive data types can be shared between bsnes and scripts to avoid proxying and marshalling
+  1. Must have first-class support for native integer types (int, uint, uint8, uint16, uint32, etc.)
+  1. Must have first-class support for binary operations on integer types (and, or, not, xor, bit shifting, etc.)
+  1. Must have support for array types; array indices must start at `0` (looking at you, Lua)
 6. Script language MUST NOT be allowed to access anything outside of its scripting environment unless explicitly designed for and controlled by bsnes
-  * No external `.dll`/`.dylib`/`.so` dynamic library loading unless explicitly allowed by bsnes
-  * No access to filesystem unless explicitly allowed by bsnes
-  * No access to network or external peripherals unless explicitly allowed by bsnes
+  1. No external `.dll`/`.dylib`/`.so` dynamic library loading unless explicitly allowed by bsnes
+  1. No access to filesystem unless explicitly allowed by bsnes
+  1. No access to network or external peripherals unless explicitly allowed by bsnes
 7. Supports building a script debugger within bsnes
 8. Ideally statically typed with good compiler errors and warnings
 
