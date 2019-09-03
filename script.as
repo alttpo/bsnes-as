@@ -11,17 +11,17 @@ void init() {
 
 void main() {
   // get screen x,y offset by reading BG2 scroll registers:
-  xoffs = SNES::Bus::read_u16(0x00E2, 0x00E3);
-  yoffs = SNES::Bus::read_u16(0x00E8, 0x00E9);
+  xoffs = SNES::Bus::read_u16(0x7E00E2, 0x7E00E3);
+  yoffs = SNES::Bus::read_u16(0x7E00E8, 0x7E00E9);
 
   for (int i = 0; i < 16; i++) {
     // sprite x,y coords are absolute from BG2 top-left:
-    spry[i] = SNES::Bus::read_u16(0x0D00 + i, 0x0D20 + i);
-    sprx[i] = SNES::Bus::read_u16(0x0D10 + i, 0x0D30 + i);
+    spry[i] = SNES::Bus::read_u16(0x7E0D00 + i, 0x7E0D20 + i);
+    sprx[i] = SNES::Bus::read_u16(0x7E0D10 + i, 0x7E0D30 + i);
     // sprite state (0 = dead, else alive):
-    sprs[i] = SNES::Bus::read_u8(0x0DD0 + i);
+    sprs[i] = SNES::Bus::read_u8(0x7E0DD0 + i);
     // sprite kind:
-    sprt[i] = SNES::Bus::read_u8(0x0E20 + i);
+    sprt[i] = SNES::Bus::read_u8(0x7E0E20 + i);
   }
 }
 
