@@ -334,4 +334,25 @@ auto Interface::setFrameSkip(uint frameSkip) -> void {
   system.frameCounter = 0;
 }
 
+uint8_t script_bus_read_u8(uint32_t addr) {
+  return bus.read(addr, 0);
+}
+
+uint8_t script_bus_read_u16(uint32_t addr) {
+  return bus.read(addr, 0) | (bus.read(addr+1,0) << 8u);
+}
+
+auto Interface::registerScriptDefs() -> void {
+  int r;
+
+  asIScriptEngine *engine = platform->scriptEngine();
+
+  // register global functions for the script to use:
+  auto defaultNamespace = engine->GetDefaultNamespace();
+  r = engine->SetDefaultNamespace("SNES::Bus"); assert(r >= 0);
+  r = engine->RegisterGlobalFunction("uint8 read_u8(uint32)",  asFUNCTION(script_bus_read_u8),  asCALL_CDECL); assert(r >= 0);
+  r = engine->RegisterGlobalFunction("uint8 read_u16(uint32)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
+  r = engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
+}
+
 }

@@ -291,3 +291,7 @@ auto Program::inputRumble(uint port, uint device, uint input, bool enable) -> vo
     }
   }
 }
+
+auto Program::scriptEngine() -> asIScriptEngine* {
+  return script.engine;
+}

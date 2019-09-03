@@ -1429,4 +1429,4 @@ add_executable(bsnes
         ruby/video/xvideo.cpp
         ruby/ruby.cpp
         ruby/ruby.hpp
-        sourcery/sourcery.cpp)
+        sourcery/sourcery.cpp bsnes/target-bsnes/program/script.cpp bsnes/target-bsnes/program/script.hpp)

@@ -1,5 +1,3 @@
-#include <angelscript.h>
-
 struct Program : Lock, Emulator::Platform {
   Application::Namespace tr{"Program"};
 
@@ -15,6 +13,7 @@ struct Program : Lock, Emulator::Platform {
   auto audioFrame(const float* samples, uint channels) -> void override;
   auto inputPoll(uint port, uint device, uint input) -> int16 override;
   auto inputRumble(uint port, uint device, uint input, bool enable) -> void override;
+  auto scriptEngine() -> asIScriptEngine* override;
 
   //game.cpp
   auto load() -> void;
@@ -138,6 +137,8 @@ struct Program : Lock, Emulator::Platform {
   auto viewportSize(uint& width, uint& height, uint scale) -> void;
   auto viewportRefresh() -> void;
 
+  //script.cpp
+  auto scriptInit() -> void;
 public:
   struct Game {
     explicit operator bool() const { return (bool)location; }
@@ -204,7 +205,8 @@ public:
 
   // [jsd] add support for AngelScript
   struct AngelScript {
-    asIScriptEngine *engine;
+    asIScriptEngine  *engine;
+    asIScriptContext *ctx;
   } script;
 };
 

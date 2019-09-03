@@ -101,6 +101,9 @@ struct Interface {
 
   virtual auto frameSkip() -> uint { return 0; }
   virtual auto setFrameSkip(uint frameSkip) -> void {}
+
+  //scripting
+  virtual auto registerScriptDefs() -> void {}
 };
 
 }
