@@ -29,6 +29,7 @@ using namespace nall;
 
 // [jsd] add support for AngelScript
 #include <angelscript.h>
+#include <scriptarray.h>
 
 namespace Emulator {
   static const string Name    = "bsnes";

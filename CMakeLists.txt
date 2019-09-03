@@ -3,6 +3,7 @@ project(bsnes)
 
 set(CMAKE_CXX_STANDARD 14)
 
+include_directories(angelscript/add_on/scriptarray)
 include_directories(angelscript/include)
 include_directories(.)
 include_directories(bsnes)
@@ -570,6 +571,7 @@ add_executable(bsnes
         bsnes/target-bsnes/program/program.cpp
         bsnes/target-bsnes/program/program.hpp
         bsnes/target-bsnes/program/rewind.cpp
+        bsnes/target-bsnes/program/script.cpp
         bsnes/target-bsnes/program/states.cpp
         bsnes/target-bsnes/program/utility.cpp
         bsnes/target-bsnes/program/video.cpp
@@ -1429,4 +1431,4 @@ add_executable(bsnes
         ruby/video/xvideo.cpp
         ruby/ruby.cpp
         ruby/ruby.hpp
-        sourcery/sourcery.cpp bsnes/target-bsnes/program/script.cpp bsnes/target-bsnes/program/script.hpp)
+        sourcery/sourcery.cpp)
