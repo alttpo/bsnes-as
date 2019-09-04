@@ -36,11 +36,6 @@ void main() {
     sprs[i] = SNES::Bus::read_u8(0x7E0DD0 + i);
     // sprite kind:
     sprk[i] = SNES::Bus::read_u8(0x7E0E20 + i);
-
-    if (sprs[i] != 0 && sprk[i] == 0x0d) {
-      auto msg = "found a tralala[" + fmtInt(i) + "] at " + fmtHex(sprx[i],4) + "," + fmtHex(spry[i],4);
-      message(msg);
-    }
   }
 }
 
@@ -57,7 +52,7 @@ void postRender() {
   // enable shadow under text for clearer reading:
   SNES::PPU::frame.text_shadow = true;
 
-  // draw aggregate location value in top-left:
+  // draw Link's location value in top-left:
   SNES::PPU::frame.text(0, 0, fmtHex(location, 6));
 
   for (int i = 0; i < 16; i++) {

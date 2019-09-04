@@ -11,22 +11,42 @@ As a working proof of concept of the AngelScript scripting engine and the basic 
 5. Tools > Load Script ... > Browse to `script.as` in repository root
 6. Load a saved state or play through the game to see white rectangles surrounding in-game sprites
 
-![screenshot](screenshots/alttp-rectangles.png)
+Screenshots
+---
 
-Example script:
+![screenshot](screenshots/alttp-angelscript-001.png)
+
+![screenshot](screenshots/alttp-angelscript-002.png)
+
+Example AngelScript
+---
 ```
 // AngelScript for ALTTP to draw white rectangles around in-game sprites
 uint16   xoffs, yoffs;
 uint16[] sprx(16);
 uint16[] spry(16);
 uint8[]  sprs(16);
-uint8[]  sprt(16);
+uint8[]  sprk(16);
+uint32   location;
 
 void init() {
   // initialize script state here.
+  message("hello world!");
 }
 
 void main() {
+  // fetch various room indices and flags about where exactly Link currently is:
+  auto in_dark_world  = SNES::Bus::read_u8 (0x7E0FFF);
+  auto in_dungeon     = SNES::Bus::read_u8 (0x7E001B);
+  auto overworld_room = SNES::Bus::read_u16(0x7E008A, 0x7E008B);
+  auto dungeon_room   = SNES::Bus::read_u16(0x7E00A0, 0x7E00A1);
+
+  // compute aggregated location for Link into a single 24-bit number:
+  location =
+    uint32(in_dark_world & 1) << 17 |
+    uint32(in_dungeon & 1) << 16 |
+    uint32(in_dungeon != 0 ? dungeon_room : overworld_room);
+
   // get screen x,y offset by reading BG2 scroll registers:
   xoffs = SNES::Bus::read_u16(0x7E00E2, 0x7E00E3);
   yoffs = SNES::Bus::read_u16(0x7E00E8, 0x7E00E9);
@@ -38,25 +58,26 @@ void main() {
     // sprite state (0 = dead, else alive):
     sprs[i] = SNES::Bus::read_u8(0x7E0DD0 + i);
     // sprite kind:
-    sprt[i] = SNES::Bus::read_u8(0x7E0E20 + i);
-  }
-}
-
-// draw a horizontal line from x=lx to lx+w on y=ty:
-void hline(int lx, int ty, int w, uint16 color) {
-  for (int x = lx; x < lx + w; ++x) {
-    SNES::PPU::frame.set(x, ty, color);
-  }
-}
-
-// draw a vertical line from y=ty to ty+h on x=lx:
-void vline(int lx, int ty, int h, uint16 color) {
-  for (int y = ty; y < ty + h; ++y) {
-    SNES::PPU::frame.set(lx, y, color);
+    sprk[i] = SNES::Bus::read_u8(0x7E0E20 + i);
   }
 }
 
 void postRender() {
+  // set drawing state:
+  SNES::PPU::frame.font_height = 8; // select 8x8 or 8x16 font for text
+  // draw using alpha blending
+  SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
+  // alpha is 20/31:
+  SNES::PPU::frame.alpha = 24;
+  // color is 0x7fff aka white (15-bit RGB)
+  SNES::PPU::frame.color = 0x7fff;
+
+  // enable shadow under text for clearer reading:
+  SNES::PPU::frame.text_shadow = true;
+
+  // draw Link's location value in top-left:
+  SNES::PPU::frame.text(0, 0, fmtHex(location, 6));
+
   for (int i = 0; i < 16; i++) {
     // skip dead sprites:
     if (sprs[i] == 0) continue;
@@ -65,11 +86,12 @@ void postRender() {
     int16 rx = int16(sprx[i]) - int16(xoffs);
     int16 ry = int16(spry[i]) - int16(yoffs);
 
-    // draw white rectangle:
-    hline(rx     , ry     , 16, 0x7fff);
-    vline(rx     , ry     , 16, 0x7fff);
-    hline(rx     , ry + 15, 16, 0x7fff);
-    vline(rx + 15, ry     , 16, 0x7fff);
+    // draw box around the sprite:
+    SNES::PPU::frame.rect(rx, ry, 16, 16);
+
+    // draw sprite type value above box:
+    ry -= SNES::PPU::frame.font_height;
+    SNES::PPU::frame.text(rx, ry, fmtHex(sprk[i], 2));
   }
 }
 ```
@@ -146,9 +168,9 @@ Reload Script will reopen the previously selected AngelScript file and recompile
 
 bsnes can bind to these optional functions defined by scripts:
 
-* `void init()` - called once immediately after script loaded or reloaded
-* `void main()` - called after a frame is swapped to the display
-* `void postRender()` - called after a frame is rendered by the PPU but before it is swapped to the display
+  * `void init()` - called once immediately after script loaded or reloaded
+  * `void main()` - called after a frame is swapped to the display
+  * `void postRender()` - called after a frame is rendered by the PPU but before it is swapped to the display
 
 No other functions than these are called by the emulator so you must use these to control your script behavior.
 
@@ -160,6 +182,15 @@ In `void postRender()` you may draw on top of the rendered frame using the `SNES
 
 `void main()` and `void postRender()` are split to avoid a 1-frame latency for drawing.
 
+Global Functions
+----------------
+
+  * `void message(const string &in msg)` - show a message on emulator status bar, like a notification
+  * `string &fmtHex(uint64 value, int precision = 0)` - formats a `uint64` in hexadecimal using `precision` number of digits
+  * `string &fmtBinary(uint64 value, int precision = 0)` - formats a `uint64` in binary using `precision` number of digits
+  * `string &fmtInt(int64 value)` - formats a `int64` as a string
+  * `string &fmtUint(uint64 value)` - formats a `uint64` as a string
+
 Memory
 ------
 
@@ -167,7 +198,7 @@ All definitions in this section are defined in the `SNES::Bus` namespace, e.g. `
 
 * `uint8 read_u8(uint32 addr)` - reads a `uint8` value from the given bus address (24-bit)
 * `uint16 read_u16(uint32 addr0, uint32 addr1)` - reads a `uint16` value from the given bus addresses, using `addr0` for the low byte and `addr1` for the high byte. `addr0` and `addr1` can be any address or even the same address. `addr0` is always read before `addr1` is read.
-* TODO: add write functions
+* `void write_u8(uint32 addr, uint8 data)` - writes a `uint8` value to the given bus address (24-bit)
 
 PPU Frame Access
 ----------------
@@ -177,11 +208,27 @@ All properties and types in this section are defined in the `SNES::PPU` namespac
 * `frame` is a global property that is no-handle reference to the rendered PPU frame which offers read/write access to draw things on top of
 * Coordinate system used: x = 0 up to 512 from left to right, y = 0 up to 480 from top to bottom; both coordinates depend on scaling settings, interlace mode, etc.
 * `uint16` is used for representing 15-bit RGB colors, where each color channel is allocated 5 bits each, from least-significant bits for blue, to most-significant bits for red. The most significant bit of the `uint16` value for color should always be `0`. `0x7fff` is full-white and `0x0000` is full black.
+* alpha is represented in a `uint8` as a 5-bit value between 0..31 where 0 is completely transparent and 31 is completely opaque
+* alpha blending equation is `[src_rgb*src_a + dst_rgb*(31 - src_a)] / 31`
 
-* `Frame` object type:
+`Frame` properties:
   * `int y_offset { get; set; }` - property to adjust Y-offset of drawing functions (default to +8 to skip top overscan area)
-  * `uint16 get(int x, int y)` - gets the 15-bit RGB color at the x,y coordinate in the PPU frame
-  * `void set(int x, int y, uint16 color)` - sets the 15-bit RGB color at the x,y coordinate in the PPU frame
+  * `SNES::PPU::DrawOp draw_op { get; set; }` - property to hold the current drawing operation used to draw pixels; drawing operations available are:
+     * `SNES::PPU::DrawOp::op_solid` - default, draw solid pixels, ignoring alpha
+     * `SNES::PPU::DrawOp::op_alpha` - draw new pixels alpha-blended with existing pixels
+     * `SNES::PPU::DrawOp::op_xor` - XORs new pixel color value with existing pixel color value
+
+  * `uint16 color { get; set; }` - property to hold the current color for drawing with (0..0x7fff)
+  * `uint8 alpha { get; set; }` - property to hold the current alpha value for drawing with (0..31)
+  * `int font_height { get; set; }` - property that represents the current font's height in pixels, valid values are 8 or 16, default 8.
+
+`Frame` methods:
+  * `uint16 read_pixel(int x, int y)` - gets the 15-bit RGB color at the x,y coordinate in the PPU frame
+  * `void pixel(int x, int y, uint16 color)` - sets the 15-bit RGB color at the x,y coordinate in the PPU frame
+  * `void hline(int lx, int ty, int w)` - draws a horizontal line
+  * `void vline(int lx, int ty, int h)` - draws a vertical line
+  * `void rect(int x, int y, int w, int h)` - draws a rectangle
+  * `int text(int x, int y, const string &in text)` - draws a horizontal span of ASCII text using the current `font_height`; returns number of characters drawn (i.e. string length minus count of non-printable characters)
 
 ---
 
