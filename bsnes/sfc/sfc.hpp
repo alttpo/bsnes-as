@@ -94,9 +94,11 @@ namespace SuperFamicom {
   // used for scripts to read/write to PPU frame:
   struct PPUFrame {
     uint16_t *output = nullptr;
-    uint pitch = 512;
-    uint width = 512;
+    uint pitch  = 512;
+    uint width  = 512;
     uint height = 480;
+    int  width_mult  = 2;
+    int  height_mult = 2;
   };
   extern PPUFrame ppuFrame;
 

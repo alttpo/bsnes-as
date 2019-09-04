@@ -41,8 +41,12 @@ void pre_frame() {
 
 void post_frame() {
   // set drawing state:
-  ppu::frame.font_height = 8; // select 8x8 or 8x16 font for text
-  // draw using alpha blending
+  // set drawing coordinate scale so we're treating the screen as 256x240 resolution (default is 512x480):
+  ppu::frame.x_scale = 2;
+  ppu::frame.y_scale = 2;
+  // select 8x8 or 8x16 font for text:
+  ppu::frame.font_height = 8;
+  // draw using alpha blending:
   ppu::frame.draw_op = ppu::draw_op::op_alpha;
   // alpha is xx/31:
   ppu::frame.alpha = 20;
@@ -71,5 +75,5 @@ void post_frame() {
     ppu::frame.text(rx, ry, fmtHex(sprk[i], 2));
   }
 
-  message(fmtInt(ppu::frame.width) + "x" + fmtInt(ppu::frame.height));
+  //message(fmtInt(ppu::frame.width) + "x" + fmtInt(ppu::frame.height));
 }

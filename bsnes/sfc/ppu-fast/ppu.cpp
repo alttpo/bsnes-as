@@ -154,17 +154,19 @@ auto PPU::refresh() -> void {
       }
     }
 
-    if(auto device = controllerPort2.device) device->draw(output, pitch * sizeof(uint16), width, height);
-
     // [jsd] run AngelScript post_frame() function if available:
     if (script.funcs.post_frame) {
       ppuFrame.output = output;
-      ppuFrame.pitch = pitch;
-      ppuFrame.width = width;
+      ppuFrame.pitch  = pitch;
+      ppuFrame.width  = width;
       ppuFrame.height = height;
+      ppuFrame.width_mult  = (width / 256u);
+      ppuFrame.height_mult = (height / 240u);
       script.context->Prepare(script.funcs.post_frame);
       script.context->Execute();
     }
+
+    if(auto device = controllerPort2.device) device->draw(output, pitch * sizeof(uint16), width, height);
 
     platform->videoFrame(output, pitch * sizeof(uint16), width, height, hd() ? hdScale() : 1);
 

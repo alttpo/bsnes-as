@@ -251,6 +251,19 @@ auto PPU::refresh() -> void {
   auto pitch  = 512;
   auto width  = 512;
   auto height = 480;
+
+  // [jsd] run AngelScript post_frame() function if available:
+  if (script.funcs.post_frame) {
+    ppuFrame.output = output;
+    ppuFrame.pitch  = pitch;
+    ppuFrame.width  = width;
+    ppuFrame.height = height;
+    ppuFrame.width_mult  = (width / 256);
+    ppuFrame.height_mult = (height / 240);
+    script.context->Prepare(script.funcs.post_frame);
+    script.context->Execute();
+  }
+
   if(configuration.video.blurEmulation) {
     for(uint y : range(height)) {
       auto data = output + y * pitch;

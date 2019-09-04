@@ -6,7 +6,7 @@ auto Program::scriptEngine() -> asIScriptEngine * {
 }
 
 auto Program::scriptMessage(const string *msg) -> void {
-  printf("script: %.*s\n", msg->size(), msg->data());
+  //printf("script: %.*s\n", msg->size(), msg->data());
   showMessage({"script: ", *msg});
 }
 

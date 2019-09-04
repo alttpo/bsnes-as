@@ -24,6 +24,7 @@ auto System::run() -> void {
     }
     Memory::GlobalWriteEnable = false;
 
+    // [jsd] run AngelScript pre_frame() function if available:
     if (script.funcs.pre_frame) {
       script.context->Prepare(script.funcs.pre_frame);
       script.context->Execute();
