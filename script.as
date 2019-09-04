@@ -4,6 +4,7 @@ uint16[] sprx(16);
 uint16[] spry(16);
 uint8[]  sprs(16);
 uint8[]  sprt(16);
+uint32   location;
 
 void init() {
   // initialize script state here.
@@ -11,6 +12,18 @@ void init() {
 }
 
 void main() {
+  // fetch various room indices and flags about where exactly Link currently is:
+  auto in_dark_world  = SNES::Bus::read_u8 (0x7E0FFF);
+  auto in_dungeon     = SNES::Bus::read_u8 (0x7E001B);
+  auto overworld_room = SNES::Bus::read_u16(0x7E008A, 0x7E008B);
+  auto dungeon_room   = SNES::Bus::read_u16(0x7E00A0, 0x7E00A1);
+
+  // compute aggregated location for Link into a single 24-bit number:
+  location =
+    uint32(in_dark_world & 1) << 17 |
+    uint32(in_dungeon & 1) << 16 |
+    uint32(in_dungeon != 0 ? dungeon_room : overworld_room);
+
   // get screen x,y offset by reading BG2 scroll registers:
   xoffs = SNES::Bus::read_u16(0x7E00E2, 0x7E00E3);
   yoffs = SNES::Bus::read_u16(0x7E00E8, 0x7E00E9);
@@ -30,8 +43,14 @@ void postRender() {
   // set drawing state:
   SNES::PPU::frame.font_height = 8; // select 8x8 or 8x16 font for text
   SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
-  SNES::PPU::frame.alpha = 24;
+  SNES::PPU::frame.alpha = 20;
   SNES::PPU::frame.color = 0x7fff;
+
+  // enable shadow under text for clearer reading:
+  SNES::PPU::frame.text_shadow = true;
+
+  // draw aggregate location value in top-left:
+  SNES::PPU::frame.text(0, 0, hex(location, 6));
 
   for (int i = 0; i < 16; i++) {
     // skip dead sprites:
@@ -41,19 +60,12 @@ void postRender() {
     int16 rx = int16(sprx[i]) - int16(xoffs);
     int16 ry = int16(spry[i]) - int16(yoffs);
 
-    // draw rectangle around the sprite, alpha-blended:
+    // draw box around the sprite:
     SNES::PPU::frame.rect(rx, ry, 16, 16);
 
-    // draw sprite type value, xored:
-    auto str = hex(sprt[i],2);
-    ry -= 16;
-    SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
-    SNES::PPU::frame.color = 0x0000;
-    SNES::PPU::frame.alpha = 28;
-    SNES::PPU::frame.text(rx+1, ry+1, str);
-    SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
-    SNES::PPU::frame.color = 0x7fff;
-    SNES::PPU::frame.alpha = 24;
+    // draw sprite type value above box:
+    auto str = hex(sprt[i], 2);
+    ry -= SNES::PPU::frame.font_height;
     SNES::PPU::frame.text(rx, ry, str);
   }
 }

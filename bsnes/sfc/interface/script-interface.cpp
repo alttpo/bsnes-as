@@ -38,6 +38,10 @@ struct ScriptFrame {
   auto get_alpha() -> uint8 { return alpha; }
   auto set_alpha(uint8 alpha_p) { alpha = uclamp<5>(alpha_p); }
 
+  bool text_shadow = false;
+  auto get_text_shadow() -> bool { return text_shadow; }
+  auto set_text_shadow(bool text_shadow_p) { text_shadow = text_shadow_p; }
+
   auto (ScriptFrame::*draw_glyph)(int x, int y, int glyph) -> void = &ScriptFrame::draw_glyph_8;
 
   int font_height = 8;
@@ -126,7 +130,8 @@ struct ScriptFrame {
     for (int i = 0; i < 8; i++) {
       uint8 m = 0x80u;
       for (int j = 0; j < 8; j++, m >>= 1u) {
-        if (font8x8_basic[glyph][i] & m) pixel(x + j, y + i);
+        if (font8x8_basic[glyph][i] & m)
+          pixel(x + j, y + i);
       }
     }
   }
@@ -135,16 +140,15 @@ struct ScriptFrame {
     for (int i = 0; i < 16; i++) {
       uint8 m = 0x80u;
       for (int j = 0; j < 8; j++, m >>= 1u) {
-        if (font8x16_basic[glyph][i] & m) pixel(x + j, y + i);
+        if (font8x16_basic[glyph][i] & m)
+          pixel(x + j, y + i);
       }
     }
   }
 
-  // draw a line of text (currently ASCII only due to font restrictions)
-  auto text(int x, int y, const string *msg) -> int {
+  auto draw_text(int x, int y, const char *c) -> int {
     auto len = 0;
 
-    const char *c = msg->data();
     while (*c != 0) {
       if ((*c < 0x20) || (*c > 0x7F)) {
         // Skip the character since it is out of ASCII range:
@@ -162,6 +166,25 @@ struct ScriptFrame {
 
     // return how many characters drawn:
     return len;
+  }
+
+  // draw a line of text (currently ASCII only due to font restrictions)
+  auto text(int x, int y, const string *msg) -> int {
+    const char *c = msg->data();
+
+    // draw a shadow underneath text first:
+    if (text_shadow) {
+      auto save_alpha = alpha;
+      auto save_color = color;
+      alpha = uclamp<5>(save_alpha + 4);
+      color = 0x0000;
+      draw_text(x + 1, y + 1, c);
+      alpha = save_alpha;
+      color = save_color;
+    }
+
+    // return how many characters drawn:
+    return draw_text(x, y, c);
   }
 } scriptFrame;
 
@@ -204,6 +227,10 @@ auto Interface::registerScriptDefs() -> void {
   // set font_height to use for text (8 or 16):
   r = script.engine->RegisterObjectMethod("Frame", "int get_font_height()", asMETHODPR(ScriptFrame, get_font_height, (), int), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void set_font_height(int font_height)", asMETHODPR(ScriptFrame, set_font_height, (int), void), asCALL_THISCALL); assert(r >= 0);
+
+  // set text_shadow to draw shadow behind text:
+  r = script.engine->RegisterObjectMethod("Frame", "bool get_text_shadow()", asMETHODPR(ScriptFrame, get_text_shadow, (), bool), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "void set_text_shadow(bool font_height)", asMETHODPR(ScriptFrame, set_text_shadow, (bool), void), asCALL_THISCALL); assert(r >= 0);
 
   // register the DrawOp enum:
   r = script.engine->RegisterEnum("DrawOp"); assert(r >= 0);
