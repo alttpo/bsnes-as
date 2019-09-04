@@ -178,12 +178,11 @@ struct ScriptFrame {
 
     // draw a shadow underneath text first:
     if (text_shadow) {
-      auto save_alpha = alpha;
+      // quick swap to black for shadow:
       auto save_color = color;
-      alpha = uclamp<5>(save_alpha + 4);
       color = 0x0000;
       draw_text(x + 1, y + 1, c);
-      alpha = save_alpha;
+      // restore previous color:
       color = save_color;
     }
 
