@@ -101,6 +101,8 @@ auto Interface::registerScriptString() -> void {
   r = script.engine->RegisterObjectMethod("string", "int opCmp(const string &in) const", asFUNCTION(stringCmp), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
   r = script.engine->RegisterObjectMethod("string", "string &opAdd(const string &in) const", asFUNCTION(stringAdd), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
 
+  r = script.engine->RegisterObjectMethod("string", "uint length() const", asMETHOD(string, length), asCALL_THISCALL); assert( r >= 0 );
+
   // Register global functions
   r = script.engine->RegisterGlobalFunction("string &hex(uint64 value, int precision = 0)", asFUNCTION(stringHex), asCALL_CDECL); assert(r >= 0);
 
