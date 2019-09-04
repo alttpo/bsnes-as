@@ -4,10 +4,10 @@
 #include <angelscript.h>
 
 struct CNallStringFactory : public asIStringFactory {
-  CNallStringFactory() {}
-  ~CNallStringFactory() {}
+  CNallStringFactory() = default;
+  ~CNallStringFactory() override = default;
 
-  const void *GetStringConstant(const char *data, asUINT length) {
+  const void *GetStringConstant(const char *data, asUINT length) override {
     string *str = new string();
     str->resize(length);
     memory::copy(str->get(), str->capacity(), data, length);
@@ -15,7 +15,7 @@ struct CNallStringFactory : public asIStringFactory {
     return reinterpret_cast<const void*>(str);
   }
 
-  int ReleaseStringConstant(const void *str) {
+  int ReleaseStringConstant(const void *str) override {
     if (str == nullptr)
       return asERROR;
 
@@ -24,7 +24,7 @@ struct CNallStringFactory : public asIStringFactory {
     return asSUCCESS;
   }
 
-  int GetRawStringData(const void *str, char *data, asUINT *length) const {
+  int GetRawStringData(const void *str, char *data, asUINT *length) const override {
     if (str == nullptr)
       return asERROR;
 
