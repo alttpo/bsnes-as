@@ -24,17 +24,17 @@ struct ScriptFrame {
   auto inline draw(uint16_t *p) {
     switch (draw_op) {
       case op_alpha: {
-	uint dr = (*p & 0x001f);
-	uint dg = (*p & 0x03e0) >> 5;
-	uint db = (*p & 0x7c00) >> 10;
-	uint sr = (color & 0x001f);
-	uint sg = (color & 0x03e0) >> 5;
-	uint sb = (color & 0x7c00) >> 10;
+	uint dr = (*p & 0x001fu);
+	uint dg = (*p & 0x03e0u) >> 5u;
+	uint db = (*p & 0x7c00u) >> 10u;
+	uint sr = (color & 0x001fu);
+	uint sg = (color & 0x03e0u) >> 5u;
+	uint sb = (color & 0x7c00u) >> 10u;
 
 	*p =
-	  (((sr * alpha) + (dr * (31 - alpha))) / 31) |
-	  (((sg * alpha) + (dg * (31 - alpha))) / 31) << 5 |
-	  (((sb * alpha) + (db * (31 - alpha))) / 31) << 10;
+	  (((sr * alpha) + (dr * (31u - alpha))) / 31u) |
+	  (((sg * alpha) + (dg * (31u - alpha))) / 31u) << 5u |
+	  (((sb * alpha) + (db * (31u - alpha))) / 31u) << 10u;
 	break;
       }
 
@@ -83,7 +83,7 @@ struct ScriptFrame {
     }
   }
 
-  // draw a rectangle:
+  // draw a rectangle with zero overdraw (important for op_xor and op_alpha draw ops):
   auto rect(int x, int y, int w, int h) -> void {
     hline(x, y, w);
     hline(x + 1, y + h - 1, w - 1);
