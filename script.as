@@ -36,6 +36,11 @@ void main() {
     sprs[i] = SNES::Bus::read_u8(0x7E0DD0 + i);
     // sprite kind:
     sprk[i] = SNES::Bus::read_u8(0x7E0E20 + i);
+
+    if (sprs[i] != 0 && sprk[i] == 0x0d) {
+      auto msg = "found a tralala[" + hex(i,1) + "] at " + hex(sprx[i],4) + "," + hex(spry[i],4);
+      message(msg);
+    }
   }
 }
 
