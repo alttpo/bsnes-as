@@ -38,6 +38,8 @@ struct ScriptFrame {
   auto get_alpha() -> uint8 { return alpha; }
   auto set_alpha(uint8 alpha_p) { alpha = uclamp<5>(alpha_p); }
 
+  auto (ScriptFrame::*draw_glyph)(int x, int y, int glyph) -> void = &ScriptFrame::draw_glyph_8;
+
   int font_height = 8;
   auto get_font_height() -> int { return font_height; }
   auto set_font_height(int font_height_p) {
@@ -119,8 +121,6 @@ struct ScriptFrame {
     vline(x, y + 1, h - 1);
     vline(x + w - 1, y + 1, h - 2);
   }
-
-  auto (ScriptFrame::*draw_glyph)(int x, int y, int glyph) -> void = &ScriptFrame::draw_glyph_8;
 
   auto draw_glyph_8(int x, int y, int glyph) -> void {
     for (int i = 0; i < 8; i++) {
