@@ -47,7 +47,7 @@ void postRender() {
   // alpha is 20/31:
   SNES::PPU::frame.alpha = 24;
   // color is 0x7fff aka white (15-bit RGB)
-  SNES::PPU::frame.color = 0x7fff;
+  SNES::PPU::frame.color = SNES::rgb(31, 31, 31);
 
   // enable shadow under text for clearer reading:
   SNES::PPU::frame.text_shadow = true;

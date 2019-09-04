@@ -4,15 +4,15 @@
 #include "vga-charset.cpp"
 #include "script-string.cpp"
 
-static auto script_bus_read_u8(uint32_t addr) -> uint8_t {
+static auto script_bus_read_u8(uint32 addr) -> uint8 {
   return bus.read(addr, 0);
 }
 
-static auto script_bus_write_u8(uint32_t addr, uint8_t data) -> void {
+static auto script_bus_write_u8(uint32 addr, uint8 data) -> void {
   bus.write(addr, data);
 }
 
-static auto script_bus_read_u16(uint32_t addr0, uint32_t addr1) -> uint16_t {
+static auto script_bus_read_u16(uint32 addr0, uint32 addr1) -> uint16 {
   return bus.read(addr0, 0) | (bus.read(addr1,0) << 8u);
 }
 
@@ -20,8 +20,12 @@ static auto script_message(const string *msg) -> void {
   platform->scriptMessage(msg);
 }
 
+static auto script_rgb(uint8 r, uint8 g, uint8 b) -> uint16 {
+  return ((uint16)(uclamp<5>(r)) << 10u) | ((uint16)(uclamp<5>(g)) << 5u) | (uint16)(uclamp<5>(b));
+}
+
 struct ScriptFrame {
-  uint16_t *&output = ppuFrame.output;
+  uint16 *&output = ppuFrame.output;
   uint &pitch = ppuFrame.pitch;
   uint &width = ppuFrame.width;
   uint &height = ppuFrame.height;
@@ -34,9 +38,9 @@ struct ScriptFrame {
   auto get_draw_op() -> DrawOp { return draw_op; }
   auto set_draw_op(DrawOp draw_op_p) { draw_op = draw_op_p; }
 
-  uint16_t color = 0x7fff;
-  auto get_color() -> uint16_t { return color; }
-  auto set_color(uint16_t color_p) -> void { color = uclamp<15>(color_p); }
+  uint16 color = 0x7fff;
+  auto get_color() -> uint16 { return color; }
+  auto set_color(uint16 color_p) -> void { color = uclamp<15>(color_p); }
 
   uint8 alpha = 31;
   auto get_alpha() -> uint8 { return alpha; }
@@ -60,7 +64,7 @@ struct ScriptFrame {
     }
   }
 
-  auto inline draw(uint16_t *p) {
+  auto inline draw(uint16 *p) {
     switch (draw_op) {
       case op_alpha: {
 	uint db = (*p & 0x001fu);
@@ -92,7 +96,7 @@ struct ScriptFrame {
   auto get_y_offset() -> int { return y_offset; }
   auto set_y_offset(int y_offs) -> void { y_offset = y_offs; }
 
-  auto read_pixel(int x, int y) -> uint16_t {
+  auto read_pixel(int x, int y) -> uint16 {
     y += y_offset;
     if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
       return output[y * pitch + x];
@@ -205,6 +209,10 @@ auto Interface::registerScriptDefs() -> void {
   // global function to write debug messages:
   r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(script_message), asCALL_CDECL); assert(r >= 0);
 
+  // define SNES namespace:
+  r = script.engine->SetDefaultNamespace("SNES"); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(script_rgb), asCALL_CDECL); assert(r >= 0);
+
   // default SNES:Bus memory functions:
   r = script.engine->SetDefaultNamespace("SNES::Bus"); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(script_bus_read_u8), asCALL_CDECL); assert(r >= 0);
@@ -246,7 +254,7 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("Frame", "void set_draw_op(DrawOp draw_op)", asMETHODPR(ScriptFrame, set_draw_op, (ScriptFrame::DrawOp), void), asCALL_THISCALL); assert(r >= 0);
 
   // pixel access functions:
-  r = script.engine->RegisterObjectMethod("Frame", "uint16 read_pixel(int x, int y)", asMETHODPR(ScriptFrame, read_pixel, (int, int), uint16_t), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "uint16 read_pixel(int x, int y)", asMETHODPR(ScriptFrame, read_pixel, (int, int), uint16), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void pixel(int x, int y)", asMETHODPR(ScriptFrame, pixel, (int, int), void), asCALL_THISCALL); assert(r >= 0);
 
   // primitive drawing functions:
