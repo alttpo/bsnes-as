@@ -29,8 +29,8 @@ void main() {
 void postRender() {
   // set drawing state:
   SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
+  SNES::PPU::frame.alpha = 24;
   SNES::PPU::frame.color = 0x7fff;
-  SNES::PPU::frame.alpha = 20;
 
   for (int i = 0; i < 16; i++) {
     // skip dead sprites:
@@ -40,9 +40,19 @@ void postRender() {
     int16 rx = int16(sprx[i]) - int16(xoffs);
     int16 ry = int16(spry[i]) - int16(yoffs);
 
-    // draw rectangle around the sprite:
+    // draw rectangle around the sprite, alpha-blended:
     SNES::PPU::frame.rect(rx, ry, 16, 16);
-    // draw test text:
-    SNES::PPU::frame.text(rx - 8, ry, "sprt");
+
+    // draw sprite type value, xored:
+    auto str = hex(sprt[i],2);
+    ry -= 16;
+    SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
+    SNES::PPU::frame.color = 0x0000;
+    SNES::PPU::frame.alpha = 28;
+    SNES::PPU::frame.text(rx+1, ry+1, str);
+    SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
+    SNES::PPU::frame.color = 0x7fff;
+    SNES::PPU::frame.alpha = 24;
+    SNES::PPU::frame.text(rx, ry, str);
   }
 }

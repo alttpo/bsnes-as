@@ -1,6 +1,8 @@
 
 // string support:
 
+#include <angelscript.h>
+
 struct CNallStringFactory : public asIStringFactory {
   CNallStringFactory() {}
   ~CNallStringFactory() {}
@@ -47,16 +49,20 @@ CNallStringFactory *GetStdStringFactorySingleton() {
   return stringFactory;
 }
 
-static void ConstructString(string *thisPointer) {
+static void stringConstruct(string *thisPointer) {
   new(thisPointer) string();
 }
 
-static void CopyConstructString(const string &other, string *thisPointer) {
+static void stringCopyConstruct(const string &other, string *thisPointer) {
   new(thisPointer) string(other);
 }
 
-static void DestructString(string *thisPointer) {
+static void stringDestruct(string *thisPointer) {
   thisPointer->~string();
+}
+
+static string *stringHex(uint64_t value, int precision = 0) {
+  return new string(hex(value, precision));
 }
 
 auto Interface::registerScriptString() -> void {
@@ -66,9 +72,13 @@ auto Interface::registerScriptString() -> void {
   r = script.engine->RegisterStringFactory("string", GetStdStringFactorySingleton());
 
   // Register the object operator overloads
-  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f()",                    asFUNCTION(ConstructString), asCALL_CDECL_OBJLAST); assert(r >= 0);
-  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f(const string &in)",    asFUNCTION(CopyConstructString), asCALL_CDECL_OBJLAST); assert(r >= 0);
-  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_DESTRUCT,   "void f()",                    asFUNCTION(DestructString),  asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f()",                    asFUNCTION(stringConstruct), asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f(const string &in)",    asFUNCTION(stringCopyConstruct), asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_DESTRUCT,   "void f()",                    asFUNCTION(stringDestruct),  asCALL_CDECL_OBJLAST); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("string", "string &opAssign(const string &in)", asMETHODPR(string, operator =, (const string&), string&), asCALL_THISCALL); assert(r >= 0);
+
+  // Register global functions
+  r = script.engine->RegisterGlobalFunction("string &hex(uint64 value, int precision = 0)", asFUNCTION(stringHex), asCALL_CDECL); assert(r >= 0);
+
   //todo[jsd] add more string functions if necessary
 }
