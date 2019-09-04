@@ -210,19 +210,37 @@ Reads and writes are done on the main bus and clock cycles are not advanced duri
 PPU Frame Access
 ----------------
 
-Globals:
-  * `ppu::Frame ppu::frame { get; }` - global read-only property representing the current rendered PPU frame that is ready to swap to the display. Contains methods and properties that allow for drawing things on top of the frame.
-  * `uint16 ppu::rgb(uint8 r, uint8 g, uint8 b)` - function used to construct 15-bit RGB color values; each color channel is a 5-bit value between 0..31.
-
 Notes:
-  * Coordinate system used: x = 0 up to 512 from left to right, y = 0 up to 480 from top to bottom; both coordinates depend on scaling settings, interlace mode, etc.
-  * `uint16` type is used for representing 15-bit RGB colors, where each color channel is allocated 5 bits each, from least-significant bits for blue, to most-significant bits for red. The most significant bit of the `uint16` value for color should always be `0`. `0x7fff` is full-white and `0x0000` is full black.
+  * Coordinate system used
+     * x = 0 up to 256 from left to right
+     * y = 0 up to 240 from top to bottom. 
+     * Top and bottom 8 rows are for overscan
+     * The visible portion of the screen is 256x224 resolution
+     * In absolute coordinates, the visible top-left coordinate is (0,8) and the visible bottom-right coordinate is (255,223)
+     * `ppu::frame.y_offset` property exists to offset all drawing Y coordinates to account for overscan. It defaults to `+8` so that (0,0) in drawing coordinates is the visible top-left coordinate for all drawing functions. Scripts are free to change this property to `0` (to draw in the overscan area) or to any other value.
+  * 15-bit RGB colors are used.
+     * `uint16` type is used for representing 15-bit RGB colors
+     * Each color channel is allocated 5 bits, from least-significant bits for blue, to most-significant bits for red.
+     * The most significant bit of the `uint16` value for color should always be `0`.
+     * Reference colors:
+       * `0x7fff` is 100% white.
+       * `0x0000` is 100% black.
+       * `0x7c00` is 100% red.
+       * `0x03e0` is 100% green.
+       * `0x001f` is 100% blue.
+     * Since it is cumbersome to mentally compose hex values for 15-bit RGB colors, the `ppu::rgb` function is provided to construct the final `uint16` color value given each color channel's 5-bit value.
   * alpha channel is represented in a `uint8` type as a 5-bit value between 0..31 where 0 is completely transparent and 31 is completely opaque.
   * alpha blending equation is `[src_rgb*src_a + dst_rgb*(31 - src_a)] / 31`
   * `ppu::draw_op` - enum of drawing operations used to draw pixels; available drawing operations are:
      * `ppu::draw_op::op_solid` - draw solid pixels, ignoring alpha (default)
      * `ppu::draw_op::op_alpha` - draw new pixels alpha-blended with existing pixels
      * `ppu::draw_op::op_xor` - XORs new pixel color value with existing pixel color value
+   * **IMPORTANT**: All drawing operations are performed *immediately* and *directly* on the PPU frame buffer.
+     * Drawing operations are **destructive** to the PPU rendered frame.
+
+Globals:
+  * `ppu::Frame ppu::frame { get; }` - global read-only property representing the current rendered PPU frame that is ready to swap to the display. Contains methods and properties that allow for drawing things on top of the frame.
+  * `uint16 ppu::rgb(uint8 r, uint8 g, uint8 b)` - function used to construct 15-bit RGB color values; each color channel is a 5-bit value between 0..31.
 
 `ppu::Frame` properties:
   * `int y_offset { get; set; }` - property to adjust Y-offset of drawing functions (default = +8; skips top overscan area so that x=0,y=0 is top-left of visible screen)
@@ -230,16 +248,21 @@ Notes:
   * `uint16 color { get; set; }` - current color for drawing with (0..0x7fff)
   * `uint8 alpha { get; set; }` - current alpha value for drawing with (0..31)
   * `int font_height { get; set; }` - current font height in pixels; valid values are 8 or 16 (default = 8).
+  * `bool text_shadow { get; set; }` - determines whether to draw a black shadow one pixel below and to the right behind any text; text does not overdraw the shadow in order to avoid alpha-blending artifacts.
 
 `ppu::Frame` methods:
   * `uint16 read_pixel(int x, int y)` - gets the 15-bit RGB color at the x,y coordinate in the PPU frame
   * `void pixel(int x, int y, uint16 color)` - sets the 15-bit RGB color at the x,y coordinate in the PPU frame
-  * `void hline(int lx, int ty, int w)` - draws a horizontal line
-  * `void vline(int lx, int ty, int h)` - draws a vertical line
-  * `void rect(int x, int y, int w, int h)` - draws a rectangle
-  * `int text(int x, int y, const string &in text)` - draws a horizontal span of ASCII text using the current `font_height`; all non-printable characters and control characters (CR, LF, TAB, etc) are skipped over and are not rendered; returns number of characters drawn
-
-All drawing operations are performed immediately and directly on the PPU frame buffer; drawing is destructive to the PPU rendered frame.
+  * `void hline(int lx, int ty, int w)` - draws a horizontal line between `ty <= y < ty+h`
+  * `void vline(int lx, int ty, int h)` - draws a vertical line between `lx <= x < lx+w`
+  * `void rect(int lx, int ty, int w, int h)` - draws a rectangle at the boundaries `lx <= x < lx+w` and `ty <= y < ty+h`; does not overdraw corners
+  * `int text(int lx, int ty, const string &in text)` - draws a horizontal span of ASCII text using the current `font_height`
+    * returns `len` as number of characters drawn
+    * all non-printable and control characters (CR, LF, TAB, etc) are skipped for rendering and do not contribute to the width of the text's bounding box
+    * top-left corner of text bounding box is specified by `(lx, ty)` coordinates
+    * bottom-right corner of text bounding box is computed as `(lx+(8*len), ty+font_height)` where `len` is the number of characters to be drawn (excludes non-printable chars)
+    * bounding box coordinates are not explicitly computed by the function up-front but serve to define the exact rendering behavior of the function
+    * character glyphs are rendered relative to their top-left corner
 
 ---
 
