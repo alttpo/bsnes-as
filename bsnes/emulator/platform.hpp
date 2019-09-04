@@ -24,6 +24,7 @@ struct Platform {
   virtual auto notify(string text) -> void {}
 
   virtual auto scriptEngine() -> asIScriptEngine* { return nullptr; };
+  virtual auto scriptMessage(const string *msg) -> void { printf("script: %.*s\n", msg->size(), msg->data()); };
 };
 
 extern Platform* platform;

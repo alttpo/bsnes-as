@@ -1,19 +1,23 @@
 
 //#include <bsnes/target-bsnes/bsnes.hpp>
 
-auto Program::scriptEngine() -> asIScriptEngine* {
+auto Program::scriptEngine() -> asIScriptEngine * {
   return script.engine;
 }
 
+auto Program::scriptMessage(const string *msg) -> void {
+  printf("script: %.*s\n", msg->size(), msg->data());
+  showMessage({"script: ", *msg});
+}
+
 // Implement a simple message callback function
-void MessageCallback(const asSMessageInfo *msg, void *param)
-{
+void MessageCallback(const asSMessageInfo *msg, void *param) {
   const char *type = "ERR ";
-  if( msg->type == asMSGTYPE_WARNING )
+  if (msg->type == asMSGTYPE_WARNING)
     type = "WARN";
-  else if( msg->type == asMSGTYPE_INFORMATION )
+  else if (msg->type == asMSGTYPE_INFORMATION)
     type = "INFO";
-  // [jsd] todo: hook this up to better systems available in bsens
+  // [jsd] todo: hook this up to better systems available in bsnes
   printf("%s (%d, %d) : %s : %s\n", msg->section, msg->row, msg->col, type, msg->message);
 }
 
@@ -41,8 +45,8 @@ auto Program::scriptLoad() -> void {
   dialog.setFilters({string{"AngelScripts|*.as"}, string{"All Files|*"}});
 
   auto location = dialog.openObject();
-  if(!inode::exists(location)) {
-    showMessage("Script file not found");
+  if (!inode::exists(location)) {
+    showMessage({"Script file '", Location::file(script.location), "' not found"});
     return;
   }
 
@@ -50,15 +54,20 @@ auto Program::scriptLoad() -> void {
   settings.path.recent.script = Location::dir(script.location);
 
   emulator->loadScript(script.location);
-  showMessage({"Script file '", Location::file(script.location), "' loaded"});
+  //showMessage({"Script file '", Location::file(script.location), "' loaded"});
 }
 
 auto Program::scriptReload() -> void {
-  if(!inode::exists(script.location)) {
+  if (!inode::exists(script.location)) {
     showMessage({"Script file '", Location::file(script.location), "' not found"});
     return;
   }
 
   emulator->loadScript(script.location);
-  showMessage({"Script file '", Location::file(script.location), "' loaded"});
+  //showMessage({"Script file '", Location::file(script.location), "' loaded"});
+}
+
+auto Program::scriptUnload() -> void {
+  emulator->unloadScript();
+  showMessage("All scripts unloaded");
 }

@@ -13,7 +13,7 @@ static uint16_t script_bus_read_u16(uint32_t addr0, uint32_t addr1) {
 }
 
 static void script_message(const string *msg) {
-  printf("script: %s\n", msg->data());
+  platform->scriptMessage(msg);
 }
 
 struct ScriptFrame {
@@ -267,9 +267,6 @@ auto Interface::loadScript(string location) -> void {
 
   if (!inode::exists(location)) return;
 
-//  if (script.context) {
-//    script.context->Release();
-//  }
   if (script.module) {
     script.module->Discard();
   }
@@ -295,4 +292,15 @@ auto Interface::loadScript(string location) -> void {
     script.context->Prepare(script.funcs.init);
     script.context->Execute();
   }
+}
+
+auto Interface::unloadScript() -> void {
+  if (script.module) {
+    script.module->Discard();
+    script.module = nullptr;
+  }
+
+  script.funcs.init = nullptr;
+  script.funcs.main = nullptr;
+  script.funcs.postRender = nullptr;
 }

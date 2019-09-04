@@ -75,7 +75,7 @@ struct Interface : Emulator::Interface {
   // script-interface.cpp
   auto registerScriptDefs() -> void override;
   auto loadScript(string location) -> void override;
-
+  auto unloadScript() -> void override;
 private:
   auto registerScriptString() -> void;
 };

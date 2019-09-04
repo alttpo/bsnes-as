@@ -119,6 +119,7 @@ struct Presentation : Window {
       MenuSeparator toolsSeparatorD{&toolsMenu};
       MenuItem scriptLoad{&toolsMenu};
       MenuItem scriptReload{&toolsMenu};
+      MenuItem scriptUnload{&toolsMenu};
     Menu helpMenu{&menuBar};
       MenuItem documentation{&helpMenu};
       MenuSeparator helpSeparator{&helpMenu};

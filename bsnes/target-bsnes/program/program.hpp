@@ -138,9 +138,11 @@ struct Program : Lock, Emulator::Platform {
 
   //script.cpp
   auto scriptEngine() -> asIScriptEngine* override;
+  auto scriptMessage(const string *msg) -> void;
   auto scriptInit() -> void;
   auto scriptLoad() -> void;
   auto scriptReload() -> void;
+  auto scriptUnload() -> void;
 
 public:
   struct Game {
