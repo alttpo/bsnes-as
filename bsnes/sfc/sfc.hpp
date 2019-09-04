@@ -85,8 +85,8 @@ namespace SuperFamicom {
 
     struct {
       asIScriptFunction *init = nullptr;
-      asIScriptFunction *main = nullptr;
-      asIScriptFunction *postRender = nullptr;
+      asIScriptFunction *pre_frame = nullptr;
+      asIScriptFunction *post_frame = nullptr;
     } funcs;
   };
   extern Script script;

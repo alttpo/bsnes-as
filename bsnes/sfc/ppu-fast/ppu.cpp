@@ -156,12 +156,13 @@ auto PPU::refresh() -> void {
 
     if(auto device = controllerPort2.device) device->draw(output, pitch * sizeof(uint16), width, height);
 
-    if (script.funcs.postRender) {
+    // [jsd] run AngelScript post_frame() function if available:
+    if (script.funcs.post_frame) {
       ppuFrame.output = output;
       ppuFrame.pitch = pitch;
       ppuFrame.width = width;
       ppuFrame.height = height;
-      script.context->Prepare(script.funcs.postRender);
+      script.context->Prepare(script.funcs.post_frame);
       script.context->Execute();
     }
 

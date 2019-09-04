@@ -30,13 +30,13 @@ struct ScriptFrame {
   uint &width = ppuFrame.width;
   uint &height = ppuFrame.height;
 
-  enum DrawOp : int {
+  enum draw_op_t : int {
     op_solid,
     op_alpha,
     op_xor,
   } draw_op = op_solid;
-  auto get_draw_op() -> DrawOp { return draw_op; }
-  auto set_draw_op(DrawOp draw_op_p) { draw_op = draw_op_p; }
+  auto get_draw_op() -> draw_op_t { return draw_op; }
+  auto set_draw_op(draw_op_t draw_op_p) { draw_op = draw_op_p; }
 
   uint16 color = 0x7fff;
   auto get_color() -> uint16 { return color; }
@@ -209,19 +209,17 @@ auto Interface::registerScriptDefs() -> void {
   // global function to write debug messages:
   r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(script_message), asCALL_CDECL); assert(r >= 0);
 
-  // define SNES namespace:
-  r = script.engine->SetDefaultNamespace("SNES"); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(script_rgb), asCALL_CDECL); assert(r >= 0);
-
-  // default SNES:Bus memory functions:
-  r = script.engine->SetDefaultNamespace("SNES::Bus"); assert(r >= 0);
+  // default Bus memory functions:
+  r = script.engine->SetDefaultNamespace("bus"); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(script_bus_read_u8), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32 addr0, uint32 addr1)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(script_bus_write_u8), asCALL_CDECL); assert(r >= 0);
 
-  // define SNES::PPU::Frame object type:
-  r = script.engine->SetDefaultNamespace("SNES::PPU"); assert(r >= 0);
+  // define PPU::Frame object type:
+  r = script.engine->SetDefaultNamespace("ppu"); assert(r >= 0);
   r = script.engine->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+
+  r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(script_rgb), asCALL_CDECL); assert(r >= 0);
 
   // adjust y_offset of drawing functions (default 8):
   r = script.engine->RegisterObjectMethod("Frame", "int get_y_offset()", asMETHODPR(ScriptFrame, get_y_offset, (), int), asCALL_THISCALL); assert(r >= 0);
@@ -244,14 +242,14 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("Frame", "void set_text_shadow(bool font_height)", asMETHODPR(ScriptFrame, set_text_shadow, (bool), void), asCALL_THISCALL); assert(r >= 0);
 
   // register the DrawOp enum:
-  r = script.engine->RegisterEnum("DrawOp"); assert(r >= 0);
-  r = script.engine->RegisterEnumValue("DrawOp", "op_solid", ScriptFrame::DrawOp::op_solid); assert(r >= 0);
-  r = script.engine->RegisterEnumValue("DrawOp", "op_alpha", ScriptFrame::DrawOp::op_alpha); assert(r >= 0);
-  r = script.engine->RegisterEnumValue("DrawOp", "op_xor", ScriptFrame::DrawOp::op_xor); assert(r >= 0);
+  r = script.engine->RegisterEnum("draw_op"); assert(r >= 0);
+  r = script.engine->RegisterEnumValue("draw_op", "op_solid", ScriptFrame::draw_op_t::op_solid); assert(r >= 0);
+  r = script.engine->RegisterEnumValue("draw_op", "op_alpha", ScriptFrame::draw_op_t::op_alpha); assert(r >= 0);
+  r = script.engine->RegisterEnumValue("draw_op", "op_xor", ScriptFrame::draw_op_t::op_xor); assert(r >= 0);
 
   // set alpha to use for drawing functions (0..31):
-  r = script.engine->RegisterObjectMethod("Frame", "DrawOp get_draw_op()", asMETHODPR(ScriptFrame, get_draw_op, (), ScriptFrame::DrawOp), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void set_draw_op(DrawOp draw_op)", asMETHODPR(ScriptFrame, set_draw_op, (ScriptFrame::DrawOp), void), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "draw_op get_draw_op()", asMETHODPR(ScriptFrame, get_draw_op, (), ScriptFrame::draw_op_t), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "void set_draw_op(draw_op draw_op)", asMETHODPR(ScriptFrame, set_draw_op, (ScriptFrame::draw_op_t), void), asCALL_THISCALL); assert(r >= 0);
 
   // pixel access functions:
   r = script.engine->RegisterObjectMethod("Frame", "uint16 read_pixel(int x, int y)", asMETHODPR(ScriptFrame, read_pixel, (int, int), uint16), asCALL_THISCALL); assert(r >= 0);
@@ -296,8 +294,8 @@ auto Interface::loadScript(string location) -> void {
 
   // bind to functions in the script:
   script.funcs.init = script.module->GetFunctionByDecl("void init()");
-  script.funcs.main = script.module->GetFunctionByDecl("void main()");
-  script.funcs.postRender = script.module->GetFunctionByDecl("void postRender()");
+  script.funcs.pre_frame = script.module->GetFunctionByDecl("void pre_frame()");
+  script.funcs.post_frame = script.module->GetFunctionByDecl("void post_frame()");
 
   if (script.funcs.init) {
     script.context->Prepare(script.funcs.init);
@@ -312,6 +310,6 @@ auto Interface::unloadScript() -> void {
   }
 
   script.funcs.init = nullptr;
-  script.funcs.main = nullptr;
-  script.funcs.postRender = nullptr;
+  script.funcs.pre_frame = nullptr;
+  script.funcs.post_frame = nullptr;
 }
