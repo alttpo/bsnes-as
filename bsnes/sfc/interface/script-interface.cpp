@@ -1,4 +1,8 @@
 
+//#include <sfc/sfc.hpp>
+
+#include "vga-charset.cpp"
+
 struct ScriptFrame {
   uint16_t *&output = ppuFrame.output;
   uint &pitch = ppuFrame.pitch;
@@ -89,6 +93,35 @@ struct ScriptFrame {
     hline(x + 1, y + h - 1, w - 1);
     vline(x, y + 1, h - 1);
     vline(x + w - 1, y + 1, h - 2);
+  }
+
+  // draw a line of text (currently ASCII only due to font restrictions)
+  auto text(int x, int y, const string *msg) -> int {
+    auto len = 0;
+
+    const char *c = msg->data();
+    while (*c != 0) {
+      if ((*c < 0x20) || (*c > 0x7F)) {
+        // Skip the character since it is out of ASCII range:
+        c++;
+        continue;
+      }
+
+      uint glyph = *c - 0x20u;
+      for (int i = 0; i < 16; i++) {
+        uint8 m = 0x80u;
+        for (int j = 0; j < 8; j++, m >>= 1u) {
+          if (VGA_charset_ASCII[glyph][i] & m) pixel(x+j, y+i);
+        }
+      }
+
+      len++;
+      c++;
+      x += 8;
+    }
+
+    // return how many characters drawn:
+    return len;
   }
 } scriptFrame;
 
@@ -227,6 +260,9 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("Frame", "void hline(int lx, int ty, int w)", asMETHODPR(ScriptFrame, hline, (int, int, int), void), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void vline(int lx, int ty, int h)", asMETHODPR(ScriptFrame, vline, (int, int, int), void), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void rect(int x, int y, int w, int h)", asMETHODPR(ScriptFrame, rect, (int, int, int, int), void), asCALL_THISCALL); assert(r >= 0);
+
+  // text drawing function:
+  r = script.engine->RegisterObjectMethod("Frame", "int text(int x, int y, const string &in text)", asMETHODPR(ScriptFrame, text, (int, int, const string *), int), asCALL_THISCALL); assert(r >= 0);
 
   // global property to access current frame:
   r = script.engine->RegisterGlobalProperty("Frame frame", &scriptFrame); assert(r >= 0);

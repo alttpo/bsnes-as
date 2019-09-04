@@ -42,5 +42,7 @@ void postRender() {
 
     // draw rectangle around the sprite:
     SNES::PPU::frame.rect(rx, ry, 16, 16);
+    // draw test text:
+    SNES::PPU::frame.text(rx - 8, ry, "sprt");
   }
 }

@@ -502,6 +502,7 @@ add_executable(bsnes
         bsnes/sfc/interface/interface.cpp
         bsnes/sfc/interface/interface.hpp
         bsnes/sfc/interface/script-interface.cpp
+        bsnes/sfc/interface/vga-charset.cpp
         bsnes/sfc/memory/memory-inline.hpp
         bsnes/sfc/memory/memory.cpp
         bsnes/sfc/memory/memory.hpp
