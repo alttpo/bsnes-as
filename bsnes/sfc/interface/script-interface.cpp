@@ -30,13 +30,13 @@ struct ScriptFrame {
   uint &width = ppuFrame.width;
   uint &height = ppuFrame.height;
 
+  int y_offset = 8;
+
   enum draw_op_t : int {
     op_solid,
     op_alpha,
     op_xor,
   } draw_op = op_solid;
-  auto get_draw_op() -> draw_op_t { return draw_op; }
-  auto set_draw_op(draw_op_t draw_op_p) { draw_op = draw_op_p; }
 
   uint16 color = 0x7fff;
   auto get_color() -> uint16 { return color; }
@@ -47,8 +47,6 @@ struct ScriptFrame {
   auto set_alpha(uint8 alpha_p) { alpha = uclamp<5>(alpha_p); }
 
   bool text_shadow = false;
-  auto get_text_shadow() -> bool { return text_shadow; }
-  auto set_text_shadow(bool text_shadow_p) { text_shadow = text_shadow_p; }
 
   auto (ScriptFrame::*draw_glyph)(int x, int y, int glyph) -> void = &ScriptFrame::draw_glyph_8;
 
@@ -91,10 +89,6 @@ struct ScriptFrame {
 	break;
     }
   }
-
-  int y_offset = 8;
-  auto get_y_offset() -> int { return y_offset; }
-  auto set_y_offset(int y_offs) -> void { y_offset = y_offs; }
 
   auto read_pixel(int x, int y) -> uint16 {
     y += y_offset;
@@ -233,8 +227,7 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(script_rgb), asCALL_CDECL); assert(r >= 0);
 
   // adjust y_offset of drawing functions (default 8):
-  r = script.engine->RegisterObjectMethod("Frame", "int get_y_offset()", asMETHODPR(ScriptFrame, get_y_offset, (), int), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void set_y_offset(int y_offs)", asMETHODPR(ScriptFrame, set_y_offset, (int), void), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("Frame", "int y_offset", asOFFSET(ScriptFrame, y_offset)); assert(r >= 0);
 
   // set color to use for drawing functions (15-bit RGB):
   r = script.engine->RegisterObjectMethod("Frame", "uint16 get_color()", asMETHODPR(ScriptFrame, get_color, (), uint16), asCALL_THISCALL); assert(r >= 0);
@@ -245,12 +238,10 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("Frame", "void set_alpha(uint8 alpha)", asMETHODPR(ScriptFrame, set_alpha, (uint8), void), asCALL_THISCALL); assert(r >= 0);
 
   // set font_height to use for text (8 or 16):
-  r = script.engine->RegisterObjectMethod("Frame", "int get_font_height()", asMETHODPR(ScriptFrame, get_font_height, (), int), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void set_font_height(int font_height)", asMETHODPR(ScriptFrame, set_font_height, (int), void), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("Frame", "int font_height", asOFFSET(ScriptFrame, font_height)); assert(r >= 0);
 
   // set text_shadow to draw shadow behind text:
-  r = script.engine->RegisterObjectMethod("Frame", "bool get_text_shadow()", asMETHODPR(ScriptFrame, get_text_shadow, (), bool), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void set_text_shadow(bool font_height)", asMETHODPR(ScriptFrame, set_text_shadow, (bool), void), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("Frame", "bool text_shadow", asOFFSET(ScriptFrame, text_shadow)); assert(r >= 0);
 
   // register the DrawOp enum:
   r = script.engine->RegisterEnum("draw_op"); assert(r >= 0);
@@ -258,9 +249,8 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterEnumValue("draw_op", "op_alpha", ScriptFrame::draw_op_t::op_alpha); assert(r >= 0);
   r = script.engine->RegisterEnumValue("draw_op", "op_xor", ScriptFrame::draw_op_t::op_xor); assert(r >= 0);
 
-  // set alpha to use for drawing functions (0..31):
-  r = script.engine->RegisterObjectMethod("Frame", "draw_op get_draw_op()", asMETHODPR(ScriptFrame, get_draw_op, (), ScriptFrame::draw_op_t), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void set_draw_op(draw_op draw_op)", asMETHODPR(ScriptFrame, set_draw_op, (ScriptFrame::draw_op_t), void), asCALL_THISCALL); assert(r >= 0);
+  // set draw_op:
+  r = script.engine->RegisterObjectProperty("Frame", "draw_op draw_op", asOFFSET(ScriptFrame, draw_op)); assert(r >= 0);
 
   // pixel access functions:
   r = script.engine->RegisterObjectMethod("Frame", "uint16 read_pixel(int x, int y)", asMETHODPR(ScriptFrame, read_pixel, (int, int), uint16), asCALL_THISCALL); assert(r >= 0);
