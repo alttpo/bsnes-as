@@ -63,9 +63,10 @@ void pre_frame() {
 }
 
 void post_frame() {
-  // set drawing state:
-  ppu::frame.font_height = 8; // select 8x8 or 8x16 font for text
-  // draw using alpha blending
+  // set drawing state
+  // select 8x8 or 8x16 font for text:
+  ppu::frame.font_height = 8;
+  // draw using alpha blending:
   ppu::frame.draw_op = ppu::draw_op::op_alpha;
   // alpha is xx/31:
   ppu::frame.alpha = 20;
@@ -155,19 +156,22 @@ Lua array indices start at 1 (by convention) which makes for some unnecessarily 
 
 ---
 
-AngelScript Interface
-=====================
+UI Updates
+==========
 
 Three new options are available in the Tools menu:
   * Load Script ...
   * Reload Script
   * Unload Script
 
-Load Script will open a dialog to select the AngelScript file to load. Scripts are always reloaded from files and are not cached.
+Load Script will open a dialog to select the AngelScript file (*.as) to load. Scripts are always reloaded from files and are not cached.
 
 Reload Script will reopen the previously selected AngelScript file and recompile it, replacing any existing script.
 
-Unload Script will destroy the current script context and free any allocated memory.
+Unload Script will destroy the current script module and free any allocated memory.
+
+AngelScript Interface
+=====================
 
 The SNES system is frozen during script execution and clock cycles are not advanced until the invoked script function returns.
 
@@ -212,12 +216,14 @@ PPU Frame Access
 
 Notes:
   * Coordinate system used
-     * x = 0 up to 256 from left to right
-     * y = 0 up to 240 from top to bottom. 
+     * x = 0..255 from left to right
+     * y = 0..239 from top to bottom
      * Top and bottom 8 rows are for overscan
      * The visible portion of the screen is 256x224 resolution
      * In absolute coordinates, the visible top-left coordinate is (0,8) and the visible bottom-right coordinate is (255,223)
-     * `ppu::frame.y_offset` property exists to offset all drawing Y coordinates to account for overscan. It defaults to `+8` so that (0,0) in drawing coordinates is the visible top-left coordinate for all drawing functions. Scripts are free to change this property to `0` (to draw in the overscan area) or to any other value.
+     * `ppu::frame.y_offset` property exists to offset all drawing Y coordinates (in 480 column scale) to account for overscan. It defaults to `+16` so that (0,0) in drawing coordinates is the visible top-left coordinate for all drawing functions. Scripts are free to change this property to `0` (to draw in the overscan area) or to any other value.
+     * `ppu::frame.x_scale` is a multiplier to X coordinates to scale to a unified 512x480 pixel buffer; default = 2 which implies a lo-res 256 column mode; switch to 1 to use hi-res 512 column mode
+     * `ppu::frame.y_scale` is a multiplier to Y coordinates to scale to a unified 512x480 pixel buffer; default = 2 which implies a lo-res 240 row mode; switch to 1 to use hi-res 480 row mode
   * 15-bit RGB colors are used.
      * `uint16` type is used for representing 15-bit RGB colors
      * Each color channel is allocated 5 bits, from least-significant bits for blue, to most-significant bits for red.
@@ -243,7 +249,7 @@ Globals:
   * `uint16 ppu::rgb(uint8 r, uint8 g, uint8 b)` - function used to construct 15-bit RGB color values; each color channel is a 5-bit value between 0..31.
 
 `ppu::Frame` properties:
-  * `int y_offset { get; set; }` - property to adjust Y-offset of drawing functions (default = +8; skips top overscan area so that x=0,y=0 is top-left of visible screen)
+  * `int y_offset { get; set; }` - property to adjust Y-offset of drawing functions (default = +16; skips top overscan area so that x=0,y=0 is top-left of visible screen)
   * `ppu::draw_op draw_op { get; set; }` - current drawing operation used to draw pixels
   * `uint16 color { get; set; }` - current color for drawing with (0..0x7fff)
   * `uint8 alpha { get; set; }` - current alpha value for drawing with (0..31)

@@ -30,18 +30,18 @@ struct ScriptFrame {
   uint &width = ppuFrame.width;
   uint &height = ppuFrame.height;
 
-  int x_scale = 1;
+  int x_scale = 2;
   auto get_x_scale() -> int { return x_scale; }
   auto set_x_scale(int x_scale_p) -> void { x_scale = max(x_scale_p, 1); }
 
-  int y_scale = 1;
+  int y_scale = 2;
   auto get_y_scale() -> int { return y_scale; }
   auto set_y_scale(int y_scale_p) -> void { y_scale = max(y_scale_p, 1); }
 
   auto get_width() -> uint { return width; }
   auto get_height() -> uint { return height; }
 
-  int y_offset = 8;
+  int y_offset = 16;
 
   enum draw_op_t : int {
     op_solid,
@@ -102,10 +102,9 @@ struct ScriptFrame {
   }
 
   auto read_pixel(int x, int y) -> uint16 {
-    y += y_offset;
     // Scale the coordinates:
     x = (x * x_scale * ppuFrame.width_mult) / 2;
-    y = (y * y_scale * ppuFrame.height_mult) / 2;
+    y = ((y * y_scale + y_offset) * ppuFrame.height_mult) / 2;
     if (x >= 0 && y >= 0 && x < (int) width && y < (int) height) {
       return output[y * pitch + x];
     }
@@ -114,10 +113,9 @@ struct ScriptFrame {
   }
 
   auto pixel(int x, int y) -> void {
-    y += y_offset;
     // Scale the coordinates:
     x = (x * x_scale * ppuFrame.width_mult) / 2;
-    y = (y * y_scale * ppuFrame.height_mult) / 2;
+    y = ((y * y_scale + y_offset) * ppuFrame.height_mult) / 2;
     auto x_size = max((x_scale * ppuFrame.width_mult) / 2, 1);
     auto y_size = max((y_scale * ppuFrame.height_mult) / 2, 1);
     for (int sy = y; sy < y + y_size; sy++) {
