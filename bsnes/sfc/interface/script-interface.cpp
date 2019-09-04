@@ -138,8 +138,20 @@ struct ScriptFrame {
     for (int i = 0; i < 8; i++) {
       uint8 m = 0x80u;
       for (int j = 0; j < 8; j++, m >>= 1u) {
-        if (font8x8_basic[glyph][i] & m)
+        uint8_t row = font8x8_basic[glyph][i];
+        uint8 row1 = i < 7 ? font8x8_basic[glyph][i+1] : 0;
+        if (row & m) {
+          // Draw a shadow at x+1,y+1 if there won't be a pixel set there from the font:
+          if (text_shadow && ((row1 & (m>>1u)) == 0u)) {
+            // quick swap to black for shadow:
+            auto save_color = color;
+            color = 0x0000;
+            pixel(x + j + 1, y + i + 1);
+            // restore previous color:
+            color = save_color;
+          }
           pixel(x + j, y + i);
+        }
       }
     }
   }
@@ -148,13 +160,30 @@ struct ScriptFrame {
     for (int i = 0; i < 16; i++) {
       uint8 m = 0x80u;
       for (int j = 0; j < 8; j++, m >>= 1u) {
-        if (font8x16_basic[glyph][i] & m)
+        uint8 row = font8x16_basic[glyph][i];
+        if (row & m) {
+          if (text_shadow) {
+            uint8 row1 = i < 15 ? font8x16_basic[glyph][i + 1] : 0;
+            // Draw a shadow at x+1,y+1 if there won't be a pixel set there from the font:
+            if ((row1 & (m >> 1u)) == 0u) {
+              // quick swap to black for shadow:
+              auto save_color = color;
+              color = 0x0000;
+              pixel(x + j + 1, y + i + 1);
+              // restore previous color:
+              color = save_color;
+            }
+          }
           pixel(x + j, y + i);
+        }
       }
     }
   }
 
-  auto draw_text(int x, int y, const char *c) -> int {
+  // draw a line of text (currently ASCII only due to font restrictions)
+  auto text(int x, int y, const string *msg) -> int {
+    const char *c = msg->data();
+
     auto len = 0;
 
     while (*c != 0) {
@@ -174,24 +203,6 @@ struct ScriptFrame {
 
     // return how many characters drawn:
     return len;
-  }
-
-  // draw a line of text (currently ASCII only due to font restrictions)
-  auto text(int x, int y, const string *msg) -> int {
-    const char *c = msg->data();
-
-    // draw a shadow underneath text first:
-    if (text_shadow) {
-      // quick swap to black for shadow:
-      auto save_color = color;
-      color = 0x0000;
-      draw_text(x + 1, y + 1, c);
-      // restore previous color:
-      color = save_color;
-    }
-
-    // return how many characters drawn:
-    return draw_text(x, y, c);
   }
 } scriptFrame;
 
