@@ -2,10 +2,8 @@
 uint16   xoffs, yoffs;
 uint16[] sprx(16);
 uint16[] spry(16);
-uint8[]  spra(16);
-uint8[]  sprg(16);
 uint8[]  sprs(16);
-uint8[]  sprt(16);
+uint8[]  sprk(16);
 uint32   location;
 
 void init() {
@@ -34,14 +32,10 @@ void main() {
     // sprite x,y coords are absolute from BG2 top-left:
     spry[i] = SNES::Bus::read_u16(0x7E0D00 + i, 0x7E0D20 + i);
     sprx[i] = SNES::Bus::read_u16(0x7E0D10 + i, 0x7E0D30 + i);
-    // AI:
-    spra[i] = SNES::Bus::read_u8(0x7E0D80 + i);
-    // graphics:
-    sprg[i] = SNES::Bus::read_u8(0x7E0DC0 + i);
     // sprite state (0 = dead, else alive):
     sprs[i] = SNES::Bus::read_u8(0x7E0DD0 + i);
     // sprite kind:
-    sprt[i] = SNES::Bus::read_u8(0x7E0E20 + i);
+    sprk[i] = SNES::Bus::read_u8(0x7E0E20 + i);
   }
 }
 
@@ -51,7 +45,7 @@ void postRender() {
   // draw using alpha blending
   SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
   // alpha is 20/31:
-  SNES::PPU::frame.alpha = 4;
+  SNES::PPU::frame.alpha = 24;
   // color is 0x7fff aka white (15-bit RGB)
   SNES::PPU::frame.color = 0x7fff;
 
@@ -74,10 +68,6 @@ void postRender() {
 
     // draw sprite type value above box:
     ry -= SNES::PPU::frame.font_height;
-    SNES::PPU::frame.text(rx, ry, hex(sprt[i], 2));
-
-    // draw HP above that:
-    ry -= SNES::PPU::frame.font_height;
-    SNES::PPU::frame.text(rx, ry, hex(SNES::Bus::read_u8(0x7E0E50 + i), 2));
+    SNES::PPU::frame.text(rx, ry, hex(sprk[i], 2));
   }
 }
