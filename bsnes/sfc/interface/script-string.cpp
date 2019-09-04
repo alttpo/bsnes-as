@@ -80,8 +80,20 @@ static auto stringAdd(const string *self, const string *other) -> string* {
   return dest;
 }
 
-static auto stringHex(uint64_t value, int precision = 0) -> string* {
+static auto fmtHex(uint64_t value, int precision = 0) -> string* {
   return new string(hex(value, precision));
+}
+
+static auto fmtBinary(uint64_t value, int precision = 0) -> string* {
+  return new string(binary(value, precision));
+}
+
+static auto fmtInt(int64_t value) -> string* {
+  return new string(value);
+}
+
+static auto fmtUint(uint64_t value) -> string* {
+  return new string(value);
 }
 
 auto Interface::registerScriptString() -> void {
@@ -104,7 +116,10 @@ auto Interface::registerScriptString() -> void {
   r = script.engine->RegisterObjectMethod("string", "uint length() const", asMETHOD(string, length), asCALL_THISCALL); assert( r >= 0 );
 
   // Register global functions
-  r = script.engine->RegisterGlobalFunction("string &hex(uint64 value, int precision = 0)", asFUNCTION(stringHex), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("string &fmtHex(uint64 value, int precision = 0)", asFUNCTION(fmtHex), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("string &fmtBinary(uint64 value, int precision = 0)", asFUNCTION(fmtBinary), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("string &fmtInt(int64 value)", asFUNCTION(fmtInt), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("string &fmtUint(uint64 value)", asFUNCTION(fmtUint), asCALL_CDECL); assert(r >= 0);
 
   //todo[jsd] add more string functions if necessary
 }

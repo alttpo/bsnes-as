@@ -38,7 +38,7 @@ void main() {
     sprk[i] = SNES::Bus::read_u8(0x7E0E20 + i);
 
     if (sprs[i] != 0 && sprk[i] == 0x0d) {
-      auto msg = "found a tralala[" + hex(i,1) + "] at " + hex(sprx[i],4) + "," + hex(spry[i],4);
+      auto msg = "found a tralala[" + fmtInt(i) + "] at " + fmtHex(sprx[i],4) + "," + fmtHex(spry[i],4);
       message(msg);
     }
   }
@@ -58,7 +58,7 @@ void postRender() {
   SNES::PPU::frame.text_shadow = true;
 
   // draw aggregate location value in top-left:
-  SNES::PPU::frame.text(0, 0, hex(location, 6));
+  SNES::PPU::frame.text(0, 0, fmtHex(location, 6));
 
   for (int i = 0; i < 16; i++) {
     // skip dead sprites:
@@ -73,6 +73,6 @@ void postRender() {
 
     // draw sprite type value above box:
     ry -= SNES::PPU::frame.font_height;
-    SNES::PPU::frame.text(rx, ry, hex(sprk[i], 2));
+    SNES::PPU::frame.text(rx, ry, fmtHex(sprk[i], 2));
   }
 }
