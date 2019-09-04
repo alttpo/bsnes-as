@@ -4,15 +4,19 @@
 #include "vga-charset.cpp"
 #include "script-string.cpp"
 
-static uint8_t script_bus_read_u8(uint32_t addr) {
+static auto script_bus_read_u8(uint32_t addr) -> uint8_t {
   return bus.read(addr, 0);
 }
 
-static uint16_t script_bus_read_u16(uint32_t addr0, uint32_t addr1) {
+static auto script_bus_write_u8(uint32_t addr, uint8_t data) -> void {
+  bus.write(addr, data);
+}
+
+static auto script_bus_read_u16(uint32_t addr0, uint32_t addr1) -> uint16_t {
   return bus.read(addr0, 0) | (bus.read(addr1,0) << 8u);
 }
 
-static void script_message(const string *msg) {
+static auto script_message(const string *msg) -> void {
   platform->scriptMessage(msg);
 }
 
@@ -206,7 +210,7 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->SetDefaultNamespace("SNES::Bus"); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(script_bus_read_u8), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32 addr0, uint32 addr1)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
-  //todo[jsd] add write functions
+  r = script.engine->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(script_bus_write_u8), asCALL_CDECL); assert(r >= 0);
 
   // define SNES::PPU::Frame object type:
   r = script.engine->SetDefaultNamespace("SNES::PPU"); assert(r >= 0);
