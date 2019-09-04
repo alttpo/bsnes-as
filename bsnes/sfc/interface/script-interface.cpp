@@ -39,7 +39,7 @@ struct ScriptFrame {
   auto set_alpha(uint8 alpha_p) { alpha = uclamp<5>(alpha_p); }
 
   int font_height = 8;
-  auto get_font_height() -> uint8 { return font_height; }
+  auto get_font_height() -> int { return font_height; }
   auto set_font_height(int font_height_p) {
     if (font_height_p <= 8) {
       font_height = 8;
@@ -200,6 +200,10 @@ auto Interface::registerScriptDefs() -> void {
   // set alpha to use for drawing functions (0..31):
   r = script.engine->RegisterObjectMethod("Frame", "uint8 get_alpha()", asMETHODPR(ScriptFrame, get_alpha, (), uint8), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void set_alpha(uint8 alpha)", asMETHODPR(ScriptFrame, set_alpha, (uint8), void), asCALL_THISCALL); assert(r >= 0);
+
+  // set font_height to use for text (8 or 16):
+  r = script.engine->RegisterObjectMethod("Frame", "int get_font_height()", asMETHODPR(ScriptFrame, get_font_height, (), int), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "void set_font_height(int font_height)", asMETHODPR(ScriptFrame, set_font_height, (int), void), asCALL_THISCALL); assert(r >= 0);
 
   // register the DrawOp enum:
   r = script.engine->RegisterEnum("DrawOp"); assert(r >= 0);

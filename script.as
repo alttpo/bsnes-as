@@ -28,6 +28,7 @@ void main() {
 
 void postRender() {
   // set drawing state:
+  SNES::PPU::frame.font_height = 8; // select 8x8 or 8x16 font for text
   SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
   SNES::PPU::frame.alpha = 24;
   SNES::PPU::frame.color = 0x7fff;
