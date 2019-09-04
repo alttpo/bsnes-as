@@ -1,5 +1,5 @@
 
-//#include <sfc/sfc.hpp>
+#include <sfc/sfc.hpp>
 
 #include "vga-charset.cpp"
 #include "script-string.cpp"
@@ -22,10 +22,6 @@ struct ScriptFrame {
   uint &width = ppuFrame.width;
   uint &height = ppuFrame.height;
 
-  uint16_t color = 0x7fff;
-  auto get_color() -> uint16_t { return color; }
-  auto set_color(uint16_t color_p) -> void { color = uclamp<15>(color_p); }
-
   enum DrawOp : int {
     op_solid,
     op_alpha,
@@ -34,9 +30,25 @@ struct ScriptFrame {
   auto get_draw_op() -> DrawOp { return draw_op; }
   auto set_draw_op(DrawOp draw_op_p) { draw_op = draw_op_p; }
 
-  uint8 alpha = 255;
+  uint16_t color = 0x7fff;
+  auto get_color() -> uint16_t { return color; }
+  auto set_color(uint16_t color_p) -> void { color = uclamp<15>(color_p); }
+
+  uint8 alpha = 31;
   auto get_alpha() -> uint8 { return alpha; }
   auto set_alpha(uint8 alpha_p) { alpha = uclamp<5>(alpha_p); }
+
+  int font_height = 8;
+  auto get_font_height() -> uint8 { return font_height; }
+  auto set_font_height(int font_height_p) {
+    if (font_height_p <= 8) {
+      font_height = 8;
+      draw_glyph = &ScriptFrame::draw_glyph_8;
+    } else {
+      font_height = 16;
+      draw_glyph = &ScriptFrame::draw_glyph_16;
+    }
+  }
 
   auto inline draw(uint16_t *p) {
     switch (draw_op) {
@@ -108,6 +120,26 @@ struct ScriptFrame {
     vline(x + w - 1, y + 1, h - 2);
   }
 
+  auto (ScriptFrame::*draw_glyph)(int x, int y, int glyph) -> void = &ScriptFrame::draw_glyph_8;
+
+  auto draw_glyph_8(int x, int y, int glyph) -> void {
+    for (int i = 0; i < 8; i++) {
+      uint8 m = 0x80u;
+      for (int j = 0; j < 8; j++, m >>= 1u) {
+        if (font8x8_basic[glyph][i] & m) pixel(x + j, y + i);
+      }
+    }
+  }
+
+  auto draw_glyph_16(int x, int y, int glyph) -> void {
+    for (int i = 0; i < 16; i++) {
+      uint8 m = 0x80u;
+      for (int j = 0; j < 8; j++, m >>= 1u) {
+        if (font8x16_basic[glyph][i] & m) pixel(x + j, y + i);
+      }
+    }
+  }
+
   // draw a line of text (currently ASCII only due to font restrictions)
   auto text(int x, int y, const string *msg) -> int {
     auto len = 0;
@@ -120,13 +152,8 @@ struct ScriptFrame {
         continue;
       }
 
-      uint glyph = *c - 0x20u;
-      for (int i = 0; i < 16; i++) {
-        uint8 m = 0x80u;
-        for (int j = 0; j < 8; j++, m >>= 1u) {
-          if (VGA_charset_ASCII[glyph][i] & m) pixel(x+j, y+i);
-        }
-      }
+      int glyph = *c - 0x20;
+      (this->*draw_glyph)(x, y, glyph);
 
       len++;
       c++;
