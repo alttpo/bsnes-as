@@ -44,7 +44,7 @@ void postRender() {
   SNES::PPU::frame.font_height = 8; // select 8x8 or 8x16 font for text
   // draw using alpha blending
   SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
-  // alpha is 20/31:
+  // alpha is xx/31:
   SNES::PPU::frame.alpha = 24;
   // color is 0x7fff aka white (15-bit RGB)
   SNES::PPU::frame.color = SNES::rgb(31, 31, 31);

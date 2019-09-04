@@ -67,10 +67,10 @@ void postRender() {
   SNES::PPU::frame.font_height = 8; // select 8x8 or 8x16 font for text
   // draw using alpha blending
   SNES::PPU::frame.draw_op = SNES::PPU::DrawOp::op_alpha;
-  // alpha is 20/31:
+  // alpha is xx/31:
   SNES::PPU::frame.alpha = 24;
   // color is 0x7fff aka white (15-bit RGB)
-  SNES::PPU::frame.color = 0x7fff;
+  SNES::PPU::frame.color = SNES::rgb(31, 31, 31);
 
   // enable shadow under text for clearer reading:
   SNES::PPU::frame.text_shadow = true;
@@ -203,32 +203,36 @@ All definitions in this section are defined in the `SNES::Bus` namespace, e.g. `
 PPU Frame Access
 ----------------
 
-All properties and types in this section are defined in the `SNES::PPU` namespace, e.g. `SNES::PPU::frame`.
+Globals:
+  * `SNES::PPU::Frame SNES::PPU::frame { get; }` - global read-only property representing the current rendered PPU frame that is ready to swap to the display. Contains methods and properties that allow for drawing things on top of the frame.
+  * `uint16 SNES::rgb(uint8 r, uint8 g, uint8 b)` - function used to construct 15-bit RGB color values; each color channel is a 5-bit value between 0..31.
 
-* `frame` is a global property that is no-handle reference to the rendered PPU frame which offers read/write access to draw things on top of
-* Coordinate system used: x = 0 up to 512 from left to right, y = 0 up to 480 from top to bottom; both coordinates depend on scaling settings, interlace mode, etc.
-* `uint16` is used for representing 15-bit RGB colors, where each color channel is allocated 5 bits each, from least-significant bits for blue, to most-significant bits for red. The most significant bit of the `uint16` value for color should always be `0`. `0x7fff` is full-white and `0x0000` is full black.
-* alpha is represented in a `uint8` as a 5-bit value between 0..31 where 0 is completely transparent and 31 is completely opaque
-* alpha blending equation is `[src_rgb*src_a + dst_rgb*(31 - src_a)] / 31`
-
-`Frame` properties:
-  * `int y_offset { get; set; }` - property to adjust Y-offset of drawing functions (default to +8 to skip top overscan area)
-  * `SNES::PPU::DrawOp draw_op { get; set; }` - property to hold the current drawing operation used to draw pixels; drawing operations available are:
-     * `SNES::PPU::DrawOp::op_solid` - default, draw solid pixels, ignoring alpha
+Notes:
+  * Coordinate system used: x = 0 up to 512 from left to right, y = 0 up to 480 from top to bottom; both coordinates depend on scaling settings, interlace mode, etc.
+  * `uint16` type is used for representing 15-bit RGB colors, where each color channel is allocated 5 bits each, from least-significant bits for blue, to most-significant bits for red. The most significant bit of the `uint16` value for color should always be `0`. `0x7fff` is full-white and `0x0000` is full black.
+  * alpha channel is represented in a `uint8` type as a 5-bit value between 0..31 where 0 is completely transparent and 31 is completely opaque.
+  * alpha blending equation is `[src_rgb*src_a + dst_rgb*(31 - src_a)] / 31`
+  * `SNES::PPU::DrawOp` - enum of drawing operations used to draw pixels; available drawing operations are:
+     * `SNES::PPU::DrawOp::op_solid` - draw solid pixels, ignoring alpha (default)
      * `SNES::PPU::DrawOp::op_alpha` - draw new pixels alpha-blended with existing pixels
      * `SNES::PPU::DrawOp::op_xor` - XORs new pixel color value with existing pixel color value
 
-  * `uint16 color { get; set; }` - property to hold the current color for drawing with (0..0x7fff)
-  * `uint8 alpha { get; set; }` - property to hold the current alpha value for drawing with (0..31)
-  * `int font_height { get; set; }` - property that represents the current font's height in pixels, valid values are 8 or 16, default 8.
+`SNES::PPU::Frame` properties:
+  * `int y_offset { get; set; }` - property to adjust Y-offset of drawing functions (default = +8; skips top overscan area so that x=0,y=0 is top-left of visible screen)
+  * `SNES::PPU::DrawOp draw_op { get; set; }` - current drawing operation used to draw pixels
+  * `uint16 color { get; set; }` - current color for drawing with (0..0x7fff)
+  * `uint8 alpha { get; set; }` - current alpha value for drawing with (0..31)
+  * `int font_height { get; set; }` - current font height in pixels; valid values are 8 or 16 (default = 8).
 
-`Frame` methods:
+`SNES::PPU::Frame` methods:
   * `uint16 read_pixel(int x, int y)` - gets the 15-bit RGB color at the x,y coordinate in the PPU frame
   * `void pixel(int x, int y, uint16 color)` - sets the 15-bit RGB color at the x,y coordinate in the PPU frame
   * `void hline(int lx, int ty, int w)` - draws a horizontal line
   * `void vline(int lx, int ty, int h)` - draws a vertical line
   * `void rect(int x, int y, int w, int h)` - draws a rectangle
-  * `int text(int x, int y, const string &in text)` - draws a horizontal span of ASCII text using the current `font_height`; returns number of characters drawn (i.e. string length minus count of non-printable characters)
+  * `int text(int x, int y, const string &in text)` - draws a horizontal span of ASCII text using the current `font_height`; all non-printable characters and control characters (CR, LF, TAB, etc) are skipped over and are not rendered; returns number of characters drawn
+
+All drawing operations are performed immediately and directly on the PPU frame buffer. There is no second frame buffer on top for compositing or alpha-blending of whole images.
 
 ---
 
