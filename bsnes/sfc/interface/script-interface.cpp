@@ -30,6 +30,9 @@ struct ScriptFrame {
   uint &width = ppuFrame.width;
   uint &height = ppuFrame.height;
 
+  auto get_width() -> uint { return width; }
+  auto get_height() -> uint { return height; }
+
   int y_offset = 8;
 
   enum draw_op_t : int {
@@ -214,17 +217,22 @@ auto Interface::registerScriptDefs() -> void {
   // global function to write debug messages:
   r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(script_message), asCALL_CDECL); assert(r >= 0);
 
-  // default Bus memory functions:
+  // default bus memory functions:
   r = script.engine->SetDefaultNamespace("bus"); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(script_bus_read_u8), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32 addr0, uint32 addr1)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(script_bus_write_u8), asCALL_CDECL); assert(r >= 0);
 
-  // define PPU::Frame object type:
+  // create ppu namespace
   r = script.engine->SetDefaultNamespace("ppu"); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(script_rgb), asCALL_CDECL); assert(r >= 0);
+
+  // define ppu::Frame object type:
   r = script.engine->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
 
-  r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(script_rgb), asCALL_CDECL); assert(r >= 0);
+  // define width and height properties:
+  r = script.engine->RegisterObjectMethod("Frame", "uint get_width()", asMETHOD(ScriptFrame, get_width), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "uint get_height()", asMETHOD(ScriptFrame, get_height), asCALL_THISCALL); assert(r >= 0);
 
   // adjust y_offset of drawing functions (default 8):
   r = script.engine->RegisterObjectProperty("Frame", "int y_offset", asOFFSET(ScriptFrame, y_offset)); assert(r >= 0);

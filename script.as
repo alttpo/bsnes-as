@@ -70,4 +70,6 @@ void post_frame() {
     ry -= ppu::frame.font_height;
     ppu::frame.text(rx, ry, fmtHex(sprk[i], 2));
   }
+
+  message(fmtInt(ppu::frame.width) + "x" + fmtInt(ppu::frame.height));
 }
