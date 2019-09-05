@@ -79,7 +79,8 @@ void post_frame() {
   // select 8x8 or 8x16 font for text:
   ppu::frame.font_height = 8;
   // draw using alpha blending:
-  ppu::frame.draw_op = ppu::draw_op::op_alpha;
+  //ppu::frame.draw_op = ppu::draw_op::op_alpha;
+  ppu::frame.draw_op = ppu::draw_op::op_solid;
   // alpha is xx/31:
   ppu::frame.alpha = 28;
   // color is 0x7fff aka white (15-bit RGB)
@@ -104,8 +105,8 @@ void post_frame() {
     }
   }
 
-  /*
   for (int i = 0; i < 128; i++) {
+    /*
     auto b0 = bus::read_u8(0x7E0800 + i*4);
     auto b1 = bus::read_u8(0x7E0801 + i*4);
     auto b2 = bus::read_u8(0x7E0802 + i*4);
@@ -117,12 +118,20 @@ void post_frame() {
     auto y = uint16(b1);
     auto s = ((ex >> (sh+1)) & 1) + 1;
     auto c = uint16(b2) | uint16(b3 & 1) << 8;
+    auto p = uint8(b3 >> 4) & 7;
 
     if (x >= 256) x -= 512;
     if ((c & 0xff) != 0) continue;
 
-    ppu::frame.text(x, y, fmtHex(c, 3));
+    ppu::frame.text(x, y-8, fmtHex(p, 1));
     //ppu::frame.rect(x, y, (s*8), (s*8));
+    */
+    ppu::oam.index = i;
+
+    auto x = ppu::oam.x;
+    auto y = ppu::oam.y;
+    auto palette = ppu::oam.palette;
+
+    ppu::frame.text(x, y-8, fmtHex(palette, 1));
   }
-  */
 }

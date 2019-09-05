@@ -280,6 +280,57 @@ struct ScriptFrame {
 
     return vram_read(addr + 0) << 0 | vram_read(addr + 8) << 16;
   }
+
+  struct OAMObject {
+    uint9 x;
+    uint8 y;
+    uint8 character;
+    uint1 nameselect;
+    uint1 vflip;
+    uint1 hflip;
+    uint2 priority;
+    uint3 palette;
+    uint1 size;
+  } oam_object;
+  uint8 oam_index;
+
+  auto oam_get_index() -> uint8 { return oam_index; }
+  auto oam_set_index(uint8 index) -> void {
+    oam_index = index;
+    if (system.fastPPU()) {
+      auto po = ppufast.objects[index];
+      oam_object.x = po.x;
+      oam_object.y = po.y;
+      oam_object.character = po.character;
+      oam_object.nameselect = po.nameselect;
+      oam_object.vflip = po.vflip;
+      oam_object.hflip = po.hflip;
+      oam_object.priority = po.priority;
+      oam_object.palette = po.palette;
+      oam_object.size = po.size;
+    } else {
+      auto po = ppu.obj.oam.object[index];
+      oam_object.x = po.x;
+      oam_object.y = po.y;
+      oam_object.character = po.character;
+      oam_object.nameselect = po.nameselect;
+      oam_object.vflip = po.vflip;
+      oam_object.hflip = po.hflip;
+      oam_object.priority = po.priority;
+      oam_object.palette = po.palette;
+      oam_object.size = po.size;
+    }
+  }
+
+  auto oam_get_x() -> uint16 { return oam_object.x; }
+  auto oam_get_y() -> uint8 { return oam_object.y; }
+  auto oam_get_character() -> uint8 { return oam_object.character; }
+  auto oam_get_nameselect() -> uint8 { return oam_object.nameselect; }
+  auto oam_get_vflip() -> uint8 { return oam_object.vflip; }
+  auto oam_get_hflip() -> uint8 { return oam_object.hflip; }
+  auto oam_get_priority() -> uint8 { return oam_object.priority; }
+  auto oam_get_palette() -> uint8 { return oam_object.palette; }
+  auto oam_get_size() -> uint8 { return oam_object.size; }
 } scriptFrame;
 
 auto Interface::registerScriptDefs() -> void {
@@ -320,6 +371,20 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("OBJ", "void set_character(uint16 chr)", asMETHOD(ScriptFrame, obj_set_character), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OBJ", "uint32 opIndex(uint8 y)", asMETHOD(ScriptFrame, obj_tile_read), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterGlobalProperty("OBJ obj", &scriptFrame); assert(r >= 0);
+
+  r = script.engine->RegisterObjectType("OAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8 get_index()", asMETHOD(ScriptFrame, oam_get_index), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "void set_index(uint8 index)", asMETHOD(ScriptFrame, oam_set_index), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint16 get_x()", asMETHOD(ScriptFrame, oam_get_x), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_y()", asMETHOD(ScriptFrame, oam_get_y), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_character()", asMETHOD(ScriptFrame, oam_get_character), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_nameselect()", asMETHOD(ScriptFrame, oam_get_nameselect), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_vflip()", asMETHOD(ScriptFrame, oam_get_vflip), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_hflip()", asMETHOD(ScriptFrame, oam_get_hflip), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_priority()", asMETHOD(ScriptFrame, oam_get_priority), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_palette()", asMETHOD(ScriptFrame, oam_get_palette), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_size()", asMETHOD(ScriptFrame, oam_get_size), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("OAM oam", &scriptFrame); assert(r >= 0);
 
   // define ppu::Frame object type:
   r = script.engine->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
