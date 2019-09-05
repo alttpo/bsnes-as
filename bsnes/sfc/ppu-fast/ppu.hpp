@@ -38,9 +38,6 @@ struct PPU : PPUcounter {
   //serialization.cpp
   auto serialize(serializer&) -> void;
 
-  auto scriptReadVRAM(uint16 addr) -> uint16;
-  auto scriptReadTileOBJ(uint8 chr, uint1 nameselect, uint5 y) -> uint32;
-
 public:
   struct Source { enum : uint { BG1, BG2, BG3, BG4, OBJ1, OBJ2, COL }; };
   struct TileMode { enum : uint { BPP2, BPP4, BPP8, Mode7, Inactive }; };

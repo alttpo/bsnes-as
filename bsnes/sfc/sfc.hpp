@@ -102,6 +102,8 @@ namespace SuperFamicom {
   };
   extern PPUFrame ppuFrame;
 
+  struct ScriptFrame;
+
   #include <sfc/system/system.hpp>
   #include <sfc/memory/memory.hpp>
   #include <sfc/ppu/counter/counter.hpp>

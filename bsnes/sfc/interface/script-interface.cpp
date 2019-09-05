@@ -25,14 +25,6 @@ static auto script_rgb(uint8 r, uint8 g, uint8 b) -> uint16 {
 }
 
 struct ScriptFrame {
-  auto vram_read(uint16 addr) -> uint16 {
-    return ppu.scriptReadVRAM(addr);
-  }
-
-  auto get_tile_obj(uint9 chr, uint5 y) -> uint32 {
-    return ppu.scriptReadTileOBJ(chr, chr >> 8, y);
-  }
-
   uint16 *&output = ppuFrame.output;
   uint &pitch = ppuFrame.pitch;
   uint &width = ppuFrame.width;
@@ -227,6 +219,67 @@ struct ScriptFrame {
     // return how many characters drawn:
     return len;
   }
+
+  auto draw_4bpp(int x, int y, uint32 rowdata, uint8 sprite_palette_8) -> void {
+    auto save_color = color;
+
+    uint3 sprite_palette = sprite_palette_8;
+    auto palette = 128 + (sprite_palette << 4);
+
+    for (int px = 0; px < 8; px++) {
+      uint c = 0, shift = 7 - px;
+      c += rowdata >> (shift + 0) & 1;
+      c += rowdata >> (shift + 7) & 2;
+      c += rowdata >> (shift + 14) & 4;
+      c += rowdata >> (shift + 21) & 8;
+      if (c) {
+        color = cgram_read(palette + c);
+        pixel(x+px, y);
+      }
+    }
+
+    color = save_color;
+  }
+
+  auto vram_read(uint16 addr) -> uint16 {
+    if (system.fastPPU()) {
+      return ppufast.vram[addr];
+    }
+    return ppu.vram[addr];
+  }
+
+  auto cgram_read(uint8 palette) -> uint15 {
+    if (system.fastPPU()) {
+      return ppufast.cgram[palette];
+    }
+    return ppu.screen.cgram[palette];
+  }
+
+  uint9 obj_character = 0;
+  auto obj_get_character() -> uint9 { return obj_character; }
+  auto obj_set_character(uint9 character) { obj_character = character; }
+
+  auto obj_tile_read(uint5 y) -> uint32 {
+    uint16 tiledataAddress;
+    uint8 chr = obj_character;
+    uint1 nameselect = obj_character >> 8;
+
+    if (system.fastPPU()) {
+      tiledataAddress = ppufast.io.obj.tiledataAddress;
+      if (nameselect) tiledataAddress += 1 + ppufast.io.obj.nameselect << 12;
+    } else {
+      tiledataAddress = ppu.obj.io.tiledataAddress;
+      if (nameselect) tiledataAddress += 1 + ppu.obj.io.nameselect << 12;
+    }
+
+    uint16 chrx =  (chr >> 0 & 15);
+    uint16 chry = ((chr >> 4 & 15) + (y >> 3) & 15) << 4;
+
+    uint pos = tiledataAddress + ((chry + chrx) << 4);
+    uint16 addr = (pos & 0xfff0) + (y & 7);
+
+    return vram_read(addr + 0) << 0 | vram_read(addr + 8) << 16;
+  }
 } scriptFrame;
 
 auto Interface::registerScriptDefs() -> void {
@@ -256,10 +309,17 @@ auto Interface::registerScriptDefs() -> void {
   // define ppu::VRAM object type:
   r = script.engine->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("VRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptFrame, vram_read), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("VRAM", "uint32 tile_obj(uint16 chr, uint y)", asMETHOD(ScriptFrame, get_tile_obj), asCALL_THISCALL); assert(r >= 0);
-
-  // global property to access VRAM:
   r = script.engine->RegisterGlobalProperty("VRAM vram", &scriptFrame); assert(r >= 0);
+
+  r = script.engine->RegisterObjectType("CGRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("CGRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptFrame, cgram_read), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("CGRAM cgram", &scriptFrame); assert(r >= 0);
+
+  r = script.engine->RegisterObjectType("OBJ", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OBJ", "uint16 get_character()", asMETHOD(ScriptFrame, obj_get_character), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OBJ", "void set_character(uint16 chr)", asMETHOD(ScriptFrame, obj_set_character), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OBJ", "uint32 opIndex(uint8 y)", asMETHOD(ScriptFrame, obj_tile_read), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("OBJ obj", &scriptFrame); assert(r >= 0);
 
   // define ppu::Frame object type:
   r = script.engine->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
@@ -311,6 +371,9 @@ auto Interface::registerScriptDefs() -> void {
 
   // text drawing function:
   r = script.engine->RegisterObjectMethod("Frame", "int text(int x, int y, const string &in text)", asMETHODPR(ScriptFrame, text, (int, int, const string *), int), asCALL_THISCALL); assert(r >= 0);
+
+  // draw 4bpp paletted 8x1 row:
+  r = script.engine->RegisterObjectMethod("Frame", "int draw_4bpp(int x, int y, uint32 rowdata, uint8 sprite_palette)", asMETHOD(ScriptFrame, draw_4bpp), asCALL_THISCALL); assert(r >= 0);
 
   // global property to access current frame:
   r = script.engine->RegisterGlobalProperty("Frame frame", &scriptFrame); assert(r >= 0);

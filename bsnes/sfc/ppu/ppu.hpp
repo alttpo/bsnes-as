@@ -20,9 +20,6 @@ struct PPU : Thread, PPUcounter {
   //serialization.cpp
   auto serialize(serializer&) -> void;
 
-  auto scriptReadVRAM(uint16 addr) -> uint16;
-  auto scriptReadTileOBJ(uint8 chr, uint1 nameselect, uint5 y) -> uint32;
-
 private:
   //ppu.cpp
   alwaysinline auto step(uint clocks) -> void;
@@ -166,6 +163,7 @@ private:
   friend class PPU::Screen;
   friend class System;
   friend class PPUfast;
+  friend class ScriptFrame;
 };
 
 extern PPU ppu;

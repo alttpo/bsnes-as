@@ -88,9 +88,20 @@ void post_frame() {
   // enable shadow under text for clearer reading:
   ppu::frame.text_shadow = true;
 
-  // binary contents of character 0:
-  for (int i = 0; i < 16; i++) {
-    ppu::frame.text(0, i * 8, fmtBinary(ppu::vram.tile_obj(0, i), 32));
+  // draw current character 0 at top-left:
+  uint8 palette = 7;
+  for (int c = 1; c >= 0; c--) {
+    // left half:
+    ppu::obj.character = (c*2)+0;
+    for (int y = 0; y < 16; y++) {
+      ppu::frame.draw_4bpp(0, y+(c*8), ppu::obj[y], palette);
+    }
+
+    // right half:
+    ppu::obj.character = (c*2)+1;
+    for (int y = 0; y < 16; y++) {
+      ppu::frame.draw_4bpp(8, y+(c*8), ppu::obj[y], palette);
+    }
   }
 
   /*
