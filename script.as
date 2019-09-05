@@ -104,7 +104,7 @@ void post_frame() {
     auto s = ((ex >> (sh+1)) & 1) + 1;
     auto c = uint16(b2) | uint16(b3 & 1) << 8;
 
-    if (x > 256) continue;
+    if (x >= 256) x -= 512;
     //ppu::frame.text(x, y, fmtHex(c, 2));
     ppu::frame.rect(x, y, (s*8), (s*8));
   }
