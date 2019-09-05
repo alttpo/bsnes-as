@@ -11,7 +11,7 @@ void init() {
   message("hello world!");
 }
 
-void pre_frame() {
+void pre_frame_1() {
   // fetch various room indices and flags about where exactly Link currently is:
   auto in_dark_world  = bus::read_u8 (0x7E0FFF);
   auto in_dungeon     = bus::read_u8 (0x7E001B);
@@ -39,7 +39,7 @@ void pre_frame() {
   }
 }
 
-void post_frame() {
+void post_frame_1() {
   // set drawing state
   // select 8x8 or 8x16 font for text:
   ppu::frame.font_height = 8;
@@ -70,5 +70,42 @@ void post_frame() {
     // draw sprite type value above box:
     ry -= ppu::frame.font_height;
     ppu::frame.text(rx, ry, fmtHex(sprk[i], 2));
+  }
+}
+
+// function to debug OAM data
+void post_frame() {
+  // set drawing state
+  // select 8x8 or 8x16 font for text:
+  ppu::frame.font_height = 8;
+  // draw using alpha blending:
+  ppu::frame.draw_op = ppu::draw_op::op_alpha;
+  // alpha is xx/31:
+  ppu::frame.alpha = 28;
+  // color is 0x7fff aka white (15-bit RGB)
+  ppu::frame.color = ppu::rgb(31, 31, 31);
+
+  // enable shadow under text for clearer reading:
+  ppu::frame.text_shadow = true;
+
+  // disable overscan offset since OAM draws in absolute coords:
+  ppu::frame.y_offset = 16;
+
+  for (int i = 0; i < 128; i++) {
+    auto b0 = bus::read_u8(0x7E0800 + i*4);
+    auto b1 = bus::read_u8(0x7E0801 + i*4);
+    auto b2 = bus::read_u8(0x7E0802 + i*4);
+    auto b3 = bus::read_u8(0x7E0803 + i*4);
+    auto ex = bus::read_u8(0x7E0A00 + i/4);
+
+    uint8 sh = (i&3)*2;
+    auto x = uint16(b0) | (uint16((ex >> sh) & 1) << 8);
+    auto y = uint16(b1);
+    auto s = ((ex >> (sh+1)) & 1) + 1;
+    auto c = uint16(b2) | uint16(b3 & 1) << 8;
+
+    if (x > 256) continue;
+    //ppu::frame.text(x, y, fmtHex(c, 2));
+    ppu::frame.rect(x, y, (s*8), (s*8));
   }
 }
