@@ -88,8 +88,10 @@ void post_frame() {
   // enable shadow under text for clearer reading:
   ppu::frame.text_shadow = true;
 
-  // text contents of VRAM[0]:
-  ppu::frame.text(0, 0, fmtHex(ppu::vram[0x0000], 4));
+  // binary contents of character 0:
+  for (int i = 0; i < 16; i++) {
+    ppu::frame.text(0, i * 8, fmtBinary(ppu::vram.tile_obj(0, i), 32));
+  }
 
   /*
   for (int i = 0; i < 128; i++) {
@@ -106,8 +108,10 @@ void post_frame() {
     auto c = uint16(b2) | uint16(b3 & 1) << 8;
 
     if (x >= 256) x -= 512;
-    //ppu::frame.text(x, y, fmtHex(c, 2));
-    ppu::frame.rect(x, y, (s*8), (s*8));
+    if ((c & 0xff) != 0) continue;
+
+    ppu::frame.text(x, y, fmtHex(c, 3));
+    //ppu::frame.rect(x, y, (s*8), (s*8));
   }
   */
 }

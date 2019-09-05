@@ -29,6 +29,10 @@ struct ScriptFrame {
     return ppu.scriptReadVRAM(addr);
   }
 
+  auto get_tile_obj(uint9 chr, uint5 y) -> uint32 {
+    return ppu.scriptReadTileOBJ(chr, chr >> 8, y);
+  }
+
   uint16 *&output = ppuFrame.output;
   uint &pitch = ppuFrame.pitch;
   uint &width = ppuFrame.width;
@@ -252,6 +256,7 @@ auto Interface::registerScriptDefs() -> void {
   // define ppu::VRAM object type:
   r = script.engine->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("VRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptFrame, vram_read), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("VRAM", "uint32 tile_obj(uint16 chr, uint y)", asMETHOD(ScriptFrame, get_tile_obj), asCALL_THISCALL); assert(r >= 0);
 
   // global property to access VRAM:
   r = script.engine->RegisterGlobalProperty("VRAM vram", &scriptFrame); assert(r >= 0);

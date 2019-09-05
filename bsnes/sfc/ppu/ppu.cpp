@@ -285,4 +285,20 @@ auto PPU::scriptReadVRAM(uint16 addr) -> uint16 {
   return vram[addr];
 }
 
+auto PPU::scriptReadTileOBJ(uint8 chr, uint1 nameselect, uint5 y) -> uint32 {
+  if (system.fastPPU()) {
+    return ppufast.scriptReadTileOBJ(chr, nameselect, y);
+  }
+
+  uint16 tiledataAddress = obj.io.tiledataAddress;
+  if(nameselect) tiledataAddress += 1 + obj.io.nameselect << 12;
+  uint16 chrx =  (chr >> 0 & 15);
+  uint16 chry = ((chr >> 4 & 15) + (y >> 3) & 15) << 4;
+
+  uint pos = tiledataAddress + ((chry + chrx) << 4);
+  uint16 addr = (pos & 0xfff0) + (y & 7);
+
+  return vram[addr + 0] << 0 | vram[addr + 8] << 16;
+}
+
 }
