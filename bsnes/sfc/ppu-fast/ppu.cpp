@@ -177,6 +177,10 @@ auto PPU::refresh() -> void {
   if(system.frameCounter++ >= system.frameSkip) system.frameCounter = 0;
 }
 
+auto PPU::scriptReadVRAM(uint16 addr) -> uint16 {
+  return vram[addr];
+}
+
 auto PPU::load() -> bool {
   return true;
 }

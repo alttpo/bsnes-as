@@ -278,4 +278,11 @@ auto PPU::refresh() -> void {
   platform->videoFrame(output, pitch * sizeof(uint16), width, height, /* scale = */ 1);
 }
 
+auto PPU::scriptReadVRAM(uint16 addr) -> uint16 {
+  if (system.fastPPU()) {
+    return ppufast.scriptReadVRAM(addr);
+  }
+  return vram[addr];
+}
+
 }

@@ -88,9 +88,10 @@ void post_frame() {
   // enable shadow under text for clearer reading:
   ppu::frame.text_shadow = true;
 
-  // disable overscan offset since OAM draws in absolute coords:
-  ppu::frame.y_offset = 16;
+  // text contents of VRAM[0]:
+  ppu::frame.text(0, 0, fmtHex(ppu::vram[0x0000], 4));
 
+  /*
   for (int i = 0; i < 128; i++) {
     auto b0 = bus::read_u8(0x7E0800 + i*4);
     auto b1 = bus::read_u8(0x7E0801 + i*4);
@@ -108,4 +109,5 @@ void post_frame() {
     //ppu::frame.text(x, y, fmtHex(c, 2));
     ppu::frame.rect(x, y, (s*8), (s*8));
   }
+  */
 }

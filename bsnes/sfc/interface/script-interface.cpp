@@ -25,6 +25,10 @@ static auto script_rgb(uint8 r, uint8 g, uint8 b) -> uint16 {
 }
 
 struct ScriptFrame {
+  auto vram_read(uint16 addr) -> uint16 {
+    return ppu.scriptReadVRAM(addr);
+  }
+
   uint16 *&output = ppuFrame.output;
   uint &pitch = ppuFrame.pitch;
   uint &width = ppuFrame.width;
@@ -244,6 +248,13 @@ auto Interface::registerScriptDefs() -> void {
   // create ppu namespace
   r = script.engine->SetDefaultNamespace("ppu"); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(script_rgb), asCALL_CDECL); assert(r >= 0);
+
+  // define ppu::VRAM object type:
+  r = script.engine->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("VRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptFrame, vram_read), asCALL_THISCALL); assert(r >= 0);
+
+  // global property to access VRAM:
+  r = script.engine->RegisterGlobalProperty("VRAM vram", &scriptFrame); assert(r >= 0);
 
   // define ppu::Frame object type:
   r = script.engine->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);

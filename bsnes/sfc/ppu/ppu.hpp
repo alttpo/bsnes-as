@@ -20,6 +20,8 @@ struct PPU : Thread, PPUcounter {
   //serialization.cpp
   auto serialize(serializer&) -> void;
 
+  auto scriptReadVRAM(uint16 addr) -> uint16;
+
 private:
   //ppu.cpp
   alwaysinline auto step(uint clocks) -> void;
