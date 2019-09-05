@@ -73,6 +73,7 @@ auto Program::create() -> void {
   if(startFullScreen && emulator->loaded()) {
     toggleVideoFullScreen();
   }
+  if(script.location) scriptReload();
   Application::onMain({&Program::main, this});
 }
 
