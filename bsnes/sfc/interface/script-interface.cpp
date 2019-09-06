@@ -220,21 +220,35 @@ struct ScriptFrame {
     return len;
   }
 
-  auto draw_4bpp(int x, int y, uint32 rowdata, uint8 sprite_palette_8) -> void {
+  auto draw_4bpp_8x8(int x, int y, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
+    // TODO: throw exceptions to script?
+    assert(tile_data != nullptr);
+    assert(tile_data->GetSize() >= 8);
+    assert(tile_data->GetElementTypeId() == asTYPEID_UINT32);
+    assert(palette_data != nullptr);
+    assert(palette_data->GetSize() >= 16);
+    assert(palette_data->GetElementTypeId() == asTYPEID_UINT16);
+
     auto save_color = color;
 
-    uint3 sprite_palette = sprite_palette_8;
-    auto palette = 128 + (sprite_palette << 4);
+    for (int py = 0; py < 8; py++) {
+      auto tile_data_p = static_cast<const uint32 *>(tile_data->At(py));
+      if (tile_data_p == nullptr) break;
 
-    for (int px = 0; px < 8; px++) {
-      uint c = 0, shift = 7 - px;
-      c += rowdata >> (shift + 0) & 1;
-      c += rowdata >> (shift + 7) & 2;
-      c += rowdata >> (shift + 14) & 4;
-      c += rowdata >> (shift + 21) & 8;
-      if (c) {
-        color = cgram_read(palette + c);
-        pixel(x+px, y);
+      uint32 tile = *tile_data_p;
+      for (int px = 0; px < 8; px++) {
+        uint c = 0, shift = 7 - px;
+        c += tile >> (shift + 0) & 1;
+        c += tile >> (shift + 7) & 2;
+        c += tile >> (shift + 14) & 4;
+        c += tile >> (shift + 21) & 8;
+        if (c) {
+          auto palette_p = static_cast<const uint16 *>(palette_data->At(c));
+          if (palette_p == nullptr) break;
+
+          color = *palette_p;
+          pixel(x + px, y + py);
+        }
       }
     }
 
@@ -438,7 +452,7 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("Frame", "int text(int x, int y, const string &in text)", asMETHODPR(ScriptFrame, text, (int, int, const string *), int), asCALL_THISCALL); assert(r >= 0);
 
   // draw 4bpp paletted 8x1 row:
-  r = script.engine->RegisterObjectMethod("Frame", "int draw_4bpp(int x, int y, uint32 rowdata, uint8 sprite_palette)", asMETHOD(ScriptFrame, draw_4bpp), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "int draw_4bpp_8x8(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asMETHOD(ScriptFrame, draw_4bpp_8x8), asCALL_THISCALL); assert(r >= 0);
 
   // global property to access current frame:
   r = script.engine->RegisterGlobalProperty("Frame frame", &scriptFrame); assert(r >= 0);

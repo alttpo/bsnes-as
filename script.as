@@ -73,6 +73,32 @@ void post_frame_1() {
   }
 }
 
+array<array<uint32>> tiledata(8, array<uint32>(8));
+array<array<uint16>> palette(8, array<uint16>(16));
+
+void pre_frame() {
+  // load 8 characters for Link from VRAM:
+  for (int i = 0; i < 4; i++) {
+    ppu::obj.character = i;
+    for (int y = 0; y < 8; y++) {
+      tiledata[0+i][y] = ppu::obj[y];
+    }
+  }
+  for (int i = 0; i < 4; i++) {
+    ppu::obj.character = i+16;
+    for (int y = 0; y < 8; y++) {
+      tiledata[4+i][y] = ppu::obj[y];
+    }
+  }
+
+  // load 8 palettes from CGRAM:
+  for (int i = 0; i < 8; i++) {
+    for (int c = 0; c < 16; c++) {
+      palette[i][c] = ppu::cgram[128 + (i << 4) + c];
+    }
+  }
+}
+
 // function to debug OAM data
 void post_frame() {
   // set drawing state
@@ -90,18 +116,10 @@ void post_frame() {
   ppu::frame.text_shadow = true;
 
   // draw current character 0 at top-left:
-  uint8 palette = 7;
-  for (int c = 1; c >= 0; c--) {
-    // left half:
-    ppu::obj.character = (c*2)+0;
-    for (int y = 0; y < 16; y++) {
-      ppu::frame.draw_4bpp(0, y+(c*8), ppu::obj[y], palette);
-    }
-
-    // right half:
-    ppu::obj.character = (c*2)+1;
-    for (int y = 0; y < 16; y++) {
-      ppu::frame.draw_4bpp(8, y+(c*8), ppu::obj[y], palette);
+  {
+    for (int c = 1; c >= 0; c--) {
+      ppu::frame.draw_4bpp_8x8(0, (c * 8), tiledata[(c * 2) + 0], palette[7]);
+      ppu::frame.draw_4bpp_8x8(8, (c * 8), tiledata[(c * 2) + 1], palette[7]);
     }
   }
 
@@ -132,6 +150,6 @@ void post_frame() {
     auto y = ppu::oam.y;
     auto palette = ppu::oam.palette;
 
-    ppu::frame.text(x, y-8, fmtHex(palette, 1));
+    //ppu::frame.text(x, y-8, fmtHex(palette, 1));
   }
 }
