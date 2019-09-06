@@ -109,10 +109,10 @@ void post_frame() {
   // select 8x8 or 8x16 font for text:
   ppu::frame.font_height = 8;
   // draw using alpha blending:
-  //ppu::frame.draw_op = ppu::draw_op::op_alpha;
+//  ppu::frame.draw_op = ppu::draw_op::op_alpha;
   ppu::frame.draw_op = ppu::draw_op::op_solid;
   // alpha is xx/31:
-  ppu::frame.alpha = 28;
+  ppu::frame.alpha = 20;
   // color is 0x7fff aka white (15-bit RGB)
   ppu::frame.color = ppu::rgb(31, 31, 31);
 
@@ -122,16 +122,42 @@ void post_frame() {
   // draw Link at top-left:
   {
     // draw body first:
-    ppu::frame.draw_4bpp_8x8(1, 8, tiledata[2], palette[7]);
-    ppu::frame.draw_4bpp_8x8(9, 8, tiledata[3], palette[7]);
-    ppu::frame.draw_4bpp_8x8(1, 16, tiledata[10], palette[7]);
-    ppu::frame.draw_4bpp_8x8(9, 16, tiledata[11], palette[7]);
+    ppu::frame.draw_4bpp_8x8(140+1, 8, tiledata[2], palette[7]);
+    ppu::frame.draw_4bpp_8x8(140+9, 8, tiledata[3], palette[7]);
+    ppu::frame.draw_4bpp_8x8(140+1, 16, tiledata[10], palette[7]);
+    ppu::frame.draw_4bpp_8x8(140+9, 16, tiledata[11], palette[7]);
 
     // put head on top of body:
-    ppu::frame.draw_4bpp_8x8(0, 0, tiledata[0], palette[7]);
-    ppu::frame.draw_4bpp_8x8(8, 0, tiledata[1], palette[7]);
-    ppu::frame.draw_4bpp_8x8(0, 8, tiledata[8], palette[7]);
-    ppu::frame.draw_4bpp_8x8(8, 8, tiledata[9], palette[7]);
+    ppu::frame.draw_4bpp_8x8(140+0, 0, tiledata[0], palette[7]);
+    ppu::frame.draw_4bpp_8x8(140+8, 0, tiledata[1], palette[7]);
+    ppu::frame.draw_4bpp_8x8(140+0, 8, tiledata[8], palette[7]);
+    ppu::frame.draw_4bpp_8x8(140+8, 8, tiledata[9], palette[7]);
+  }
+
+  // draw palette 7 colors:
+  for (int c = 0; c < 16; c++) {
+    ppu::frame.color = palette[7][c];
+    //ppu::frame.color = ppu::cgram[128 + (7 << 4) + c];
+    ppu::frame.fill(0 + c*8, 0, 8, 8);
+  }
+  for (int c = 0; c < 16; c++) {
+    //ppu::frame.color = palette[7][c];
+    ppu::frame.color = ppu::cgram[128 + (7 << 4) + c];
+    ppu::frame.fill(0 + c*8, 9, 8, 8);
+  }
+
+  // detect cgram changes:
+  for (int i = 0; i < 8; i++) {
+    bool same = true;
+    for (int c = 0; c < 16; c++) {
+      if (ppu::cgram[128 + (i << 4) + c] != palette[i][c]) {
+        same = false;
+        break;
+      }
+    }
+    if (!same) {
+      message("palette " + fmtInt(i) + " changed!");
+    }
   }
 
   return;

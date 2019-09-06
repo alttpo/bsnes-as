@@ -149,6 +149,13 @@ struct ScriptFrame {
     vline(x + w - 1, y + 1, h - 2);
   }
 
+  // fill a rectangle with zero overdraw (important for op_xor and op_alpha draw ops):
+  auto fill(int lx, int ty, int w, int h) -> void {
+    for (int y = ty; y < ty+h; y++)
+      for (int x = lx; x < lx+w; x++)
+        pixel(x, y);
+  }
+
   auto draw_glyph_8(int x, int y, int glyph) -> void {
     for (int i = 0; i < 8; i++) {
       uint8 m = 0x80u;
@@ -237,16 +244,16 @@ struct ScriptFrame {
 
       uint32 tile = *tile_data_p;
       for (int px = 0; px < 8; px++) {
-        uint c = 0, shift = 7 - px;
-        c += tile >> (shift + 0) & 1;
-        c += tile >> (shift + 7) & 2;
-        c += tile >> (shift + 14) & 4;
-        c += tile >> (shift + 21) & 8;
+        uint32 c = 0u, shift = 7u - px;
+        c += tile >> (shift +  0u) & 1u;
+        c += tile >> (shift +  7u) & 2u;
+        c += tile >> (shift + 14u) & 4u;
+        c += tile >> (shift + 21u) & 8u;
         if (c) {
           auto palette_p = static_cast<const uint16 *>(palette_data->At(c));
           if (palette_p == nullptr) break;
 
-          color = *palette_p & 0x7fffu;
+          color = *palette_p;
           pixel(x + px, y + py);
         }
       }
@@ -275,8 +282,8 @@ struct ScriptFrame {
 
   auto obj_tile_read(uint8 y) -> uint32 {
     uint16 tiledataAddress;
-    uint8 chr = obj_character;
-    uint1 nameselect = obj_character >> 8;
+    uint8 chr = obj_character & 0xffu;
+    uint1 nameselect = obj_character >> 8u;
 
     if (system.fastPPU()) {
       tiledataAddress = ppufast.io.obj.tiledataAddress;
@@ -292,7 +299,8 @@ struct ScriptFrame {
     uint pos = tiledataAddress + ((chry + chrx) << 4);
     uint16 addr = (pos & 0xfff0) + (y & 7);
 
-    return vram_read(addr + 0) << 0 | vram_read(addr + 8) << 16;
+    uint32 data = (uint32)vram_read(addr + 0) << 0u | (uint32)vram_read(addr + 8) << 16u;
+    return data;
   }
 
   struct OAMObject {
@@ -447,6 +455,7 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("Frame", "void hline(int lx, int ty, int w)", asMETHODPR(ScriptFrame, hline, (int, int, int), void), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void vline(int lx, int ty, int h)", asMETHODPR(ScriptFrame, vline, (int, int, int), void), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void rect(int x, int y, int w, int h)", asMETHODPR(ScriptFrame, rect, (int, int, int, int), void), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "void fill(int x, int y, int w, int h)", asMETHODPR(ScriptFrame, fill, (int, int, int, int), void), asCALL_THISCALL); assert(r >= 0);
 
   // text drawing function:
   r = script.engine->RegisterObjectMethod("Frame", "int text(int x, int y, const string &in text)", asMETHODPR(ScriptFrame, text, (int, int, const string *), int), asCALL_THISCALL); assert(r >= 0);
