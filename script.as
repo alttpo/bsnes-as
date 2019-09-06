@@ -73,21 +73,21 @@ void post_frame_1() {
   }
 }
 
-array<array<uint32>> tiledata(8, array<uint32>(8));
+array<array<uint32>> tiledata(16, array<uint32>(8));
 array<array<uint16>> palette(8, array<uint16>(16));
 
 void pre_frame() {
-  // load 8 characters for Link from VRAM:
-  for (int i = 0; i < 4; i++) {
+  // load 8 8x8 sprites for Link from VRAM:
+  for (int i = 0; i < 8; i++) {
     ppu::obj.character = i;
     for (int y = 0; y < 8; y++) {
       tiledata[0+i][y] = ppu::obj[y];
     }
   }
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 8; i++) {
     ppu::obj.character = i+16;
     for (int y = 0; y < 8; y++) {
-      tiledata[4+i][y] = ppu::obj[y];
+      tiledata[8+i][y] = ppu::obj[y];
     }
   }
 
@@ -115,12 +115,19 @@ void post_frame() {
   // enable shadow under text for clearer reading:
   ppu::frame.text_shadow = true;
 
-  // draw current character 0 at top-left:
+  // draw Link at top-left:
   {
-    for (int c = 1; c >= 0; c--) {
-      ppu::frame.draw_4bpp_8x8(0, (c * 8), tiledata[(c * 2) + 0], palette[7]);
-      ppu::frame.draw_4bpp_8x8(8, (c * 8), tiledata[(c * 2) + 1], palette[7]);
-    }
+    // draw body first:
+    ppu::frame.draw_4bpp_8x8(1, 8, tiledata[2], palette[7]);
+    ppu::frame.draw_4bpp_8x8(9, 8, tiledata[3], palette[7]);
+    ppu::frame.draw_4bpp_8x8(1, 16, tiledata[10], palette[7]);
+    ppu::frame.draw_4bpp_8x8(9, 16, tiledata[11], palette[7]);
+
+    // put head on top of body:
+    ppu::frame.draw_4bpp_8x8(0, 0, tiledata[0], palette[7]);
+    ppu::frame.draw_4bpp_8x8(8, 0, tiledata[1], palette[7]);
+    ppu::frame.draw_4bpp_8x8(0, 8, tiledata[8], palette[7]);
+    ppu::frame.draw_4bpp_8x8(8, 8, tiledata[9], palette[7]);
   }
 
   for (int i = 0; i < 128; i++) {
