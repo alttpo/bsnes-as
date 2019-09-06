@@ -244,6 +244,19 @@ public:
     uint color;
   };
 
+  // extra tile for scripts to draw with:
+  struct ExtraTile {
+    uint   x;
+    uint   y;
+    uint   source;   // BG1, BG2, etc. from Source:: struct above
+    bool   above;    // true on main screen; false on sub screen
+    uint   priority;
+    uint   width;
+    uint   height;
+    // color data; set MSB=1 to be opaque, pixel is not drawn when MSB=0:
+    uint16 colors[1024];
+  };
+
   //io.cpp
   auto latchCounters(uint hcounter, uint vcounter) -> void;
   auto latchCounters() -> void;
@@ -277,6 +290,10 @@ public:
   uint16* output = {};
   uint16* lightTable[16] = {};
   uint8* tilecache[3] = {};  //bitplane -> bitmap tiledata
+
+  // extra tiles for scripts to use to blend custom graphics into the PPU planes:
+  ExtraTile extraTiles[256] = {};
+  uint extraTileCount = 0;
 
   uint ItemLimit = 0;
   uint TileLimit = 0;

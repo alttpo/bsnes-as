@@ -398,6 +398,41 @@ public:
   auto oam_get_priority() -> uint8 { return oam_object.priority; }
   auto oam_get_palette() -> uint8 { return oam_object.palette; }
   auto oam_get_size() -> uint8 { return oam_object.size; }
+
+  // script interface for rendering extra tiles:
+  struct ExtraLayer {
+    auto get_tile_count() -> uint { return ppufast.extraTileCount; }
+    auto set_tile_count(uint count) { ppufast.extraTileCount = min(count, 256); }
+
+    static auto tile_construct(
+      PPUfast::ExtraTile *tile,
+      uint x,
+      uint y,
+      uint source,
+      bool above,
+      uint priority,
+      uint width,
+      uint height
+    ) -> void {
+      tile->x = x;
+      tile->y = y;
+      tile->source = source;
+      tile->above = above;
+      tile->priority = priority;
+      tile->width = width;
+      tile->height = height;
+    }
+
+    auto set_tile(uint i, PPUfast::ExtraTile *t) -> void {
+      ppufast.extraTiles[i].x = t->x;
+      ppufast.extraTiles[i].y = t->y;
+      ppufast.extraTiles[i].source = t->source;
+      ppufast.extraTiles[i].above = t->above;
+      ppufast.extraTiles[i].priority = t->priority;
+      ppufast.extraTiles[i].width = t->width;
+      ppufast.extraTiles[i].height = t->height;
+    }
+  } extraLayer;
 } scriptFrame;
 
 auto Interface::registerScriptDefs() -> void {
@@ -424,6 +459,22 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->SetDefaultNamespace("ppu"); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(ScriptFrame::ppu_rgb), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint8 get_luma()", asFUNCTION(ScriptFrame::ppu_get_luma), asCALL_CDECL); assert(r >= 0);
+
+  // extraLayer
+  r = script.engine->RegisterObjectType("Extra", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+  r = script.engine->RegisterObjectType("ExtraTile", sizeof(PPUfast::ExtraTile), asOBJ_VALUE | asOBJ_POD); assert(r >= 0);
+  r = script.engine->RegisterObjectBehaviour("ExtraTile", asBEHAVE_CONSTRUCT, "void f(uint x, uint y, uint source, bool above, uint priority, uint width, uint height)", asFUNCTION(ScriptFrame::ExtraLayer::tile_construct), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("ExtraTile", "uint x", asOFFSET(PPUfast::ExtraTile, x)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("ExtraTile", "uint y", asOFFSET(PPUfast::ExtraTile, y)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("ExtraTile", "uint source", asOFFSET(PPUfast::ExtraTile, source)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("ExtraTile", "bool above", asOFFSET(PPUfast::ExtraTile, above)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("ExtraTile", "uint priority", asOFFSET(PPUfast::ExtraTile, priority)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("ExtraTile", "uint width", asOFFSET(PPUfast::ExtraTile, width)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("ExtraTile", "uint height", asOFFSET(PPUfast::ExtraTile, height)); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Extra", "uint get_count()", asMETHOD(ScriptFrame::ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Extra", "void set_count(uint count)", asMETHOD(ScriptFrame::ExtraLayer, set_tile_count), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Extra", "void set_opIndex(uint i, const ExtraTile &in t)", asMETHOD(ScriptFrame::ExtraLayer, set_tile), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("Extra extra", &scriptFrame.extraLayer); assert(r >= 0);
 
   // define ppu::VRAM object type:
   r = script.engine->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
