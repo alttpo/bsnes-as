@@ -228,21 +228,47 @@ struct ScriptFrame {
   }
 
   auto draw_4bpp_8x8(int x, int y, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
-    // TODO: throw exceptions to script?
-    assert(tile_data != nullptr);
-    assert(tile_data->GetSize() >= 8);
-    assert(tile_data->GetElementTypeId() == asTYPEID_UINT32);
-    assert(palette_data != nullptr);
-    assert(palette_data->GetSize() >= 16);
-    assert(palette_data->GetElementTypeId() == asTYPEID_UINT16);
+    // Check validity of array inputs:
+    if (tile_data == nullptr) {
+      asGetActiveContext()->SetException("tile_data array cannot be null", true);
+      return;
+    }
+    if (tile_data->GetElementTypeId() != asTYPEID_UINT32) {
+      asGetActiveContext()->SetException("tile_data array must be uint32[]", true);
+      return;
+    }
+    if (tile_data->GetSize() < 8) {
+      asGetActiveContext()->SetException("tile_data array must have at least 8 elements", true);
+      return;
+    }
+
+    if (palette_data == nullptr) {
+      asGetActiveContext()->SetException("tile_data array cannot be null", true);
+      return;
+    }
+    if (palette_data->GetElementTypeId() != asTYPEID_UINT16) {
+      asGetActiveContext()->SetException("tile_data array must be uint16[]", true);
+      return;
+    }
+    if (palette_data->GetSize() < 16) {
+      asGetActiveContext()->SetException("palette_data array must have at least 8 elements", true);
+      return;
+    }
 
     auto save_color = color;
+    auto tile_data_p = static_cast<const uint32 *>(tile_data->At(0));
+    if (tile_data_p == nullptr) {
+      asGetActiveContext()->SetException("tile_data array value pointer must not be null", true);
+      return;
+    }
+    auto palette_p = static_cast<const uint16 *>(palette_data->At(0));
+    if (palette_p == nullptr) {
+      asGetActiveContext()->SetException("palette_data array value pointer must not be null", true);
+      return;
+    }
 
     for (int py = 0; py < 8; py++) {
-      auto tile_data_p = static_cast<const uint32 *>(tile_data->At(py));
-      if (tile_data_p == nullptr) break;
-
-      uint32 tile = *tile_data_p;
+      uint32 tile = tile_data_p[py];
       for (int px = 0; px < 8; px++) {
         uint32 c = 0u, shift = 7u - px;
         c += tile >> (shift +  0u) & 1u;
@@ -250,10 +276,7 @@ struct ScriptFrame {
         c += tile >> (shift + 14u) & 4u;
         c += tile >> (shift + 21u) & 8u;
         if (c) {
-          auto palette_p = static_cast<const uint16 *>(palette_data->At(c));
-          if (palette_p == nullptr) break;
-
-          color = *palette_p;
+          color = palette_p[c];
           pixel(x + px, y + py);
         }
       }
