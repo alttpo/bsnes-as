@@ -226,14 +226,14 @@ Notes:
      * `ppu::frame.y_scale` is a multiplier to Y coordinates to scale to a unified 512x480 pixel buffer; default = 2 which implies a lo-res 240 row mode; switch to 1 to use hi-res 480 row mode
   * 15-bit RGB colors are used.
      * `uint16` type is used for representing 15-bit RGB colors
-     * Each color channel is allocated 5 bits, from least-significant bits for blue, to most-significant bits for red.
+     * Each color channel is allocated 5 bits, from least-significant bits for red, to most-significant bits for blue.
      * The most significant bit of the `uint16` value for color should always be `0`.
      * Reference colors:
        * `0x7fff` is 100% white.
        * `0x0000` is 100% black.
-       * `0x7c00` is 100% red.
+       * `0x7c00` is 100% blue.
        * `0x03e0` is 100% green.
-       * `0x001f` is 100% blue.
+       * `0x001f` is 100% red.
      * Since it is cumbersome to mentally compose hex values for 15-bit RGB colors, the `ppu::rgb` function is provided to construct the final `uint16` color value given each color channel's 5-bit value.
   * alpha channel is represented in a `uint8` type as a 5-bit value between 0..31 where 0 is completely transparent and 31 is completely opaque.
   * alpha blending equation is `[src_rgb*src_a + dst_rgb*(31 - src_a)] / 31`
@@ -245,23 +245,26 @@ Notes:
      * Drawing operations are **destructive** to the PPU rendered frame.
 
 Globals:
-  * `ppu::Frame ppu::frame { get; }` - global read-only property representing the current rendered PPU frame that is ready to swap to the display. Contains methods and properties that allow for drawing things on top of the frame.
   * `uint16 ppu::rgb(uint8 r, uint8 g, uint8 b)` - function used to construct 15-bit RGB color values; each color channel is a 5-bit value between 0..31.
+  * `ppu::Frame ppu::frame { get; }` - global read-only property representing the current rendered PPU frame that is ready to swap to the display. Contains methods and properties that allow for drawing things on top of the frame.
+  * `uint8 ppu::luma { get; }` - global read-only property representing the current PPU luminance value (0..15) where 0 is very dark and 15 is full brightness.
 
 `ppu::Frame` properties:
   * `int y_offset { get; set; }` - property to adjust Y-offset of drawing functions (default = +16; skips top overscan area so that x=0,y=0 is top-left of visible screen)
   * `ppu::draw_op draw_op { get; set; }` - current drawing operation used to draw pixels
   * `uint16 color { get; set; }` - current color for drawing with (0..0x7fff)
+  * `uint8 luma { get; set; }` - current luminance for drawing with (0..15); `color` is luma-mapped (applied before alpha blending) for drawing
   * `uint8 alpha { get; set; }` - current alpha value for drawing with (0..31)
   * `int font_height { get; set; }` - current font height in pixels; valid values are 8 or 16 (default = 8).
   * `bool text_shadow { get; set; }` - determines whether to draw a black shadow one pixel below and to the right behind any text; text does not overdraw the shadow in order to avoid alpha-blending artifacts.
 
 `ppu::Frame` methods:
   * `uint16 read_pixel(int x, int y)` - gets the 15-bit RGB color at the x,y coordinate in the PPU frame
-  * `void pixel(int x, int y, uint16 color)` - sets the 15-bit RGB color at the x,y coordinate in the PPU frame
+  * `void pixel(int x, int y)` - sets the 15-bit RGB color at the x,y coordinate in the PPU frame
   * `void hline(int lx, int ty, int w)` - draws a horizontal line between `ty <= y < ty+h`
   * `void vline(int lx, int ty, int h)` - draws a vertical line between `lx <= x < lx+w`
   * `void rect(int lx, int ty, int w, int h)` - draws a rectangle at the boundaries `lx <= x < lx+w` and `ty <= y < ty+h`; does not overdraw corners
+  * `void fill(int lx, int ty, int w, int h)` - fills a rectangle within `lx <= x < lx+w` and `ty <= y < ty+h`; does not overdraw
   * `int text(int lx, int ty, const string &in text)` - draws a horizontal span of ASCII text using the current `font_height`
     * returns `len` as number of characters drawn
     * all non-printable and control characters (CR, LF, TAB, etc) are skipped for rendering and do not contribute to the width of the text's bounding box
@@ -269,6 +272,7 @@ Globals:
     * bottom-right corner of text bounding box is computed as `(lx+(8*len), ty+font_height)` where `len` is the number of characters to be drawn (excludes non-printable chars)
     * bounding box coordinates are not explicitly computed by the function up-front but serve to define the exact rendering behavior of the function
     * character glyphs are rendered relative to their top-left corner
+  * `void draw_4bpp_8x8(int lx, int ty, uint32[] tile_data, uint16[] palette_data)` - draws an 8x8 tile in 4bpp color mode using the given `tile_data` from VRAM and `palette_data` from CGRAM. pixels are drawn using the current drawing operations; `color` is ignored; `luma` is used to luma-map the palette colors for display.
 
 ---
 
