@@ -74,14 +74,17 @@ struct ScriptFrame {
   }
 
   auto inline draw(uint16 *p) {
+    auto luma = ppu.lightTable[/*io.displayBrightness*/ 15];
+    auto real_color = luma[color];
+
     switch (draw_op) {
       case op_alpha: {
 	uint db = (*p & 0x001fu);
 	uint dg = (*p & 0x03e0u) >> 5u;
 	uint dr = (*p & 0x7c00u) >> 10u;
-	uint sb = (color & 0x001fu);
-	uint sg = (color & 0x03e0u) >> 5u;
-	uint sr = (color & 0x7c00u) >> 10u;
+	uint sb = (real_color & 0x001fu);
+	uint sg = (real_color & 0x03e0u) >> 5u;
+	uint sr = (real_color & 0x7c00u) >> 10u;
 
 	*p =
 	  (((sb * alpha) + (db * (31u - alpha))) / 31u) |
@@ -91,12 +94,12 @@ struct ScriptFrame {
       }
 
       case op_xor:
-        *p ^= color;
+        *p ^= real_color;
         break;
 
       case op_solid:
       default:
-	*p = color;
+	*p = real_color;
 	break;
     }
   }
