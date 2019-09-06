@@ -262,7 +262,7 @@ struct ScriptFrame {
     return ppu.vram[addr];
   }
 
-  auto cgram_read(uint8 palette) -> uint15 {
+  auto cgram_read(uint8 palette) -> uint16 {
     if (system.fastPPU()) {
       return ppufast.cgram[palette];
     }

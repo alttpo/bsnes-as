@@ -1,3 +1,4 @@
+/*
 // AngelScript for ALTTP to draw white rectangles around in-game sprites
 uint16   xoffs, yoffs;
 uint16[] sprx(16);
@@ -72,6 +73,7 @@ void post_frame_1() {
     ppu::frame.text(rx, ry, fmtHex(sprk[i], 2));
   }
 }
+*/
 
 array<array<uint32>> tiledata(16, array<uint32>(8));
 array<array<uint16>> palette(8, array<uint16>(16));
@@ -91,13 +93,15 @@ void pre_frame() {
     }
   }
 
-  // load 8 palettes from CGRAM:
+  // load 8 sprite palettes from CGRAM:
   for (int i = 0; i < 8; i++) {
     for (int c = 0; c < 16; c++) {
       palette[i][c] = ppu::cgram[128 + (i << 4) + c];
     }
   }
 }
+
+int thissprite = 0;
 
 // function to debug OAM data
 void post_frame() {
@@ -130,6 +134,7 @@ void post_frame() {
     ppu::frame.draw_4bpp_8x8(8, 8, tiledata[9], palette[7]);
   }
 
+  return;
   for (int i = 0; i < 128; i++) {
     /*
     auto b0 = bus::read_u8(0x7E0800 + i*4);
@@ -153,10 +158,20 @@ void post_frame() {
     */
     ppu::oam.index = i;
 
-    auto x = ppu::oam.x;
+    int x = int(ppu::oam.x);
+
+    // adjust x to allow for slightly off-screen sprites:
+    if (x >= 256) x -= 512;
+
+    // skip sprite if truly invisible:
+    if (x <= -8) continue;
+    if (x >= 256) continue;
+
     auto y = ppu::oam.y;
     auto palette = ppu::oam.palette;
+    auto chr = ppu::oam.character;
 
     //ppu::frame.text(x, y-8, fmtHex(palette, 1));
+    //ppu::frame.text(x, y-16, fmtHex(chr, 2));
   }
 }
