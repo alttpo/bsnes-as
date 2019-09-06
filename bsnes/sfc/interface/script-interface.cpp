@@ -246,7 +246,7 @@ struct ScriptFrame {
           auto palette_p = static_cast<const uint16 *>(palette_data->At(c));
           if (palette_p == nullptr) break;
 
-          color = *palette_p;
+          color = *palette_p & 0x7fffu;
           pixel(x + px, y + py);
         }
       }
@@ -257,7 +257,7 @@ struct ScriptFrame {
 
   auto vram_read(uint16 addr) -> uint16 {
     if (system.fastPPU()) {
-      return ppufast.vram[addr];
+      return ppufast.vram[addr & 0x7fff];
     }
     return ppu.vram[addr];
   }
@@ -273,7 +273,7 @@ struct ScriptFrame {
   auto obj_get_character() -> uint9 { return obj_character; }
   auto obj_set_character(uint9 character) { obj_character = character; }
 
-  auto obj_tile_read(uint5 y) -> uint32 {
+  auto obj_tile_read(uint8 y) -> uint32 {
     uint16 tiledataAddress;
     uint8 chr = obj_character;
     uint1 nameselect = obj_character >> 8;
