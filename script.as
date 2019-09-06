@@ -77,8 +77,11 @@ void post_frame_1() {
 
 array<array<uint32>> tiledata(16, array<uint32>(8));
 array<array<uint16>> palette(8, array<uint16>(16));
+uint8 last_luma = 15;
 
 void pre_frame() {
+  last_luma = ppu::luma;
+
   // load 8 8x8 sprites for Link from VRAM:
   for (int i = 0; i < 8; i++) {
     ppu::obj.character = i;
@@ -115,6 +118,8 @@ void post_frame() {
   ppu::frame.alpha = 20;
   // color is 0x7fff aka white (15-bit RGB)
   ppu::frame.color = ppu::rgb(31, 31, 31);
+  // use last luminance value from PPU to draw colors with:
+  ppu::frame.luma = last_luma;
 
   // enable shadow under text for clearer reading:
   ppu::frame.text_shadow = true;

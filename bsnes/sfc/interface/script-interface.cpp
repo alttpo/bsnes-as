@@ -25,11 +25,21 @@ static auto script_message(const string *msg) -> void {
   platform->scriptMessage(msg);
 }
 
-static auto script_rgb(uint8 r, uint8 g, uint8 b) -> b5g5r5 {
-  return ((b5g5r5)(uclamp<5>(b)) << 10u) | ((b5g5r5)(uclamp<5>(g)) << 5u) | (b5g5r5)(uclamp<5>(r));
-}
-
 struct ScriptFrame {
+public:
+  // Global functions related to PPU:
+  static auto ppu_rgb(uint8 r, uint8 g, uint8 b) -> b5g5r5 {
+    return ((b5g5r5) (uclamp<5>(b)) << 10u) | ((b5g5r5) (uclamp<5>(g)) << 5u) | (b5g5r5) (uclamp<5>(r));
+  }
+
+  static auto ppu_get_luma() -> uint8 {
+    if (system.fastPPU()) {
+      return ppufast.io.displayBrightness;
+    }
+    return ppu.io.displayBrightness;
+  }
+
+public:
   r5g5b5 *&output = ppuFrame.output;
   uint &pitch = ppuFrame.pitch;
   uint &width = ppuFrame.width;
@@ -58,6 +68,10 @@ struct ScriptFrame {
   auto get_color() -> b5g5r5 { return color; }
   auto set_color(b5g5r5 color_p) -> void { color = uclamp<15>(color_p); }
 
+  uint8 luma = 15;
+  auto get_luma() -> uint8 { return luma; }
+  auto set_luma(uint8 luma_p) { luma = uclamp<4>(luma_p); }
+
   uint8 alpha = 31;
   auto get_alpha() -> uint8 { return alpha; }
   auto set_alpha(uint8 alpha_p) { alpha = uclamp<5>(alpha_p); }
@@ -79,8 +93,8 @@ struct ScriptFrame {
   }
 
   auto inline draw(r5g5b5 *p) {
-    auto luma = ppu.lightTable[/*io.displayBrightness*/ 15];
-    r5g5b5 real_color = luma[color];
+    auto lumaLookup = ppu.lightTable[/*io.displayBrightness*/ luma];
+    r5g5b5 real_color = lumaLookup[color];
 
     switch (draw_op) {
       case op_alpha: {
@@ -408,7 +422,8 @@ auto Interface::registerScriptDefs() -> void {
 
   // create ppu namespace
   r = script.engine->SetDefaultNamespace("ppu"); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(script_rgb), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(ScriptFrame::ppu_rgb), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint8 get_luma()", asFUNCTION(ScriptFrame::ppu_get_luma), asCALL_CDECL); assert(r >= 0);
 
   // define ppu::VRAM object type:
   r = script.engine->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
@@ -458,6 +473,10 @@ auto Interface::registerScriptDefs() -> void {
   // set color to use for drawing functions (15-bit RGB):
   r = script.engine->RegisterObjectMethod("Frame", "uint16 get_color()", asMETHODPR(ScriptFrame, get_color, (), uint16), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Frame", "void set_color(uint16 color)", asMETHODPR(ScriptFrame, set_color, (uint16), void), asCALL_THISCALL); assert(r >= 0);
+
+  // set luma (paired with color) to use for drawing functions (0..15):
+  r = script.engine->RegisterObjectMethod("Frame", "uint8 get_luma()", asMETHODPR(ScriptFrame, get_luma, (), uint8), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Frame", "void set_luma(uint8 luma)", asMETHODPR(ScriptFrame, set_luma, (uint8), void), asCALL_THISCALL); assert(r >= 0);
 
   // set alpha to use for drawing functions (0..31):
   r = script.engine->RegisterObjectMethod("Frame", "uint8 get_alpha()", asMETHODPR(ScriptFrame, get_alpha, (), uint8), asCALL_THISCALL); assert(r >= 0);
