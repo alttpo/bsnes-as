@@ -110,6 +110,7 @@ auto PPU::scanline() -> void {
     latch.ss = false;
     io.obj.timeOver = false;
     io.obj.rangeOver = false;
+    scheduler.leave(Scheduler::Event::StartFrame);
   }
 
   if(vcounter() > 0 && vcounter() < vdisp()) {
@@ -125,7 +126,7 @@ auto PPU::scanline() -> void {
 
   if(vcounter() == 240) {
     Line::flush();
-    scheduler.leave(Scheduler::Event::Frame);
+    scheduler.leave(Scheduler::Event::EndFrame);
   }
 }
 

@@ -29,7 +29,7 @@ namespace SuperFamicom {
 
   struct Scheduler {
     enum class Mode : uint { Run, SynchronizeCPU, SynchronizeAll } mode;
-    enum class Event : uint { Frame, Synchronize } event;
+    enum class Event : uint { StartFrame, EndFrame, Synchronize } event;
 
     cothread_t host = nullptr;
     cothread_t active = nullptr;

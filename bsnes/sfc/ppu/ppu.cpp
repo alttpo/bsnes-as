@@ -223,6 +223,9 @@ auto PPU::scanline() -> void {
     bg3.frame();
     bg4.frame();
     obj.frame();
+
+    // mark the start of a frame:
+    scheduler.leave(Scheduler::Event::StartFrame);
   }
 
   bg1.scanline();
@@ -238,7 +241,7 @@ auto PPU::scanline() -> void {
   }
 
   if(vcounter() == 240) {
-    scheduler.leave(Scheduler::Event::Frame);
+    scheduler.leave(Scheduler::Event::EndFrame);
   }
 }
 

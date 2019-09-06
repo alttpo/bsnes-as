@@ -12,7 +12,13 @@ Script script;
 auto System::run() -> void {
   scheduler.mode = Scheduler::Mode::Run;
   scheduler.enter();
-  if(scheduler.event == Scheduler::Event::Frame) {
+  if(scheduler.event == Scheduler::Event::StartFrame) {
+    // [jsd] run AngelScript pre_frame() function if available:
+    if (script.funcs.pre_frame) {
+      script.context->Prepare(script.funcs.pre_frame);
+      script.context->Execute();
+    }
+  } else if(scheduler.event == Scheduler::Event::EndFrame) {
     ppu.refresh();
 
     //refresh all cheat codes once per frame
@@ -23,12 +29,6 @@ auto System::run() -> void {
       }
     }
     Memory::GlobalWriteEnable = false;
-
-    // [jsd] run AngelScript pre_frame() function if available:
-    if (script.funcs.pre_frame) {
-      script.context->Prepare(script.funcs.pre_frame);
-      script.context->Execute();
-    }
   }
 }
 
