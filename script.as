@@ -134,16 +134,14 @@ void post_frame() {
     ppu::frame.draw_4bpp_8x8(140+8, 8, tiledata[9], palette[7]);
   }
 
+  // color is 0x7fff aka white (15-bit RGB)
+  ppu::frame.color = ppu::rgb(0, 0, 31);
+  ppu::frame.fill(16, 16, 8, 8);
+
   // draw palette 7 colors:
   for (int c = 0; c < 16; c++) {
     ppu::frame.color = palette[7][c];
-    //ppu::frame.color = ppu::cgram[128 + (7 << 4) + c];
     ppu::frame.fill(0 + c*8, 0, 8, 8);
-  }
-  for (int c = 0; c < 16; c++) {
-    //ppu::frame.color = palette[7][c];
-    ppu::frame.color = ppu::cgram[128 + (7 << 4) + c];
-    ppu::frame.fill(0 + c*8, 9, 8, 8);
   }
 
   // detect cgram changes:

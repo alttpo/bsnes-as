@@ -4,6 +4,11 @@
 #include "vga-charset.cpp"
 #include "script-string.cpp"
 
+// R5G5B5 is what ends up on the final PPU frame buffer (R and B are swapped from SNES)
+typedef uint16 r5g5b5;
+// B5G5R5 is used by the SNES system
+typedef uint16 b5g5r5;
+
 static auto script_bus_read_u8(uint32 addr) -> uint8 {
   return bus.read(addr, 0);
 }
@@ -20,12 +25,12 @@ static auto script_message(const string *msg) -> void {
   platform->scriptMessage(msg);
 }
 
-static auto script_rgb(uint8 r, uint8 g, uint8 b) -> uint16 {
-  return ((uint16)(uclamp<5>(r)) << 10u) | ((uint16)(uclamp<5>(g)) << 5u) | (uint16)(uclamp<5>(b));
+static auto script_rgb(uint8 r, uint8 g, uint8 b) -> b5g5r5 {
+  return ((b5g5r5)(uclamp<5>(b)) << 10u) | ((b5g5r5)(uclamp<5>(g)) << 5u) | (b5g5r5)(uclamp<5>(r));
 }
 
 struct ScriptFrame {
-  uint16 *&output = ppuFrame.output;
+  r5g5b5 *&output = ppuFrame.output;
   uint &pitch = ppuFrame.pitch;
   uint &width = ppuFrame.width;
   uint &height = ppuFrame.height;
@@ -49,9 +54,9 @@ struct ScriptFrame {
     op_xor,
   } draw_op = op_solid;
 
-  uint16 color = 0x7fff;
-  auto get_color() -> uint16 { return color; }
-  auto set_color(uint16 color_p) -> void { color = uclamp<15>(color_p); }
+  b5g5r5 color = 0x7fff;
+  auto get_color() -> b5g5r5 { return color; }
+  auto set_color(b5g5r5 color_p) -> void { color = uclamp<15>(color_p); }
 
   uint8 alpha = 31;
   auto get_alpha() -> uint8 { return alpha; }
@@ -73,9 +78,9 @@ struct ScriptFrame {
     }
   }
 
-  auto inline draw(uint16 *p) {
+  auto inline draw(r5g5b5 *p) {
     auto luma = ppu.lightTable[/*io.displayBrightness*/ 15];
-    auto real_color = luma[color];
+    r5g5b5 real_color = luma[color];
 
     switch (draw_op) {
       case op_alpha: {
@@ -264,7 +269,7 @@ struct ScriptFrame {
       asGetActiveContext()->SetException("tile_data array value pointer must not be null", true);
       return;
     }
-    auto palette_p = static_cast<const uint16 *>(palette_data->At(0));
+    auto palette_p = static_cast<const r5g5b5 *>(palette_data->At(0));
     if (palette_p == nullptr) {
       asGetActiveContext()->SetException("palette_data array value pointer must not be null", true);
       return;
