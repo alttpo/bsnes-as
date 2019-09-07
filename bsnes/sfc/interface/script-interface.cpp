@@ -25,6 +25,9 @@ static auto script_message(const string *msg) -> void {
   platform->scriptMessage(msg);
 }
 
+struct ScriptInterface;
+extern ScriptInterface scriptInterface;
+
 struct ScriptInterface {
   struct PPUAccess {
     // Global functions related to PPU:
@@ -403,6 +406,36 @@ struct ScriptInterface {
 
   // script interface for rendering extra tiles:
   struct ExtraLayer {
+    // drawing state:
+    uint16 color = 0x7fffu;
+    auto get_color() -> uint16 { return color; }
+    auto set_color(uint16 color_p) -> void { color = uclamp<15>(color_p); }
+
+    bool text_shadow = false;
+    auto get_text_shadow() -> bool { return text_shadow; }
+    auto set_text_shadow(bool text_shadow_p) -> void { text_shadow = text_shadow_p; }
+
+    auto measure_text(const string *msg) -> int {
+      const char *c = msg->data();
+
+      auto len = 0;
+
+      while (*c != 0) {
+        if ((*c < 0x20) || (*c > 0x7F)) {
+          // Skip the character since it is out of ASCII range:
+          c++;
+          continue;
+        }
+
+        len++;
+        c++;
+      }
+
+      return len;
+    }
+
+  public:
+    // tile management:
     auto get_tile_count() -> uint { return ppufast.extraTileCount; }
     auto set_tile_count(uint count) { ppufast.extraTileCount = min(count, 256); }
 
@@ -414,27 +447,13 @@ struct ScriptInterface {
       }
     }
 
-    static auto tile_reset(PPUfast::ExtraTile *t) -> void {
-      t->x = 0;
-      t->y = 0;
-      t->source = 0;
-      t->aboveEnable = false;
-      t->belowEnable = false;
-      t->priority = 0;
-      t->width = 0;
-      t->height = 0;
-      tile_pixels_clear(t);
-    }
-
-    static auto tile_pixels_clear(PPUfast::ExtraTile *t) -> void {
-      memory::fill<uint16>(t->colors, 1024, 0);
-    }
-
     static auto get_tile(ExtraLayer *dummy, uint i) -> PPUfast::ExtraTile* {
       (void)dummy;
       return &ppufast.extraTiles[i];
     }
 
+  public:
+    // tile methods:
     static auto tile_construct(
       PPUfast::ExtraTile *t,
       uint x,
@@ -465,6 +484,34 @@ struct ScriptInterface {
       ppufast.extraTiles[i].priority = t->priority;
       ppufast.extraTiles[i].width = t->width;
       ppufast.extraTiles[i].height = t->height;
+    }
+
+    static auto tile_reset(PPUfast::ExtraTile *t) -> void {
+      t->x = 0;
+      t->y = 0;
+      t->source = 0;
+      t->aboveEnable = false;
+      t->belowEnable = false;
+      t->priority = 0;
+      t->width = 0;
+      t->height = 0;
+      tile_pixels_clear(t);
+    }
+
+    static auto tile_pixels_clear(PPUfast::ExtraTile *t) -> void {
+      memory::fill<uint16>(t->colors, 1024, 0);
+    }
+
+    static auto tile_pixel(PPUfast::ExtraTile *t, int x, int y) -> void {
+      // bounds check:
+      if (x < 0 || y < 0 || x >= t->width || y >= t->height) return;
+
+      // make sure we're not writing past the end of the colors[] array:
+      uint index = y * t->width + x;
+      if (index >= 1024u) return;
+
+      // write the pixel with opaque bit set:
+      t->colors[index] = scriptInterface.extraLayer.color | 0x8000u;
     }
 
     static auto tile_pixel_set(PPUfast::ExtraTile *t, int x, int y, uint16 color) -> void {
@@ -556,8 +603,81 @@ struct ScriptInterface {
         }
       }
     }
+
+    // draw a horizontal line from x=lx to lx+w on y=ty:
+    static auto tile_hline(PPUfast::ExtraTile *t, int lx, int ty, int w) -> void {
+      for (int x = lx; x < lx + w; ++x) {
+        tile_pixel(t, x, ty);
+      }
+    }
+
+    // draw a vertical line from y=ty to ty+h on x=lx:
+    static auto tile_vline(PPUfast::ExtraTile *t, int lx, int ty, int h) -> void {
+      for (int y = ty; y < ty + h; ++y) {
+        tile_pixel(t, lx, y);
+      }
+    }
+
+    // draw a rectangle with zero overdraw (important for op_xor and op_alpha draw ops):
+    static auto tile_rect(PPUfast::ExtraTile *t, int x, int y, int w, int h) -> void {
+      tile_hline(t, x, y, w);
+      tile_hline(t, x + 1, y + h - 1, w - 1);
+      tile_vline(t, x, y + 1, h - 1);
+      tile_vline(t, x + w - 1, y + 1, h - 2);
+    }
+
+    // fill a rectangle with zero overdraw (important for op_xor and op_alpha draw ops):
+    static auto tile_fill(PPUfast::ExtraTile *t, int lx, int ty, int w, int h) -> void {
+      for (int y = ty; y < ty+h; y++)
+        for (int x = lx; x < lx+w; x++)
+          tile_pixel(t, x, y);
+    }
+
+    static auto tile_glyph_8(PPUfast::ExtraTile *t, int x, int y, int glyph) -> void {
+      for (int i = 0; i < 8; i++) {
+        uint8 m = 0x80u;
+        for (int j = 0; j < 8; j++, m >>= 1u) {
+          uint8_t row = font8x8_basic[glyph][i];
+          uint8 row1 = i < 7 ? font8x8_basic[glyph][i+1] : 0;
+          if (row & m) {
+            // Draw a shadow at x+1,y+1 if there won't be a pixel set there from the font:
+            if (scriptInterface.extraLayer.text_shadow && ((row1 & (m>>1u)) == 0u)) {
+              tile_pixel_set(t, x + j + 1, y + i + 1, 0x0000);
+            }
+            tile_pixel(t, x + j, y + i);
+          }
+        }
+      }
+    }
+
+    // draw a line of text (currently ASCII only due to font restrictions)
+    static auto tile_text(PPUfast::ExtraTile *t, int x, int y, const string *msg) -> int {
+      const char *c = msg->data();
+
+      auto len = 0;
+
+      while (*c != 0) {
+        if ((*c < 0x20) || (*c > 0x7F)) {
+          // Skip the character since it is out of ASCII range:
+          c++;
+          continue;
+        }
+
+        int glyph = *c - 0x20;
+        tile_glyph_8(t, x, y, glyph);
+
+        len++;
+        c++;
+        x += 8;
+      }
+
+      // return how many characters drawn:
+      return len;
+    }
   } extraLayer;
-} scriptInterface;
+};
+
+ScriptInterface scriptInterface;
 
 auto Interface::registerScriptDefs() -> void {
   int r;
@@ -695,10 +815,27 @@ auto Interface::registerScriptDefs() -> void {
 
     r = script.engine->RegisterObjectMethod("ExtraTile", "void reset()", asFUNCTION(ScriptInterface::ExtraLayer::tile_reset), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("ExtraTile", "void pixels_clear()", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixels_clear), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
     r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_set(int x, int y, uint16 color)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_set), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_off(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_off), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_on(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_on), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_set), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("ExtraTile", "void draw_sprite(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asFUNCTION(ScriptInterface::ExtraLayer::tile_draw_sprite), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+    // primitive drawing functions:
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void hline(int lx, int ty, int w)", asFUNCTION(ScriptInterface::ExtraLayer::tile_hline), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void vline(int lx, int ty, int h)", asFUNCTION(ScriptInterface::ExtraLayer::tile_vline), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void rect(int x, int y, int w, int h)", asFUNCTION(ScriptInterface::ExtraLayer::tile_rect), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void fill(int x, int y, int w, int h)", asFUNCTION(ScriptInterface::ExtraLayer::tile_fill), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+    // text drawing function:
+    r = script.engine->RegisterObjectMethod("ExtraTile", "int text(int x, int y, const string &in text)", asFUNCTION(ScriptInterface::ExtraLayer::tile_text), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+    r = script.engine->RegisterObjectMethod("Extra", "uint16 get_color()", asMETHOD(ScriptInterface::ExtraLayer, get_color), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "void set_color(uint16 color)", asMETHOD(ScriptInterface::ExtraLayer, set_color), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "bool get_text_shadow()", asMETHOD(ScriptInterface::ExtraLayer, get_text_shadow), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "void set_text_shadow(bool color)", asMETHOD(ScriptInterface::ExtraLayer, set_text_shadow), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "int measure_text(const string &in text)", asMETHOD(ScriptInterface::ExtraLayer, measure_text), asCALL_THISCALL); assert(r >= 0);
 
     r = script.engine->RegisterObjectMethod("Extra", "void reset()", asMETHOD(ScriptInterface::ExtraLayer, reset), asCALL_THISCALL); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("Extra", "uint get_count()", asMETHOD(ScriptInterface::ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);
