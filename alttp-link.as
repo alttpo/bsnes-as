@@ -30,7 +30,7 @@ void pre_frame() {
   {
     // draw Link on screen; overly simplistic drawing code here does not accurately render Link in all poses.
     // need to determine Link's current animation frame from somewhere in RAM.
-    auto link_x = 140, link_y = 12;
+    auto link_x = 132, link_y = 48;
 
     // draw 2 extra tiles:
     ppu::extra.count = 2;
@@ -50,6 +50,5 @@ void pre_frame() {
     ppu::extra[1].draw_sprite(8, 0, tiledata[3], palette[7]);
     ppu::extra[1].draw_sprite(0, 8, tiledata[10], palette[7]);
     ppu::extra[1].draw_sprite(8, 8, tiledata[11], palette[7]);
-
   }
 }
