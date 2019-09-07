@@ -265,11 +265,11 @@ public:
     }
 
     if (palette_data == nullptr) {
-      asGetActiveContext()->SetException("tile_data array cannot be null", true);
+      asGetActiveContext()->SetException("palette_data array cannot be null", true);
       return;
     }
     if (palette_data->GetElementTypeId() != asTYPEID_UINT16) {
-      asGetActiveContext()->SetException("tile_data array must be uint16[]", true);
+      asGetActiveContext()->SetException("palette_data array must be uint16[]", true);
       return;
     }
     if (palette_data->GetSize() < 16) {
@@ -283,7 +283,7 @@ public:
       asGetActiveContext()->SetException("tile_data array value pointer must not be null", true);
       return;
     }
-    auto palette_p = static_cast<const r5g5b5 *>(palette_data->At(0));
+    auto palette_p = static_cast<const b5g5r5 *>(palette_data->At(0));
     if (palette_p == nullptr) {
       asGetActiveContext()->SetException("palette_data array value pointer must not be null", true);
       return;
@@ -437,6 +437,96 @@ public:
       ppufast.extraTiles[i].width = t->width;
       ppufast.extraTiles[i].height = t->height;
     }
+
+    static auto tile_pixel_set(PPUfast::ExtraTile *t, int x, int y, uint16 color) -> void {
+      // bounds check:
+      if (x < 0 || y < 0 || x >= t->width || y >= t->height) return;
+
+      // make sure we're not writing past the end of the colors[] array:
+      uint index = y * t->width + x;
+      if (index >= 1024u) return;
+
+      // write the pixel with opaque bit sit:
+      t->colors[index] = color | 0x8000u;
+    }
+
+    static auto tile_pixel_off(PPUfast::ExtraTile *t, int x, int y) -> void {
+      // bounds check:
+      if (x < 0 || y < 0 || x >= t->width || y >= t->height) return;
+
+      // make sure we're not writing past the end of the colors[] array:
+      uint index = y * t->width + x;
+      if (index >= 1024u) return;
+
+      // turn off opaque bit:
+      t->colors[index] &= 0x7fffu;
+    }
+
+    static auto tile_pixel_on(PPUfast::ExtraTile *t, int x, int y) -> void {
+      // bounds check:
+      if (x < 0 || y < 0 || x >= t->width || y >= t->height) return;
+
+      // make sure we're not writing past the end of the colors[] array:
+      uint index = y * t->width + x;
+      if (index >= 1024u) return;
+
+      // turn on opaque bit:
+      t->colors[index] |= 0x8000u;
+    }
+
+    static auto tile_draw_sprite(PPUfast::ExtraTile *t, int x, int y, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
+      // Check validity of array inputs:
+      if (tile_data == nullptr) {
+        asGetActiveContext()->SetException("tile_data array cannot be null", true);
+        return;
+      }
+      if (tile_data->GetElementTypeId() != asTYPEID_UINT32) {
+        asGetActiveContext()->SetException("tile_data array must be uint32[]", true);
+        return;
+      }
+      if (tile_data->GetSize() < 8) {
+        asGetActiveContext()->SetException("tile_data array must have at least 8 elements", true);
+        return;
+      }
+
+      if (palette_data == nullptr) {
+        asGetActiveContext()->SetException("palette_data array cannot be null", true);
+        return;
+      }
+      if (palette_data->GetElementTypeId() != asTYPEID_UINT16) {
+        asGetActiveContext()->SetException("palette_data array must be uint16[]", true);
+        return;
+      }
+      if (palette_data->GetSize() < 16) {
+        asGetActiveContext()->SetException("palette_data array must have at least 8 elements", true);
+        return;
+      }
+
+      auto tile_data_p = static_cast<const uint32 *>(tile_data->At(0));
+      if (tile_data_p == nullptr) {
+        asGetActiveContext()->SetException("tile_data array value pointer must not be null", true);
+        return;
+      }
+      auto palette_p = static_cast<const b5g5r5 *>(palette_data->At(0));
+      if (palette_p == nullptr) {
+        asGetActiveContext()->SetException("palette_data array value pointer must not be null", true);
+        return;
+      }
+
+      for (int py = 0; py < 8; py++) {
+        uint32 tile = tile_data_p[py];
+        for (int px = 0; px < 8; px++) {
+          uint32 c = 0u, shift = 7u - px;
+          c += tile >> (shift + 0u) & 1u;
+          c += tile >> (shift + 7u) & 2u;
+          c += tile >> (shift + 14u) & 4u;
+          c += tile >> (shift + 21u) & 8u;
+          if (c) {
+            tile_pixel_set(t, x + px, y + py, palette_p[c]);
+          }
+        }
+      }
+    }
   } extraLayer;
 } scriptFrame;
 
@@ -476,6 +566,10 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectProperty("ExtraTile", "uint priority", asOFFSET(PPUfast::ExtraTile, priority)); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("ExtraTile", "uint width", asOFFSET(PPUfast::ExtraTile, width)); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("ExtraTile", "uint height", asOFFSET(PPUfast::ExtraTile, height)); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_set(int x, int y, uint16 color)", asFUNCTION(ScriptFrame::ExtraLayer::tile_pixel_set), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_off(int x, int y)", asFUNCTION(ScriptFrame::ExtraLayer::tile_pixel_off), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_on(int x, int y)", asFUNCTION(ScriptFrame::ExtraLayer::tile_pixel_on), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("ExtraTile", "void draw_sprite(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asFUNCTION(ScriptFrame::ExtraLayer::tile_draw_sprite), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Extra", "uint get_count()", asMETHOD(ScriptFrame::ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Extra", "void set_count(uint count)", asMETHOD(ScriptFrame::ExtraLayer, set_tile_count), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Extra", "ExtraTile &get_opIndex(uint i)", asFUNCTION(ScriptFrame::ExtraLayer::get_tile), asCALL_CDECL_OBJFIRST); assert(r >= 0);
