@@ -81,6 +81,10 @@ auto PPU::Line::render(bool fieldID) -> void {
   renderBackground(io.bg3, Source::BG3);
   renderBackground(io.bg4, Source::BG4);
   renderObject(io.obj);
+  if(io.extbg == 1) renderBackground(io.bg2, Source::BG2);
+  renderWindow(io.col.window, io.col.window.aboveMask, windowAbove);
+  renderWindow(io.col.window, io.col.window.belowMask, windowBelow);
+
   // [jsd] render extra tiles from scripts:
   {
     for (uint i : range(ppu.extraTileCount)) {
@@ -91,17 +95,14 @@ auto PPU::Line::render(bool fieldID) -> void {
         auto color = tile.colors[(y - tile.y) * tile.width + tx];
         // make sure color is opaque:
         if (color & 0x8000) {
-          if (tile.above && !windowAbove[tile.x + tx])
+          if (tile.above /* && !windowAbove[tile.x + tx]*/)
             plotAbove(tile.x + tx, tile.source, tile.priority, color & 0x7fff);
-          else if (!tile.above && !windowBelow[tile.x + tx])
+          else if (!tile.above /* && !windowBelow[tile.x + tx]*/)
             plotBelow(tile.x + tx, tile.source, tile.priority, color & 0x7fff);
         }
       }
     }
   }
-  if(io.extbg == 1) renderBackground(io.bg2, Source::BG2);
-  renderWindow(io.col.window, io.col.window.aboveMask, windowAbove);
-  renderWindow(io.col.window, io.col.window.belowMask, windowBelow);
 
   auto luma = ppu.lightTable[io.displayBrightness];
   uint curr = 0, prev = 0;

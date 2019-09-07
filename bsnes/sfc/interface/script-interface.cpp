@@ -446,7 +446,7 @@ public:
       uint index = y * t->width + x;
       if (index >= 1024u) return;
 
-      // write the pixel with opaque bit sit:
+      // write the pixel with opaque bit set:
       t->colors[index] = color | 0x8000u;
     }
 
