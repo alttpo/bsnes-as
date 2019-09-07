@@ -404,6 +404,11 @@ public:
     auto get_tile_count() -> uint { return ppufast.extraTileCount; }
     auto set_tile_count(uint count) { ppufast.extraTileCount = min(count, 256); }
 
+    static auto get_tile(ExtraLayer *dummy, uint i) -> PPUfast::ExtraTile* {
+      (void)dummy;
+      return &ppufast.extraTiles[i];
+    }
+
     static auto tile_construct(
       PPUfast::ExtraTile *tile,
       uint x,
@@ -473,6 +478,7 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectProperty("ExtraTile", "uint height", asOFFSET(PPUfast::ExtraTile, height)); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Extra", "uint get_count()", asMETHOD(ScriptFrame::ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Extra", "void set_count(uint count)", asMETHOD(ScriptFrame::ExtraLayer, set_tile_count), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("Extra", "ExtraTile &get_opIndex(uint i)", asFUNCTION(ScriptFrame::ExtraLayer::get_tile), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("Extra", "void set_opIndex(uint i, const ExtraTile &in t)", asMETHOD(ScriptFrame::ExtraLayer, set_tile), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterGlobalProperty("Extra extra", &scriptFrame.extraLayer); assert(r >= 0);
 
