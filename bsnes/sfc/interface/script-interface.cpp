@@ -26,8 +26,7 @@ static auto script_message(const string *msg) -> void {
 }
 
 struct ScriptInterface {
-  struct PostFrame {
-  public:
+  struct PPUAccess {
     // Global functions related to PPU:
     static auto ppu_rgb(uint8 r, uint8 g, uint8 b) -> b5g5r5 {
       return ((b5g5r5) (uclamp<5>(b)) << 10u) | ((b5g5r5) (uclamp<5>(g)) << 5u) | (b5g5r5) (uclamp<5>(r));
@@ -40,7 +39,100 @@ struct ScriptInterface {
       return ppu.io.displayBrightness;
     }
 
-  public:
+    auto vram_read(uint16 addr) -> uint16 {
+      if (system.fastPPU()) {
+        return ppufast.vram[addr & 0x7fff];
+      }
+      return ppu.vram[addr];
+    }
+
+    auto cgram_read(uint8 palette) -> uint16 {
+      if (system.fastPPU()) {
+        return ppufast.cgram[palette];
+      }
+      return ppu.screen.cgram[palette];
+    }
+
+    uint9 obj_character = 0;
+    auto obj_get_character() -> uint9 { return obj_character; }
+    auto obj_set_character(uint9 character) { obj_character = character; }
+
+    auto obj_tile_read(uint8 y) -> uint32 {
+      uint16 tiledataAddress;
+      uint8 chr = obj_character & 0xffu;
+      uint1 nameselect = obj_character >> 8u;
+
+      if (system.fastPPU()) {
+        tiledataAddress = ppufast.io.obj.tiledataAddress;
+        if (nameselect) tiledataAddress += 1 + ppufast.io.obj.nameselect << 12;
+      } else {
+        tiledataAddress = ppu.obj.io.tiledataAddress;
+        if (nameselect) tiledataAddress += 1 + ppu.obj.io.nameselect << 12;
+      }
+
+      uint16 chrx =  (chr >> 0 & 15);
+      uint16 chry = ((chr >> 4 & 15) + (y >> 3) & 15) << 4;
+
+      uint pos = tiledataAddress + ((chry + chrx) << 4);
+      uint16 addr = (pos & 0xfff0) + (y & 7);
+
+      uint32 data = (uint32)vram_read(addr + 0) << 0u | (uint32)vram_read(addr + 8) << 16u;
+      return data;
+    }
+
+    struct OAMObject {
+      uint9 x;
+      uint8 y;
+      uint8 character;
+      uint1 nameselect;
+      uint1 vflip;
+      uint1 hflip;
+      uint2 priority;
+      uint3 palette;
+      uint1 size;
+    } oam_object;
+    uint8 oam_index;
+
+    auto oam_get_index() -> uint8 { return oam_index; }
+    auto oam_set_index(uint8 index) -> void {
+      oam_index = index;
+      if (system.fastPPU()) {
+        auto po = ppufast.objects[index];
+        oam_object.x = po.x;
+        oam_object.y = po.y;
+        oam_object.character = po.character;
+        oam_object.nameselect = po.nameselect;
+        oam_object.vflip = po.vflip;
+        oam_object.hflip = po.hflip;
+        oam_object.priority = po.priority;
+        oam_object.palette = po.palette;
+        oam_object.size = po.size;
+      } else {
+        auto po = ppu.obj.oam.object[index];
+        oam_object.x = po.x;
+        oam_object.y = po.y;
+        oam_object.character = po.character;
+        oam_object.nameselect = po.nameselect;
+        oam_object.vflip = po.vflip;
+        oam_object.hflip = po.hflip;
+        oam_object.priority = po.priority;
+        oam_object.palette = po.palette;
+        oam_object.size = po.size;
+      }
+    }
+
+    auto oam_get_x() -> uint16 { return oam_object.x; }
+    auto oam_get_y() -> uint8 { return oam_object.y; }
+    auto oam_get_character() -> uint8 { return oam_object.character; }
+    auto oam_get_nameselect() -> uint8 { return oam_object.nameselect; }
+    auto oam_get_vflip() -> uint8 { return oam_object.vflip; }
+    auto oam_get_hflip() -> uint8 { return oam_object.hflip; }
+    auto oam_get_priority() -> uint8 { return oam_object.priority; }
+    auto oam_get_palette() -> uint8 { return oam_object.palette; }
+    auto oam_get_size() -> uint8 { return oam_object.size; }
+  } ppuAccess;
+
+  struct PostFrame {
     r5g5b5 *&output = ppuFrame.output;
     uint &pitch = ppuFrame.pitch;
     uint &width = ppuFrame.width;
@@ -307,98 +399,6 @@ struct ScriptInterface {
 
       color = save_color;
     }
-
-    auto vram_read(uint16 addr) -> uint16 {
-      if (system.fastPPU()) {
-        return ppufast.vram[addr & 0x7fff];
-      }
-      return ppu.vram[addr];
-    }
-
-    auto cgram_read(uint8 palette) -> uint16 {
-      if (system.fastPPU()) {
-        return ppufast.cgram[palette];
-      }
-      return ppu.screen.cgram[palette];
-    }
-
-    uint9 obj_character = 0;
-    auto obj_get_character() -> uint9 { return obj_character; }
-    auto obj_set_character(uint9 character) { obj_character = character; }
-
-    auto obj_tile_read(uint8 y) -> uint32 {
-      uint16 tiledataAddress;
-      uint8 chr = obj_character & 0xffu;
-      uint1 nameselect = obj_character >> 8u;
-
-      if (system.fastPPU()) {
-        tiledataAddress = ppufast.io.obj.tiledataAddress;
-        if (nameselect) tiledataAddress += 1 + ppufast.io.obj.nameselect << 12;
-      } else {
-        tiledataAddress = ppu.obj.io.tiledataAddress;
-        if (nameselect) tiledataAddress += 1 + ppu.obj.io.nameselect << 12;
-      }
-
-      uint16 chrx =  (chr >> 0 & 15);
-      uint16 chry = ((chr >> 4 & 15) + (y >> 3) & 15) << 4;
-
-      uint pos = tiledataAddress + ((chry + chrx) << 4);
-      uint16 addr = (pos & 0xfff0) + (y & 7);
-
-      uint32 data = (uint32)vram_read(addr + 0) << 0u | (uint32)vram_read(addr + 8) << 16u;
-      return data;
-    }
-
-    struct OAMObject {
-      uint9 x;
-      uint8 y;
-      uint8 character;
-      uint1 nameselect;
-      uint1 vflip;
-      uint1 hflip;
-      uint2 priority;
-      uint3 palette;
-      uint1 size;
-    } oam_object;
-    uint8 oam_index;
-
-    auto oam_get_index() -> uint8 { return oam_index; }
-    auto oam_set_index(uint8 index) -> void {
-      oam_index = index;
-      if (system.fastPPU()) {
-        auto po = ppufast.objects[index];
-        oam_object.x = po.x;
-        oam_object.y = po.y;
-        oam_object.character = po.character;
-        oam_object.nameselect = po.nameselect;
-        oam_object.vflip = po.vflip;
-        oam_object.hflip = po.hflip;
-        oam_object.priority = po.priority;
-        oam_object.palette = po.palette;
-        oam_object.size = po.size;
-      } else {
-        auto po = ppu.obj.oam.object[index];
-        oam_object.x = po.x;
-        oam_object.y = po.y;
-        oam_object.character = po.character;
-        oam_object.nameselect = po.nameselect;
-        oam_object.vflip = po.vflip;
-        oam_object.hflip = po.hflip;
-        oam_object.priority = po.priority;
-        oam_object.palette = po.palette;
-        oam_object.size = po.size;
-      }
-    }
-
-    auto oam_get_x() -> uint16 { return oam_object.x; }
-    auto oam_get_y() -> uint8 { return oam_object.y; }
-    auto oam_get_character() -> uint8 { return oam_object.character; }
-    auto oam_get_nameselect() -> uint8 { return oam_object.nameselect; }
-    auto oam_get_vflip() -> uint8 { return oam_object.vflip; }
-    auto oam_get_hflip() -> uint8 { return oam_object.hflip; }
-    auto oam_get_priority() -> uint8 { return oam_object.priority; }
-    auto oam_get_palette() -> uint8 { return oam_object.palette; }
-    auto oam_get_size() -> uint8 { return oam_object.size; }
   } postFrame;
 
   // script interface for rendering extra tiles:
@@ -557,121 +557,126 @@ auto Interface::registerScriptDefs() -> void {
 
   // create ppu namespace
   r = script.engine->SetDefaultNamespace("ppu"); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(ScriptInterface::PostFrame::ppu_rgb), asCALL_CDECL); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("uint8 get_luma()", asFUNCTION(ScriptInterface::PostFrame::ppu_get_luma), asCALL_CDECL); assert(r >= 0);
-
-  // extraLayer
-  r = script.engine->RegisterObjectType("Extra", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = script.engine->RegisterObjectType("ExtraTile", sizeof(PPUfast::ExtraTile), asOBJ_VALUE | asOBJ_POD); assert(r >= 0);
-  r = script.engine->RegisterObjectBehaviour("ExtraTile", asBEHAVE_CONSTRUCT, "void f(uint x, uint y, uint source, bool aboveEnable, bool belowEnable, uint priority, uint width, uint height)", asFUNCTION(ScriptInterface::ExtraLayer::tile_construct), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectProperty("ExtraTile", "uint x", asOFFSET(PPUfast::ExtraTile, x)); assert(r >= 0);
-  r = script.engine->RegisterObjectProperty("ExtraTile", "uint y", asOFFSET(PPUfast::ExtraTile, y)); assert(r >= 0);
-  r = script.engine->RegisterObjectProperty("ExtraTile", "uint source", asOFFSET(PPUfast::ExtraTile, source)); assert(r >= 0);
-  r = script.engine->RegisterObjectProperty("ExtraTile", "bool aboveEnable", asOFFSET(PPUfast::ExtraTile, aboveEnable)); assert(r >= 0);
-  r = script.engine->RegisterObjectProperty("ExtraTile", "bool belowEnable", asOFFSET(PPUfast::ExtraTile, belowEnable)); assert(r >= 0);
-  r = script.engine->RegisterObjectProperty("ExtraTile", "uint priority", asOFFSET(PPUfast::ExtraTile, priority)); assert(r >= 0);
-  r = script.engine->RegisterObjectProperty("ExtraTile", "uint width", asOFFSET(PPUfast::ExtraTile, width)); assert(r >= 0);
-  r = script.engine->RegisterObjectProperty("ExtraTile", "uint height", asOFFSET(PPUfast::ExtraTile, height)); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_set(int x, int y, uint16 color)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_set), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_off(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_off), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_on(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_on), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("ExtraTile", "void draw_sprite(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asFUNCTION(ScriptInterface::ExtraLayer::tile_draw_sprite), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Extra", "uint get_count()", asMETHOD(ScriptInterface::ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Extra", "void set_count(uint count)", asMETHOD(ScriptInterface::ExtraLayer, set_tile_count), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Extra", "ExtraTile &get_opIndex(uint i)", asFUNCTION(ScriptInterface::ExtraLayer::get_tile), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Extra", "void set_opIndex(uint i, const ExtraTile &in t)", asMETHOD(ScriptInterface::ExtraLayer, set_tile), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterGlobalProperty("Extra extra", &scriptInterface.extraLayer); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(ScriptInterface::PPUAccess::ppu_rgb), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint8 get_luma()", asFUNCTION(ScriptInterface::PPUAccess::ppu_get_luma), asCALL_CDECL); assert(r >= 0);
 
   // define ppu::VRAM object type:
   r = script.engine->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("VRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptInterface::PostFrame, vram_read), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterGlobalProperty("VRAM vram", &scriptInterface); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("VRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptInterface::PPUAccess, vram_read), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("VRAM vram", &scriptInterface.ppuAccess); assert(r >= 0);
 
   r = script.engine->RegisterObjectType("CGRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("CGRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptInterface::PostFrame, cgram_read), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterGlobalProperty("CGRAM cgram", &scriptInterface); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("CGRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptInterface::PPUAccess, cgram_read), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("CGRAM cgram", &scriptInterface.ppuAccess); assert(r >= 0);
 
   r = script.engine->RegisterObjectType("OBJ", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OBJ", "uint16 get_character()", asMETHOD(ScriptInterface::PostFrame, obj_get_character), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OBJ", "void set_character(uint16 chr)", asMETHOD(ScriptInterface::PostFrame, obj_set_character), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OBJ", "uint32 opIndex(uint8 y)", asMETHOD(ScriptInterface::PostFrame, obj_tile_read), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterGlobalProperty("OBJ obj", &scriptInterface); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OBJ", "uint16 get_character()", asMETHOD(ScriptInterface::PPUAccess, obj_get_character), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OBJ", "void set_character(uint16 chr)", asMETHOD(ScriptInterface::PPUAccess, obj_set_character), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OBJ", "uint32 opIndex(uint8 y)", asMETHOD(ScriptInterface::PPUAccess, obj_tile_read), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("OBJ obj", &scriptInterface.ppuAccess); assert(r >= 0);
 
   r = script.engine->RegisterObjectType("OAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8 get_index()", asMETHOD(ScriptInterface::PostFrame, oam_get_index), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "void set_index(uint8 index)", asMETHOD(ScriptInterface::PostFrame, oam_set_index), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint16 get_x()", asMETHOD(ScriptInterface::PostFrame, oam_get_x), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_y()", asMETHOD(ScriptInterface::PostFrame, oam_get_y), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_character()", asMETHOD(ScriptInterface::PostFrame, oam_get_character), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_nameselect()", asMETHOD(ScriptInterface::PostFrame, oam_get_nameselect), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_vflip()", asMETHOD(ScriptInterface::PostFrame, oam_get_vflip), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_hflip()", asMETHOD(ScriptInterface::PostFrame, oam_get_hflip), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_priority()", asMETHOD(ScriptInterface::PostFrame, oam_get_priority), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_palette()", asMETHOD(ScriptInterface::PostFrame, oam_get_palette), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_size()", asMETHOD(ScriptInterface::PostFrame, oam_get_size), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterGlobalProperty("OAM oam", &scriptInterface); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8 get_index()", asMETHOD(ScriptInterface::PPUAccess, oam_get_index), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "void set_index(uint8 index)", asMETHOD(ScriptInterface::PPUAccess, oam_set_index), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint16 get_x()", asMETHOD(ScriptInterface::PPUAccess, oam_get_x), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_y()", asMETHOD(ScriptInterface::PPUAccess, oam_get_y), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_character()", asMETHOD(ScriptInterface::PPUAccess, oam_get_character), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_nameselect()", asMETHOD(ScriptInterface::PPUAccess, oam_get_nameselect), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_vflip()", asMETHOD(ScriptInterface::PPUAccess, oam_get_vflip), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_hflip()", asMETHOD(ScriptInterface::PPUAccess, oam_get_hflip), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_priority()", asMETHOD(ScriptInterface::PPUAccess, oam_get_priority), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_palette()", asMETHOD(ScriptInterface::PPUAccess, oam_get_palette), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_size()", asMETHOD(ScriptInterface::PPUAccess, oam_get_size), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("OAM oam", &scriptInterface.ppuAccess); assert(r >= 0);
 
-  // define ppu::Frame object type:
-  r = script.engine->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+  {
+    // define ppu::Frame object type:
+    r = script.engine->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
 
-  // define width and height properties:
-  r = script.engine->RegisterObjectMethod("Frame", "uint get_width()", asMETHOD(ScriptInterface::PostFrame, get_width), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "uint get_height()", asMETHOD(ScriptInterface::PostFrame, get_height), asCALL_THISCALL); assert(r >= 0);
+    // define width and height properties:
+    r = script.engine->RegisterObjectMethod("Frame", "uint get_width()", asMETHOD(ScriptInterface::PostFrame, get_width), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Frame", "uint get_height()", asMETHOD(ScriptInterface::PostFrame, get_height), asCALL_THISCALL); assert(r >= 0);
 
-  // define x_scale and y_scale properties:
-  r = script.engine->RegisterObjectMethod("Frame", "int get_x_scale()", asMETHOD(ScriptInterface::PostFrame, get_x_scale), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void set_x_scale(int x_scale)", asMETHOD(ScriptInterface::PostFrame, set_x_scale), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "int get_y_scale()", asMETHOD(ScriptInterface::PostFrame, get_y_scale), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void set_y_scale(int y_scale)", asMETHOD(ScriptInterface::PostFrame, set_y_scale), asCALL_THISCALL); assert(r >= 0);
+    // define x_scale and y_scale properties:
+    r = script.engine->RegisterObjectMethod("Frame", "int get_x_scale()", asMETHOD(ScriptInterface::PostFrame, get_x_scale), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Frame", "void set_x_scale(int x_scale)", asMETHOD(ScriptInterface::PostFrame, set_x_scale), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Frame", "int get_y_scale()", asMETHOD(ScriptInterface::PostFrame, get_y_scale), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Frame", "void set_y_scale(int y_scale)", asMETHOD(ScriptInterface::PostFrame, set_y_scale), asCALL_THISCALL); assert(r >= 0);
 
-  // adjust y_offset of drawing functions (default 8):
-  r = script.engine->RegisterObjectProperty("Frame", "int y_offset", asOFFSET(ScriptInterface::PostFrame, y_offset)); assert(r >= 0);
+    // adjust y_offset of drawing functions (default 8):
+    r = script.engine->RegisterObjectProperty("Frame", "int y_offset", asOFFSET(ScriptInterface::PostFrame, y_offset)); assert(r >= 0);
 
-  // set color to use for drawing functions (15-bit RGB):
-  r = script.engine->RegisterObjectMethod("Frame", "uint16 get_color()", asMETHOD(ScriptInterface::PostFrame, get_color), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void set_color(uint16 color)", asMETHOD(ScriptInterface::PostFrame, set_color), asCALL_THISCALL); assert(r >= 0);
+    // set color to use for drawing functions (15-bit RGB):
+    r = script.engine->RegisterObjectMethod("Frame", "uint16 get_color()", asMETHOD(ScriptInterface::PostFrame, get_color), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Frame", "void set_color(uint16 color)", asMETHOD(ScriptInterface::PostFrame, set_color), asCALL_THISCALL); assert(r >= 0);
 
-  // set luma (paired with color) to use for drawing functions (0..15):
-  r = script.engine->RegisterObjectMethod("Frame", "uint8 get_luma()", asMETHOD(ScriptInterface::PostFrame, get_luma), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void set_luma(uint8 luma)", asMETHOD(ScriptInterface::PostFrame, set_luma), asCALL_THISCALL); assert(r >= 0);
+    // set luma (paired with color) to use for drawing functions (0..15):
+    r = script.engine->RegisterObjectMethod("Frame", "uint8 get_luma()", asMETHOD(ScriptInterface::PostFrame, get_luma), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Frame", "void set_luma(uint8 luma)", asMETHOD(ScriptInterface::PostFrame, set_luma), asCALL_THISCALL); assert(r >= 0);
 
-  // set alpha to use for drawing functions (0..31):
-  r = script.engine->RegisterObjectMethod("Frame", "uint8 get_alpha()", asMETHOD(ScriptInterface::PostFrame, get_alpha), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void set_alpha(uint8 alpha)", asMETHOD(ScriptInterface::PostFrame, set_alpha), asCALL_THISCALL); assert(r >= 0);
+    // set alpha to use for drawing functions (0..31):
+    r = script.engine->RegisterObjectMethod("Frame", "uint8 get_alpha()", asMETHOD(ScriptInterface::PostFrame, get_alpha), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Frame", "void set_alpha(uint8 alpha)", asMETHOD(ScriptInterface::PostFrame, set_alpha), asCALL_THISCALL); assert(r >= 0);
 
-  // set font_height to use for text (8 or 16):
-  r = script.engine->RegisterObjectProperty("Frame", "int font_height", asOFFSET(ScriptInterface::PostFrame, font_height)); assert(r >= 0);
+    // set font_height to use for text (8 or 16):
+    r = script.engine->RegisterObjectProperty("Frame", "int font_height", asOFFSET(ScriptInterface::PostFrame, font_height)); assert(r >= 0);
 
-  // set text_shadow to draw shadow behind text:
-  r = script.engine->RegisterObjectProperty("Frame", "bool text_shadow", asOFFSET(ScriptInterface::PostFrame, text_shadow)); assert(r >= 0);
+    // set text_shadow to draw shadow behind text:
+    r = script.engine->RegisterObjectProperty("Frame", "bool text_shadow", asOFFSET(ScriptInterface::PostFrame, text_shadow)); assert(r >= 0);
 
-  // register the DrawOp enum:
-  r = script.engine->RegisterEnum("draw_op"); assert(r >= 0);
-  r = script.engine->RegisterEnumValue("draw_op", "op_solid", ScriptInterface::PostFrame::draw_op_t::op_solid); assert(r >= 0);
-  r = script.engine->RegisterEnumValue("draw_op", "op_alpha", ScriptInterface::PostFrame::draw_op_t::op_alpha); assert(r >= 0);
-  r = script.engine->RegisterEnumValue("draw_op", "op_xor", ScriptInterface::PostFrame::draw_op_t::op_xor); assert(r >= 0);
+    // register the DrawOp enum:
+    r = script.engine->RegisterEnum("draw_op"); assert(r >= 0);
+    r = script.engine->RegisterEnumValue("draw_op", "op_solid", ScriptInterface::PostFrame::draw_op_t::op_solid); assert(r >= 0);
+    r = script.engine->RegisterEnumValue("draw_op", "op_alpha", ScriptInterface::PostFrame::draw_op_t::op_alpha); assert(r >= 0);
+    r = script.engine->RegisterEnumValue("draw_op", "op_xor", ScriptInterface::PostFrame::draw_op_t::op_xor); assert(r >= 0);
 
-  // set draw_op:
-  r = script.engine->RegisterObjectProperty("Frame", "draw_op draw_op", asOFFSET(ScriptInterface::PostFrame, draw_op)); assert(r >= 0);
+    // set draw_op:
+    r = script.engine->RegisterObjectProperty("Frame", "draw_op draw_op", asOFFSET(ScriptInterface::PostFrame, draw_op)); assert(r >= 0);
 
-  // pixel access functions:
-  r = script.engine->RegisterObjectMethod("Frame", "uint16 read_pixel(int x, int y)", asMETHOD(ScriptInterface::PostFrame, read_pixel), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void pixel(int x, int y)", asMETHOD(ScriptInterface::PostFrame, pixel), asCALL_THISCALL); assert(r >= 0);
+    // pixel access functions:
+    r = script.engine->RegisterObjectMethod("Frame", "uint16 read_pixel(int x, int y)", asMETHOD(ScriptInterface::PostFrame, read_pixel), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Frame", "void pixel(int x, int y)", asMETHOD(ScriptInterface::PostFrame, pixel), asCALL_THISCALL); assert(r >= 0);
 
-  // primitive drawing functions:
-  r = script.engine->RegisterObjectMethod("Frame", "void hline(int lx, int ty, int w)", asMETHOD(ScriptInterface::PostFrame, hline), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void vline(int lx, int ty, int h)", asMETHOD(ScriptInterface::PostFrame, vline), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void rect(int x, int y, int w, int h)", asMETHOD(ScriptInterface::PostFrame, rect), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("Frame", "void fill(int x, int y, int w, int h)", asMETHOD(ScriptInterface::PostFrame, fill), asCALL_THISCALL); assert(r >= 0);
+    // primitive drawing functions:
+    r = script.engine->RegisterObjectMethod("Frame", "void hline(int lx, int ty, int w)", asMETHOD(ScriptInterface::PostFrame, hline), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Frame", "void vline(int lx, int ty, int h)", asMETHOD(ScriptInterface::PostFrame, vline), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Frame", "void rect(int x, int y, int w, int h)", asMETHOD(ScriptInterface::PostFrame, rect), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Frame", "void fill(int x, int y, int w, int h)", asMETHOD(ScriptInterface::PostFrame, fill), asCALL_THISCALL); assert(r >= 0);
 
-  // text drawing function:
-  r = script.engine->RegisterObjectMethod("Frame", "int text(int x, int y, const string &in text)", asMETHOD(ScriptInterface::PostFrame, text), asCALL_THISCALL); assert(r >= 0);
+    // text drawing function:
+    r = script.engine->RegisterObjectMethod("Frame", "int text(int x, int y, const string &in text)", asMETHOD(ScriptInterface::PostFrame, text), asCALL_THISCALL); assert(r >= 0);
 
-  // draw 4bpp paletted 8x1 row:
-  r = script.engine->RegisterObjectMethod("Frame", "int draw_4bpp_8x8(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asMETHOD(ScriptInterface::PostFrame, draw_4bpp_8x8), asCALL_THISCALL); assert(r >= 0);
+    // draw 4bpp paletted 8x1 row:
+    r = script.engine->RegisterObjectMethod("Frame", "int draw_4bpp_8x8(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asMETHOD(ScriptInterface::PostFrame, draw_4bpp_8x8), asCALL_THISCALL); assert(r >= 0);
 
-  // global property to access current frame:
-  r = script.engine->RegisterGlobalProperty("Frame frame", &scriptInterface.postFrame); assert(r >= 0);
+    // global property to access current frame:
+    r = script.engine->RegisterGlobalProperty("Frame frame", &scriptInterface.postFrame); assert(r >= 0);
+  }
+
+  {
+    // extra-tiles access:
+    r = script.engine->RegisterObjectType("Extra", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+    r = script.engine->RegisterObjectType("ExtraTile", sizeof(PPUfast::ExtraTile), asOBJ_VALUE | asOBJ_POD); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("ExtraTile", asBEHAVE_CONSTRUCT, "void f(uint x, uint y, uint source, bool aboveEnable, bool belowEnable, uint priority, uint width, uint height)", asFUNCTION(ScriptInterface::ExtraLayer::tile_construct), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint x", asOFFSET(PPUfast::ExtraTile, x)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint y", asOFFSET(PPUfast::ExtraTile, y)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint source", asOFFSET(PPUfast::ExtraTile, source)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "bool aboveEnable", asOFFSET(PPUfast::ExtraTile, aboveEnable)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "bool belowEnable", asOFFSET(PPUfast::ExtraTile, belowEnable)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint priority", asOFFSET(PPUfast::ExtraTile, priority)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint width", asOFFSET(PPUfast::ExtraTile, width)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint height", asOFFSET(PPUfast::ExtraTile, height)); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_set(int x, int y, uint16 color)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_set), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_off(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_off), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_on(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_on), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void draw_sprite(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asFUNCTION(ScriptInterface::ExtraLayer::tile_draw_sprite), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "uint get_count()", asMETHOD(ScriptInterface::ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "void set_count(uint count)", asMETHOD(ScriptInterface::ExtraLayer, set_tile_count), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "ExtraTile &get_opIndex(uint i)", asFUNCTION(ScriptInterface::ExtraLayer::get_tile), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "void set_opIndex(uint i, const ExtraTile &in t)", asMETHOD(ScriptInterface::ExtraLayer, set_tile), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterGlobalProperty("Extra extra", &scriptInterface.extraLayer); assert(r >= 0);
+  }
+
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 
   // create context:
