@@ -85,24 +85,8 @@ auto PPU::Line::render(bool fieldID) -> void {
   renderWindow(io.col.window, io.col.window.aboveMask, windowAbove);
   renderWindow(io.col.window, io.col.window.belowMask, windowBelow);
 
-  // [jsd] render extra tiles from scripts:
-  {
-    for (uint i : range(ppu.extraTileCount)) {
-      auto tile = ppu.extraTiles[i];
-      if (y < tile.y) continue;
-      if (y >= tile.y + tile.height) continue;
-      for (uint tx = 0; tx < tile.width; tx++) {
-        auto color = tile.colors[(y - tile.y) * tile.width + tx];
-        // make sure color is opaque:
-        if (color & 0x8000) {
-          if (tile.above /* && !windowAbove[tile.x + tx]*/)
-            plotAbove(tile.x + tx, tile.source, tile.priority, color & 0x7fff);
-          else if (!tile.above /* && !windowBelow[tile.x + tx]*/)
-            plotBelow(tile.x + tx, tile.source, tile.priority, color & 0x7fff);
-        }
-      }
-    }
-  }
+  // [jsd] render extra tiles on the fixed-color layer:
+  renderExtraTiles(Source::COL, windowAbove, windowBelow);
 
   auto luma = ppu.lightTable[io.displayBrightness];
   uint curr = 0, prev = 0;
@@ -124,6 +108,30 @@ auto PPU::Line::render(bool fieldID) -> void {
     curr = luma[pixel(x, above[x], below[x])];
     *output++ = (prev + curr - ((prev ^ curr) & 0x0421)) >> 1;
     prev = curr;
+  }
+}
+
+auto PPU::Line::renderExtraTiles(uint source, bool windowAbove[256], bool windowBelow[256]) -> void {
+  for (uint i : range(ppu.extraTileCount)) {
+    // skip tile if not the right source:
+    const auto& tile = ppu.extraTiles[i];
+    if (tile.source != source) continue;
+
+    if (y < tile.y) continue;
+    if (y >= tile.y + tile.height) continue;
+
+    // draw the sprite:
+    for (uint tx = 0; tx < tile.width; tx++) {
+      auto color = tile.colors[(y - tile.y) * tile.width + tx];
+
+      // make sure color is opaque:
+      if (color & 0x8000) {
+        if (tile.aboveEnable && !windowAbove[tile.x + tx])
+          plotAbove(tile.x + tx, tile.source, tile.priority, color & 0x7fff);
+        if (tile.belowEnable && !windowBelow[tile.x + tx])
+          plotBelow(tile.x + tx, tile.source, tile.priority, color & 0x7fff);
+      }
+    }
   }
 }
 

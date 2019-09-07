@@ -410,29 +410,32 @@ public:
     }
 
     static auto tile_construct(
-      PPUfast::ExtraTile *tile,
+      PPUfast::ExtraTile *t,
       uint x,
       uint y,
       uint source,
-      bool above,
+      bool aboveEnable,
+      bool belowEnable,
       uint priority,
       uint width,
       uint height
     ) -> void {
-      tile->x = x;
-      tile->y = y;
-      tile->source = source;
-      tile->above = above;
-      tile->priority = priority;
-      tile->width = width;
-      tile->height = height;
+      t->x = x;
+      t->y = y;
+      t->source = source;
+      t->aboveEnable = aboveEnable;
+      t->belowEnable = belowEnable;
+      t->priority = priority;
+      t->width = width;
+      t->height = height;
     }
 
     auto set_tile(uint i, PPUfast::ExtraTile *t) -> void {
       ppufast.extraTiles[i].x = t->x;
       ppufast.extraTiles[i].y = t->y;
       ppufast.extraTiles[i].source = t->source;
-      ppufast.extraTiles[i].above = t->above;
+      ppufast.extraTiles[i].aboveEnable = t->aboveEnable;
+      ppufast.extraTiles[i].belowEnable = t->belowEnable;
       ppufast.extraTiles[i].priority = t->priority;
       ppufast.extraTiles[i].width = t->width;
       ppufast.extraTiles[i].height = t->height;
@@ -558,11 +561,12 @@ auto Interface::registerScriptDefs() -> void {
   // extraLayer
   r = script.engine->RegisterObjectType("Extra", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectType("ExtraTile", sizeof(PPUfast::ExtraTile), asOBJ_VALUE | asOBJ_POD); assert(r >= 0);
-  r = script.engine->RegisterObjectBehaviour("ExtraTile", asBEHAVE_CONSTRUCT, "void f(uint x, uint y, uint source, bool above, uint priority, uint width, uint height)", asFUNCTION(ScriptFrame::ExtraLayer::tile_construct), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectBehaviour("ExtraTile", asBEHAVE_CONSTRUCT, "void f(uint x, uint y, uint source, bool aboveEnable, bool belowEnable, uint priority, uint width, uint height)", asFUNCTION(ScriptFrame::ExtraLayer::tile_construct), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("ExtraTile", "uint x", asOFFSET(PPUfast::ExtraTile, x)); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("ExtraTile", "uint y", asOFFSET(PPUfast::ExtraTile, y)); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("ExtraTile", "uint source", asOFFSET(PPUfast::ExtraTile, source)); assert(r >= 0);
-  r = script.engine->RegisterObjectProperty("ExtraTile", "bool above", asOFFSET(PPUfast::ExtraTile, above)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("ExtraTile", "bool aboveEnable", asOFFSET(PPUfast::ExtraTile, aboveEnable)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("ExtraTile", "bool belowEnable", asOFFSET(PPUfast::ExtraTile, belowEnable)); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("ExtraTile", "uint priority", asOFFSET(PPUfast::ExtraTile, priority)); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("ExtraTile", "uint width", asOFFSET(PPUfast::ExtraTile, width)); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("ExtraTile", "uint height", asOFFSET(PPUfast::ExtraTile, height)); assert(r >= 0);

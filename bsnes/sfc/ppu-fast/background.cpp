@@ -126,6 +126,9 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint source) -> void
       }
     }
   }
+
+  // [jsd] render extra tiles on this source layer:
+  renderExtraTiles(source, windowAbove, windowBelow);
 }
 
 auto PPU::Line::getTile(PPU::IO::Background& self, uint hoffset, uint voffset) -> uint {

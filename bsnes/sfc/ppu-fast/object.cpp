@@ -121,6 +121,10 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
     if(self.aboveEnable && !windowAbove[x]) plotAbove(x, source, priority[x], cgram[palette[x]]);
     if(self.belowEnable && !windowBelow[x]) plotBelow(x, source, priority[x], cgram[palette[x]]);
   }
+
+  // [jsd] render extra tiles on this source layer:
+  renderExtraTiles(Source::OBJ1, windowAbove, windowBelow);
+  renderExtraTiles(Source::OBJ2, windowAbove, windowBelow);
 }
 
 auto PPU::oamAddressReset() -> void {
