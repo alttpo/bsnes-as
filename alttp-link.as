@@ -36,33 +36,35 @@ void pre_frame() {
     ppu::extra.count = 2;
 
     // head:
-    ppu::extra[0].x = link_x;
-    ppu::extra[0].y = link_y;
-    ppu::extra[0].source = 5;
-    ppu::extra[0].aboveEnable = true;
-    ppu::extra[0].belowEnable = true;
-    ppu::extra[0].priority = 5;
-    ppu::extra[0].width = 16;
-    ppu::extra[0].height = 16;
-    ppu::extra[0].pixels_clear();
-    ppu::extra[0].draw_sprite(0, 0, tiledata[0], palette[7]);
-    ppu::extra[0].draw_sprite(8, 0, tiledata[1], palette[7]);
-    ppu::extra[0].draw_sprite(0, 8, tiledata[8], palette[7]);
-    ppu::extra[0].draw_sprite(8, 8, tiledata[9], palette[7]);
+    auto head = ppu::extra[0];
+    head.x = link_x;
+    head.y = link_y;
+    head.source = 5;
+    head.aboveEnable = true;
+    head.belowEnable = true;
+    head.priority = 5;
+    head.width = 16;
+    head.height = 16;
+    head.pixels_clear();
+    head.draw_sprite(0, 0, tiledata[0], palette[7]);
+    head.draw_sprite(8, 0, tiledata[1], palette[7]);
+    head.draw_sprite(0, 8, tiledata[8], palette[7]);
+    head.draw_sprite(8, 8, tiledata[9], palette[7]);
 
     // body:
-    ppu::extra[1].x = link_x+1;
-    ppu::extra[1].y = link_y+8;
-    ppu::extra[1].source = 5;
-    ppu::extra[1].aboveEnable = true;
-    ppu::extra[1].belowEnable = true;
-    ppu::extra[1].priority = 5;
-    ppu::extra[1].width = 16;
-    ppu::extra[1].height = 16;
-    ppu::extra[1].pixels_clear();
-    ppu::extra[1].draw_sprite(0, 0, tiledata[2], palette[7]);
-    ppu::extra[1].draw_sprite(8, 0, tiledata[3], palette[7]);
-    ppu::extra[1].draw_sprite(0, 8, tiledata[10], palette[7]);
-    ppu::extra[1].draw_sprite(8, 8, tiledata[11], palette[7]);
+    auto body = ppu::extra[1];
+    body.x = link_x+1;
+    body.y = link_y+8;
+    body.source = 5;
+    body.aboveEnable = true;
+    body.belowEnable = true;
+    body.priority = 5;
+    body.width = 16;
+    body.height = 16;
+    body.pixels_clear();
+    body.draw_sprite(0, 0, tiledata[2], palette[7]);
+    body.draw_sprite(8, 0, tiledata[3], palette[7]);
+    body.draw_sprite(0, 8, tiledata[10], palette[7]);
+    body.draw_sprite(8, 8, tiledata[11], palette[7]);
   }
 }
