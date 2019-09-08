@@ -802,7 +802,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectType("Extra", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
 
     r = script.engine->RegisterObjectType("ExtraTile", sizeof(PPUfast::ExtraTile), asOBJ_VALUE | asOBJ_POD); assert(r >= 0);
-    r = script.engine->RegisterObjectBehaviour("ExtraTile", asBEHAVE_CONSTRUCT, "void f(uint x, uint y, uint source, bool aboveEnable, bool belowEnable, uint priority, uint width, uint height)", asFUNCTION(ScriptInterface::ExtraLayer::tile_construct), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    //r = script.engine->RegisterObjectBehaviour("ExtraTile", asBEHAVE_CONSTRUCT, "void f(uint x, uint y, uint source, bool aboveEnable, bool belowEnable, uint priority, uint width, uint height)", asFUNCTION(ScriptInterface::ExtraLayer::tile_construct), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint x", asOFFSET(PPUfast::ExtraTile, x)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint y", asOFFSET(PPUfast::ExtraTile, y)); assert(r >= 0);
@@ -841,7 +841,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Extra", "uint get_count()", asMETHOD(ScriptInterface::ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("Extra", "void set_count(uint count)", asMETHOD(ScriptInterface::ExtraLayer, set_tile_count), asCALL_THISCALL); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("Extra", "ExtraTile &get_opIndex(uint i)", asFUNCTION(ScriptInterface::ExtraLayer::get_tile), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-    r = script.engine->RegisterObjectMethod("Extra", "void set_opIndex(uint i, const ExtraTile &in t)", asMETHOD(ScriptInterface::ExtraLayer, set_tile), asCALL_THISCALL); assert(r >= 0);
+    //r = script.engine->RegisterObjectMethod("Extra", "void set_opIndex(uint i, const ExtraTile &in t)", asMETHOD(ScriptInterface::ExtraLayer, set_tile), asCALL_THISCALL); assert(r >= 0);
     r = script.engine->RegisterGlobalProperty("Extra extra", &scriptInterface.extraLayer); assert(r >= 0);
   }
 

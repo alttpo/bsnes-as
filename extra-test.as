@@ -12,7 +12,14 @@ void pre_frame() {
   ppu::extra.count = 1;
 
   // put the extra tile at 108,116, layer 2 (BG3), on both main and sub screens, priority 5, 42x8 size
-  ppu::extra[0] = ppu::ExtraTile(108, 116, 2, true, true, 5, 42, 8);
+  ppu::extra[0].x = 108;
+  ppu::extra[0].y = 116;
+  ppu::extra[0].source = 2;
+  ppu::extra[0].aboveEnable = true;
+  ppu::extra[0].belowEnable = true;
+  ppu::extra[0].priority = 5;
+  ppu::extra[0].width = 42;
+  ppu::extra[0].height = 8;
   // clear previous pixels in the tile:
   ppu::extra[0].pixels_clear();
   // test the pixel_set function by moving a pair of pixels from left to right and wrapping:

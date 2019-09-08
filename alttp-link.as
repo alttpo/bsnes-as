@@ -36,7 +36,14 @@ void pre_frame() {
     ppu::extra.count = 2;
 
     // head:
-    ppu::extra[0] = ppu::ExtraTile(link_x, link_y, 5, true, true, 5, 16, 16);
+    ppu::extra[0].x = link_x;
+    ppu::extra[0].y = link_y;
+    ppu::extra[0].source = 5;
+    ppu::extra[0].aboveEnable = true;
+    ppu::extra[0].belowEnable = true;
+    ppu::extra[0].priority = 5;
+    ppu::extra[0].width = 16;
+    ppu::extra[0].height = 16;
     ppu::extra[0].pixels_clear();
     ppu::extra[0].draw_sprite(0, 0, tiledata[0], palette[7]);
     ppu::extra[0].draw_sprite(8, 0, tiledata[1], palette[7]);
@@ -44,7 +51,14 @@ void pre_frame() {
     ppu::extra[0].draw_sprite(8, 8, tiledata[9], palette[7]);
 
     // body:
-    ppu::extra[1] = ppu::ExtraTile(link_x+1, link_y+8, 5, true, true, 5, 16, 16);
+    ppu::extra[1].x = link_x+1;
+    ppu::extra[1].y = link_y+8;
+    ppu::extra[1].source = 5;
+    ppu::extra[1].aboveEnable = true;
+    ppu::extra[1].belowEnable = true;
+    ppu::extra[1].priority = 5;
+    ppu::extra[1].width = 16;
+    ppu::extra[1].height = 16;
     ppu::extra[1].pixels_clear();
     ppu::extra[1].draw_sprite(0, 0, tiledata[2], palette[7]);
     ppu::extra[1].draw_sprite(8, 0, tiledata[3], palette[7]);
