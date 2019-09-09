@@ -166,7 +166,7 @@ void pre_frame() {
     //     frame = 0
     //   walking:
     //     frame = 1..8
-    auto priority = 5 - link.level;
+    auto priority = 5 - (link.level & 1);
 
     // head:
     auto head = ppu::extra[0];
