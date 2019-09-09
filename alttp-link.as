@@ -1,10 +1,11 @@
 // ALTTP script to draw current Link sprites on top of rendered frame:
-array<array<uint32>> tiledata(16, array<uint32>(8));
+array<array<uint32>> spritedata(2, array<uint32>(32));
 array<array<uint16>> palette(8, array<uint16>(16));
 
 enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
 
 class Link {
+
   // values copied from RAM:
   uint8 ctr;
   uint16 x, y, z;
@@ -115,6 +116,9 @@ class Link {
     //           1 - means you’re on a lower level. Important for interaction with different tile types.
     //           3 - walking down stairwell exit (e.g. in castle escape sequence, going down stairs)
     level     = bus::read_u8 (0x7E00EE);
+  }
+
+  void render(int x, int y) {
 
   }
 };
@@ -129,18 +133,12 @@ void pre_frame() {
   // TODO for ALTTP:
   // TODO: use animation state + frame to properly position extra-tiles
 
-  // load 8 8x8 sprites for Link from VRAM:
-  for (int i = 0; i < 8; i++) {
-    ppu::obj.character = i;
-    for (int y = 0; y < 8; y++) {
-      tiledata[0 + i][y] = ppu::obj[y];
-    }
-  }
-  for (int i = 0; i < 8; i++) {
-    ppu::obj.character = i + 16;
-    for (int y = 0; y < 8; y++) {
-      tiledata[8 + i][y] = ppu::obj[y];
-    }
+  // get base address for current tiledata:
+  uint16 baseaddr = ppu::tile_address(false);
+
+  // load 2x 16x16 sprites for Link from VRAM:
+  for (int i = 0; i < 2; i++) {
+    ppu::vram.read_sprite(baseaddr, i*2, 16, 16, spritedata[i]);
   }
 
   // load 8 sprite palettes from CGRAM:
@@ -179,10 +177,7 @@ void pre_frame() {
     head.width = 16;
     head.height = 16;
     head.pixels_clear();
-    head.draw_sprite(0, 0, tiledata[0], palette[7]);
-    head.draw_sprite(8, 0, tiledata[1], palette[7]);
-    head.draw_sprite(0, 8, tiledata[8], palette[7]);
-    head.draw_sprite(8, 8, tiledata[9], palette[7]);
+    head.draw_sprite(0, 0, 16, 16, spritedata[0], palette[7]);
 
     // body:
     auto body = ppu::extra[1];
@@ -195,10 +190,7 @@ void pre_frame() {
     body.width = 16;
     body.height = 16;
     body.pixels_clear();
-    body.draw_sprite(0, 0, tiledata[2], palette[7]);
-    body.draw_sprite(8, 0, tiledata[3], palette[7]);
-    body.draw_sprite(0, 8, tiledata[10], palette[7]);
-    body.draw_sprite(8, 8, tiledata[11], palette[7]);
+    body.draw_sprite(0, 0, 16, 16, spritedata[1], palette[7]);
   }
 }
 

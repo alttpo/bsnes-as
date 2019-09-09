@@ -42,11 +42,46 @@ struct ScriptInterface {
       return ppu.io.displayBrightness;
     }
 
-    auto vram_read(uint16 addr) -> uint16 {
-      if (system.fastPPU()) {
-        return ppufast.vram[addr & 0x7fff];
+    static auto ppu_sprite_width(uint8 baseSize, uint8 size) -> uint8 {
+      if(size == 0) {
+        static const uint8 width[] = { 8,  8,  8, 16, 16, 32, 16, 16};
+        return width[baseSize];
+      } else {
+        static const uint8 width[] = {16, 32, 64, 32, 64, 64, 32, 32};
+        return width[baseSize];
       }
-      return ppu.vram[addr];
+    }
+
+    static auto ppu_sprite_height(uint8 baseSize, uint8 size) -> uint8 {
+      if(size == 0) {
+        static const uint8 height[] = { 8,  8,  8, 16, 16, 32, 32, 32};
+        return height[baseSize];
+      } else {
+        static const uint8 height[] = {16, 32, 64, 32, 64, 64, 64, 32};
+        return height[baseSize];
+      }
+    }
+
+    static auto ppu_sprite_base_size() -> uint8 {
+      if (system.fastPPU()) {
+        return ppufast.io.obj.baseSize;
+      } else {
+        return ppu.obj.io.baseSize;
+      }
+    }
+
+    static auto ppu_tile_address(bool nameselect) -> uint16 {
+      uint16 tiledataAddress;
+
+      if (system.fastPPU()) {
+        tiledataAddress = ppufast.io.obj.tiledataAddress;
+        if (nameselect) tiledataAddress += 1u + ppufast.io.obj.nameselect << 12u;
+      } else {
+        tiledataAddress = ppu.obj.io.tiledataAddress;
+        if (nameselect) tiledataAddress += 1u + ppu.obj.io.nameselect << 12u;
+      }
+
+      return tiledataAddress;
     }
 
     auto cgram_read(uint8 palette) -> uint16 {
@@ -56,6 +91,57 @@ struct ScriptInterface {
       return ppu.screen.cgram[palette];
     }
 
+    auto vram_read(uint16 addr) -> uint16 {
+      if (system.fastPPU()) {
+        return ppufast.vram[addr & 0x7fff];
+      }
+      return ppu.vram[addr];
+    }
+
+    // Read a sprite from VRAM into `output`
+    auto vram_read_sprite(uint16 tiledataAddress, uint8 chr, uint8 width, uint8 height, CScriptArray *output) -> uint {
+      if (output == nullptr) {
+        asGetActiveContext()->SetException("output array cannot be null", true);
+        return 0;
+      }
+      if (output->GetElementTypeId() != asTYPEID_UINT32) {
+        asGetActiveContext()->SetException("output array must be of type uint32[]", true);
+        return 0;
+      }
+      if ((width == 0u) || (width & 7u)) {
+        asGetActiveContext()->SetException("width must be a non-zero multiple of 8", true);
+        return 0;
+      }
+      if ((height == 0u) || (height & 7u)) {
+        asGetActiveContext()->SetException("height must be a non-zero multiple of 8", true);
+        return 0;
+      }
+
+      // Figure out the size of the sprite to read:
+      uint tileWidth = width >> 3u;
+
+      // Make sure output array has proper capacity:
+      output->Resize(tileWidth * height);
+
+      uint out = 0;
+      uint16 chrx = (chr >> 0u & 15u);
+      for (uint y = 0; y < height; y++) {
+        uint16 chry = ((chr >> 4u & 15u) + (y >> 3u) & 15u) << 4u;
+        for (uint tx = 0; tx < tileWidth; tx++) {
+          uint pos = tiledataAddress + ((chry + (chrx + tx & 15u)) << 4u);
+          uint16 addr = (pos & 0xfff0u) + (y & 7u);
+
+          uint32 data = (uint32) vram_read(addr + 0u) << 0u | (uint32) vram_read(addr + 8u) << 16u;
+
+          // Write to output array:
+          output->SetValue(out++, &data);
+        }
+      }
+
+      return out;
+    }
+
+#if 0
     uint9 obj_character = 0;
     auto obj_get_character() -> uint9 { return obj_character; }
     auto obj_set_character(uint9 character) { obj_character = character; }
@@ -82,6 +168,7 @@ struct ScriptInterface {
       uint32 data = (uint32)vram_read(addr + 0) << 0u | (uint32)vram_read(addr + 8) << 16u;
       return data;
     }
+#endif
 
     struct OAMObject {
       uint9 x;
@@ -518,7 +605,17 @@ struct ScriptInterface {
       t->colors[index] |= 0x8000u;
     }
 
-    static auto tile_draw_sprite(PPUfast::ExtraTile *t, int x, int y, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
+    static auto tile_draw_sprite(PPUfast::ExtraTile *t, int x, int y, uint8 width, uint8 height, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
+      if ((width == 0u) || (width & 7u)) {
+        asGetActiveContext()->SetException("width must be a non-zero multiple of 8", true);
+        return;
+      }
+      if ((height == 0u) || (height & 7u)) {
+        asGetActiveContext()->SetException("height must be a non-zero multiple of 8", true);
+        return;
+      }
+      uint tileWidth = width >> 3u;
+
       // Check validity of array inputs:
       if (tile_data == nullptr) {
         asGetActiveContext()->SetException("tile_data array cannot be null", true);
@@ -528,7 +625,7 @@ struct ScriptInterface {
         asGetActiveContext()->SetException("tile_data array must be uint32[]", true);
         return;
       }
-      if (tile_data->GetSize() < 8) {
+      if (tile_data->GetSize() < height * tileWidth) {
         asGetActiveContext()->SetException("tile_data array must have at least 8 elements", true);
         return;
       }
@@ -546,27 +643,30 @@ struct ScriptInterface {
         return;
       }
 
-      auto tile_data_p = static_cast<const uint32 *>(tile_data->At(0));
-      if (tile_data_p == nullptr) {
-        asGetActiveContext()->SetException("tile_data array value pointer must not be null", true);
-        return;
-      }
-      auto palette_p = static_cast<const b5g5r5 *>(palette_data->At(0));
-      if (palette_p == nullptr) {
-        asGetActiveContext()->SetException("palette_data array value pointer must not be null", true);
-        return;
-      }
+      for (int py = 0; py < height; py++) {
+        for (int tx = 0; tx < tileWidth; tx++) {
+          auto tile_data_p = static_cast<const uint32 *>(tile_data->At(py * tileWidth + tx));
+          if (tile_data_p == nullptr) {
+            asGetActiveContext()->SetException("tile_data array index out of range", true);
+            return;
+          }
 
-      for (int py = 0; py < 8; py++) {
-        uint32 tile = tile_data_p[py];
-        for (int px = 0; px < 8; px++) {
-          uint32 c = 0u, shift = 7u - px;
-          c += tile >> (shift + 0u) & 1u;
-          c += tile >> (shift + 7u) & 2u;
-          c += tile >> (shift + 14u) & 4u;
-          c += tile >> (shift + 21u) & 8u;
-          if (c) {
-            tile_pixel_set(t, x + px, y + py, palette_p[c]);
+          uint32 tile = *tile_data_p;
+          for (int px = 0; px < 8; px++) {
+            uint32 c = 0u, shift = 7u - px;
+            c += tile >> (shift + 0u) & 1u;
+            c += tile >> (shift + 7u) & 2u;
+            c += tile >> (shift + 14u) & 4u;
+            c += tile >> (shift + 21u) & 8u;
+            if (c) {
+              auto palette_p = static_cast<const b5g5r5 *>(palette_data->At(c));
+              if (palette_p == nullptr) {
+                asGetActiveContext()->SetException("palette_data array value pointer must not be null", true);
+                return;
+              }
+
+              tile_pixel_set(t, x + px + (tx << 3), y + py, *palette_p);
+            }
           }
         }
       }
@@ -671,21 +771,29 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->SetDefaultNamespace("ppu"); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(ScriptInterface::PPUAccess::ppu_rgb), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint8 get_luma()", asFUNCTION(ScriptInterface::PPUAccess::ppu_get_luma), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint8 sprite_width(uint8 baseSize, uint8 size)", asFUNCTION(ScriptInterface::PPUAccess::ppu_sprite_width), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint8 sprite_height(uint8 baseSize, uint8 size)", asFUNCTION(ScriptInterface::PPUAccess::ppu_sprite_height), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint8 sprite_base_size()", asFUNCTION(ScriptInterface::PPUAccess::ppu_sprite_base_size), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("uint16 tile_address(bool nameselect)", asFUNCTION(ScriptInterface::PPUAccess::ppu_tile_address), asCALL_CDECL); assert(r >= 0);
 
-  // define ppu::VRAM object type:
+  // define ppu::VRAM object type for opIndex convenience:
   r = script.engine->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("VRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptInterface::PPUAccess, vram_read), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("VRAM", "uint read_sprite(uint16 tiledataAddress, uint8 chr, uint8 width, uint8 height, array<uint32> &inout output)", asMETHOD(ScriptInterface::PPUAccess, vram_read_sprite), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterGlobalProperty("VRAM vram", &scriptInterface.ppuAccess); assert(r >= 0);
 
+  // define ppu::CGRAM object type for opIndex convenience:
   r = script.engine->RegisterObjectType("CGRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("CGRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptInterface::PPUAccess, cgram_read), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterGlobalProperty("CGRAM cgram", &scriptInterface.ppuAccess); assert(r >= 0);
 
+#if 0
   r = script.engine->RegisterObjectType("OBJ", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OBJ", "uint16 get_character()", asMETHOD(ScriptInterface::PPUAccess, obj_get_character), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OBJ", "void set_character(uint16 chr)", asMETHOD(ScriptInterface::PPUAccess, obj_set_character), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OBJ", "uint32 opIndex(uint8 y)", asMETHOD(ScriptInterface::PPUAccess, obj_tile_read), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterGlobalProperty("OBJ obj", &scriptInterface.ppuAccess); assert(r >= 0);
+#endif
 
   r = script.engine->RegisterObjectType("OAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8 get_index()", asMETHOD(ScriptInterface::PPUAccess, oam_get_index), asCALL_THISCALL); assert(r >= 0);
@@ -787,7 +895,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_off(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_off), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_on(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_on), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_set), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-    r = script.engine->RegisterObjectMethod("ExtraTile", "void draw_sprite(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asFUNCTION(ScriptInterface::ExtraLayer::tile_draw_sprite), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void draw_sprite(int x, int y, int width, int height, const array<uint32> &in tiledata, const array<uint16> &in palette)", asFUNCTION(ScriptInterface::ExtraLayer::tile_draw_sprite), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
     // primitive drawing functions:
     r = script.engine->RegisterObjectMethod("ExtraTile", "void hline(int lx, int ty, int w)", asFUNCTION(ScriptInterface::ExtraLayer::tile_hline), asCALL_CDECL_OBJFIRST); assert(r >= 0);
