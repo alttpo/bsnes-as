@@ -1,10 +1,10 @@
 // ALTTP script to draw current Link sprites on top of rendered frame:
-array<array<uint32>> spritedata(2, array<uint32>(32));
-array<array<uint16>> palette(8, array<uint16>(16));
 
 enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
 
 class Link {
+  array<array<uint32>> spritedata(2, array<uint32>(32));
+  array<array<uint16>> palette(8, array<uint16>(16));
 
   // values copied from RAM:
   uint8 ctr;
@@ -138,13 +138,13 @@ void pre_frame() {
 
   // load 2x 16x16 sprites for Link from VRAM:
   for (int i = 0; i < 2; i++) {
-    ppu::vram.read_sprite(baseaddr, i*2, 16, 16, spritedata[i]);
+    ppu::vram.read_sprite(baseaddr, i*2, 16, 16, link.spritedata[i]);
   }
 
   // load 8 sprite palettes from CGRAM:
   for (int i = 0; i < 8; i++) {
     for (int c = 0; c < 16; c++) {
-      palette[i][c] = ppu::cgram[128 + (i << 4) + c];
+      link.palette[i][c] = ppu::cgram[128 + (i << 4) + c];
     }
   }
 
@@ -177,7 +177,7 @@ void pre_frame() {
     head.width = 16;
     head.height = 16;
     head.pixels_clear();
-    head.draw_sprite(0, 0, 16, 16, spritedata[0], palette[7]);
+    head.draw_sprite(0, 0, 16, 16, link.spritedata[0], link.palette[7]);
 
     // body:
     auto body = ppu::extra[1];
@@ -190,7 +190,7 @@ void pre_frame() {
     body.width = 16;
     body.height = 16;
     body.pixels_clear();
-    body.draw_sprite(0, 0, 16, 16, spritedata[1], palette[7]);
+    body.draw_sprite(0, 0, 16, 16, link.spritedata[1], link.palette[7]);
   }
 }
 
