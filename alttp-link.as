@@ -100,7 +100,7 @@ class Link {
     //   $7E005E[1] - Link's speed setting
     //       0x00 - normal
     //       0x02 - walking (or dashing) on stairs
-    //       0x0c - charging sword spin
+    //       0x0c - charging sword spin (0x50 = 1) or holding something
     //       0x10 - dashing
     dashing   = bus::read_u8 (0x7E005E);
     //   $7E0067[1] = Indicates which direction Link is walking (even if not going anywhere)
@@ -116,6 +116,7 @@ class Link {
     //           1 - means you’re on a lower level. Important for interaction with different tile types.
     //           3 - walking down stairwell exit (e.g. in castle escape sequence, going down stairs)
     level     = bus::read_u8 (0x7E00EE);
+    //   $7E0308[1] - bit 7 = holding
   }
 
   void render(int x, int y) {
@@ -230,6 +231,10 @@ void post_frame() {
   ppu::frame.text_shadow = true;
 
   // draw some debug info:
+  for (int i = 0; i < 16; i++) {
+    ppu::frame.text(i * 16, 0, fmtHex(bus::read_u8(0x7E0360 + i), 2));
+  }
+  /*
   ppu::frame.text( 0, 0, fmtHex(link.state,     2));
   ppu::frame.text(20, 0, fmtHex(link.walking,   1));
   ppu::frame.text(32, 0, fmtHex(link.facing,    1));
@@ -240,5 +245,6 @@ void post_frame() {
 
   ppu::frame.text(108, 0, fmtHex(bus::read_u8(0x7E00EE), 2));
   ppu::frame.text(128, 0, fmtHex(bus::read_u8(0x7E00EF), 2));
+  */
 }
 
