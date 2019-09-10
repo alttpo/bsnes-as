@@ -251,6 +251,8 @@ public:
     uint   source;    // BG1, BG2, etc. from Source:: struct above
     bool   aboveEnable;
     bool   belowEnable;
+    bool   hflip;
+    bool   vflip;
     uint   priority;
     uint   width;
     uint   height;

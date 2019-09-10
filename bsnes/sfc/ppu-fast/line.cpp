@@ -120,9 +120,12 @@ auto PPU::Line::renderExtraTiles(uint source, bool windowAbove[256], bool window
     if (y < tile.y) continue;
     if (y >= tile.y + tile.height) continue;
 
+    auto tileY = tile.vflip ? tile.height - (y - tile.y) - 1 : y - tile.y;
+
     // draw the sprite:
     for (uint tx = 0; tx < tile.width; tx++) {
-      auto color = tile.colors[(y - tile.y) * tile.width + tx];
+      auto tileX = tile.hflip ? tile.width - tx - 1 : tx;
+      auto color = tile.colors[tileY * tile.width + tileX];
 
       // make sure color is opaque:
       if (color & 0x8000) {

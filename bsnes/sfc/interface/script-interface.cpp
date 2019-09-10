@@ -141,35 +141,6 @@ struct ScriptInterface {
       return out;
     }
 
-#if 0
-    uint9 obj_character = 0;
-    auto obj_get_character() -> uint9 { return obj_character; }
-    auto obj_set_character(uint9 character) { obj_character = character; }
-
-    auto obj_tile_read(uint8 y) -> uint32 {
-      uint16 tiledataAddress;
-      uint8 chr = obj_character & 0xffu;
-      uint1 nameselect = obj_character >> 8u;
-
-      if (system.fastPPU()) {
-        tiledataAddress = ppufast.io.obj.tiledataAddress;
-        if (nameselect) tiledataAddress += 1 + ppufast.io.obj.nameselect << 12;
-      } else {
-        tiledataAddress = ppu.obj.io.tiledataAddress;
-        if (nameselect) tiledataAddress += 1 + ppu.obj.io.nameselect << 12;
-      }
-
-      uint16 chrx =  (chr >> 0 & 15);
-      uint16 chry = ((chr >> 4 & 15) + (y >> 3) & 15) << 4;
-
-      uint pos = tiledataAddress + ((chry + chrx) << 4);
-      uint16 addr = (pos & 0xfff0) + (y & 7);
-
-      uint32 data = (uint32)vram_read(addr + 0) << 0u | (uint32)vram_read(addr + 8) << 16u;
-      return data;
-    }
-#endif
-
     struct OAMObject {
       uint9 x;
       uint8 y;
@@ -547,6 +518,8 @@ struct ScriptInterface {
       t->source = 0;
       t->aboveEnable = false;
       t->belowEnable = false;
+      t->hflip = false;
+      t->vflip = false;
       t->priority = 0;
       t->width = 0;
       t->height = 0;
@@ -787,14 +760,6 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("CGRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptInterface::PPUAccess, cgram_read), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterGlobalProperty("CGRAM cgram", &scriptInterface.ppuAccess); assert(r >= 0);
 
-#if 0
-  r = script.engine->RegisterObjectType("OBJ", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OBJ", "uint16 get_character()", asMETHOD(ScriptInterface::PPUAccess, obj_get_character), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OBJ", "void set_character(uint16 chr)", asMETHOD(ScriptInterface::PPUAccess, obj_set_character), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OBJ", "uint32 opIndex(uint8 y)", asMETHOD(ScriptInterface::PPUAccess, obj_tile_read), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterGlobalProperty("OBJ obj", &scriptInterface.ppuAccess); assert(r >= 0);
-#endif
-
   r = script.engine->RegisterObjectType("OAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8 get_index()", asMETHOD(ScriptInterface::PPUAccess, oam_get_index), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "void set_index(uint8 index)", asMETHOD(ScriptInterface::PPUAccess, oam_set_index), asCALL_THISCALL); assert(r >= 0);
@@ -884,6 +849,8 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint source", asOFFSET(PPUfast::ExtraTile, source)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "bool aboveEnable", asOFFSET(PPUfast::ExtraTile, aboveEnable)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "bool belowEnable", asOFFSET(PPUfast::ExtraTile, belowEnable)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "bool hflip", asOFFSET(PPUfast::ExtraTile, hflip)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "bool vflip", asOFFSET(PPUfast::ExtraTile, vflip)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint priority", asOFFSET(PPUfast::ExtraTile, priority)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint width", asOFFSET(PPUfast::ExtraTile, width)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint height", asOFFSET(PPUfast::ExtraTile, height)); assert(r >= 0);

@@ -119,7 +119,70 @@ class Link {
   }
 
   void render(int x, int y) {
+    // when state = 0x00
+    //   standing:
+    //     frame = 0
+    //   walking:
+    //     frame = 1..8
+    auto priority = 5 - (link.level & 1);
 
+    // head:
+    auto head = ppu::extra[0];
+    switch (link.facing) {
+      case 0: head.x = x - 1; break;
+      case 2: head.x = x - 1; break;
+      case 4: head.x = x + 1; break;
+      case 6: head.x = x - 1; break;
+    }
+    int yo = 0;
+    switch (link.frame) {
+      case 0: yo = 0; break;
+      case 1: yo = 0; break;
+      case 2: yo = -1; break;
+      case 3: yo = -2; break;
+      case 4: yo = 0; break;
+      case 5: yo = 0; break;
+      case 6: yo = -1; break;
+      case 7: yo = -2; break;
+      case 8: yo = 0; break;
+    }
+    head.y = y + yo;
+    head.source = 5;
+    head.aboveEnable = true;
+    head.belowEnable = true;
+    head.priority = priority;
+    head.width = 16;
+    head.height = 16;
+    head.pixels_clear();
+    if (link.facing == 4) {
+      head.hflip = true;
+    } else {
+      head.hflip = false;
+    }
+    head.draw_sprite(0, 0, 16, 16, link.spritedata[0], link.palette[7]);
+
+    // body:
+    auto body = ppu::extra[1];
+    switch (link.facing) {
+      case 0: body.x = x - 1; break;
+      case 2: body.x = x - 1; break;
+      case 4: body.x = x; break;
+      case 6: body.x = x; break;
+    }
+    body.y = y + 8;
+    body.source = 5;
+    body.aboveEnable = true;
+    body.belowEnable = true;
+    body.priority = priority;
+    body.width = 16;
+    body.height = 16;
+    if (link.facing == 4) {
+      body.hflip = true;
+    } else {
+      body.hflip = false;
+    }
+    body.pixels_clear();
+    body.draw_sprite(0, 0, 16, 16, link.spritedata[1], link.palette[7]);
   }
 };
 Link link;
@@ -159,43 +222,11 @@ void pre_frame() {
     // draw 2 extra tiles:
     ppu::extra.count = 2;
 
-    // when state = 0x00
-    //   standing:
-    //     frame = 0
-    //   walking:
-    //     frame = 1..8
-    auto priority = 5 - (link.level & 1);
-
-    // head:
-    auto head = ppu::extra[0];
-    head.x = link_x;
-    head.y = link_y;
-    head.source = 5;
-    head.aboveEnable = true;
-    head.belowEnable = true;
-    head.priority = priority;
-    head.width = 16;
-    head.height = 16;
-    head.pixels_clear();
-    head.draw_sprite(0, 0, 16, 16, link.spritedata[0], link.palette[7]);
-
-    // body:
-    auto body = ppu::extra[1];
-    body.x = link_x + 1;
-    body.y = link_y + 8;
-    body.source = 5;
-    body.aboveEnable = true;
-    body.belowEnable = true;
-    body.priority = priority;
-    body.width = 16;
-    body.height = 16;
-    body.pixels_clear();
-    body.draw_sprite(0, 0, 16, 16, link.spritedata[1], link.palette[7]);
+    link.render(link_x, link_y);
   }
 }
 
-void post_frame()
-{
+void post_frame() {
   ppu::frame.text_shadow = true;
 
   // draw some debug info:
