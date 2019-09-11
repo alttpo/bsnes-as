@@ -205,62 +205,71 @@ class Link {
     auto priority = 5 - (level & 1);
 
     // head:
-    auto head = ppu::extra[0];
-    switch (facing) {
-      case 0: head.x = x - 1; break;
-      case 2: head.x = x - 1; break;
-      case 4: head.x = x + 1; break;
-      case 6: head.x = x - 1; break;
+    {
+      auto head = ppu::extra[0];
+      int xo = 0;
+      int yo = 0;
+      switch (facing) {
+        case 0: xo +=  0; yo += 1; break;
+        case 2: xo +=  0; yo += 1; break;
+        case 4: xo +=  1; yo += 1; break;
+        case 6: xo += -1; yo += 1; break;
+      }
+      switch (frame) {
+        case 0: yo += 0; break;
+        case 1: yo += 0; break;
+        case 2: yo += -1; break;
+        case 3: yo += -1; break;
+        case 4: yo += 0; break;
+        case 5: yo += 0; break;
+        case 6: yo += -1; break;
+        case 7: yo += -1; break;
+        case 8: yo += 0; break;
+      }
+      head.x = x + xo;
+      head.y = y + yo;
+      head.source = 5;
+      head.aboveEnable = true;
+      head.belowEnable = true;
+      head.priority = priority;
+      head.width = 16;
+      head.height = 16;
+      head.pixels_clear();
+      if (facing == 4) {
+        head.hflip = true;
+      } else {
+        head.hflip = false;
+      }
+      head.draw_sprite(0, 0, 16, 16, spritedata[0], palette[7]);
     }
-    int yo = 0;
-    switch (frame) {
-      case 0: yo = 0; break;
-      case 1: yo = 0; break;
-      case 2: yo = -1; break;
-      case 3: yo = -2; break;
-      case 4: yo = 0; break;
-      case 5: yo = 0; break;
-      case 6: yo = -1; break;
-      case 7: yo = -2; break;
-      case 8: yo = 0; break;
-    }
-    head.y = y + yo;
-    head.source = 5;
-    head.aboveEnable = true;
-    head.belowEnable = true;
-    head.priority = priority;
-    head.width = 16;
-    head.height = 16;
-    head.pixels_clear();
-    if (facing == 4) {
-      head.hflip = true;
-    } else {
-      head.hflip = false;
-    }
-    head.draw_sprite(0, 0, 16, 16, spritedata[0], palette[7]);
 
     // body:
-    auto body = ppu::extra[1];
-    switch (facing) {
-      case 0: body.x = x - 1; break;
-      case 2: body.x = x - 1; break;
-      case 4: body.x = x; break;
-      case 6: body.x = x; break;
+    {
+      auto body = ppu::extra[1];
+      int xo = 1;
+      int yo = 1;
+      switch (facing) {
+        case 0: xo += -1; break;
+        case 2: xo += -1; break;
+        case 4: xo += -1; break;
+        case 6: xo += -1; break;
+      }
+      body.x = x + xo;
+      body.y = y + 8 + yo;
+      body.source = 5;
+      body.aboveEnable = true;
+      body.belowEnable = true;
+      body.priority = priority;
+      body.width = 16;
+      body.height = 16;
+      if (facing == 4) {
+        body.hflip = true;
+      } else {
+        body.hflip = false;
+      }
+      body.pixels_clear();
+      body.draw_sprite(0, 0, 16, 16, spritedata[1], palette[7]);
     }
-    body.y = y + 8;
-    body.source = 5;
-    body.aboveEnable = true;
-    body.belowEnable = true;
-    body.priority = priority;
-    body.width = 16;
-    body.height = 16;
-    if (facing == 4) {
-      body.hflip = true;
-    } else {
-      body.hflip = false;
-    }
-    body.pixels_clear();
-    body.draw_sprite(0, 0, 16, 16, spritedata[1], palette[7]);
   }
 };
 
@@ -296,9 +305,7 @@ void pre_frame() {
   }
 
   // receive network update from server:
-  //try {
   player2.receive();
-  //} catch {}
 
   // only draw player 2 if location (room, dungeon, light/dark world) is identical to current player's:
   if (player2.location == link.location) {
