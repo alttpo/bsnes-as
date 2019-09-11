@@ -134,13 +134,52 @@ class Link {
     //   $7E0308[1] - bit 7 = holding
   }
 
+  void receive() {
+    array<uint8> r(1024);
+    int n;
+    if ((n = sock.recv(r)) != 0) {
+      // deserialize message into player2 state:
+      int c = 0;
+      player2.location = uint32(r[c++])
+                         | (uint32(r[c++]) << 8)
+                         | (uint32(r[c++]) << 16)
+                         | (uint32(r[c++]) << 24);
+
+      player2.x = uint16(r[c++]) | (uint16(r[c++]) << 8);
+      player2.y = uint16(r[c++]) | (uint16(r[c++]) << 8);
+
+      for (int i = 0; i < 32; i++) {
+        if (c+4 > n) return;
+        player2.spritedata[0][i] = uint32(r[c++])
+                                   | (uint32(r[c++]) << 8)
+                                   | (uint32(r[c++]) << 16)
+                                   | (uint32(r[c++]) << 24);
+      }
+
+      for (int i = 0; i < 32; i++) {
+        if (c+4 > n) return;
+        player2.spritedata[1][i] = uint32(r[c++])
+                                   | (uint32(r[c++]) << 8)
+                                   | (uint32(r[c++]) << 16)
+                                   | (uint32(r[c++]) << 24);
+      }
+
+      for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 16; j++) {
+          if (c+2 > n) return;
+          player2.palette[i][j] = uint16(r[c++]) | (uint16(r[c++]) << 8);
+        }
+      }
+    }
+  }
+
   void render(int x, int y) {
     // when state = 0x00
     //   standing:
     //     frame = 0
     //   walking:
     //     frame = 1..8
-    auto priority = 5 - (link.level & 1);
+    auto priority = 5 - (level & 1);
 
     // head:
     auto head = ppu::extra[0];
@@ -175,7 +214,7 @@ class Link {
     } else {
       head.hflip = false;
     }
-    head.draw_sprite(0, 0, 16, 16, link.spritedata[0], link.palette[7]);
+    head.draw_sprite(0, 0, 16, 16, spritedata[0], palette[7]);
 
     // body:
     auto body = ppu::extra[1];
@@ -198,21 +237,25 @@ class Link {
       body.hflip = false;
     }
     body.pixels_clear();
-    body.draw_sprite(0, 0, 16, 16, link.spritedata[1], link.palette[7]);
+    body.draw_sprite(0, 0, 16, 16, spritedata[1], palette[7]);
   }
 };
+
 Link link;
+Link player2;
 
 uint16 baseaddr;
 
 void pre_frame() {
-  // TODO: load "page" of VRAM and use pages for tile rendering instead of pulling out 8x8 tiles
-  // TODO: easy way to extract VRAM pages for scripts
-  // TODO: expose VRAM tiledata address from current PPU state for scriptss
-  // TODO: add hflip and vflip flags to sprite rendering functions
-
   // TODO for ALTTP:
   // TODO: use animation state + frame to properly position extra-tiles
+
+  // get screen x,y offset by reading BG2 scroll registers:
+  auto xoffs = bus::read_u16(0x7E00E2, 0x7E00E3);
+  auto yoffs = bus::read_u16(0x7E00E8, 0x7E00E9);
+
+  // fetch our Link's current state from RAM:
+  link.fetch();
 
   // get base address for current tiledata:
   baseaddr = ppu::tile_address(false);
@@ -229,27 +272,26 @@ void pre_frame() {
     }
   }
 
-  // fetch Link's current state:
-  link.fetch();
+  // receive network update from server:
+  //try {
+    player2.receive();
+  //} catch {}
 
-  {
+  // only draw player 2 if location (room, dungeon, light/dark world) is identical to current player's:
+  if (player2.location == link.location) {
     // draw Link on screen; overly simplistic drawing code here does not accurately render Link in all poses.
     // need to determine Link's current animation frame from somewhere in RAM.
-    auto link_x = 132, link_y = 70;
 
     // draw 2 extra tiles:
     ppu::extra.count = 2;
 
-    link.render(link_x, link_y);
+    // draw player 2 relative to current BG offsets:
+    player2.render(player2.x - xoffs, player2.y - yoffs);
+  } else {
+    ppu::extra.count = 0;
   }
 
-  // receive network update from server:
-  array<uint8> r(1024);
-  if (sock.recv(r) != 0) {
-
-  }
-
-  // send network update to client:
+  // send updated state for our Link to player 2:
   array<uint8> msg;
   msg.insertLast(link.location);
   msg.insertLast(link.x);
@@ -262,6 +304,7 @@ void pre_frame() {
 }
 
 void post_frame() {
+  /*
   ppu::frame.text_shadow = true;
 
   ppu::frame.text(0, 0, fmtHex(baseaddr, 4));
@@ -271,6 +314,7 @@ void post_frame() {
     ppu::frame.text(i * 16, 224-16, fmtHex(bus::read_u8(0x7E0100 + i), 2));
     ppu::frame.text(i * 16, 224-8, fmtHex(bus::read_u8(0x7E0110 + i), 2));
   }
+  */
   /*
   ppu::frame.text( 0, 0, fmtHex(link.state,     2));
   ppu::frame.text(20, 0, fmtHex(link.walking,   1));
