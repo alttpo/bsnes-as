@@ -264,8 +264,8 @@ struct ScriptInterface {
     auto oam_get_y() -> uint8 { return oam_object.y; }
     auto oam_get_character() -> uint8 { return oam_object.character; }
     auto oam_get_nameselect() -> uint8 { return oam_object.nameselect; }
-    auto oam_get_vflip() -> uint8 { return oam_object.vflip; }
-    auto oam_get_hflip() -> uint8 { return oam_object.hflip; }
+    auto oam_get_vflip() -> bool { return oam_object.vflip; }
+    auto oam_get_hflip() -> bool { return oam_object.hflip; }
     auto oam_get_priority() -> uint8 { return oam_object.priority; }
     auto oam_get_palette() -> uint8 { return oam_object.palette; }
     auto oam_get_size() -> uint8 { return oam_object.size; }
