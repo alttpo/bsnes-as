@@ -134,6 +134,24 @@ class Link {
     //   $7E0308[1] - bit 7 = holding
   }
 
+  void sendto(string server, int port) {
+    // send updated state for our Link to player 2:
+    array<uint8> msg;
+    msg.insertLast(link.location);
+    msg.insertLast(link.x);
+    msg.insertLast(link.y);
+    msg.insertLast(link.z);
+    msg.insertLast(link.level);
+    msg.insertLast(link.facing);
+    msg.insertLast(link.frame);
+    msg.insertLast(link.spritedata[0]);
+    msg.insertLast(link.spritedata[1]);
+    for (int i = 0; i < 8; i++) {
+      msg.insertLast(link.palette[i]);
+    }
+    sock.sendto(msg, server, port);
+  }
+
   void receive() {
     array<uint8> r(1024);
     int n;
@@ -147,6 +165,12 @@ class Link {
 
       player2.x = uint16(r[c++]) | (uint16(r[c++]) << 8);
       player2.y = uint16(r[c++]) | (uint16(r[c++]) << 8);
+
+      player2.z = uint16(r[c++]) | (uint16(r[c++]) << 8);
+
+      player2.level = r[c++];
+      player2.facing = r[c++];
+      player2.frame = r[c++];
 
       for (int i = 0; i < 32; i++) {
         if (c+4 > n) return;
@@ -183,14 +207,14 @@ class Link {
 
     // head:
     auto head = ppu::extra[0];
-    switch (link.facing) {
+    switch (facing) {
       case 0: head.x = x - 1; break;
       case 2: head.x = x - 1; break;
       case 4: head.x = x + 1; break;
       case 6: head.x = x - 1; break;
     }
     int yo = 0;
-    switch (link.frame) {
+    switch (frame) {
       case 0: yo = 0; break;
       case 1: yo = 0; break;
       case 2: yo = -1; break;
@@ -209,7 +233,7 @@ class Link {
     head.width = 16;
     head.height = 16;
     head.pixels_clear();
-    if (link.facing == 4) {
+    if (facing == 4) {
       head.hflip = true;
     } else {
       head.hflip = false;
@@ -231,7 +255,7 @@ class Link {
     body.priority = priority;
     body.width = 16;
     body.height = 16;
-    if (link.facing == 4) {
+    if (facing == 4) {
       body.hflip = true;
     } else {
       body.hflip = false;
@@ -274,7 +298,7 @@ void pre_frame() {
 
   // receive network update from server:
   //try {
-    player2.receive();
+  player2.receive();
   //} catch {}
 
   // only draw player 2 if location (room, dungeon, light/dark world) is identical to current player's:
@@ -285,22 +309,18 @@ void pre_frame() {
     // draw 2 extra tiles:
     ppu::extra.count = 2;
 
+    // subtract BG2 offset from sprite x,y coords to get local screen coords:
+    int16 rx = int16(player2.x) - int16(xoffs);
+    int16 ry = int16(player2.y) - int16(yoffs);
+
     // draw player 2 relative to current BG offsets:
-    player2.render(player2.x - xoffs, player2.y - yoffs);
+    player2.render(rx, ry);
   } else {
     ppu::extra.count = 0;
   }
 
   // send updated state for our Link to player 2:
-  array<uint8> msg;
-  msg.insertLast(link.location);
-  msg.insertLast(link.x);
-  msg.insertLast(link.y);
-  msg.insertLast(link.spritedata[0]);
-  msg.insertLast(link.spritedata[1]);
-  msg.insertLast(link.palette[0]);
-  msg.insertLast(link.palette[1]);
-  sock.sendto(msg, "127.0.0.2", 4590);
+  link.sendto("127.0.0.2", 4590);
 }
 
 void post_frame() {
