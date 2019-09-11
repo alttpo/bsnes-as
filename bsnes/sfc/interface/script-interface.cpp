@@ -59,6 +59,54 @@ struct ScriptInterface {
     //printf("line: %d\n", ctx->GetExceptionLineNumber());
   }
 
+  static void uint8_array_append_uint16(CScriptArray *array, const uint16 *value) {
+    if (array->GetElementTypeId() != asTYPEID_UINT8) {
+      array->InsertLast((void *)value);
+      return;
+    }
+
+    array->InsertLast((void *)&((const uint8 *)value)[0]);
+    array->InsertLast((void *)&((const uint8 *)value)[1]);
+  }
+
+  static void uint8_array_append_uint32(CScriptArray *array, const uint32 *value) {
+    if (array->GetElementTypeId() != asTYPEID_UINT8) {
+      array->InsertLast((void *)value);
+      return;
+    }
+
+    array->InsertLast((void *)&((const uint8 *)value)[0]);
+    array->InsertLast((void *)&((const uint8 *)value)[1]);
+    array->InsertLast((void *)&((const uint8 *)value)[2]);
+    array->InsertLast((void *)&((const uint8 *)value)[3]);
+  }
+
+  static void uint8_array_append_array(CScriptArray *array, CScriptArray *other) {
+    if (array->GetElementTypeId() != asTYPEID_UINT8) {
+      array->InsertAt(array->GetSize(), *other);
+      return;
+    }
+
+    if (other->GetElementTypeId() == asTYPEID_UINT8) {
+      array->InsertAt(array->GetSize(), *other);
+      return;
+    } else if (other->GetElementTypeId() == asTYPEID_UINT16) {
+      for (int i = 0; i < other->GetSize(); i++) {
+        const uint16 *value = (const uint16 *) other->At(i);
+        array->InsertLast((void *) &((const uint8 *) value)[0]);
+        array->InsertLast((void *) &((const uint8 *) value)[1]);
+      }
+    } else if (other->GetElementTypeId() == asTYPEID_UINT32) {
+      for (int i = 0; i < other->GetSize(); i++) {
+        const uint32 *value = (const uint32 *) other->At(i);
+        array->InsertLast((void *) &((const uint8 *) value)[0]);
+        array->InsertLast((void *) &((const uint8 *) value)[1]);
+        array->InsertLast((void *) &((const uint8 *) value)[2]);
+        array->InsertLast((void *) &((const uint8 *) value)[3]);
+      }
+    }
+  }
+
   struct PPUAccess {
     // Global functions related to PPU:
     static auto ppu_rgb(uint8 r, uint8 g, uint8 b) -> b5g5r5 {
@@ -883,6 +931,13 @@ auto Interface::registerScriptDefs() -> void {
   // register global functions for the script to use:
   auto defaultNamespace = script.engine->GetDefaultNamespace();
 
+  // Register script-array extension:
+  RegisterScriptArray(script.engine, true /* bool defaultArrayType */);
+
+  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const uint16 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint16), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint32), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const ? &in other)", asFUNCTION(ScriptInterface::uint8_array_append_array), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
   // register string type:
   registerScriptString();
 
@@ -1047,7 +1102,6 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_FACTORY, "UDPSocket@ f(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::create_udp_socket), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::UDPSocket, addRef), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::UDPSocket, release), asCALL_THISCALL); assert( r >= 0 );
-    //r = script.engine->RegisterObjectMethod("UDPSocket", "int send(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, send), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("UDPSocket", "int sendto(const array<uint8> &in msg, const string &in host, const int port)", asMETHOD(ScriptInterface::Net::UDPSocket, sendto), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("UDPSocket", "int recv(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, recv), asCALL_THISCALL); assert( r >= 0 );
   }

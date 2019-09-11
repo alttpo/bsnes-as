@@ -29,9 +29,6 @@ auto Program::scriptInit() -> void {
   int r = script.engine->SetMessageCallback(asFUNCTION(MessageCallback), 0, asCALL_CDECL);
   assert(r >= 0);
 
-  // Register script-array extension:
-  RegisterScriptArray(script.engine, true /* bool defaultArrayType */);
-
   // Let the emulator register its script definitions:
   emulator->registerScriptDefs();
 }
