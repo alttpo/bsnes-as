@@ -158,40 +158,39 @@ class Link {
     if ((n = sock.recv(r)) != 0) {
       // deserialize message into player2 state:
       int c = 0;
-      player2.location = uint32(r[c++])
-                         | (uint32(r[c++]) << 8)
-                         | (uint32(r[c++]) << 16)
-                         | (uint32(r[c++]) << 24);
+      location = uint32(r[c++])
+                 | (uint32(r[c++]) << 8)
+                 | (uint32(r[c++]) << 16)
+                 | (uint32(r[c++]) << 24);
 
-      player2.x = uint16(r[c++]) | (uint16(r[c++]) << 8);
-      player2.y = uint16(r[c++]) | (uint16(r[c++]) << 8);
+      x = uint16(r[c++]) | (uint16(r[c++]) << 8);
+      y = uint16(r[c++]) | (uint16(r[c++]) << 8);
+      z = uint16(r[c++]) | (uint16(r[c++]) << 8);
 
-      player2.z = uint16(r[c++]) | (uint16(r[c++]) << 8);
-
-      player2.level = r[c++];
-      player2.facing = r[c++];
-      player2.frame = r[c++];
+      level = r[c++];
+      facing = r[c++];
+      frame = r[c++];
 
       for (int i = 0; i < 32; i++) {
-        if (c+4 > n) return;
-        player2.spritedata[0][i] = uint32(r[c++])
-                                   | (uint32(r[c++]) << 8)
-                                   | (uint32(r[c++]) << 16)
-                                   | (uint32(r[c++]) << 24);
+        if (c + 4 > n) return;
+        spritedata[0][i] = uint32(r[c++])
+                           | (uint32(r[c++]) << 8)
+                           | (uint32(r[c++]) << 16)
+                           | (uint32(r[c++]) << 24);
       }
 
       for (int i = 0; i < 32; i++) {
-        if (c+4 > n) return;
-        player2.spritedata[1][i] = uint32(r[c++])
-                                   | (uint32(r[c++]) << 8)
-                                   | (uint32(r[c++]) << 16)
-                                   | (uint32(r[c++]) << 24);
+        if (c + 4 > n) return;
+        spritedata[1][i] = uint32(r[c++])
+                           | (uint32(r[c++]) << 8)
+                           | (uint32(r[c++]) << 16)
+                           | (uint32(r[c++]) << 24);
       }
 
       for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 16; j++) {
-          if (c+2 > n) return;
-          player2.palette[i][j] = uint16(r[c++]) | (uint16(r[c++]) << 8);
+          if (c + 2 > n) return;
+          palette[i][j] = uint16(r[c++]) | (uint16(r[c++]) << 8);
         }
       }
     }
@@ -242,7 +241,7 @@ class Link {
 
     // body:
     auto body = ppu::extra[1];
-    switch (link.facing) {
+    switch (facing) {
       case 0: body.x = x - 1; break;
       case 2: body.x = x - 1; break;
       case 4: body.x = x; break;
