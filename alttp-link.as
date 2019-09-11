@@ -9,6 +9,7 @@ class Link {
 
   // values copied from RAM:
   uint32 location;
+  uint32 last_location;
 
   uint8 ctr;
   uint16 x, y, z;
@@ -26,18 +27,6 @@ class Link {
   uint8 level;
 
   void fetch() {
-    // fetch various room indices and flags about where exactly Link currently is:
-    auto in_dark_world  = bus::read_u8 (0x7E0FFF);
-    auto in_dungeon     = bus::read_u8 (0x7E001B);
-    auto overworld_room = bus::read_u16(0x7E008A, 0x7E008B);
-    auto dungeon_room   = bus::read_u16(0x7E00A0, 0x7E00A1);
-
-    // compute aggregated location for Link into a single 24-bit number:
-    location =
-      uint32(in_dark_world & 1) << 17 |
-      uint32(in_dungeon & 1) << 16 |
-      uint32(in_dungeon != 0 ? dungeon_room : overworld_room);
-
     // RAM locations ($7E00xx):
     //   $7E0012[0x01] - NMI Boolean
     //       If set to zero, the game will wait at a certain loop until NMI executes. The NMI interrupt generally sets
@@ -132,6 +121,30 @@ class Link {
     //           3 - walking down stairwell exit (e.g. in castle escape sequence, going down stairs)
     level     = bus::read_u8 (0x7E00EE);
     //   $7E0308[1] - bit 7 = holding
+
+    // $7E0410 = screen transitioning
+    auto screen_transition = bus::read_u8 (0x7E0410);
+
+    // Record last screen before transition:
+    if (screen_transition == 0) {
+      last_location = location;
+    }
+
+    // fetch various room indices and flags about where exactly Link currently is:
+    auto in_dark_world  = bus::read_u8 (0x7E0FFF);
+    auto in_dungeon     = bus::read_u8 (0x7E001B);
+    auto overworld_room = bus::read_u16(0x7E008A, 0x7E008B);
+    auto dungeon_room   = bus::read_u16(0x7E00A0, 0x7E00A1);
+
+    // compute aggregated location for Link into a single 24-bit number:
+    location =
+      uint32(in_dark_world & 1) << 17 |
+      uint32(in_dungeon & 1) << 16 |
+      uint32(in_dungeon != 0 ? dungeon_room : overworld_room);
+  }
+
+  bool can_see(uint32 other_location) {
+    return last_location == other_location || location == other_location;
   }
 
   void sendto(string server, int port) {
@@ -308,7 +321,7 @@ void pre_frame() {
   player2.receive();
 
   // only draw player 2 if location (room, dungeon, light/dark world) is identical to current player's:
-  if (player2.location == link.location) {
+  if (link.can_see(player2.location)) {
     // draw Link on screen; overly simplistic drawing code here does not accurately render Link in all poses.
     // need to determine Link's current animation frame from somewhere in RAM.
 
@@ -333,12 +346,10 @@ void post_frame() {
   /*
   ppu::frame.text_shadow = true;
 
-  ppu::frame.text(0, 0, fmtHex(baseaddr, 4));
-
   // draw some debug info:
   for (int i = 0; i < 16; i++) {
-    ppu::frame.text(i * 16, 224-16, fmtHex(bus::read_u8(0x7E0100 + i), 2));
-    ppu::frame.text(i * 16, 224-8, fmtHex(bus::read_u8(0x7E0110 + i), 2));
+    ppu::frame.text(i * 16, 224-16, fmtHex(bus::read_u8(0x7E0400 + i), 2));
+    ppu::frame.text(i * 16, 224- 8, fmtHex(bus::read_u8(0x7E0410 + i), 2));
   }
   */
   /*
