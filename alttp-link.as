@@ -188,6 +188,8 @@ class Link {
 };
 Link link;
 
+uint16 baseaddr;
+
 void pre_frame() {
   // TODO: load "page" of VRAM and use pages for tile rendering instead of pulling out 8x8 tiles
   // TODO: easy way to extract VRAM pages for scripts
@@ -198,7 +200,7 @@ void pre_frame() {
   // TODO: use animation state + frame to properly position extra-tiles
 
   // get base address for current tiledata:
-  uint16 baseaddr = ppu::tile_address(false);
+  baseaddr = ppu::tile_address(false);
 
   // load 2x 16x16 sprites for Link from VRAM:
   for (int i = 0; i < 2; i++) {
@@ -230,9 +232,12 @@ void pre_frame() {
 void post_frame() {
   ppu::frame.text_shadow = true;
 
+  ppu::frame.text(0, 0, fmtHex(baseaddr, 4));
+
   // draw some debug info:
   for (int i = 0; i < 16; i++) {
-    ppu::frame.text(i * 16, 0, fmtHex(bus::read_u8(0x7E0360 + i), 2));
+    ppu::frame.text(i * 16, 224-16, fmtHex(bus::read_u8(0x7E0100 + i), 2));
+    ppu::frame.text(i * 16, 224-8, fmtHex(bus::read_u8(0x7E0110 + i), 2));
   }
   /*
   ppu::frame.text( 0, 0, fmtHex(link.state,     2));
