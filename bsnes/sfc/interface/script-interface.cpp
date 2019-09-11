@@ -863,6 +863,20 @@ struct ScriptInterface {
         struct sockaddr addr;
         socklen_t addrlen;
 
+        struct pollfd pfd;
+        pfd.fd = sockfd;
+        pfd.events = POLLIN;
+
+        int rv = ::poll(&pfd, 1, 0);
+        if (rv == -1) {
+          asGetActiveContext()->SetException(strerror(errno), true);
+          return 0;
+        }
+        if (rv == 0) {
+          // no data ready:
+          return 0;
+        }
+
         ssize_t num = ::recvfrom(sockfd, msg->At(0), msg->GetSize(), 0, &addr, &addrlen);
         if (num == -1) {
           asGetActiveContext()->SetException(strerror(errno), true);
