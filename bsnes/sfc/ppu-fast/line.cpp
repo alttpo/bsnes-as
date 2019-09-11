@@ -112,7 +112,7 @@ auto PPU::Line::render(bool fieldID) -> void {
 }
 
 auto PPU::Line::renderExtraTiles(uint source, bool windowAbove[256], bool windowBelow[256]) -> void {
-  for (uint i : range(ppu.extraTileCount)) {
+  for (uint i : range(min(ppu.extraTileCount, 255))) {
     // skip tile if not the right source:
     const auto& tile = ppu.extraTiles[i];
     if (tile.source != source) continue;
@@ -121,11 +121,25 @@ auto PPU::Line::renderExtraTiles(uint source, bool windowAbove[256], bool window
     if (y >= tile.y + tile.height) continue;
 
     auto tileY = tile.vflip ? tile.height - (y - tile.y) - 1 : y - tile.y;
+    if (tileY < 0) continue;
+    if (tileY >= tile.height) continue;
+
+    auto tileWidth = tile.width;
+    if (tile.x + tileWidth >= 256) tileWidth = 255 - tile.x;
 
     // draw the sprite:
-    for (uint tx = 0; tx < tile.width; tx++) {
+    for (uint tx = 0; tx < tileWidth; tx++) {
+      if (tile.x + tx >= 256) continue;
+
       auto tileX = tile.hflip ? tile.width - tx - 1 : tx;
-      auto color = tile.colors[tileY * tile.width + tileX];
+      if (tileX < 0) continue;
+      if (tileX >= tile.width) continue;
+
+      auto index = tileY * tile.width + tileX;
+      if (index < 0) continue;
+      if (index >= 1024) continue;
+
+      auto color = tile.colors[index];
 
       // make sure color is opaque:
       if (color & 0x8000) {
