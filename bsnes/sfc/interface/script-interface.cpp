@@ -39,6 +39,26 @@ struct ScriptInterface;
 extern ScriptInterface scriptInterface;
 
 struct ScriptInterface {
+  void exceptionCallback(asIScriptContext *ctx) {
+    asIScriptEngine *engine = ctx->GetEngine();
+
+    // Determine the exception that occurred
+    const asIScriptFunction *function = ctx->GetExceptionFunction();
+    printf(
+      "EXCEPTION \"%s\" occurred in `%s` (line %d)\n",
+      ctx->GetExceptionString(),
+      function->GetDeclaration(),
+      ctx->GetExceptionLineNumber()
+    );
+
+    // Determine the function where the exception occurred
+    //printf("func: %s\n", function->GetDeclaration());
+    //printf("modl: %s\n", function->GetModuleName());
+    //printf("sect: %s\n", function->GetScriptSectionName());
+    // Determine the line number where the exception occurred
+    //printf("line: %d\n", ctx->GetExceptionLineNumber());
+  }
+
   struct PPUAccess {
     // Global functions related to PPU:
     static auto ppu_rgb(uint8 r, uint8 g, uint8 b) -> b5g5r5 {
@@ -732,7 +752,9 @@ struct ScriptInterface {
       int sockfd;
       addrinfo *serverinfo;
 
-      UDPSocket(int sockfd, addrinfo *serverinfo) : sockfd(sockfd), serverinfo(serverinfo) {
+      UDPSocket(int sockfd, addrinfo *serverinfo)
+        : sockfd(sockfd), serverinfo(serverinfo)
+      {
         ref = 1;
       }
       ~UDPSocket() {
@@ -749,18 +771,41 @@ struct ScriptInterface {
           delete this;
       }
 
-      int send(const CScriptArray *msg) {
+      int sendto(const CScriptArray *msg, const string *host, int port) {
         if (msg == nullptr) {
-          //asGetActiveContext()->SetException("msg cannot be null", true);
+          asGetActiveContext()->SetException("msg cannot be null", true);
           return 0;
         }
         //assert msg->GetElementTypeId() != asTYPEID_OBJHANDLE ...
 
-        ssize_t num = ::sendto(sockfd, msg->At(0), msg->GetSize(), 0, serverinfo->ai_addr, serverinfo->ai_addrlen);
+        addrinfo hints;
+        const char *server;
+
+        // TODO: wasteful to keep calling `getaddrinfo` every time and freeing memory
+        memset(&hints, 0, sizeof(addrinfo));
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_DGRAM;
+        if ((*host) == "") {
+          server = (const char *)nullptr;
+          hints.ai_flags = AI_PASSIVE;
+        } else {
+          server = (const char *)*host;
+        }
+
+        addrinfo *targetaddr;
+        int status = getaddrinfo(server, string(port), &hints, &targetaddr);
+        if (status != 0) {
+          asGetActiveContext()->SetException(strerror(errno), true);
+          return 0;
+        }
+
+        ssize_t num = ::sendto(sockfd, msg->At(0), msg->GetSize(), 0, targetaddr->ai_addr, targetaddr->ai_addrlen);
         if (num == -1) {
           asGetActiveContext()->SetException(strerror(errno), true);
           return 0;
         }
+
+        freeaddrinfo(targetaddr);
 
         return num;
       }
@@ -780,11 +825,12 @@ struct ScriptInterface {
       }
     };
 
-    static UDPSocket *udp_socket(const string *host, int port) {
+    static UDPSocket *create_udp_socket(const string *host, int port) {
       assert(host != nullptr);
 
       addrinfo hints;
       const char *server;
+      int yes = 1;
 
       memset(&hints, 0, sizeof(addrinfo));
       hints.ai_family = AF_UNSPEC;
@@ -805,6 +851,11 @@ struct ScriptInterface {
 
       int sockfd = socket(serverinfo->ai_family, serverinfo->ai_socktype, serverinfo->ai_protocol);
       if (sockfd == -1) {
+        asGetActiveContext()->SetException(strerror(errno), true);
+        return nullptr;
+      }
+
+      if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
         asGetActiveContext()->SetException(strerror(errno), true);
         return nullptr;
       }
@@ -993,17 +1044,20 @@ auto Interface::registerScriptDefs() -> void {
   {
     r = script.engine->SetDefaultNamespace("net"); assert(r >= 0);
     r = script.engine->RegisterObjectType("UDPSocket", 0, asOBJ_REF); assert(r >= 0);
-    r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_FACTORY, "UDPSocket@ f(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::udp_socket), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_FACTORY, "UDPSocket@ f(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::create_udp_socket), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::UDPSocket, addRef), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::UDPSocket, release), asCALL_THISCALL); assert( r >= 0 );
-    r = script.engine->RegisterObjectMethod("UDPSocket", "int send(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, send), asCALL_THISCALL); assert( r >= 0 );
-    r = script.engine->RegisterObjectMethod("UDPSocket", "int recv(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, send), asCALL_THISCALL); assert( r >= 0 );
+    //r = script.engine->RegisterObjectMethod("UDPSocket", "int send(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, send), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("UDPSocket", "int sendto(const array<uint8> &in msg, const string &in host, const int port)", asMETHOD(ScriptInterface::Net::UDPSocket, sendto), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("UDPSocket", "int recv(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, recv), asCALL_THISCALL); assert( r >= 0 );
   }
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 
   // create context:
   script.context = script.engine->CreateContext();
+
+  script.context->SetExceptionCallback(asMETHOD(ScriptInterface, exceptionCallback), &scriptInterface, asCALL_THISCALL);
 }
 
 auto Interface::loadScript(string location) -> void {
