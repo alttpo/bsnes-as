@@ -1,4 +1,5 @@
 // ALTTP script to draw current Link sprites on top of rendered frame:
+net::UDPSocket@ sock;
 
 enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
 
@@ -7,6 +8,8 @@ class Link {
   array<array<uint16>> palette(8, array<uint16>(16));
 
   // values copied from RAM:
+  uint32 location;
+
   uint8 ctr;
   uint16 x, y, z;
   uint8 walking;
@@ -23,6 +26,18 @@ class Link {
   uint8 level;
 
   void fetch() {
+    // fetch various room indices and flags about where exactly Link currently is:
+    auto in_dark_world  = bus::read_u8 (0x7E0FFF);
+    auto in_dungeon     = bus::read_u8 (0x7E001B);
+    auto overworld_room = bus::read_u16(0x7E008A, 0x7E008B);
+    auto dungeon_room   = bus::read_u16(0x7E00A0, 0x7E00A1);
+
+    // compute aggregated location for Link into a single 24-bit number:
+    location =
+      uint32(in_dark_world & 1) << 17 |
+      uint32(in_dungeon & 1) << 16 |
+      uint32(in_dungeon != 0 ? dungeon_room : overworld_room);
+
     // RAM locations ($7E00xx):
     //   $7E0012[0x01] - NMI Boolean
     //       If set to zero, the game will wait at a certain loop until NMI executes. The NMI interrupt generally sets
@@ -227,6 +242,23 @@ void pre_frame() {
 
     link.render(link_x, link_y);
   }
+
+  // receive network update from server:
+  array<uint8> r(1024);
+  if (sock.recv(r) != 0) {
+
+  }
+
+  // send network update to client:
+  array<uint8> msg;
+  msg.insertLast(link.location);
+  msg.insertLast(link.x);
+  msg.insertLast(link.y);
+  msg.insertLast(link.spritedata[0]);
+  msg.insertLast(link.spritedata[1]);
+  msg.insertLast(link.palette[0]);
+  msg.insertLast(link.palette[1]);
+  sock.sendto(msg, "127.0.0.2", 4590);
 }
 
 void post_frame() {
@@ -253,3 +285,7 @@ void post_frame() {
   */
 }
 
+void init() {
+  // open a UDP socket to receive data from:
+  @sock = net::UDPSocket("127.0.0.1", 4590);
+}
