@@ -1,6 +1,16 @@
 
 #include <sfc/sfc.hpp>
 
+#if !defined(PLATFORM_WINDOWS)
+  #include <sys/types.h>
+  #include <sys/socket.h>
+  #include <netinet/in.h>
+  #include <netdb.h>
+#else
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+#endif
+
 #include "vga-charset.cpp"
 #include "script-string.cpp"
 
@@ -716,6 +726,100 @@ struct ScriptInterface {
       return len;
     }
   } extraLayer;
+
+  struct Net {
+    struct UDPSocket {
+      int sockfd;
+      addrinfo *serverinfo;
+
+      UDPSocket(int sockfd, addrinfo *serverinfo) : sockfd(sockfd), serverinfo(serverinfo) {
+        ref = 1;
+      }
+      ~UDPSocket() {
+        close(sockfd);
+        freeaddrinfo(serverinfo);
+      }
+
+      int ref;
+      void addRef() {
+        ref++;
+      }
+      void release() {
+        if (--ref == 0)
+          delete this;
+      }
+
+      int send(const CScriptArray *msg) {
+        if (msg == nullptr) {
+          //asGetActiveContext()->SetException("msg cannot be null", true);
+          return 0;
+        }
+        //assert msg->GetElementTypeId() != asTYPEID_OBJHANDLE ...
+
+        ssize_t num = ::sendto(sockfd, msg->At(0), msg->GetSize(), 0, serverinfo->ai_addr, serverinfo->ai_addrlen);
+        if (num == -1) {
+          asGetActiveContext()->SetException(strerror(errno), true);
+          return 0;
+        }
+
+        return num;
+      }
+
+      int recv(CScriptArray *msg) {
+        // TODO: send back the received-from address somehow.
+        struct sockaddr addr;
+        socklen_t addrlen;
+
+        ssize_t num = ::recvfrom(sockfd, msg->At(0), msg->GetSize(), 0, &addr, &addrlen);
+        if (num == -1) {
+          asGetActiveContext()->SetException(strerror(errno), true);
+          return 0;
+        }
+
+        return num;
+      }
+    };
+
+    static UDPSocket *udp_socket(const string *host, int port) {
+      assert(host != nullptr);
+
+      addrinfo hints;
+      const char *server;
+
+      memset(&hints, 0, sizeof(addrinfo));
+      hints.ai_family = AF_UNSPEC;
+      hints.ai_socktype = SOCK_DGRAM;
+      if ((*host) == "") {
+        server = (const char *)nullptr;
+        hints.ai_flags = AI_PASSIVE;
+      } else {
+        server = (const char *)*host;
+      }
+
+      addrinfo *serverinfo;
+      int status = getaddrinfo(server, string(port), &hints, &serverinfo);
+      if (status != 0) {
+        asGetActiveContext()->SetException(strerror(errno), true);
+        return nullptr;
+      }
+
+      int sockfd = socket(serverinfo->ai_family, serverinfo->ai_socktype, serverinfo->ai_protocol);
+      if (sockfd == -1) {
+        asGetActiveContext()->SetException(strerror(errno), true);
+        return nullptr;
+      }
+
+      if (server) {
+        if (bind(sockfd, serverinfo->ai_addr, serverinfo->ai_addrlen) == -1) {
+          close(sockfd);
+          asGetActiveContext()->SetException(strerror(errno), true);
+          return nullptr;
+        }
+      }
+
+      return new UDPSocket(sockfd, serverinfo);
+    }
+  };
 };
 
 ScriptInterface scriptInterface;
@@ -884,6 +988,16 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Extra", "void set_count(uint count)", asMETHOD(ScriptInterface::ExtraLayer, set_tile_count), asCALL_THISCALL); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("Extra", "ExtraTile @get_opIndex(uint i)", asFUNCTION(ScriptInterface::ExtraLayer::get_tile), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = script.engine->RegisterGlobalProperty("Extra extra", &scriptInterface.extraLayer); assert(r >= 0);
+  }
+
+  {
+    r = script.engine->SetDefaultNamespace("net"); assert(r >= 0);
+    r = script.engine->RegisterObjectType("UDPSocket", 0, asOBJ_REF); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_FACTORY, "UDPSocket@ f(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::udp_socket), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::UDPSocket, addRef), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::UDPSocket, release), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("UDPSocket", "int send(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, send), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("UDPSocket", "int recv(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, send), asCALL_THISCALL); assert( r >= 0 );
   }
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
