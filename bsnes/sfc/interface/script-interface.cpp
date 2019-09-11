@@ -91,14 +91,14 @@ struct ScriptInterface {
       array->InsertAt(array->GetSize(), *other);
       return;
     } else if (other->GetElementTypeId() == asTYPEID_UINT16) {
-      for (int i = 0; i < other->GetSize(); i++) {
-        const uint16 *value = (const uint16 *) other->At(i);
+      for (uint i = 0; i < other->GetSize(); i++) {
+        auto value = (const uint16 *) other->At(i);
         array->InsertLast((void *) &((const uint8 *) value)[0]);
         array->InsertLast((void *) &((const uint8 *) value)[1]);
       }
     } else if (other->GetElementTypeId() == asTYPEID_UINT32) {
-      for (int i = 0; i < other->GetSize(); i++) {
-        const uint32 *value = (const uint32 *) other->At(i);
+      for (uint i = 0; i < other->GetSize(); i++) {
+        auto value = (const uint32 *) other->At(i);
         array->InsertLast((void *) &((const uint8 *) value)[0]);
         array->InsertLast((void *) &((const uint8 *) value)[1]);
         array->InsertLast((void *) &((const uint8 *) value)[2]);

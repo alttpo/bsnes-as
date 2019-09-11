@@ -124,12 +124,10 @@ auto PPU::Line::renderExtraTiles(uint source, bool windowAbove[256], bool window
     if (tileY < 0) continue;
     if (tileY >= tile.height) continue;
 
-    auto tileWidth = tile.width;
-    if (tile.x + tileWidth >= 256) tileWidth = 255 - tile.x;
-
     // draw the sprite:
-    for (uint tx = 0; tx < tileWidth; tx++) {
-      if (tile.x + tx >= 256) continue;
+    for (uint tx = 0; tx < tile.width; tx++) {
+      if (tile.x + tx < 0) continue;
+      if (tile.x + tx >= 256) break;
 
       auto tileX = tile.hflip ? tile.width - tx - 1 : tx;
       if (tileX < 0) continue;
