@@ -117,23 +117,28 @@ auto PPU::Line::renderExtraTiles(uint source, bool windowAbove[256], bool window
     const auto& tile = ppu.extraTiles[i];
     if (tile.source != source) continue;
 
-    if (y < tile.y) continue;
-    if (y >= tile.y + tile.height) continue;
+    int lineY = (int)y;
+    int tileHeight = (int)tile.height;
 
-    auto tileY = tile.vflip ? tile.height - (y - tile.y) - 1 : y - tile.y;
+    if (lineY < tile.y) continue;
+    if (lineY >= tile.y + tileHeight) continue;
+
+    int tileY = tile.vflip ? tileHeight - (lineY - tile.y) - 1 : lineY - tile.y;
     if (tileY < 0) continue;
     if (tileY >= tile.height) continue;
 
+    int tileWidth = (int)tile.width;
+
     // draw the sprite:
-    for (uint tx = 0; tx < tile.width; tx++) {
+    for (int tx = 0; tx < tileWidth; tx++) {
       if (tile.x + tx < 0) continue;
       if (tile.x + tx >= 256) break;
 
-      auto tileX = tile.hflip ? tile.width - tx - 1 : tx;
+      int tileX = tile.hflip ? tileWidth - tx - 1 : tx;
       if (tileX < 0) continue;
-      if (tileX >= tile.width) continue;
+      if (tileX >= tileWidth) continue;
 
-      auto index = tileY * tile.width + tileX;
+      int index = tileY * tileWidth + tileX;
       if (index < 0) continue;
       if (index >= 1024) continue;
 

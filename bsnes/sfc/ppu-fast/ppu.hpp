@@ -246,8 +246,8 @@ public:
 
   // extra tile for scripts to draw with:
   struct ExtraTile {
-    uint   x;
-    uint   y;
+    int    x;
+    int    y;
     uint   source;    // BG1, BG2, etc. from Source:: struct above
     bool   aboveEnable;
     bool   belowEnable;

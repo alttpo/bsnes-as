@@ -1068,8 +1068,8 @@ auto Interface::registerScriptDefs() -> void {
 
     r = script.engine->RegisterObjectType("ExtraTile", sizeof(PPUfast::ExtraTile), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
 
-    r = script.engine->RegisterObjectProperty("ExtraTile", "uint x", asOFFSET(PPUfast::ExtraTile, x)); assert(r >= 0);
-    r = script.engine->RegisterObjectProperty("ExtraTile", "uint y", asOFFSET(PPUfast::ExtraTile, y)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "int x", asOFFSET(PPUfast::ExtraTile, x)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "int y", asOFFSET(PPUfast::ExtraTile, y)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint source", asOFFSET(PPUfast::ExtraTile, source)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "bool aboveEnable", asOFFSET(PPUfast::ExtraTile, aboveEnable)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "bool belowEnable", asOFFSET(PPUfast::ExtraTile, belowEnable)); assert(r >= 0);
