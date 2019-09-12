@@ -279,7 +279,14 @@ class Link {
   }
 
   bool can_see(uint32 other_location) {
-    return last_location == other_location || location == other_location;
+    if (location == other_location) return true;
+
+    // If the player changed light/dark world or overworld/dungeon then not able to see other player:
+    if ((last_location & 0x30000) != (location & 0x30000)) {
+      return false;
+    }
+
+    return last_location == other_location;
   }
 
   void serialize(array<uint8> &r) {
