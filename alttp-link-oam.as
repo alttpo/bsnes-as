@@ -280,6 +280,8 @@ class Link {
   }
 
   void serialize(array<uint8> &r) {
+    // start with sentinel value to make sure deserializer knows it's the start of a message:
+    r.insertLast(uint16(0xFEEF));
     r.insertLast(location);
     r.insertLast(x);
     r.insertLast(y);
@@ -306,8 +308,15 @@ class Link {
     array<uint8> r(4096);
     int n;
     if ((n = sock.recv(r)) != 0) {
-      // deserialize message into player2 state:
       int c = 0;
+
+      auto sentinel = uint16(r[c++]) | (uint16(r[c++]) << 8);
+      if (sentinel != 0xFEEF) {
+        // garbled or split packet
+        message("garbled packet, len=" + fmtInt(n));
+        return;
+      }
+
       location = uint32(r[c++])
                  | (uint32(r[c++]) << 8)
                  | (uint32(r[c++]) << 16)
