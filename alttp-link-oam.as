@@ -3,9 +3,85 @@ net::UDPSocket@ sock;
 
 enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
 
+class Sprite {
+  int16 x;
+  int16 y;
+  uint8 width;
+  uint8 height;
+  uint8 palette;
+  uint8 priority;
+  bool hflip;
+  bool vflip;
+  array<uint32> tiledata;
+
+  // fetches all the OAM sprite data, assumes `ppu::oam.index` is set
+  void fetchOAM() {
+    x = int16(ppu::oam.x);
+    // adjust x to allow for slightly off-screen sprites:
+    if (x >= 256) x -= 512;
+    y = int16(ppu::oam.y);
+
+    auto chr = ppu::oam.character;
+
+    auto size = ppu::oam.size;
+    width = ppu::sprite_width(0, size);
+    height = ppu::sprite_height(0, size);
+
+    palette = ppu::oam.palette;
+    priority = ppu::oam.priority;
+    hflip = ppu::oam.hflip;
+    vflip = ppu::oam.vflip;
+
+    // get base address for current tiledata:
+    auto baseaddr = ppu::tile_address(ppu::oam.nameselect);
+
+    // load character from VRAM:
+    ppu::vram.read_sprite(baseaddr, chr, width, height, tiledata);
+  }
+
+  void serialize(array<uint8> &in r) {
+    r.insertLast(uint16(x));
+    r.insertLast(uint16(y));
+    r.insertLast(width);
+    r.insertLast(height);
+    r.insertLast(palette);
+    r.insertLast(priority);
+    r.insertLast(hflip ? uint8(1) : uint8(0));
+    r.insertLast(vflip ? uint8(1) : uint8(0));
+    r.insertLast(tiledata);
+  }
+
+  int deserialize(const array<uint8> &in r, int c) {
+    x = int16(uint16(r[c++]) | uint16(r[c++] << 8));
+    y = int16(uint16(r[c++]) | uint16(r[c++] << 8));
+    width = r[c++];
+    height = r[c++];
+    palette = r[c++];
+    priority = r[c++];
+    hflip = (r[c++] != 0 ? true : false);
+    vflip = (r[c++] != 0 ? true : false);
+
+    // compute total size of sprite:
+    auto count = int(width / 8) * int(height);
+    tiledata.resize(count);
+
+    // read in tiledata:
+    for (int i = 0; i < count; i++) {
+      //if (c + 4 > r.length()) return;
+      tiledata[i] = uint32(r[c++])
+                    | (uint32(r[c++]) << 8)
+                    | (uint32(r[c++]) << 16)
+                    | (uint32(r[c++]) << 24);
+    }
+
+    return c;
+  }
+};
+
 class Link {
-  array<array<uint32>> spritedata(2, array<uint32>(32));
-  array<array<uint16>> palette(8, array<uint16>(16));
+  // graphics data for current frame:
+  array<array<uint16>> palettes(8, array<uint16>(16));
+  array<Sprite@> sprites;
 
   // values copied from RAM:
   uint32 location;
@@ -141,27 +217,58 @@ class Link {
       uint32(in_dark_world & 1) << 17 |
       uint32(in_dungeon & 1) << 16 |
       uint32(in_dungeon != 0 ? dungeon_room : overworld_room);
+
+    // read in relevant sprites from OAM and VRAM:
+    sprites.resize(0);
+    sprites.reserve(8);
+    int numsprites = 0;
+    for (int i = 0; i < 128; i++) {
+      // access current OAM sprite index:
+      ppu::oam.index = i;
+
+      auto chr = ppu::oam.character;
+      // not a Link-related sprite?
+      if (chr >= 0x20) continue;
+
+      // fetch the sprite data from OAM and VRAM:
+      Sprite sprite;
+      sprite.fetchOAM();
+
+      // append the sprite to our array:
+      sprites.resize(++numsprites);
+      @sprites[numsprites-1] = sprite;
+    }
+
+    // load 8 sprite palettes from CGRAM:
+    for (int i = 0; i < 8; i++) {
+      for (int c = 0; c < 16; c++) {
+        palettes[i][c] = ppu::cgram[128 + (i << 4) + c];
+      }
+    }
   }
 
   bool can_see(uint32 other_location) {
     return last_location == other_location || location == other_location;
   }
 
+  void serialize(array<uint8> &r) {
+    r.insertLast(location);
+    r.insertLast(x);
+    r.insertLast(y);
+    r.insertLast(z);
+    r.insertLast(uint8(sprites.length()));
+    for (uint i = 0; i < sprites.length(); i++) {
+      sprites[i].serialize(r);
+    }
+    for (uint i = 0; i < 8; i++) {
+      r.insertLast(palettes[i]);
+    }
+  }
+
   void sendto(string server, int port) {
     // send updated state for our Link to player 2:
     array<uint8> msg;
-    msg.insertLast(link.location);
-    msg.insertLast(link.x);
-    msg.insertLast(link.y);
-    msg.insertLast(link.z);
-    msg.insertLast(link.level);
-    msg.insertLast(link.facing);
-    msg.insertLast(link.frame);
-    msg.insertLast(link.spritedata[0]);
-    msg.insertLast(link.spritedata[1]);
-    for (int i = 0; i < 8; i++) {
-      msg.insertLast(link.palette[i]);
-    }
+    serialize(msg);
     sock.sendto(msg, server, port);
   }
 
@@ -180,116 +287,45 @@ class Link {
       y = uint16(r[c++]) | (uint16(r[c++]) << 8);
       z = uint16(r[c++]) | (uint16(r[c++]) << 8);
 
-      level = r[c++];
-      facing = r[c++];
-      frame = r[c++];
-
-      for (int i = 0; i < 32; i++) {
-        if (c + 4 > n) return;
-        spritedata[0][i] = uint32(r[c++])
-                           | (uint32(r[c++]) << 8)
-                           | (uint32(r[c++]) << 16)
-                           | (uint32(r[c++]) << 24);
-      }
-
-      for (int i = 0; i < 32; i++) {
-        if (c + 4 > n) return;
-        spritedata[1][i] = uint32(r[c++])
-                           | (uint32(r[c++]) << 8)
-                           | (uint32(r[c++]) << 16)
-                           | (uint32(r[c++]) << 24);
+      auto numsprites = r[c++];
+      sprites.resize(numsprites);
+      for (uint i = 0; i < numsprites; i++) {
+        c = sprites[i].deserialize(r, c);
       }
 
       for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 16; j++) {
-          if (c + 2 > n) return;
-          palette[i][j] = uint16(r[c++]) | (uint16(r[c++]) << 8);
+          palettes[i][j] = uint16(r[c++]) | (uint16(r[c++]) << 8);
         }
       }
     }
   }
 
   void render(int x, int y) {
-    // when state = 0x00
-    //   standing:
-    //     frame = 0
-    //   walking:
-    //     frame = 1..8
-    auto priority = 5 - (level & 1);
+    ppu::extra.count += sprites.length();
+    for (uint i = 0; i < sprites.length(); i++) {
+      auto sprite = sprites[i];
 
-    // head:
-    {
-      auto head = ppu::extra[0];
-      int xo = 0;
-      int yo = 0;
-      switch (facing) {
-        case 0: xo +=  0; yo += 1; break;
-        case 2: xo +=  0; yo += 1; break;
-        case 4: xo +=  1; yo += 1; break;
-        case 6: xo += -1; yo += 1; break;
-      }
-      switch (frame) {
-        case 0: yo += 0; break;
-        case 1: yo += 0; break;
-        case 2: yo += -1; break;
-        case 3: yo += -1; break;
-        case 4: yo += 0; break;
-        case 5: yo += 0; break;
-        case 6: yo += -1; break;
-        case 7: yo += -1; break;
-        case 8: yo += 0; break;
-      }
-      head.x = x + xo;
-      head.y = y + yo;
-      head.source = 5;
-      head.aboveEnable = true;
-      head.belowEnable = true;
-      head.priority = priority;
-      head.width = 16;
-      head.height = 16;
-      head.pixels_clear();
-      if (facing == 4) {
-        head.hflip = true;
-      } else {
-        head.hflip = false;
-      }
-      head.draw_sprite(0, 0, 16, 16, spritedata[0], palette[7]);
-    }
-
-    // body:
-    {
-      auto body = ppu::extra[1];
-      int xo = 1;
-      int yo = 1;
-      switch (facing) {
-        case 0: xo += -1; break;
-        case 2: xo += -1; break;
-        case 4: xo += -1; break;
-        case 6: xo += -1; break;
-      }
-      body.x = x + xo;
-      body.y = y + 8 + yo;
-      body.source = 5;
-      body.aboveEnable = true;
-      body.belowEnable = true;
-      body.priority = priority;
-      body.width = 16;
-      body.height = 16;
-      if (facing == 4) {
-        body.hflip = true;
-      } else {
-        body.hflip = false;
-      }
-      body.pixels_clear();
-      body.draw_sprite(0, 0, 16, 16, spritedata[1], palette[7]);
+      auto extra = ppu::extra[i];
+      extra.x = sprite.x + x;
+      extra.y = sprite.y + y;
+      extra.source = 5; // OBJ1
+      extra.aboveEnable = true; // TODO
+      extra.belowEnable = true; // TODO
+      extra.priority = sprite.priority;
+      extra.width = sprite.width;
+      extra.height = sprite.height;
+      extra.pixels_clear();
+      extra.hflip = sprite.hflip;
+      extra.vflip = sprite.vflip;
+      extra.pixels_clear();
+      extra.draw_sprite(0, 0, extra.width, extra.height, sprite.tiledata, palettes[sprite.palette]);
     }
   }
 };
 
 Link link;
 Link player2;
-
-uint16 baseaddr;
 
 void pre_frame() {
   // TODO for ALTTP:
@@ -302,31 +338,16 @@ void pre_frame() {
   // fetch our Link's current state from RAM:
   link.fetch();
 
-  // get base address for current tiledata:
-  baseaddr = ppu::tile_address(false);
-
-  // load 2x 16x16 sprites for Link from VRAM:
-  for (int i = 0; i < 2; i++) {
-    ppu::vram.read_sprite(baseaddr, i*2, 16, 16, link.spritedata[i]);
-  }
-
-  // load 8 sprite palettes from CGRAM:
-  for (int i = 0; i < 8; i++) {
-    for (int c = 0; c < 16; c++) {
-      link.palette[i][c] = ppu::cgram[128 + (i << 4) + c];
-    }
-  }
-
   // receive network update from server:
-  player2.receive();
+  //player2.receive();
 
+  // reset number of extra tiles to render to 0:
+  ppu::extra.count = 0;
+/*
   // only draw player 2 if location (room, dungeon, light/dark world) is identical to current player's:
   if (link.can_see(player2.location)) {
     // draw Link on screen; overly simplistic drawing code here does not accurately render Link in all poses.
     // need to determine Link's current animation frame from somewhere in RAM.
-
-    // draw 2 extra tiles:
-    ppu::extra.count = 2;
 
     // subtract BG2 offset from sprite x,y coords to get local screen coords:
     int16 rx = int16(player2.x) - int16(xoffs);
@@ -337,7 +358,7 @@ void pre_frame() {
   } else {
     ppu::extra.count = 0;
   }
-
+*/
   // send updated state for our Link to player 2:
   link.sendto("127.0.0.2", 4590);
 }
