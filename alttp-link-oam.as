@@ -361,13 +361,13 @@ class Link {
       extra.height = sprite.height;
       extra.hflip = sprite.hflip;
       extra.vflip = sprite.vflip;
-      //message("render[" + fmtInt(i) + "] w=" + fmtInt(extra.width) + " h=" + fmtInt(extra.height) + " p=" + fmtInt(extra.priority));
       extra.pixels_clear();
-      //message("render[" + fmtInt(i) + "] pixels_clear");
-      extra.draw_sprite(0, 0, extra.width, extra.height, sprite.tiledata, palettes[sprite.palette & 7]);
-      //message("render[" + fmtInt(i) + "] draw_sprite");
+      if (extra.height == 0) continue;
+      if (extra.width == 0) continue;
 
-      @sprite = null;
+      extra.draw_sprite(0, 0, extra.width, extra.height, sprite.tiledata, palettes[sprite.palette & 7]);
+
+      //@sprite = null;
     }
 
     ppu::extra.count = ppu::extra.count + sprites.length();
