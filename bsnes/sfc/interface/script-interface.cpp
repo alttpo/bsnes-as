@@ -123,20 +123,20 @@ struct ScriptInterface {
     static auto ppu_sprite_width(uint8 baseSize, uint8 size) -> uint8 {
       if(size == 0) {
         static const uint8 width[] = { 8,  8,  8, 16, 16, 32, 16, 16};
-        return width[baseSize];
+        return width[baseSize & 7u];
       } else {
         static const uint8 width[] = {16, 32, 64, 32, 64, 64, 32, 32};
-        return width[baseSize];
+        return width[baseSize & 7u];
       }
     }
 
     static auto ppu_sprite_height(uint8 baseSize, uint8 size) -> uint8 {
       if(size == 0) {
         static const uint8 height[] = { 8,  8,  8, 16, 16, 32, 32, 32};
-        return height[baseSize];
+        return height[baseSize & 7u];
       } else {
         static const uint8 height[] = {16, 32, 64, 32, 64, 64, 64, 32};
-        return height[baseSize];
+        return height[baseSize & 7u];
       }
     }
 
@@ -260,6 +260,17 @@ struct ScriptInterface {
       }
     }
 
+    auto oam_is_enabled() -> bool {
+      // easy check if below visible screen:
+      if (oam_object.y > 240) return false;
+
+      // slightly more difficult check if off to left or right of visible screen:
+      uint sprite_width = ppu_sprite_width(ppu_sprite_base_size(), oam_object.size);
+
+      uint sx = oam_object.x + sprite_width & 511u;
+      return !(oam_object.x != 256 && sx >= 256 && sx + 7 < 512);
+    }
+
     auto oam_get_x() -> uint16 { return oam_object.x; }
     auto oam_get_y() -> uint8 { return oam_object.y; }
     auto oam_get_character() -> uint8 { return oam_object.character; }
@@ -269,6 +280,8 @@ struct ScriptInterface {
     auto oam_get_priority() -> uint8 { return oam_object.priority; }
     auto oam_get_palette() -> uint8 { return oam_object.palette; }
     auto oam_get_size() -> uint8 { return oam_object.size; }
+    auto oam_get_width() -> uint8 { return ppu_sprite_width(ppu_sprite_base_size(), oam_object.size); }
+    auto oam_get_height() -> uint8 { return ppu_sprite_height(ppu_sprite_base_size(), oam_object.size); }
   } ppuAccess;
 
   struct PostFrame {
@@ -987,6 +1000,7 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectType("OAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8 get_index()", asMETHOD(ScriptInterface::PPUAccess, oam_get_index), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "void set_index(uint8 index)", asMETHOD(ScriptInterface::PPUAccess, oam_set_index), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "bool   get_is_enabled()", asMETHOD(ScriptInterface::PPUAccess, oam_is_enabled), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint16 get_x()", asMETHOD(ScriptInterface::PPUAccess, oam_get_x), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8  get_y()", asMETHOD(ScriptInterface::PPUAccess, oam_get_y), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8  get_character()", asMETHOD(ScriptInterface::PPUAccess, oam_get_character), asCALL_THISCALL); assert(r >= 0);
@@ -996,6 +1010,8 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("OAM", "uint8  get_priority()", asMETHOD(ScriptInterface::PPUAccess, oam_get_priority), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8  get_palette()", asMETHOD(ScriptInterface::PPUAccess, oam_get_palette), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8  get_size()", asMETHOD(ScriptInterface::PPUAccess, oam_get_size), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_width()", asMETHOD(ScriptInterface::PPUAccess, oam_get_width), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_height()", asMETHOD(ScriptInterface::PPUAccess, oam_get_height), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterGlobalProperty("OAM oam", &scriptInterface.ppuAccess); assert(r >= 0);
 
   {
