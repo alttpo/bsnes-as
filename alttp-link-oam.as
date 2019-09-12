@@ -253,7 +253,8 @@ class Link {
 
       auto chr = ppu::oam.character;
       // not a Link-related sprite?
-      if (link_chrs.find(chr) == -1) continue;
+      //if (link_chrs.find(chr) == -1) continue;
+      if (chr >= 0x20) continue;
 
       // fetch the sprite data from OAM and VRAM:
       Sprite sprite;
