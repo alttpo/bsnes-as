@@ -263,7 +263,7 @@ struct ScriptInterface {
     auto oam_get_x() -> uint16 { return oam_object.x; }
     auto oam_get_y() -> uint8 { return oam_object.y; }
     auto oam_get_character() -> uint8 { return oam_object.character; }
-    auto oam_get_nameselect() -> uint8 { return oam_object.nameselect; }
+    auto oam_get_nameselect() -> bool { return oam_object.nameselect; }
     auto oam_get_vflip() -> bool { return oam_object.vflip; }
     auto oam_get_hflip() -> bool { return oam_object.hflip; }
     auto oam_get_priority() -> uint8 { return oam_object.priority; }
@@ -990,9 +990,9 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("OAM", "uint16 get_x()", asMETHOD(ScriptInterface::PPUAccess, oam_get_x), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8  get_y()", asMETHOD(ScriptInterface::PPUAccess, oam_get_y), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8  get_character()", asMETHOD(ScriptInterface::PPUAccess, oam_get_character), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_nameselect()", asMETHOD(ScriptInterface::PPUAccess, oam_get_nameselect), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_vflip()", asMETHOD(ScriptInterface::PPUAccess, oam_get_vflip), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_hflip()", asMETHOD(ScriptInterface::PPUAccess, oam_get_hflip), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "bool   get_nameselect()", asMETHOD(ScriptInterface::PPUAccess, oam_get_nameselect), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "bool   get_vflip()", asMETHOD(ScriptInterface::PPUAccess, oam_get_vflip), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "bool   get_hflip()", asMETHOD(ScriptInterface::PPUAccess, oam_get_hflip), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8  get_priority()", asMETHOD(ScriptInterface::PPUAccess, oam_get_priority), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8  get_palette()", asMETHOD(ScriptInterface::PPUAccess, oam_get_palette), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "uint8  get_size()", asMETHOD(ScriptInterface::PPUAccess, oam_get_size), asCALL_THISCALL); assert(r >= 0);
