@@ -93,8 +93,52 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
   ppu.io.obj.rangeOver |= itemCount > ppu.ItemLimit;
   ppu.io.obj.timeOver  |= tileCount > ppu.TileLimit;
 
-  uint8_t palette[256] = {};
+  uint8_t source[256] = {};
+  uint16 colors[256] = {};
   uint8_t priority[256] = {};
+
+  // [jsd] render extra tiles on this source layer:
+  int lineY = (int)y;
+  for (uint i : reverse(range(min(ppu.extraTileCount, 255)))) {
+    // skip tile if not the right source:
+    const auto& tile = ppu.extraTiles[i];
+    if (tile.source < Source::OBJ1) continue;
+    if (tile.source > Source::OBJ2) continue;
+
+    int tileHeight = (int)tile.height;
+
+    if (lineY < tile.y) continue;
+    if (lineY >= tile.y + tileHeight) continue;
+
+    int tileY = tile.vflip ? tileHeight - (lineY - tile.y) - 1 : lineY - tile.y;
+    if (tileY < 0) continue;
+    if (tileY >= tile.height) continue;
+
+    int tileWidth = (int)tile.width;
+
+    // draw the sprite:
+    for (int tx = 0; tx < tileWidth; tx++) {
+      if (tile.x + tx < 0) continue;
+      if (tile.x + tx >= 256) break;
+
+      int tileX = tile.hflip ? tileWidth - tx - 1 : tx;
+      if (tileX < 0) continue;
+      if (tileX >= tileWidth) continue;
+
+      int index = tileY * tileWidth + tileX;
+      if (index < 0) continue;
+      if (index >= 1024) continue;
+
+      auto color = tile.colors[index];
+
+      // make sure color is opaque:
+      if (color & 0x8000) {
+        source[tile.x + tx] = tile.source;
+        priority[tile.x + tx] = self.priority[tile.priority];
+        colors[tile.x + tx] = color & 0x7fff;
+      }
+    }
+  }
 
   for(uint n : range(ppu.TileLimit)) {
     const auto& tile = tiles[n];
@@ -107,7 +151,9 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
       tileX &= 511;
       if(tileX < 256) {
         if(uint color = tiledata[x ^ mirrorX]) {
-          palette[tileX] = tile.palette + color;
+          uint8_t palette = tile.palette + color;
+          source[tileX] = palette < 192 ? Source::OBJ1 : Source::OBJ2;
+          colors[tileX] = cgram[palette];
           priority[tileX] = self.priority[tile.priority];
         }
       }
@@ -117,14 +163,9 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
 
   for(uint x : range(256)) {
     if(!priority[x]) continue;
-    uint source = palette[x] < 192 ? Source::OBJ1 : Source::OBJ2;
-    if(self.aboveEnable && !windowAbove[x]) plotAbove(x, source, priority[x], cgram[palette[x]]);
-    if(self.belowEnable && !windowBelow[x]) plotBelow(x, source, priority[x], cgram[palette[x]]);
+    if(self.aboveEnable && !windowAbove[x]) plotAbove(x, source[x], priority[x], colors[x]);
+    if(self.belowEnable && !windowBelow[x]) plotBelow(x, source[x], priority[x], colors[x]);
   }
-
-  // [jsd] render extra tiles on this source layer:
-  renderExtraTiles(Source::OBJ1, windowAbove, windowBelow);
-  renderExtraTiles(Source::OBJ2, windowAbove, windowBelow);
 }
 
 auto PPU::oamAddressReset() -> void {

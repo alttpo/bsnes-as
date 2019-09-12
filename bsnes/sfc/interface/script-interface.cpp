@@ -607,8 +607,6 @@ struct ScriptInterface {
       t->x = 0;
       t->y = 0;
       t->source = 0;
-      t->aboveEnable = false;
-      t->belowEnable = false;
       t->hflip = false;
       t->vflip = false;
       t->priority = 0;
@@ -1087,8 +1085,6 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectProperty("ExtraTile", "int x", asOFFSET(PPUfast::ExtraTile, x)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "int y", asOFFSET(PPUfast::ExtraTile, y)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint source", asOFFSET(PPUfast::ExtraTile, source)); assert(r >= 0);
-    r = script.engine->RegisterObjectProperty("ExtraTile", "bool aboveEnable", asOFFSET(PPUfast::ExtraTile, aboveEnable)); assert(r >= 0);
-    r = script.engine->RegisterObjectProperty("ExtraTile", "bool belowEnable", asOFFSET(PPUfast::ExtraTile, belowEnable)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "bool hflip", asOFFSET(PPUfast::ExtraTile, hflip)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "bool vflip", asOFFSET(PPUfast::ExtraTile, vflip)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint priority", asOFFSET(PPUfast::ExtraTile, priority)); assert(r >= 0);

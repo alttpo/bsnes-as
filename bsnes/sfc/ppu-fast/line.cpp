@@ -85,9 +85,6 @@ auto PPU::Line::render(bool fieldID) -> void {
   renderWindow(io.col.window, io.col.window.aboveMask, windowAbove);
   renderWindow(io.col.window, io.col.window.belowMask, windowBelow);
 
-  // [jsd] render extra tiles on the fixed-color layer:
-  renderExtraTiles(Source::COL, windowAbove, windowBelow);
-
   auto luma = ppu.lightTable[io.displayBrightness];
   uint curr = 0, prev = 0;
   if(hd) for(uint x : range(256 * scale * scale)) {
@@ -108,50 +105,6 @@ auto PPU::Line::render(bool fieldID) -> void {
     curr = luma[pixel(x, above[x], below[x])];
     *output++ = (prev + curr - ((prev ^ curr) & 0x0421)) >> 1;
     prev = curr;
-  }
-}
-
-auto PPU::Line::renderExtraTiles(uint source, bool windowAbove[256], bool windowBelow[256]) -> void {
-  for (uint i : range(min(ppu.extraTileCount, 255))) {
-    // skip tile if not the right source:
-    const auto& tile = ppu.extraTiles[i];
-    if (tile.source != source) continue;
-
-    int lineY = (int)y;
-    int tileHeight = (int)tile.height;
-
-    if (lineY < tile.y) continue;
-    if (lineY >= tile.y + tileHeight) continue;
-
-    int tileY = tile.vflip ? tileHeight - (lineY - tile.y) - 1 : lineY - tile.y;
-    if (tileY < 0) continue;
-    if (tileY >= tile.height) continue;
-
-    int tileWidth = (int)tile.width;
-
-    // draw the sprite:
-    for (int tx = 0; tx < tileWidth; tx++) {
-      if (tile.x + tx < 0) continue;
-      if (tile.x + tx >= 256) break;
-
-      int tileX = tile.hflip ? tileWidth - tx - 1 : tx;
-      if (tileX < 0) continue;
-      if (tileX >= tileWidth) continue;
-
-      int index = tileY * tileWidth + tileX;
-      if (index < 0) continue;
-      if (index >= 1024) continue;
-
-      auto color = tile.colors[index];
-
-      // make sure color is opaque:
-      if (color & 0x8000) {
-        if (tile.aboveEnable && !windowAbove[tile.x + tx])
-          plotAbove(tile.x + tx, tile.source, tile.priority, color & 0x7fff);
-        if (tile.belowEnable && !windowBelow[tile.x + tx])
-          plotBelow(tile.x + tx, tile.source, tile.priority, color & 0x7fff);
-      }
-    }
   }
 }
 

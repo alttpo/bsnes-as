@@ -313,7 +313,6 @@ public:
     alwaysinline auto plotAbove(uint x, uint source, uint priority, uint color) -> void;
     alwaysinline auto plotBelow(uint x, uint source, uint priority, uint color) -> void;
     alwaysinline auto plotHD(Pixel*, uint x, uint source, uint priority, uint color, bool hires, bool subpixel) -> void;
-    auto renderExtraTiles(uint source, bool windowAbove[256], bool windowBelow[256]) -> void;
 
     //background.cpp
     auto cacheBackground(PPU::IO::Background&) -> void;

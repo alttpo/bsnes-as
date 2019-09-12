@@ -345,10 +345,9 @@ class Link {
       auto extra = ppu::extra[i];
       extra.x = sprite.x + x;
       extra.y = sprite.y + y;
-      extra.source = 5; // OBJ2
-      extra.aboveEnable = true; // TODO
-      extra.belowEnable = true; // TODO
-      extra.priority = sprite.priority + 3;
+      // select OBJ1 or OBJ2 depending on palette
+      extra.source = sprite.palette < 4 ? 4 : 5;
+      extra.priority = sprite.priority;
       extra.width = sprite.width;
       extra.height = sprite.height;
       extra.hflip = sprite.hflip;
