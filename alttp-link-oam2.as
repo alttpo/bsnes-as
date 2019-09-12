@@ -1,7 +1,7 @@
 // ALTTP script to draw current Link sprites on top of rendered frame:
 net::UDPSocket@ sock;
-const string player1server = "127.0.0.1";
-const string player2server = "127.0.0.2";
+const string player1server = "127.0.0.2";
+const string player2server = "127.0.0.1";
 
 enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
 
