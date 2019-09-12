@@ -255,8 +255,10 @@ class Link {
 
       auto chr = ppu::oam.character;
       // not a Link-related sprite?
-      //if (link_chrs.find(chr) == -1) continue;
       if (chr >= 0x20) continue;
+      // filter out right half of first 16x16 page. shield sprite straddles 7/8 slot.
+      if ((chr & 15) > 8) continue;
+
 
       // fetch the sprite data from OAM and VRAM:
       Sprite sprite;
@@ -368,8 +370,6 @@ class Link {
       if (extra.width == 0) continue;
 
       extra.draw_sprite(0, 0, extra.width, extra.height, sprite.tiledata, palettes[sprite.palette & 7]);
-
-      //@sprite = null;
     }
 
     ppu::extra.count = ppu::extra.count + sprites.length();
