@@ -138,6 +138,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
   for(uint n : range(tileCount)) {
     const auto& tile = tiles[n];
     if(!tile.valid) continue;
+
     if (tile.extraIndex) {
       const auto& extra = ppu.extraTiles[tile.extraIndex - 1];
 
