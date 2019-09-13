@@ -8,9 +8,12 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
 
   uint itemCount = 0;
   uint tileCount = 0;
-  for(uint n : range(ppu.ItemLimit)) items[n].valid = false;
+  for(uint n : range(128+256)) items[n].valid = false;
   for(uint n : range(ppu.TileLimit)) tiles[n].valid = false;
 
+  int lineY = (int)y;
+  uint nativeItemCount = 0;
+  uint nativeTileCount = 0;
   for(uint n : range(128)) {
     ObjectItem item{true, uint8_t(self.first + n & 127)};
     const auto& object = ppu.objects[item.index];
@@ -28,19 +31,54 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
       item.height = heights[self.baseSize];
     }
 
-    if(object.x > 256 && object.x + item.width - 1 < 512) continue;
-    uint height = item.height >> self.interlace;
-    if((y >= object.y && y < object.y + height)
-    || (object.y + height >= 256 && y < (object.y + height & 255))
-    ) {
-      if(itemCount++ >= ppu.ItemLimit) break;
-      items[itemCount - 1] = item;
+    if(!(object.x > 256 && object.x + item.width - 1 < 512)) {
+      uint height = item.height >> self.interlace;
+      if ((y >= object.y && y < object.y + height)
+          || (object.y + height >= 256 && y < (object.y + height & 255))
+        ) {
+        if (nativeItemCount++ >= ppu.ItemLimit) goto addExtra;
+        items[itemCount++] = item;
+      }
     }
+
+  addExtra:
+    // inject extra items:
+    for (uint k : range(ppu.extraTileCount)) {
+      // skip tile if not the right source:
+      const auto& extra = ppu.extraTiles[k];
+      if (extra.source < Source::OBJ1) continue;
+      if (extra.source > Source::OBJ2) continue;
+
+      // inject extra tile at this OAM index:
+      if (extra.index == item.index) {
+        int tileHeight = (int)extra.height;
+
+        if (lineY < extra.y) continue;
+        if (lineY >= extra.y + tileHeight) continue;
+
+        int tileY = extra.vflip ? tileHeight - (lineY - extra.y) - 1 : lineY - extra.y;
+        if (tileY < 0) continue;
+        if (tileY >= extra.height) continue;
+
+        item.extraIndex = k+1;
+        items[itemCount++] = item;
+      }
+    }
+
+    if (nativeItemCount >= ppu.ItemLimit) break;
   }
 
-  for(int n : reverse(range(ppu.ItemLimit))) {
+  for(int n : reverse(range(itemCount))) {
     const auto& item = items[n];
     if(!item.valid) continue;
+
+    if (item.extraIndex) {
+      ObjectTile tile{true};
+      tile.extraIndex = item.extraIndex;
+
+      tiles[tileCount++] = tile;
+      continue;
+    }
 
     const auto& object = ppu.objects[item.index];
     uint tileWidth = item.width >> 3;
@@ -85,64 +123,54 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
       uint address = tiledataAddress + ((characterY + (characterX + mirrorX & 15)) << 4);
       tile.number = address >> 4 & 0x7ff;
 
-      if(tileCount++ >= ppu.TileLimit) break;
-      tiles[tileCount - 1] = tile;
+      if(nativeTileCount++ >= ppu.TileLimit) break;
+      tiles[tileCount++] = tile;
     }
   }
 
-  ppu.io.obj.rangeOver |= itemCount > ppu.ItemLimit;
-  ppu.io.obj.timeOver  |= tileCount > ppu.TileLimit;
+  ppu.io.obj.rangeOver |= nativeItemCount > ppu.ItemLimit;
+  ppu.io.obj.timeOver  |= nativeTileCount > ppu.TileLimit;
 
   uint8_t source[256] = {};
   uint16 colors[256] = {};
   uint8_t priority[256] = {};
 
-  // [jsd] render extra tiles on this source layer:
-  int lineY = (int)y;
-  for (uint i : reverse(range(min(ppu.extraTileCount, 255)))) {
-    // skip tile if not the right source:
-    const auto& tile = ppu.extraTiles[i];
-    if (tile.source < Source::OBJ1) continue;
-    if (tile.source > Source::OBJ2) continue;
-
-    int tileHeight = (int)tile.height;
-
-    if (lineY < tile.y) continue;
-    if (lineY >= tile.y + tileHeight) continue;
-
-    int tileY = tile.vflip ? tileHeight - (lineY - tile.y) - 1 : lineY - tile.y;
-    if (tileY < 0) continue;
-    if (tileY >= tile.height) continue;
-
-    int tileWidth = (int)tile.width;
-
-    // draw the sprite:
-    for (int tx = 0; tx < tileWidth; tx++) {
-      if (tile.x + tx < 0) continue;
-      if (tile.x + tx >= 256) break;
-
-      int tileX = tile.hflip ? tileWidth - tx - 1 : tx;
-      if (tileX < 0) continue;
-      if (tileX >= tileWidth) continue;
-
-      int index = tileY * tileWidth + tileX;
-      if (index < 0) continue;
-      if (index >= 1024) continue;
-
-      auto color = tile.colors[index];
-
-      // make sure color is opaque:
-      if (color & 0x8000) {
-        source[tile.x + tx] = tile.source;
-        priority[tile.x + tx] = self.priority[tile.priority];
-        colors[tile.x + tx] = color & 0x7fff;
-      }
-    }
-  }
-
-  for(uint n : range(ppu.TileLimit)) {
+  for(uint n : range(tileCount)) {
     const auto& tile = tiles[n];
     if(!tile.valid) continue;
+    if (tile.extraIndex) {
+      const auto& extra = ppu.extraTiles[tile.extraIndex - 1];
+
+      int tileHeight = (int)extra.height;
+      int tileY = extra.vflip ? tileHeight - (lineY - extra.y) - 1 : lineY - extra.y;
+
+      int tileWidth = (int)extra.width;
+
+      // draw the sprite:
+      for (int tx = 0; tx < tileWidth; tx++) {
+        if (extra.x + tx < 0) continue;
+        if (extra.x + tx >= 256) break;
+
+        int tileX = extra.hflip ? tileWidth - tx - 1 : tx;
+        if (tileX < 0) continue;
+        if (tileX >= tileWidth) continue;
+
+        int index = tileY * tileWidth + tileX;
+        if (index < 0) continue;
+        if (index >= 1024) continue;
+
+        auto color = extra.colors[index];
+
+        // make sure color is opaque:
+        if (color & 0x8000) {
+          source[extra.x + tx] = extra.source;
+          priority[extra.x + tx] = self.priority[extra.priority];
+          colors[extra.x + tx] = color & 0x7fff;
+        }
+      }
+
+      continue;
+    }
 
     auto tiledata = ppu.tilecache[TileMode::BPP4] + (tile.number << 6) + ((tile.y & 7) << 3);
     uint tileX = tile.x;

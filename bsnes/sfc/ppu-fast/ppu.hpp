@@ -206,6 +206,23 @@ public:
     } col;
   };
 
+  // extra tile for scripts to draw with:
+  struct ExtraTile {
+    int    x;
+    int    y;
+    uint   source;    // BG1, BG2, etc. from Source:: struct above
+    bool   aboveEnable;
+    bool   belowEnable;
+    bool   hflip;
+    bool   vflip;
+    uint   priority;
+    uint   width;
+    uint   height;
+    uint   index;     // OAM index
+    // color data; set MSB=1 to be opaque, pixel is not drawn when MSB=0:
+    uint16 colors[1024];
+  };
+
   struct Object {
     //serialization.cpp
     auto serialize(serializer&) -> void;
@@ -226,6 +243,8 @@ public:
     uint8 index = 0;
     uint8 width = 0;
     uint8 height = 0;
+
+    uint16 extraIndex = 0;
   };
 
   struct ObjectTile {
@@ -236,28 +255,14 @@ public:
     uint8 palette = 0;
     bool hflip = 0;
     uint16 number = 0;
+
+    uint16 extraIndex = 0;
   };
 
   struct Pixel {
     uint source;
     uint priority;
     uint color;
-  };
-
-  // extra tile for scripts to draw with:
-  struct ExtraTile {
-    int    x;
-    int    y;
-    uint   source;    // BG1, BG2, etc. from Source:: struct above
-    bool   aboveEnable;
-    bool   belowEnable;
-    bool   hflip;
-    bool   vflip;
-    uint   priority;
-    uint   width;
-    uint   height;
-    // color data; set MSB=1 to be opaque, pixel is not drawn when MSB=0:
-    uint16 colors[1024];
   };
 
   //io.cpp
@@ -341,8 +346,8 @@ public:
     IO io;
     uint16 cgram[256];
 
-    ObjectItem items[128];  //32 on real hardware
-    ObjectTile tiles[128];  //34 on real hardware; 1024 max (128 * 64-width tiles)
+    ObjectItem items[128+256];  //32 on real hardware
+    ObjectTile tiles[128+256];  //34 on real hardware; 1024 max (128 * 64-width tiles)
 
     Pixel above[256 * 9 * 9];
     Pixel below[256 * 9 * 9];

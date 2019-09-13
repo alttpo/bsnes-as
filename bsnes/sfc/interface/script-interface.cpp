@@ -1090,6 +1090,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint priority", asOFFSET(PPUfast::ExtraTile, priority)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint width", asOFFSET(PPUfast::ExtraTile, width)); assert(r >= 0);
     r = script.engine->RegisterObjectProperty("ExtraTile", "uint height", asOFFSET(PPUfast::ExtraTile, height)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint index", asOFFSET(PPUfast::ExtraTile, index)); assert(r >= 0);
 
     r = script.engine->RegisterObjectMethod("ExtraTile", "void reset()", asFUNCTION(ScriptInterface::ExtraLayer::tile_reset), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("ExtraTile", "void pixels_clear()", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixels_clear), asCALL_CDECL_OBJFIRST); assert(r >= 0);
