@@ -269,6 +269,7 @@ class Link {
       auto chr = ppu::oam.character;
       if (!(
         (chr == 0x6c) || // shadow
+        ((chr >= 0x80) && (chr < 0xE0)) || // effects
         ((chr < 0x20) && ((chr & 15) <= 8))
       )) continue;
 
@@ -278,10 +279,6 @@ class Link {
       // exclude shadows that are not directly under Link:
       if ((chr == 0x6c) && ((disty < 17) || (disty > 18))) continue;
       if ((chr == 0x6c) && ((distx < -1) || (distx > 9))) continue;
-
-      // put a limit on the range to which we search for sprites around Link:
-      if (distx < -20 || distx > 30) continue;
-      if (disty < -20 || disty > 30) continue;
 
       // fetch the sprite data from OAM and VRAM:
       Sprite sprite;
