@@ -5,7 +5,12 @@ const string player2server = "127.0.0.1";
 
 enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
 
-array<uint16> link_chrs = {0x00, 0x02, 0x04, 0x05, 0x06, 0x07, 0x15};
+array<uint16> link_chrs = {0x00, 0x02, 0x04, 0x05, 0x06, 0x07, 0x15, 0x6c};
+
+int16 abs16(int16 n) {
+  auto mask = n >> (2 * 8 - 1);
+  return ((n + mask) ^ mask);
+}
 
 class Sprite {
   int16 x;
@@ -16,14 +21,18 @@ class Sprite {
   uint8 priority;
   bool hflip;
   bool vflip;
+  uint8 index;
   array<uint32> tiledata;
 
   // fetches all the OAM sprite data, assumes `ppu::oam.index` is set
   void fetchOAM(int16 rx, int16 ry) {
+    index = ppu::oam.index;
+
     int16 ax = int16(ppu::oam.x);
+    int16 ay = int16(ppu::oam.y);
+
     // adjust x to allow for slightly off-screen sprites:
     if (ax >= 256) ax -= 512;
-    int16 ay = int16(ppu::oam.y);
 
     // Make sprite x,y relative to incoming rx,ry coordinates (where Link is in screen coordinates):
     x = ax - rx;
@@ -56,6 +65,7 @@ class Sprite {
     r.insertLast(priority);
     r.insertLast(hflip ? uint8(1) : uint8(0));
     r.insertLast(vflip ? uint8(1) : uint8(0));
+    r.insertLast(index);
     r.insertLast(tiledata);
   }
 
@@ -68,6 +78,7 @@ class Sprite {
     priority = r[c++];
     hflip = (r[c++] != 0 ? true : false);
     vflip = (r[c++] != 0 ? true : false);
+    index = r[c++];
 
     //message("de x=" + fmtInt(x) + " y=" + fmtInt(y) + " w=" + fmtInt(width) + " h=" + fmtInt(height));
 
@@ -76,8 +87,9 @@ class Sprite {
     tiledata.resize(count);
 
     // read in tiledata:
+    auto len = int(r.length());
     for (int i = 0; i < count; i++) {
-      if (c + 4 > r.length()) return c;
+      if (c + 4 > len) return c;
       tiledata[i] = uint32(r[c++])
                     | (uint32(r[c++]) << 8)
                     | (uint32(r[c++]) << 16)
@@ -253,11 +265,23 @@ class Link {
 
       if (ppu::oam.nameselect) continue;
 
-      auto chr = ppu::oam.character;
       // not a Link-related sprite?
-      if (chr >= 0x20) continue;
-      // filter out right half of first 16x16 page. shield sprite straddles 7/8 slot.
-      if ((chr & 15) > 8) continue;
+      auto chr = ppu::oam.character;
+      if (!(
+        (chr == 0x6c) || // shadow
+        ((chr < 0x20) && ((chr & 15) <= 8))
+      )) continue;
+
+      auto distx = int16(ppu::oam.x) - rx;
+      auto disty = int16(ppu::oam.y) - ry;
+
+      // exclude shadows that are not directly under Link:
+      if ((chr == 0x6c) && ((disty < 17) || (disty > 18))) continue;
+      if ((chr == 0x6c) && ((distx < -1) || (distx > 9))) continue;
+
+      // put a limit on the range to which we search for sprites around Link:
+      if (distx < -20 || distx > 30) continue;
+      if (disty < -20 || disty > 30) continue;
 
       // fetch the sprite data from OAM and VRAM:
       Sprite sprite;
