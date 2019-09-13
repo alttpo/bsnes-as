@@ -586,19 +586,23 @@ struct ScriptInterface {
   public:
     // tile management:
     auto get_tile_count() -> uint { return ppufast.extraTileCount; }
-    auto set_tile_count(uint count) { ppufast.extraTileCount = min(count, 256); }
+    auto set_tile_count(uint count) { ppufast.extraTileCount = min(count, 1024); }
 
     // reset all tiles to blank state:
     auto reset() -> void {
       ppufast.extraTileCount = 0;
-      for (int i = 0; i < 256; i++) {
+      for (int i = 0; i < 1024; i++) {
         tile_reset(&ppufast.extraTiles[i]);
       }
     }
 
     static auto get_tile(ExtraLayer *dummy, uint i) -> PPUfast::ExtraTile* {
       (void)dummy;
-      return &ppufast.extraTiles[i];
+      if (i >= 1024) {
+        asGetActiveContext()->SetException("Cannot access extra[i] where i >= 1024", true);
+        return nullptr;
+      }
+      return &ppufast.extraTiles[min(i,1024-1)];
     }
 
   public:

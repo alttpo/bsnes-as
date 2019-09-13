@@ -220,7 +220,7 @@ public:
     uint   height;
     uint   index;     // OAM index
     // color data; set MSB=1 to be opaque, pixel is not drawn when MSB=0:
-    uint16 colors[1024];
+    uint16 colors[2048];
   };
 
   struct Object {
@@ -300,7 +300,7 @@ public:
   uint8* tilecache[3] = {};  //bitplane -> bitmap tiledata
 
   // extra tiles for scripts to use to blend custom graphics into the PPU planes:
-  ExtraTile extraTiles[256] = {};
+  ExtraTile extraTiles[1024] = {};
   uint extraTileCount = 0;
 
   uint ItemLimit = 0;
@@ -346,8 +346,8 @@ public:
     IO io;
     uint16 cgram[256];
 
-    ObjectItem items[128+256];  //32 on real hardware
-    ObjectTile tiles[128+256];  //34 on real hardware; 1024 max (128 * 64-width tiles)
+    ObjectItem items[128+1024];  //32 on real hardware
+    ObjectTile tiles[128+1024];  //34 on real hardware; 1024 max (128 * 64-width tiles)
 
     Pixel above[256 * 9 * 9];
     Pixel below[256 * 9 * 9];
