@@ -972,12 +972,33 @@ struct ScriptInterface {
       auto setVisible(bool visible = true) -> void {
         self.setVisible(visible);
       }
+
+      auto setTitle(const string *title) -> void {
+        self.setTitle(*title);
+      }
     };
 
-    static auto window_create() -> Window* {
-      //printf("new\n");
-      return new Window();
-    }
+    struct LineEdit {
+      Bind(LineEdit)
+      LineEdit(Window *parent) : LineEdit() {
+        parent->self.append(&self);
+      }
+
+//      auto setParent(Window *parent) -> void {
+//        self.setParent(&parent->self);
+//      }
+      auto setVisible(bool visible = true) -> void {
+        self.setVisible(visible);
+      }
+    };
+
+#define Constructor(Name) \
+    static auto create##Name() -> Name* { return new Name(); }
+
+    Constructor(Window)
+    Constructor(LineEdit)
+
+    static auto createLineEditParent(Window *parent) -> LineEdit* { return new LineEdit(parent); }
   };
 };
 
@@ -1174,10 +1195,20 @@ auto Interface::registerScriptDefs() -> void {
 
     // Window
     r = script.engine->RegisterObjectType("Window", 0, asOBJ_REF); assert(r >= 0);
-    r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION(ScriptInterface::GUI::window_create), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION(ScriptInterface::GUI::createWindow), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_add), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::Window, setVisible), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Window", "void set_title(const string &in title)", asMETHOD(ScriptInterface::GUI::Window, setTitle), asCALL_THISCALL); assert( r >= 0 );
+
+    // TextEdit
+    r = script.engine->RegisterObjectType("LineEdit", 0, asOBJ_REF); assert(r >= 0);
+    //r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_FACTORY, "LineEdit@ f()", asFUNCTION(ScriptInterface::GUI::createTextEdit), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_FACTORY, "LineEdit@ f(Window @parent)", asFUNCTION(ScriptInterface::GUI::createLineEditParent), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::LineEdit, ref_add), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::LineEdit, ref_release), asCALL_THISCALL); assert( r >= 0 );
+    //r = script.engine->RegisterObjectMethod("LineEdit", "void set_parent(Window @parent)", asMETHOD(ScriptInterface::GUI::LineEdit, setParent), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("LineEdit", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::LineEdit, setVisible), asCALL_THISCALL); assert( r >= 0 );
   }
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
