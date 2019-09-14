@@ -1,6 +1,9 @@
 #include <sfc/sfc.hpp>
 #include <bsnes/sfc/sfc.hpp>
 
+// [jsd] for scripts
+#include <hiro/hiro.hpp>
+
 namespace SuperFamicom {
 
 Settings settings;

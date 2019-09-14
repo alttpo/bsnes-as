@@ -1,5 +1,5 @@
 
-#include <sfc/sfc.hpp>
+//#include <sfc/sfc.hpp>
 
 #if !defined(PLATFORM_WINDOWS)
   #include <sys/types.h>
@@ -948,6 +948,47 @@ struct ScriptInterface {
       return new UDPSocket(sockfd, serverinfo);
     }
   };
+
+  struct GUI {
+    struct Window {
+      Window() {
+        printf("Window()\n");
+        w.construct();
+      }
+      ~Window() {
+        printf("~Window()\n");
+        w.setVisible(false);
+        w.reset();
+        w.destruct();
+      }
+
+      hiro::mWindow w;
+
+      int ref = 1;
+
+      auto ref_add() -> void {
+        printf("ref_add\n");
+        ref++;
+      }
+
+      auto ref_release() -> void {
+        printf("ref_release\n");
+        if (--ref == 0) {
+          printf("  destruct\n");
+          delete this;
+        }
+      }
+
+      auto setVisible(bool visible = true) -> void {
+        w.setVisible(visible);
+      }
+    };
+
+    static auto window_create() -> Window* {
+      printf("new\n");
+      return new Window();
+    }
+  };
 };
 
 ScriptInterface scriptInterface;
@@ -1135,6 +1176,16 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::UDPSocket, release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("UDPSocket", "int sendto(const array<uint8> &in msg, const string &in host, const int port)", asMETHOD(ScriptInterface::Net::UDPSocket, sendto), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("UDPSocket", "int recv(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, recv), asCALL_THISCALL); assert( r >= 0 );
+  }
+
+  // UI
+  {
+    r = script.engine->SetDefaultNamespace("gui"); assert(r >= 0);
+    r = script.engine->RegisterObjectType("Window", 0, asOBJ_REF); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION(ScriptInterface::GUI::window_create), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_add), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_release), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Window", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::Window, setVisible), asCALL_THISCALL); assert( r >= 0 );
   }
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
