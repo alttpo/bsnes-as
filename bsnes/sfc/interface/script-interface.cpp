@@ -973,6 +973,10 @@ struct ScriptInterface {
         self.setVisible(visible);
       }
 
+      auto setSize(hiro::Size *size) -> void {
+        self.setSize(*size);
+      }
+
       auto setTitle(const string *title) -> void {
         self.setTitle(*title);
       }
@@ -984,9 +988,6 @@ struct ScriptInterface {
         parent->self.append(&self);
       }
 
-//      auto setParent(Window *parent) -> void {
-//        self.setParent(&parent->self);
-//      }
       auto setVisible(bool visible = true) -> void {
         self.setVisible(visible);
       }
@@ -1216,6 +1217,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::Window, setVisible), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_title(const string &in title)", asMETHOD(ScriptInterface::GUI::Window, setTitle), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Window", "void set_size(Size &in size)", asMETHOD(ScriptInterface::GUI::Window, setSize), asCALL_THISCALL); assert( r >= 0 );
 
     // TextEdit
     r = script.engine->RegisterObjectType("LineEdit", 0, asOBJ_REF); assert(r >= 0);
