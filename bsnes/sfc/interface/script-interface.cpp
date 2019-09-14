@@ -950,42 +950,32 @@ struct ScriptInterface {
   };
 
   struct GUI {
+#define Bind(Name) \
+    hiro::m##Name self; \
+    Name() { \
+      self.construct(); \
+    } \
+    ~Name() { \
+      self.setVisible(false); \
+      self.reset(); \
+      self.destruct(); \
+    } \
+    int ref = 1; \
+    auto ref_add() -> void { ref++; } \
+    auto ref_release() -> void { \
+      if (--ref == 0) delete this; \
+    }
+
     struct Window {
-      Window() {
-        printf("Window()\n");
-        w.construct();
-      }
-      ~Window() {
-        printf("~Window()\n");
-        w.setVisible(false);
-        w.reset();
-        w.destruct();
-      }
-
-      hiro::mWindow w;
-
-      int ref = 1;
-
-      auto ref_add() -> void {
-        printf("ref_add\n");
-        ref++;
-      }
-
-      auto ref_release() -> void {
-        printf("ref_release\n");
-        if (--ref == 0) {
-          printf("  destruct\n");
-          delete this;
-        }
-      }
+      Bind(Window)
 
       auto setVisible(bool visible = true) -> void {
-        w.setVisible(visible);
+        self.setVisible(visible);
       }
     };
 
     static auto window_create() -> Window* {
-      printf("new\n");
+      //printf("new\n");
       return new Window();
     }
   };
@@ -1181,6 +1171,8 @@ auto Interface::registerScriptDefs() -> void {
   // UI
   {
     r = script.engine->SetDefaultNamespace("gui"); assert(r >= 0);
+
+    // Window
     r = script.engine->RegisterObjectType("Window", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION(ScriptInterface::GUI::window_create), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_add), asCALL_THISCALL); assert( r >= 0 );

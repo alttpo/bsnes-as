@@ -1,6 +1,7 @@
 // GUI test script
+gui::Window @w;
+
 void init() {
-  gui::Window @w;
   @w = gui::Window();
   w.visible = true;
 }
