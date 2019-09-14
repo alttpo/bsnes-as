@@ -992,13 +992,20 @@ struct ScriptInterface {
       }
     };
 
+#undef Bind
 #define Constructor(Name) \
     static auto create##Name() -> Name* { return new Name(); }
 
-    Constructor(Window)
-    Constructor(LineEdit)
+    static auto createSize(void *memory) -> void { new(memory) hiro::Size(); }
+    static auto createSizeWH(float width, float height, void *memory) -> void { new(memory) hiro::Size(width, height); }
+    static auto destroySize(void *memory) -> void { ((hiro::Size*)memory)->~Size(); }
 
+    Constructor(Window)
+
+    Constructor(LineEdit)
     static auto createLineEditParent(Window *parent) -> LineEdit* { return new LineEdit(parent); }
+
+#undef Constructor
   };
 };
 
@@ -1192,6 +1199,15 @@ auto Interface::registerScriptDefs() -> void {
   // UI
   {
     r = script.engine->SetDefaultNamespace("gui"); assert(r >= 0);
+
+    r = script.engine->RegisterObjectType("Size", sizeof(hiro::Size), asOBJ_VALUE); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Size", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(ScriptInterface::GUI::createSize), asCALL_CDECL_OBJLAST); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Size", asBEHAVE_CONSTRUCT, "void f(float width, float height)", asFUNCTION(ScriptInterface::GUI::createSizeWH), asCALL_CDECL_OBJLAST); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Size", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(ScriptInterface::GUI::destroySize), asCALL_CDECL_OBJLAST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Size", "float get_width()", asMETHOD(hiro::Size, width), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Size", "void set_width(float width)", asMETHOD(hiro::Size, setWidth), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Size", "float get_height()", asMETHOD(hiro::Size, height), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Size", "void set_height(float height)", asMETHOD(hiro::Size, setHeight), asCALL_THISCALL); assert(r >= 0);
 
     // Window
     r = script.engine->RegisterObjectType("Window", 0, asOBJ_REF); assert(r >= 0);
