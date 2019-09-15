@@ -953,11 +953,9 @@ struct ScriptInterface {
     struct Object {
       virtual operator hiro::mObject*() = 0;
     };
-    struct Sizable {
+
+    struct Sizable : Object {
       virtual operator hiro::mSizable*() = 0;
-      auto castSizable() -> Sizable* {
-        return dynamic_cast<Sizable*>(this);
-      }
     };
 
 #define Bind(Name) \
@@ -997,11 +995,37 @@ struct ScriptInterface {
       }
     };
 
-    struct LineEdit : Object {
+    struct LineEdit : Sizable {
       Bind(LineEdit)
+
+      operator hiro::mSizable*() override {
+        return (hiro::mSizable*)&self;
+      }
 
       auto setVisible(bool visible = true) -> void {
         self.setVisible(visible);
+      }
+
+      auto getText() -> string* {
+        return new string(self.text());
+      }
+
+      asIScriptFunction *onChange = nullptr;
+      auto setOnChange(asIScriptFunction *func) -> void {
+        if (onChange != nullptr) {
+          onChange->Release();
+        }
+
+        onChange = func;
+
+        // register onChange callback with LineEdit:
+        auto me = this;
+        auto ctx = asGetActiveContext();
+        self.onChange([=]() -> void {
+          ctx->Prepare(onChange);
+          ctx->SetArgObject(0, me);
+          ctx->Execute();
+        });
       }
     };
 
@@ -1235,10 +1259,14 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Window", "void set_size(Size &in size)", asMETHOD(ScriptInterface::GUI::Window, setSize), asCALL_THISCALL); assert( r >= 0 );
 
     // LineEdit
+    // Register a simple funcdef for the callback
+    r = script.engine->RegisterFuncdef("void LineEditCallback(LineEdit @self)");
     r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_FACTORY, "LineEdit@ f()", asFUNCTION(ScriptInterface::GUI::createLineEdit), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::LineEdit, ref_add), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::LineEdit, ref_release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("LineEdit", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::LineEdit, setVisible), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("LineEdit", "string &get_text()", asMETHOD(ScriptInterface::GUI::LineEdit, getText), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("LineEdit", "void set_on_change(LineEditCallback @cb)", asMETHOD(ScriptInterface::GUI::LineEdit, setOnChange), asCALL_THISCALL); assert( r >= 0 );
   }
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
