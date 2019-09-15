@@ -43,7 +43,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
 
   addExtra:
     // inject extra items:
-    for (uint k : range(min(ppu.extraTileCount,1024))) {
+    for (uint k : range(min(ppu.extraTileCount,128))) {
       // skip tile if not the right source:
       const auto& extra = ppu.extraTiles[k];
       if (extra.source < Source::OBJ1) continue;
@@ -158,7 +158,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
 
         int index = tileY * tileWidth + tileX;
         if (index < 0) continue;
-        if (index >= 2048) continue;
+        if (index >= 1024) continue;
 
         auto color = extra.colors[index];
 

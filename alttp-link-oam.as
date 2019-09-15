@@ -27,7 +27,7 @@ class SettingsWindow {
         hz.append(lbl, gui::Size(80, 0));
 
         @txtServerIP = gui::LineEdit();
-        //txtServerIP.visible = true;
+        txtServerIP.text = "127.0.0.1";
         hz.append(txtServerIP, gui::Size(128, 20));
       }
       vl.append(hz, gui::Size(0, 0));
@@ -39,7 +39,7 @@ class SettingsWindow {
         hz.append(lbl, gui::Size(80, 0));
 
         @txtClientIP = gui::LineEdit();
-        //txtClientIP.visible = true;
+        txtClientIP.text = "127.0.0.2";
         hz.append(txtClientIP, gui::Size(128, 20));
       }
       vl.append(hz, gui::Size(0, 0));
