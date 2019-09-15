@@ -959,39 +959,39 @@ struct ScriptInterface {
     };
 
 #define Bind(Name) \
-    hiro::m##Name self; \
+    hiro::s##Name self; \
     Name() { \
-      self.construct(); \
+      self = new hiro::m##Name(); \
+      self->construct(); \
     } \
     ~Name() { \
-      self.setVisible(false); \
-      self.reset(); \
-      self.destruct(); \
+      self->setVisible(false); \
+      self->reset(); \
+      self->destruct(); \
     } \
-    operator hiro::mObject*() { return (hiro::mObject*)&self; } \
-    int ref = 1; \
-    auto ref_add() -> void { ref++; } \
+    operator hiro::mObject*() { return (hiro::mObject*)self.data(); } \
+    auto ref_add() -> void { self.manager->strong++; } \
     auto ref_release() -> void { \
-      if (--ref == 0) delete this; \
+      if (--self.manager->strong == 0) delete this; \
     }
 
     struct Window : Object {
       Bind(Window)
 
       auto appendSizable(Sizable *child) -> void {
-        self.append((hiro::mSizable*)*child);
+        self->append((hiro::mSizable*)*child);
       }
 
       auto setVisible(bool visible = true) -> void {
-        self.setVisible(visible);
+        self->setVisible(visible);
       }
 
       auto setSize(hiro::Size *size) -> void {
-        self.setSize(*size);
+        self->setSize(*size);
       }
 
       auto setTitle(const string *title) -> void {
-        self.setTitle(*title);
+        self->setTitle(*title);
       }
     };
 
@@ -999,15 +999,15 @@ struct ScriptInterface {
       Bind(LineEdit)
 
       operator hiro::mSizable*() override {
-        return (hiro::mSizable*)&self;
+        return (hiro::mSizable*)self.data();
       }
 
       auto setVisible(bool visible = true) -> void {
-        self.setVisible(visible);
+        self->setVisible(visible);
       }
 
       auto getText() -> string* {
-        return new string(self.text());
+        return new string(self->text());
       }
 
       asIScriptFunction *onChange = nullptr;
@@ -1021,7 +1021,7 @@ struct ScriptInterface {
         // register onChange callback with LineEdit:
         auto me = this;
         auto ctx = asGetActiveContext();
-        self.onChange([=]() -> void {
+        self->onChange([=]() -> void {
           ctx->Prepare(onChange);
           ctx->SetArgObject(0, me);
           ctx->Execute();
