@@ -973,6 +973,15 @@ struct ScriptInterface {
     auto ref_add() -> void { self.manager->strong++; } \
     auto ref_release() -> void { \
       if (--self.manager->strong == 0) delete this; \
+    } \
+    auto setVisible(bool visible = true) -> void { \
+      self->setVisible(visible); \
+    }
+
+#define BindSizable(Name) \
+    Bind(Name) \
+    operator hiro::mSizable*() override { \
+      return (hiro::mSizable*)self.data(); \
     }
 
     struct Window : Object {
@@ -980,10 +989,6 @@ struct ScriptInterface {
 
       auto appendSizable(Sizable *child) -> void {
         self->append((hiro::mSizable*)*child);
-      }
-
-      auto setVisible(bool visible = true) -> void {
-        self->setVisible(visible);
       }
 
       auto setSize(hiro::Size *size) -> void {
@@ -996,47 +1001,23 @@ struct ScriptInterface {
     };
 
     struct VerticalLayout : Sizable {
-      Bind(VerticalLayout)
-
-      operator hiro::mSizable*() override {
-        return (hiro::mSizable*)self.data();
-      }
+      BindSizable(VerticalLayout)
 
       auto appendSizable(Sizable *child, hiro::Size *size) -> void {
         self->append((hiro::mSizable*)*child, *size);
-      }
-
-      auto setVisible(bool visible = true) -> void {
-        self->setVisible(visible);
       }
     };
 
     struct HorizontalLayout : Sizable {
-      Bind(HorizontalLayout)
-
-      operator hiro::mSizable*() override {
-        return (hiro::mSizable*)self.data();
-      }
+      BindSizable(HorizontalLayout)
 
       auto appendSizable(Sizable *child, hiro::Size *size) -> void {
         self->append((hiro::mSizable*)*child, *size);
       }
-
-      auto setVisible(bool visible = true) -> void {
-        self->setVisible(visible);
-      }
     };
 
     struct LineEdit : Sizable {
-      Bind(LineEdit)
-
-      operator hiro::mSizable*() override {
-        return (hiro::mSizable*)self.data();
-      }
-
-      auto setVisible(bool visible = true) -> void {
-        self->setVisible(visible);
-      }
+      BindSizable(LineEdit)
 
       auto getText() -> string* {
         return new string(self->text());
@@ -1062,15 +1043,7 @@ struct ScriptInterface {
     };
 
     struct Button : Sizable {
-      Bind(Button)
-
-      operator hiro::mSizable*() override {
-        return (hiro::mSizable*)self.data();
-      }
-
-      auto setVisible(bool visible = true) -> void {
-        self->setVisible(visible);
-      }
+      BindSizable(Button)
 
       auto getText() -> string* {
         return new string(self->text());

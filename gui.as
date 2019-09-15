@@ -8,9 +8,9 @@ void init() {
   @w = gui::Window();
   w.visible = true;
   w.title = "Connect to IP address";
-  w.size = gui::Size(256, 24);
+  w.size = gui::Size(256, 24*3);
 
-  gui::VerticalLayout @vl = gui::VerticalLayout();
+  auto vl = gui::VerticalLayout();
   w.append(vl);
 
   //auto @hz = gui::HorizontalLayout();
