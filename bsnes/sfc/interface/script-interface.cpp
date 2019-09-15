@@ -950,6 +950,16 @@ struct ScriptInterface {
   };
 
   struct GUI {
+    struct Object {
+      virtual operator hiro::mObject*() = 0;
+    };
+    struct Sizable {
+      virtual operator hiro::mSizable*() = 0;
+      auto castSizable() -> Sizable* {
+        return dynamic_cast<Sizable*>(this);
+      }
+    };
+
 #define Bind(Name) \
     hiro::m##Name self; \
     Name() { \
@@ -960,14 +970,19 @@ struct ScriptInterface {
       self.reset(); \
       self.destruct(); \
     } \
+    operator hiro::mObject*() { return (hiro::mObject*)&self; } \
     int ref = 1; \
     auto ref_add() -> void { ref++; } \
     auto ref_release() -> void { \
       if (--ref == 0) delete this; \
     }
 
-    struct Window {
+    struct Window : Object {
       Bind(Window)
+
+      auto appendSizable(Sizable *child) -> void {
+        self.append((hiro::mSizable*)*child);
+      }
 
       auto setVisible(bool visible = true) -> void {
         self.setVisible(visible);
@@ -982,11 +997,8 @@ struct ScriptInterface {
       }
     };
 
-    struct LineEdit {
+    struct LineEdit : Object {
       Bind(LineEdit)
-      LineEdit(Window *parent) : LineEdit() {
-        parent->self.append(&self);
-      }
 
       auto setVisible(bool visible = true) -> void {
         self.setVisible(visible);
@@ -1002,9 +1014,7 @@ struct ScriptInterface {
     static auto destroySize(void *memory) -> void { ((hiro::Size*)memory)->~Size(); }
 
     Constructor(Window)
-
     Constructor(LineEdit)
-    static auto createLineEditParent(Window *parent) -> LineEdit* { return new LineEdit(parent); }
 
 #undef Constructor
   };
@@ -1201,7 +1211,12 @@ auto Interface::registerScriptDefs() -> void {
   {
     r = script.engine->SetDefaultNamespace("gui"); assert(r >= 0);
 
+    // Register types first:
+    r = script.engine->RegisterObjectType("Window", 0, asOBJ_REF); assert(r >= 0);
+    r = script.engine->RegisterObjectType("LineEdit", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectType("Size", sizeof(hiro::Size), asOBJ_VALUE); assert(r >= 0);
+
+    // Size value type:
     r = script.engine->RegisterObjectBehaviour("Size", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(ScriptInterface::GUI::createSize), asCALL_CDECL_OBJLAST); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Size", asBEHAVE_CONSTRUCT, "void f(float width, float height)", asFUNCTION(ScriptInterface::GUI::createSizeWH), asCALL_CDECL_OBJLAST); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Size", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(ScriptInterface::GUI::destroySize), asCALL_CDECL_OBJLAST); assert(r >= 0);
@@ -1211,21 +1226,18 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Size", "void set_height(float height)", asMETHOD(hiro::Size, setHeight), asCALL_THISCALL); assert(r >= 0);
 
     // Window
-    r = script.engine->RegisterObjectType("Window", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION(ScriptInterface::GUI::createWindow), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_add), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_release), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Window", "void append(LineEdit @sizable)", asMETHOD(ScriptInterface::GUI::Window, appendSizable), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::Window, setVisible), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_title(const string &in title)", asMETHOD(ScriptInterface::GUI::Window, setTitle), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_size(Size &in size)", asMETHOD(ScriptInterface::GUI::Window, setSize), asCALL_THISCALL); assert( r >= 0 );
 
-    // TextEdit
-    r = script.engine->RegisterObjectType("LineEdit", 0, asOBJ_REF); assert(r >= 0);
-    //r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_FACTORY, "LineEdit@ f()", asFUNCTION(ScriptInterface::GUI::createTextEdit), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_FACTORY, "LineEdit@ f(Window @parent)", asFUNCTION(ScriptInterface::GUI::createLineEditParent), asCALL_CDECL); assert(r >= 0);
+    // LineEdit
+    r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_FACTORY, "LineEdit@ f()", asFUNCTION(ScriptInterface::GUI::createLineEdit), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::LineEdit, ref_add), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::LineEdit, ref_release), asCALL_THISCALL); assert( r >= 0 );
-    //r = script.engine->RegisterObjectMethod("LineEdit", "void set_parent(Window @parent)", asMETHOD(ScriptInterface::GUI::LineEdit, setParent), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("LineEdit", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::LineEdit, setVisible), asCALL_THISCALL); assert( r >= 0 );
   }
 
