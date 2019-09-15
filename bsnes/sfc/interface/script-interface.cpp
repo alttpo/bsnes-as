@@ -1029,16 +1029,56 @@ struct ScriptInterface {
       }
     };
 
+    struct Button : Sizable {
+      Bind(Button)
+
+      operator hiro::mSizable*() override {
+        return (hiro::mSizable*)self.data();
+      }
+
+      auto setVisible(bool visible = true) -> void {
+        self->setVisible(visible);
+      }
+
+      auto getText() -> string* {
+        return new string(self->text());
+      }
+
+      auto setText(const string *text) -> void {
+        self->setText(*text);
+      }
+
+      asIScriptFunction *onActivate = nullptr;
+      auto setOnActivate(asIScriptFunction *func) -> void {
+        if (onActivate != nullptr) {
+          onActivate->Release();
+        }
+
+        onActivate = func;
+
+        // register onActivate callback with Button:
+        auto me = this;
+        auto ctx = asGetActiveContext();
+        self->onActivate([=]() -> void {
+          ctx->Prepare(onActivate);
+          ctx->SetArgObject(0, me);
+          ctx->Execute();
+        });
+      }
+    };
+
 #undef Bind
 #define Constructor(Name) \
     static auto create##Name() -> Name* { return new Name(); }
 
+    // Size is a value type:
     static auto createSize(void *memory) -> void { new(memory) hiro::Size(); }
     static auto createSizeWH(float width, float height, void *memory) -> void { new(memory) hiro::Size(width, height); }
     static auto destroySize(void *memory) -> void { ((hiro::Size*)memory)->~Size(); }
 
     Constructor(Window)
     Constructor(LineEdit)
+    Constructor(Button)
 
 #undef Constructor
   };
@@ -1238,6 +1278,7 @@ auto Interface::registerScriptDefs() -> void {
     // Register types first:
     r = script.engine->RegisterObjectType("Window", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectType("LineEdit", 0, asOBJ_REF); assert(r >= 0);
+    r = script.engine->RegisterObjectType("Button", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectType("Size", sizeof(hiro::Size), asOBJ_VALUE); assert(r >= 0);
 
     // Size value type:
@@ -1254,6 +1295,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_add), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void append(LineEdit @sizable)", asMETHOD(ScriptInterface::GUI::Window, appendSizable), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Window", "void append(Button @sizable)", asMETHOD(ScriptInterface::GUI::Window, appendSizable), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::Window, setVisible), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_title(const string &in title)", asMETHOD(ScriptInterface::GUI::Window, setTitle), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_size(Size &in size)", asMETHOD(ScriptInterface::GUI::Window, setSize), asCALL_THISCALL); assert( r >= 0 );
@@ -1267,6 +1309,17 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("LineEdit", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::LineEdit, setVisible), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("LineEdit", "string &get_text()", asMETHOD(ScriptInterface::GUI::LineEdit, getText), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("LineEdit", "void set_on_change(LineEditCallback @cb)", asMETHOD(ScriptInterface::GUI::LineEdit, setOnChange), asCALL_THISCALL); assert( r >= 0 );
+
+    // Button
+    // Register a simple funcdef for the callback
+    r = script.engine->RegisterFuncdef("void ButtonCallback(Button @self)");
+    r = script.engine->RegisterObjectBehaviour("Button", asBEHAVE_FACTORY, "Button@ f()", asFUNCTION(ScriptInterface::GUI::createButton), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Button", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::Button, ref_add), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectBehaviour("Button", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::Button, ref_release), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Button", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::Button, setVisible), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Button", "string &get_text()", asMETHOD(ScriptInterface::GUI::Button, getText), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Button", "void set_text(const string &in text)", asMETHOD(ScriptInterface::GUI::Button, setText), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Button", "void set_on_activate(ButtonCallback @cb)", asMETHOD(ScriptInterface::GUI::Button, setOnActivate), asCALL_THISCALL); assert( r >= 0 );
   }
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
