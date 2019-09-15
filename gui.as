@@ -13,25 +13,34 @@ void init() {
   auto vl = gui::VerticalLayout();
   w.append(vl);
 
-  //auto @hz = gui::HorizontalLayout();
-  //vl.append(hz);
+  auto @hz = gui::HorizontalLayout();
+  auto @lbl = gui::Label();
+  lbl.text = "Server IP:";
+  hz.append(lbl, gui::Size(80, 0));
 
   @txtServerIP = gui::LineEdit();
   txtServerIP.visible = true;
   @txtServerIP.on_change = function(gui::LineEdit @self) {
     message(self.text);
   };
-  vl.append(txtServerIP, gui::Size(128, 20));
+  hz.append(txtServerIP, gui::Size(128, 20));
+  vl.append(hz, gui::Size(0, 0));
+
+  @hz = gui::HorizontalLayout();
+  @lbl = gui::Label();
+  lbl.text = "Client IP:";
+  hz.append(lbl, gui::Size(80, 0));
 
   @txtClientIP = gui::LineEdit();
   txtClientIP.visible = true;
   @txtClientIP.on_change = function(gui::LineEdit @self) {
     message(self.text);
   };
-  vl.append(txtClientIP, gui::Size(128, 20));
+  hz.append(txtClientIP, gui::Size(128, 20));
+  vl.append(hz, gui::Size(0, 0));
 
   @ok = gui::Button();
-  ok.text = "OK";
+  ok.text = "Start";
   @ok.on_activate = function(gui::Button @self) {
     message("OK!");
   };
