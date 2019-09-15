@@ -44,9 +44,9 @@ auto PPU::Line::renderMode7(PPU::IO::Background& self, uint source) -> void {
 
     uint priority;
     if(source == Source::BG1) {
-      priority = self.priority[0];
+      priority = self.priority[0]*2+1;
     } else if(source == Source::BG2) {
-      priority = self.priority[palette >> 7];
+      priority = self.priority[palette >> 7]*2+1;
       palette &= 0x7f;
     }
 

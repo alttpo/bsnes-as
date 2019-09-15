@@ -8,8 +8,8 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
 
   uint itemCount = 0;
   uint tileCount = 0;
-  for(uint n : range(ppu.ItemLimit+1024)) items[n].valid = false;
-  for(uint n : range(ppu.TileLimit+1024)) tiles[n].valid = false;
+  for(uint n : range(ppu.ItemLimit+128)) items[n].valid = false;
+  for(uint n : range(ppu.TileLimit+128)) tiles[n].valid = false;
 
   int lineY = (int)y;
   uint nativeItemCount = 0;
@@ -165,7 +165,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
         // make sure color is opaque:
         if (color & 0x8000) {
           source[extra.x + tx] = extra.source;
-          priority[extra.x + tx] = self.priority[extra.priority];
+          priority[extra.x + tx] = self.priority[extra.priority]*2;
           colors[extra.x + tx] = color & 0x7fff;
         }
       }
@@ -183,7 +183,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
           uint8_t palette = tile.palette + color;
           source[tileX] = palette < 192 ? Source::OBJ1 : Source::OBJ2;
           colors[tileX] = cgram[palette];
-          priority[tileX] = self.priority[tile.priority];
+          priority[tileX] = self.priority[tile.priority]*2+1;
         }
       }
       tileX++;

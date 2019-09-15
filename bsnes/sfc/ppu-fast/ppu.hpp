@@ -346,8 +346,8 @@ public:
     IO io;
     uint16 cgram[256];
 
-    ObjectItem items[128+1024];  //32 on real hardware
-    ObjectTile tiles[128+1024];  //34 on real hardware; 1024 max (128 * 64-width tiles)
+    ObjectItem items[128+128];  //32 on real hardware
+    ObjectTile tiles[128+128];  //34 on real hardware; 1024 max (128 * 64-width tiles)
 
     Pixel above[256 * 9 * 9];
     Pixel below[256 * 9 * 9];

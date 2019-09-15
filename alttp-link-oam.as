@@ -146,7 +146,7 @@ class Sprite {
     vflip = (r[c++] != 0 ? true : false);
     index = r[c++];
 
-    //message("de x=" + fmtInt(x) + " y=" + fmtInt(y) + " w=" + fmtInt(width) + " h=" + fmtInt(height));
+    //message("de x=" + fmtInt(x) + " y=" + fmtInt(y) + " w=" + fmtInt(width) + " h=" + fmtInt(height) + " p=" + fmtInt(priority));
 
     // compute total size of sprite:
     auto count = int(width / 8) * int(height);
@@ -458,6 +458,7 @@ class Link {
       extra.height = sprite.height;
       extra.hflip = sprite.hflip;
       extra.vflip = sprite.vflip;
+      extra.index = sprite.index;
       extra.pixels_clear();
       if (extra.height == 0) continue;
       if (extra.width == 0) continue;
