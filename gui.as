@@ -51,11 +51,19 @@ class SettingsWindow {
     window.append(vl);
   }
 
-  void startClicked(gui::Button @self) {
+  private void startClicked(gui::Button @self) {
     message("Start!");
     clientIP = txtClientIP.text;
     serverIP = txtServerIP.text;
     started = true;
+    hide();
+  }
+
+  void show() {
+    window.visible = true;
+  }
+
+  void hide() {
     window.visible = false;
   }
 };
