@@ -1,7 +1,73 @@
 // ALTTP script to draw current Link sprites on top of rendered frame:
 net::UDPSocket@ sock;
-const string player1server = "127.0.0.1";
-const string player2server = "127.0.0.2";
+SettingsWindow @settings;
+
+class SettingsWindow {
+  private gui::Window @window;
+  private gui::LineEdit @txtServerIP;
+  private gui::LineEdit @txtClientIP;
+  private gui::Button @ok;
+
+  string clientIP;
+  string serverIP;
+  bool started;
+
+  SettingsWindow() {
+    @window = gui::Window();
+    window.visible = true;
+    window.title = "Connect to IP address";
+    window.size = gui::Size(256, 24*3);
+
+    auto vl = gui::VerticalLayout();
+    {
+      auto @hz = gui::HorizontalLayout();
+      {
+        auto @lbl = gui::Label();
+        lbl.text = "Server IP:";
+        hz.append(lbl, gui::Size(80, 0));
+
+        @txtServerIP = gui::LineEdit();
+        //txtServerIP.visible = true;
+        hz.append(txtServerIP, gui::Size(128, 20));
+      }
+      vl.append(hz, gui::Size(0, 0));
+
+      @hz = gui::HorizontalLayout();
+      {
+        auto @lbl = gui::Label();
+        lbl.text = "Client IP:";
+        hz.append(lbl, gui::Size(80, 0));
+
+        @txtClientIP = gui::LineEdit();
+        //txtClientIP.visible = true;
+        hz.append(txtClientIP, gui::Size(128, 20));
+      }
+      vl.append(hz, gui::Size(0, 0));
+
+      @ok = gui::Button();
+      ok.text = "Start";
+      @ok.on_activate = @gui::ButtonCallback(this.startClicked);
+      vl.append(ok, gui::Size(0, 0));
+    }
+    window.append(vl);
+  }
+
+  private void startClicked(gui::Button @self) {
+    message("Start!");
+    clientIP = txtClientIP.text;
+    serverIP = txtServerIP.text;
+    started = true;
+    hide();
+  }
+
+  void show() {
+    window.visible = true;
+  }
+
+  void hide() {
+    window.visible = false;
+  }
+};
 
 enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
 
@@ -407,6 +473,22 @@ Link link;
 Link player2;
 
 void pre_frame() {
+  // Don't do anything until user fills out Settings window inputs:
+  if (!settings.started) return;
+
+  // Attempt to open a server socket:
+  if (@sock == null) {
+    try {
+      // open a UDP socket to receive data from:
+      @sock = net::UDPSocket(settings.serverIP, 4590);
+    } catch {
+      // Probably server IP field is invalid; prompt user again:
+      @sock = null;
+      settings.started = false;
+      settings.show();
+    }
+  }
+
   // TODO for ALTTP:
   // TODO: use animation state + frame to properly position extra-tiles
 
@@ -433,7 +515,7 @@ void pre_frame() {
   }
 
   // send updated state for our Link to player 2:
-  link.sendto(player2server, 4590);
+  link.sendto(settings.clientIP, 4590);
 }
 
 void post_frame() {
@@ -461,6 +543,5 @@ void post_frame() {
 }
 
 void init() {
-  // open a UDP socket to receive data from:
-  @sock = net::UDPSocket(player1server, 4590);
+  @settings = SettingsWindow();
 }
