@@ -6,11 +6,13 @@
   #include <sys/socket.h>
   #include <netinet/in.h>
   #include <netdb.h>
-#include <hiro/hiro.hpp>
-
+  #define SEND_BUF_CAST(t) ((const void *)(t))
+  #define RECV_BUF_CAST(t) ((void *)(t))
 #else
   #include <winsock2.h>
   #include <ws2tcpip.h>
+  #define SEND_BUF_CAST(t) ((const char *)(t))
+  #define RECV_BUF_CAST(t) ((char *)(t))
 #endif
 
 #include "vga-charset.cpp"
@@ -864,7 +866,7 @@ struct ScriptInterface {
           return 0;
         }
 
-        ssize_t num = ::sendto(sockfd, msg->At(0), msg->GetSize(), 0, targetaddr->ai_addr, targetaddr->ai_addrlen);
+        ssize_t num = ::sendto(sockfd, SEND_BUF_CAST(msg->At(0)), msg->GetSize(), 0, targetaddr->ai_addr, targetaddr->ai_addrlen);
         if (num == -1) {
           asGetActiveContext()->SetException(strerror(errno), true);
           return 0;
@@ -894,7 +896,7 @@ struct ScriptInterface {
           return 0;
         }
 
-        ssize_t num = ::recvfrom(sockfd, msg->At(0), msg->GetSize(), 0, &addr, &addrlen);
+        ssize_t num = ::recvfrom(sockfd, RECV_BUF_CAST(msg->At(0)), msg->GetSize(), 0, &addr, &addrlen);
         if (num == -1) {
           asGetActiveContext()->SetException(strerror(errno), true);
           return 0;
