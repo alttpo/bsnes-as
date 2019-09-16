@@ -69,10 +69,6 @@ class SettingsWindow {
   }
 };
 
-enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
-
-array<uint16> link_chrs = {0x00, 0x02, 0x04, 0x05, 0x06, 0x07, 0x15, 0x6c};
-
 int16 abs16(int16 n) {
   auto mask = n >> (2 * 8 - 1);
   return ((n + mask) ^ mask);
@@ -165,6 +161,8 @@ class Sprite {
     return c;
   }
 };
+
+enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
 
 class Link {
   // graphics data for current frame:
@@ -334,7 +332,9 @@ class Link {
       // not a Link-related sprite?
       auto chr = ppu::oam.character;
       if (!(
-        (chr == 0x6c) || // shadow
+        (chr == 0x28) || // small shadow when jumping off a cliff
+        (chr == 0x38) || // smallest shadow appears when falling from ceiling into room (x=+4)
+        (chr == 0x6c) || // shadow under Link when walking
         ((chr >= 0x80) && (chr < 0xE0)) || // effects
         ((chr < 0x20) && ((chr & 15) <= 8))
       )) continue;
@@ -343,8 +343,13 @@ class Link {
       auto disty = int16(ppu::oam.y) - ry;
 
       // exclude shadows that are not directly under Link:
-      if ((chr == 0x6c) && ((disty < 17) || (disty > 18))) continue;
-      if ((chr == 0x6c) && ((distx < -1) || (distx > 9))) continue;
+      if (chr == 0x6c || chr == 0x28) {
+        if ((disty < 17) || (disty > 18)) continue;
+        if ((distx < -1) || (distx > 9)) continue;
+      } else if (chr == 0x38) {
+        if ((disty < 17) || (disty > 18)) continue;
+        if ((distx < -1) || (distx > 9)) continue;
+      }
 
       // fetch the sprite data from OAM and VRAM:
       Sprite sprite;
@@ -391,6 +396,23 @@ class Link {
     for (uint i = 0; i < 8; i++) {
       r.insertLast(palettes[i]);
     }
+
+    if (false) {
+      // Serialize room modifications:
+      auto mod_count = bus::read_u16(0x7E04AC, 0x7E04AD);
+      r.insertLast(mod_count);
+      for (uint i = 0; i < mod_count; i++) {
+        r.insertLast(bus::read_u8(0x7EF800 + i));
+      }
+      for (uint i = 0; i < mod_count; i++) {
+        r.insertLast(bus::read_u8(0x7EFA00 + i));
+      }
+    }
+    if (false) {
+      for (uint i = 0; i < 0x7EFCC0 - 0x7EF580; i++) {
+        r.insertLast(bus::read_u8(0x7EF580 + i));
+      }
+    }
   }
 
   void sendto(string server, int port) {
@@ -402,7 +424,7 @@ class Link {
   }
 
   void receive() {
-    array<uint8> r(4096);
+    array<uint8> r(32768);
     int n;
     while ((n = sock.recv(r)) != 0) {
       int c = 0;
@@ -436,6 +458,24 @@ class Link {
       for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 16; j++) {
           palettes[i][j] = uint16(r[c++]) | (uint16(r[c++]) << 8);
+        }
+      }
+
+      if (false) {
+        // Read room modifications:
+        auto mod_count = uint16(r[c++]) | (uint16(r[c++]) << 8);
+        bus::write_u8(0x7E04AC, mod_count & 0xFF);
+        bus::write_u8(0x7E04AD, mod_count >> 8);
+        for (uint i = 0; i < mod_count; i++) {
+          bus::write_u8(0x7EF800 + i, r[c++]);
+        }
+        for (uint i = 0; i < mod_count; i++) {
+          bus::write_u8(0x7EFA00 + i, r[c++]);
+        }
+      }
+      if (false) {
+        for (uint i = 0; i < 0x7EFCC0 - 0x7EF580; i++) {
+          bus::write_u8(0x7EF580 + i, r[c++]);
         }
       }
 
