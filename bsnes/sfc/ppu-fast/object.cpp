@@ -165,7 +165,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
         // make sure color is opaque:
         if (color & 0x8000) {
           source[extra.x + tx] = extra.source;
-          priority[extra.x + tx] = self.priority[extra.priority]*2;
+          priority[extra.x + tx] = self.priority[extra.priority];
           colors[extra.x + tx] = color & 0x7fff;
         }
       }
@@ -183,7 +183,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
           uint8_t palette = tile.palette + color;
           source[tileX] = palette < 192 ? Source::OBJ1 : Source::OBJ2;
           colors[tileX] = cgram[palette];
-          priority[tileX] = self.priority[tile.priority]*2+1;
+          priority[tileX] = self.priority[tile.priority];
         }
       }
       tileX++;
