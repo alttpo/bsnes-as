@@ -278,5 +278,7 @@ for the latest definitions of script functions.
 GUI Integrations for Scripts
 ===========================
 
-TODO: document `gui` namespace members. Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp)
+TODO: document `gui` namespace members.
+
+NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp)
 for the latest definitions of script functions.

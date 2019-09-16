@@ -5,8 +5,15 @@ I have embedded the [AngelScript v2.33.0](https://www.angelcode.com/angelscript/
 Download nightly binary builds here:
 https://cirrus-ci.com/github/JamesDunne/bsnes-angelscript
 
-1. Use Tools > Load Script ... > Browse to `alttp-link-oam.as` script included in nightly build package
-2. Load a saved state or play through the game to see white rectangles surrounding in-game sprites
+See a demo video: https://www.youtube.com/watch?v=ZKjiE2MBXSU
+
+Instructions to reproduce the demo:
+1. Run `sudo ifconfig lo0 alias 127.0.0.2 up` to create a loopback alias for `127.0.0.2`.
+2. Run `./test.sh` script in a Terminal tab to open instance 1
+3. Run `./test.sh` script in a new Terminal tab to open instance 2 (or in Finder, right-click the app bundle and shift-option-left-click on Open to open a new instance) 
+4. The IP address in instance 1 should work as-is so just click Start there.
+5. In instance 2 you'll want to swap the two values so the Server IP is `127.0.0.2` and the client IP is `127.0.0.1`.
+6. Click Start on both instances and load a saved state or play through the game on both emulators to see both Link avatars on both screens.
 
 Screenshots
 ---
