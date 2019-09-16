@@ -9,16 +9,17 @@ linux-x86_64-binaries_task:
         - make -C bsnes local=false
 
     package_script:
-        - mkdir bsnes-nightly
-        - mkdir bsnes-nightly/Database
-        - mkdir bsnes-nightly/Firmware
-        - cp -a bsnes/out/bsnes bsnes-nightly/bsnes
-        - cp -a bsnes/Database/* bsnes-nightly/Database
-        - cp -a GPLv3.txt bsnes-nightly
-        - zip -r bsnes-nightly.zip bsnes-nightly
+        - mkdir bsnes-angelscript-nightly
+        - mkdir bsnes-angelscript-nightly/Database
+        - mkdir bsnes-angelscript-nightly/Firmware
+        - cp -a bsnes/out/bsnes bsnes-angelscript-nightly/bsnes
+        - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
+        - cp -a GPLv3.txt bsnes-angelscript-nightly
+        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
+        - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
     bsnes-nightly_artifacts:
-        path: "bsnes-nightly.zip"
+        path: "bsnes-angelscript-nightly.zip"
 
 freebsd-x86_64-binaries_task:
     freebsd_instance:
@@ -31,16 +32,17 @@ freebsd-x86_64-binaries_task:
         - gmake -C bsnes local=false
 
     package_script:
-        - mkdir bsnes-nightly
-        - mkdir bsnes-nightly/Database
-        - mkdir bsnes-nightly/Firmware
-        - cp -a bsnes/out/bsnes bsnes-nightly/bsnes
-        - cp -a bsnes/Database/* bsnes-nightly/Database
-        - cp -a GPLv3.txt bsnes-nightly
-        - zip -r bsnes-nightly.zip bsnes-nightly
+        - mkdir bsnes-angelscript-nightly
+        - mkdir bsnes-angelscript-nightly/Database
+        - mkdir bsnes-angelscript-nightly/Firmware
+        - cp -a bsnes/out/bsnes bsnes-angelscript-nightly/bsnes
+        - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
+        - cp -a GPLv3.txt bsnes-angelscript-nightly
+        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
+        - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
     bsnes-nightly_artifacts:
-        path: "bsnes-nightly.zip"
+        path: "bsnes-angelscript-nightly.zip"
 
 windows-x86_64-binaries_task:
     container:
@@ -53,29 +55,31 @@ windows-x86_64-binaries_task:
         - make -C bsnes local=false platform=windows compiler="x86_64-w64-mingw32-g++" windres="x86_64-w64-mingw32-windres"
 
     package_script:
-        - mkdir bsnes-nightly
-        - mkdir bsnes-nightly/Database
-        - mkdir bsnes-nightly/Firmware
-        - cp -a bsnes/out/bsnes bsnes-nightly/bsnes.exe
-        - cp -a bsnes/Database/* bsnes-nightly/Database
-        - cp -a GPLv3.txt bsnes-nightly
-        - zip -r bsnes-nightly.zip bsnes-nightly
+        - mkdir bsnes-angelscript-nightly
+        - mkdir bsnes-angelscript-nightly/Database
+        - mkdir bsnes-angelscript-nightly/Firmware
+        - cp -a bsnes/out/bsnes bsnes-angelscript-nightly/bsnes.exe
+        - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
+        - cp -a GPLv3.txt bsnes-angelscript-nightly
+        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
+        - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
     bsnes-nightly_artifacts:
-        path: "bsnes-nightly.zip"
+        path: "bsnes-angelscript-nightly.zip"
 
 macOS-x86_64-binaries_task:
     osx_instance:
         image: mojave-base
 
     compile_script:
-        - make -C bsnes local=false
+        - make -C bsnes local=false build=performance
 
     package_script:
-        - mkdir bsnes-nightly
-        - cp -a bsnes/out/bsnes.app bsnes-nightly
-        - cp -a GPLv3.txt bsnes-nightly
-        - zip -r bsnes-nightly.zip bsnes-nightly
+        - mkdir bsnes-angelscript-nightly
+        - cp -a bsnes/out/bsnes.app bsnes-angelscript-nightly
+        - cp -a GPLv3.txt bsnes-angelscript-nightly
+        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
+        - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
-    bsnes-nightly_artifacts:
-        path: "bsnes-nightly.zip"
+    bsnes-angelscript-nightly_artifacts:
+        path: "bsnes-angelscript-nightly.zip"
