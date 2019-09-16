@@ -2,8 +2,6 @@ AngelScript
 ===========
 I have embedded the [AngelScript v2.33.0](https://www.angelcode.com/angelscript/) engine into the bsnes code and created some rudimentary script function bindings between the bsnes emulator and AngelScript scripts.
 
-As a working proof of concept of the AngelScript scripting engine and the basic bindings set up, I've developed a script targeted at *Zelda 3: A Link To The Past* that draws white squares around in-game sprites as they are defined in RAM.
-
 Download nightly binary builds here:
 https://cirrus-ci.com/github/JamesDunne/bsnes-angelscript
 
