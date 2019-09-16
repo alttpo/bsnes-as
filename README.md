@@ -2,102 +2,22 @@ AngelScript
 ===========
 I have embedded the [AngelScript v2.33.0](https://www.angelcode.com/angelscript/) engine into the bsnes code and created some rudimentary script function bindings between the bsnes emulator and AngelScript scripts.
 
-As a working proof of concept of the AngelScript scripting engine and the basic bindings set up, I've developed a script targeted at *Zelda 3: A Link To The Past* that draws white squares around in-game sprites as they are defined in RAM. To test this proof of concept:
+As a working proof of concept of the AngelScript scripting engine and the basic bindings set up, I've developed a script targeted at *Zelda 3: A Link To The Past* that draws white squares around in-game sprites as they are defined in RAM.
 
-1. clone this repository
-2. `cd` to repository working copy directory
-3. `make -C bsnes`
-4. `./test.sh`. **NOTE:** You will have to modify `test.sh` to override the location of your ALTTP ROM file as it's highly unlikely to be identical to mine.
-5. Tools > Load Script ... > Browse to `script.as` in repository root
-6. Load a saved state or play through the game to see white rectangles surrounding in-game sprites
+Download nightly binary builds here:
+https://cirrus-ci.com/github/JamesDunne/bsnes-angelscript
+
+1. Use Tools > Load Script ... > Browse to `alttp-link-oam.as` script included in nightly build package
+2. Load a saved state or play through the game to see white rectangles surrounding in-game sprites
 
 Screenshots
 ---
 
-![screenshot](screenshots/alttp-angelscript-001.png)
+![screenshot](screenshots/alttp-multiplayer-01.png)
 
-![screenshot](screenshots/alttp-angelscript-002.png)
+![screenshot](screenshots/alttp-multiplayer-02.png)
 
-Example AngelScript
----
-```
-// AngelScript for ALTTP to draw white rectangles around in-game sprites
-uint16   xoffs, yoffs;
-uint16[] sprx(16);
-uint16[] spry(16);
-uint8[]  sprs(16);
-uint8[]  sprk(16);
-uint32   location;
-
-void init() {
-  // initialize script state here.
-  message("hello world!");
-}
-
-void pre_frame() {
-  // fetch various room indices and flags about where exactly Link currently is:
-  auto in_dark_world  = bus::read_u8 (0x7E0FFF);
-  auto in_dungeon     = bus::read_u8 (0x7E001B);
-  auto overworld_room = bus::read_u16(0x7E008A, 0x7E008B);
-  auto dungeon_room   = bus::read_u16(0x7E00A0, 0x7E00A1);
-
-  // compute aggregated location for Link into a single 24-bit number:
-  location =
-    uint32(in_dark_world & 1) << 17 |
-    uint32(in_dungeon & 1) << 16 |
-    uint32(in_dungeon != 0 ? dungeon_room : overworld_room);
-
-  // get screen x,y offset by reading BG2 scroll registers:
-  xoffs = bus::read_u16(0x7E00E2, 0x7E00E3);
-  yoffs = bus::read_u16(0x7E00E8, 0x7E00E9);
-
-  for (int i = 0; i < 16; i++) {
-    // sprite x,y coords are absolute from BG2 top-left:
-    spry[i] = bus::read_u16(0x7E0D00 + i, 0x7E0D20 + i);
-    sprx[i] = bus::read_u16(0x7E0D10 + i, 0x7E0D30 + i);
-    // sprite state (0 = dead, else alive):
-    sprs[i] = bus::read_u8(0x7E0DD0 + i);
-    // sprite kind:
-    sprk[i] = bus::read_u8(0x7E0E20 + i);
-  }
-}
-
-void post_frame() {
-  // set drawing state
-  // select 8x8 or 8x16 font for text:
-  ppu::frame.font_height = 8;
-  // draw using alpha blending:
-  ppu::frame.draw_op = ppu::draw_op::op_alpha;
-  // alpha is xx/31:
-  ppu::frame.alpha = 20;
-  // color is 0x7fff aka white (15-bit RGB)
-  ppu::frame.color = ppu::rgb(31, 31, 31);
-
-  // enable shadow under text for clearer reading:
-  ppu::frame.text_shadow = true;
-
-  // draw Link's location value in top-left:
-  ppu::frame.text(0, 0, fmtHex(location, 6));
-
-  for (int i = 0; i < 16; i++) {
-    // skip dead sprites:
-    if (sprs[i] == 0) continue;
-
-    // subtract BG2 offset from sprite x,y coords to get local screen coords:
-    int16 rx = int16(sprx[i]) - int16(xoffs);
-    int16 ry = int16(spry[i]) - int16(yoffs);
-
-    // draw box around the sprite:
-    ppu::frame.rect(rx, ry, 16, 16);
-
-    // draw sprite type value above box:
-    ry -= ppu::frame.font_height;
-    ppu::frame.text(rx, ry, fmtHex(sprk[i], 2));
-  }
-}
-```
-
-The final script bindings in bsnes will likely not look like those demonstrated here. I will introduce better drawing commands as well as some pixel-font text rendering support.
+![animation](screenshots/alttp-extra-sprite-01.gif)
 
 My Goals
 --------
@@ -105,9 +25,9 @@ I want to create an emulator add-on defined entirely via scripts that enables a 
 
 There appears to be interest in a multiplayer aspect to the game where players can see and interact with one another within the same game world. Some efforts have been made already in this space like with inventory sharing but as far as I'm aware, not to the extent of letting players visually see each other's characters.
 
-The lack of the visual aspect of players seeing each other could be explained by the difficulty in displaying more than one copy of Link on the screen at one time with differing animation frames. CGRAM is dynamically memory mapped and the mapping (and thus the character data) changes depending on the current game state, e.g. Link's current animation frame. If one were to simply draw multiple copies of Link on the screen, they would all appear synchronized in animation.
+The lack of the visual aspect of players seeing each other could be explained by the difficulty in displaying more than one copy of Link on the screen at one time with differing animation frames. VRAM tile data is dynamically updated on every frame depending on the current game state, e.g. Link's current animation frame. If one were to simply draw multiple copies of Link on the screen, they would all appear synchronized in animation which is not ideal for a multiplayer simulation where you would want different players to be performing different actions and hence seeing different animations.
 
-My plan for the visual aspect is essentially to synchronize over the network, each player's Link state (x,y coords, overworld room number, dungeon room number, light/dark world, etc.) as well as CGRAM data. This extra CGRAM data could be used in a script-extended PPU renderer to essentially have more than one OBJ layer, possibly even one per player. The script-extended PPU rendering would source CGRAM data from script variables instead of from the local game ROM.
+My plan for the visual aspect is essentially to synchronize over the network each player's Link state (x,y coords, overworld room number, dungeon room number, light/dark world, etc.) as well as VRAM data for the current animation frame. This extra VRAM data could be used in a script-extended PPU renderer to essentially have more than one OBJ layer, possibly even one per player. The script-extended PPU rendering would source VRAM data from script variables instead of from the local game ROM. This would preserve custom sprites in each player's ROM.
 
 My near-term goals are to extend bsnes enough through scripts to allow for customization of the PPU rendering per scanline to get a proof of concept going.
 
@@ -154,6 +74,8 @@ Lua has fast execution of its own scripts and even has a JIT, however, this spee
 
 Lua array indices start at 1 (by convention) which makes for some unnecessarily different code practices and mental gymnastics when one is used to working with 0-based array indices which most other mainstream languages use.
 
+![Arrays start at 1](http://i.bittwiddlers.org/5kL.gif)
+
 ---
 
 UI Updates
@@ -173,106 +95,7 @@ Unload Script will destroy the current script module and free any allocated memo
 AngelScript Interface
 =====================
 
-The SNES system is frozen during script execution and clock cycles are not advanced until the invoked script function returns.
-
-bsnes can bind to these optional functions defined by scripts:
-
-  * `void init()` - called once immediately after script loaded or reloaded
-  * `void pre_frame()` - called after the last frame is swapped to the display
-  * `void post_frame()` - called after a frame is rendered by the PPU but before it is swapped to the display
-
-No other functions than these are called by the emulator so you must use these to control your script behavior.
-
-In `void init()` you'll want to initialize any state for your script or set properties on the emulator.
-
-In `void pre_frame()` you will want to read (or write) memory values and store them in your script variables. **Do not** call frame drawing functions in this method as the frame has already been copied to the display and its contents cleared.
-
-In `void post_frame()` you may draw on top of the rendered frame using the `ppu::frame` object.
-
-`void pre_frame()` and `void post_frame()` are split to avoid a 1-frame latency for drawing.
-
-Global Functions
-----------------
-
-  * `void message(const string &in msg)` - show a message on emulator status bar, like a notification
-  * `string &fmtHex(uint64 value, int precision = 0)` - formats a `uint64` in hexadecimal using `precision` number of digits
-  * `string &fmtBinary(uint64 value, int precision = 0)` - formats a `uint64` in binary using `precision` number of digits
-  * `string &fmtInt(int64 value)` - formats a `int64` as a string
-  * `string &fmtUint(uint64 value)` - formats a `uint64` as a string
-
-Memory
-------
-
-All definitions in this section are defined in the `bus` namespace, e.g. `bus::read_u8`. 
-
-* `uint8 bus::read_u8(uint32 addr)` - reads a `uint8` value from the given bus address (24-bit)
-* `uint16 bus::read_u16(uint32 addr0, uint32 addr1)` - reads a `uint16` value from the given bus addresses, using `addr0` for the low byte and `addr1` for the high byte. `addr0` and `addr1` can be any address or even the same address. `addr0` is always read before `addr1` is read. no clock cycles are advanced between reads.
-* `void bus::write_u8(uint32 addr, uint8 data)` - writes a `uint8` value to the given bus address (24-bit)
-
-Reads and writes are done on the main bus and clock cycles are not advanced during read or write.
-
-PPU Frame Access
-----------------
-
-Notes:
-  * Coordinate system used
-     * x = 0..255 from left to right
-     * y = 0..239 from top to bottom
-     * Top and bottom 8 rows are for overscan
-     * The visible portion of the screen is 256x224 resolution
-     * In absolute coordinates, the visible top-left coordinate is (0,8) and the visible bottom-right coordinate is (255,223)
-     * `ppu::frame.y_offset` property exists to offset all drawing Y coordinates (in 480 column scale) to account for overscan. It defaults to `+16` so that (0,0) in drawing coordinates is the visible top-left coordinate for all drawing functions. Scripts are free to change this property to `0` (to draw in the overscan area) or to any other value.
-     * `ppu::frame.x_scale` is a multiplier to X coordinates to scale to a unified 512x480 pixel buffer; default = 2 which implies a lo-res 256 column mode; switch to 1 to use hi-res 512 column mode
-     * `ppu::frame.y_scale` is a multiplier to Y coordinates to scale to a unified 512x480 pixel buffer; default = 2 which implies a lo-res 240 row mode; switch to 1 to use hi-res 480 row mode
-  * 15-bit RGB colors are used.
-     * `uint16` type is used for representing 15-bit RGB colors
-     * Each color channel is allocated 5 bits, from least-significant bits for red, to most-significant bits for blue.
-     * The most significant bit of the `uint16` value for color should always be `0`.
-     * Reference colors:
-       * `0x7fff` is 100% white.
-       * `0x0000` is 100% black.
-       * `0x7c00` is 100% blue.
-       * `0x03e0` is 100% green.
-       * `0x001f` is 100% red.
-     * Since it is cumbersome to mentally compose hex values for 15-bit RGB colors, the `ppu::rgb` function is provided to construct the final `uint16` color value given each color channel's 5-bit value.
-  * alpha channel is represented in a `uint8` type as a 5-bit value between 0..31 where 0 is completely transparent and 31 is completely opaque.
-  * alpha blending equation is `[src_rgb*src_a + dst_rgb*(31 - src_a)] / 31`
-  * `ppu::draw_op` - enum of drawing operations used to draw pixels; available drawing operations are:
-     * `ppu::draw_op::op_solid` - draw solid pixels, ignoring alpha (default)
-     * `ppu::draw_op::op_alpha` - draw new pixels alpha-blended with existing pixels
-     * `ppu::draw_op::op_xor` - XORs new pixel color value with existing pixel color value
-   * **IMPORTANT**: All drawing operations are performed *immediately* and *directly* on the PPU frame buffer.
-     * Drawing operations are **destructive** to the PPU rendered frame.
-
-Globals:
-  * `uint16 ppu::rgb(uint8 r, uint8 g, uint8 b)` - function used to construct 15-bit RGB color values; each color channel is a 5-bit value between 0..31.
-  * `ppu::Frame ppu::frame { get; }` - global read-only property representing the current rendered PPU frame that is ready to swap to the display. Contains methods and properties that allow for drawing things on top of the frame.
-  * `uint8 ppu::luma { get; }` - global read-only property representing the current PPU luminance value (0..15) where 0 is very dark and 15 is full brightness.
-
-`ppu::Frame` properties:
-  * `int y_offset { get; set; }` - property to adjust Y-offset of drawing functions (default = +16; skips top overscan area so that x=0,y=0 is top-left of visible screen)
-  * `ppu::draw_op draw_op { get; set; }` - current drawing operation used to draw pixels
-  * `uint16 color { get; set; }` - current color for drawing with (0..0x7fff)
-  * `uint8 luma { get; set; }` - current luminance for drawing with (0..15); `color` is luma-mapped (applied before alpha blending) for drawing
-  * `uint8 alpha { get; set; }` - current alpha value for drawing with (0..31)
-  * `int font_height { get; set; }` - current font height in pixels; valid values are 8 or 16 (default = 8).
-  * `bool text_shadow { get; set; }` - determines whether to draw a black shadow one pixel below and to the right behind any text; text does not overdraw the shadow in order to avoid alpha-blending artifacts.
-
-`ppu::Frame` methods:
-  * `uint16 read_pixel(int x, int y)` - gets the 15-bit RGB color at the x,y coordinate in the PPU frame
-  * `void pixel(int x, int y)` - sets the 15-bit RGB color at the x,y coordinate in the PPU frame
-  * `void hline(int lx, int ty, int w)` - draws a horizontal line between `ty <= y < ty+h`
-  * `void vline(int lx, int ty, int h)` - draws a vertical line between `lx <= x < lx+w`
-  * `void rect(int lx, int ty, int w, int h)` - draws a rectangle at the boundaries `lx <= x < lx+w` and `ty <= y < ty+h`; does not overdraw corners
-  * `void fill(int lx, int ty, int w, int h)` - fills a rectangle within `lx <= x < lx+w` and `ty <= y < ty+h`; does not overdraw
-  * `int text(int lx, int ty, const string &in text)` - draws a horizontal span of ASCII text using the current `font_height`
-    * returns `len` as number of characters drawn
-    * all non-printable and control characters (CR, LF, TAB, etc) are skipped for rendering and do not contribute to the width of the text's bounding box
-    * top-left corner of text bounding box is specified by `(lx, ty)` coordinates
-    * bottom-right corner of text bounding box is computed as `(lx+(8*len), ty+font_height)` where `len` is the number of characters to be drawn (excludes non-printable chars)
-    * bounding box coordinates are not explicitly computed by the function up-front but serve to define the exact rendering behavior of the function
-    * character glyphs are rendered relative to their top-left corner
-  * `void draw_4bpp_8x8(int lx, int ty, uint32[] tile_data, uint16[] palette_data)` - draws an 8x8 tile in 4bpp color mode using the given `tile_data` from VRAM and `palette_data` from CGRAM. pixels are drawn using the current drawing operations; `color` is ignored; `luma` is used to luma-map the palette colors for display.
+Refer to [this document](angelscript.md) for details on the AngelScript interface to bsnes.
 
 ---
 
