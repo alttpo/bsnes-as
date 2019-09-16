@@ -255,7 +255,7 @@ auto Presentation::create() -> void {
     program.quit();
   });
 
-  setTitle({"bsnes v", Emulator::Version});
+  setTitle({Emulator::Name, " v", Emulator::Version});
   setBackgroundColor({0, 0, 0});
   resizeWindow();
   setAlignment(Alignment::Center);

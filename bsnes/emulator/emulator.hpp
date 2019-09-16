@@ -32,7 +32,7 @@ using namespace nall;
 #include <scriptarray.h>
 
 namespace Emulator {
-  static const string Name    = "bsnes";
+  static const string Name    = "bsnes-angelscript";
   static const string Version = "109";
   static const string Author  = "byuu";
   static const string License = "GPLv3";
