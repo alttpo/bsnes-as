@@ -260,14 +260,23 @@ Globals:
 NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp) for the latest definitions of
 script functions.
 
+Network Access for Scripts
+==========================
+
+`net::UDPSocket@` type represents a UDP socket which can listen for and send UDP packets.
+  * `net::UDPSocket@ constructor(const string &in host, const int port)` - construct a UDP socket listening at `host`
+  address on `port` port number.
+  * `int sendto(const array<uint8> &in msg, const string &in host, const int port)` - sends a UDP packet to the given
+  destination address and port; non-blocking.
+  * `int recv(const array<uint8> &in msg)` - attempts to receive a UDP packet into the `msg` array and returns `0` if no
+  packet available, or returns the number of bytes received; non-blocking. (internally uses a `poll()` followed by
+  `recvfrom()` if the poll indicates that data is available to be read)
+
+NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp)
+for the latest definitions of script functions.
+
 GUI Integrations for Scripts
 ===========================
 
 TODO: document `gui` namespace members. Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp)
-for the latest definitions of script functions.
-
-Network Access for Scripts
-==========================
-
-TODO: document `net` namespace members. Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp)
 for the latest definitions of script functions.
