@@ -1,5 +1,7 @@
 #pragma once
 
+#include <hiro/hiro.hpp>
+
 namespace Emulator {
 
 struct Platform {
@@ -23,6 +25,7 @@ struct Platform {
   virtual auto dipSettings(Markup::Node node) -> uint { return 0; }
   virtual auto notify(string text) -> void {}
 
+  virtual auto presentationWindow() -> hiro::Window { return {}; };
   virtual auto scriptEngine() -> asIScriptEngine* { return nullptr; };
   virtual auto scriptMessage(const string *msg) -> void { printf("script: %.*s\n", msg->size(), msg->data()); };
 };

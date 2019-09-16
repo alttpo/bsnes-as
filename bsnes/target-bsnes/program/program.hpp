@@ -138,7 +138,8 @@ struct Program : Lock, Emulator::Platform {
 
   //script.cpp
   auto scriptEngine() -> asIScriptEngine* override;
-  auto scriptMessage(const string *msg) -> void;
+  auto scriptMessage(const string *msg) -> void override;
+  auto presentationWindow() -> hiro::Window override;
   auto scriptInit() -> void;
   auto scriptLoad() -> void;
   auto scriptReload() -> void;

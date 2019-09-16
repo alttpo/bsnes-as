@@ -6,6 +6,8 @@
   #include <sys/socket.h>
   #include <netinet/in.h>
   #include <netdb.h>
+#include <hiro/hiro.hpp>
+
 #else
   #include <winsock2.h>
   #include <ws2tcpip.h>
@@ -958,25 +960,34 @@ struct ScriptInterface {
       virtual operator hiro::mSizable*() = 0;
     };
 
-#define Bind(Name) \
+#define BindShared(Name) \
     hiro::s##Name self; \
-    Name() { \
-      self = new hiro::m##Name(); \
-      self->construct(); \
-    } \
     ~Name() { \
       self->setVisible(false); \
       self->reset(); \
       /*self->destruct();*/ \
     } \
-    operator hiro::mObject*() { return (hiro::mObject*)self.data(); } \
     auto ref_add() -> void { self.manager->strong++; } \
     auto ref_release() -> void { \
       if (--self.manager->strong == 0) delete this; \
-    } \
+    }
+
+#define BindObject(Name) \
+    operator hiro::mObject*() { return (hiro::mObject*)self.data(); } \
     auto setVisible(bool visible = true) -> void { \
       self->setVisible(visible); \
     }
+
+#define BindConstructor(Name) \
+    Name() { \
+      self = new hiro::m##Name(); \
+      self->construct(); \
+    } \
+
+#define Bind(Name) \
+    BindShared(Name) \
+    BindConstructor(Name) \
+    BindObject(Name)
 
 #define BindSizable(Name) \
     Bind(Name) \
@@ -985,7 +996,14 @@ struct ScriptInterface {
     }
 
     struct Window : Object {
-      Bind(Window)
+      BindShared(Window) \
+      BindObject(Window)
+
+      Window() {
+        self = new hiro::mWindow();
+        self->construct();
+        self->setPosition(platform->presentationWindow(), hiro::Position{96, 16});
+      }
 
       auto appendSizable(Sizable *child) -> void {
         self->append((hiro::mSizable*)*child);

@@ -10,6 +10,10 @@ auto Program::scriptMessage(const string *msg) -> void {
   showMessage({"script: ", *msg});
 }
 
+auto Program::presentationWindow() -> hiro::Window {
+  return presentation;
+}
+
 // Implement a simple message callback function
 void MessageCallback(const asSMessageInfo *msg, void *param) {
   const char *type = "ERR ";
