@@ -990,7 +990,6 @@ struct ScriptInterface {
     BindObject(Name)
 
 #define BindSizable(Name) \
-    Bind(Name) \
     operator hiro::mSizable*() override { \
       return (hiro::mSizable*)self.data(); \
     }
@@ -1002,7 +1001,16 @@ struct ScriptInterface {
       Window() {
         self = new hiro::mWindow();
         self->construct();
-        self->setPosition(platform->presentationWindow(), hiro::Position{96, 16});
+        self->setFocused();
+      }
+
+      // create a Window relative to main presentation window
+      Window(float x, float y, bool relative = false) : Window() {
+        if (relative) {
+          self->setPosition(platform->presentationWindow(), hiro::Position{x, y});
+        } else {
+          self->setPosition(hiro::Position{x, y});
+        }
       }
 
       auto appendSizable(Sizable *child) -> void {
@@ -1019,7 +1027,14 @@ struct ScriptInterface {
     };
 
     struct VerticalLayout : Sizable {
+      BindShared(VerticalLayout)
+      BindObject(VerticalLayout)
       BindSizable(VerticalLayout)
+
+      VerticalLayout() {
+        self = new hiro::mVerticalLayout();
+        self->construct();
+      }
 
       auto appendSizable(Sizable *child, hiro::Size *size) -> void {
         self->append((hiro::mSizable*)*child, *size);
@@ -1027,7 +1042,14 @@ struct ScriptInterface {
     };
 
     struct HorizontalLayout : Sizable {
+      BindShared(HorizontalLayout)
+      BindObject(HorizontalLayout)
       BindSizable(HorizontalLayout)
+
+      HorizontalLayout() {
+        self = new hiro::mHorizontalLayout();
+        self->construct();
+      }
 
       auto appendSizable(Sizable *child, hiro::Size *size) -> void {
         self->append((hiro::mSizable*)*child, *size);
@@ -1035,7 +1057,15 @@ struct ScriptInterface {
     };
 
     struct LineEdit : Sizable {
+      BindShared(LineEdit)
+      BindObject(LineEdit)
       BindSizable(LineEdit)
+
+      LineEdit() {
+        self = new hiro::mLineEdit();
+        self->construct();
+        self->setFocusable();
+      }
 
       auto getText() -> string* {
         return new string(self->text());
@@ -1065,7 +1095,14 @@ struct ScriptInterface {
     };
 
     struct Label : Sizable {
+      BindShared(Label)
+      BindObject(Label)
       BindSizable(Label)
+
+      Label() {
+        self = new hiro::mLabel();
+        self->construct();
+      }
 
       auto getText() -> string * {
         return new string(self->text());
@@ -1077,7 +1114,15 @@ struct ScriptInterface {
     };
 
     struct Button : Sizable {
+      BindShared(Button)
+      BindObject(Button)
       BindSizable(Button)
+
+      Button() {
+        self = new hiro::mButton();
+        self->construct();
+        self->setFocusable();
+      }
 
       auto getText() -> string* {
         return new string(self->text());
@@ -1116,6 +1161,7 @@ struct ScriptInterface {
     static auto destroySize(void *memory) -> void { ((hiro::Size*)memory)->~Size(); }
 
     Constructor(Window)
+    static auto createWindowAtPosition(float x, float y, bool relative) -> Window* { return new Window(x, y, relative); }
     Constructor(VerticalLayout)
     Constructor(HorizontalLayout)
     Constructor(LineEdit)
@@ -1337,6 +1383,7 @@ auto Interface::registerScriptDefs() -> void {
 
     // Window
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION(ScriptInterface::GUI::createWindow), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f(float rx, float ry, bool relative)", asFUNCTION(ScriptInterface::GUI::createWindowAtPosition), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_add), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("Window", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::Window, ref_release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void append(VerticalLayout @sizable)", asMETHOD(ScriptInterface::GUI::Window, appendSizable), asCALL_THISCALL); assert( r >= 0 );

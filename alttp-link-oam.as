@@ -13,7 +13,7 @@ class SettingsWindow {
   bool started;
 
   SettingsWindow() {
-    @window = gui::Window();
+    @window = gui::Window(164, 22, true);
     window.visible = true;
     window.title = "Connect to IP address";
     window.size = gui::Size(256, 24*3);
