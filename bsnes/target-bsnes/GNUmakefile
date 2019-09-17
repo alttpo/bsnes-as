@@ -22,7 +22,7 @@ obj/ui-settings.o: $(ui)/settings/settings.cpp
 obj/ui-tools.o: $(ui)/tools/tools.cpp
 obj/ui-resource.o: $(ui)/resource/resource.cpp
 
-all: $(hiro.objects) $(ruby.objects) $(angel.objects) $(objects)
+all: $(objects) $(hiro.objects) $(ruby.objects) $(angel.objects)
 	$(info Linking out/$(name) ...)
 	+@$(compiler) -o out/$(name) $(hiro.objects) $(ruby.objects) $(angel.objects) $(objects) $(hiro.options) $(ruby.options) $(angel.options) $(options)
 ifeq ($(platform),macos)
