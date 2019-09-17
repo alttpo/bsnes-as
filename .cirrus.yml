@@ -19,7 +19,7 @@ linux-x86_64-binaries_task:
         #- zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
-        path: bsnes-angelscript-nightly
+        path: "bsnes-angelscript-nightly/**"
 
 #freebsd-x86_64-binaries_task:
 #    freebsd_instance:
@@ -42,7 +42,7 @@ linux-x86_64-binaries_task:
 #        - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 #
 #    bsnes-angelscript-nightly_artifacts:
-#        path: "bsnes-angelscript-nightly.zip"
+#        path: "bsnes-angelscript-nightly/**"
 
 windows-x86_64-binaries_task:
     container:
@@ -65,7 +65,7 @@ windows-x86_64-binaries_task:
         #- zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
-        path: "bsnes-angelscript-nightly"
+        path: "bsnes-angelscript-nightly/**"
 
 macOS-x86_64-binaries_task:
     osx_instance:
@@ -82,4 +82,4 @@ macOS-x86_64-binaries_task:
         #- zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
-        path: "bsnes-angelscript-nightly"
+        path: "bsnes-angelscript-nightly/**"
