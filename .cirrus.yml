@@ -9,7 +9,7 @@ linux-x86_64-binaries_task:
         image: purplekarrot/gcc-7:latest
 
     setup_script:
-        - apt-get update && apt-get -y install build-essential libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev zip
+        - apt-get update && apt-get -y install libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev
 
     compile_script:
         - make -C bsnes local=false build=performance
