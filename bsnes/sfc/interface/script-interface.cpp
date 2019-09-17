@@ -8,12 +8,32 @@
   #include <netdb.h>
   #define SEND_BUF_CAST(t) ((const void *)(t))
   #define RECV_BUF_CAST(t) ((void *)(t))
+
+char* sockerr() {
+  return strerror(errno);
+}
 #else
   #include <winsock2.h>
   #include <ws2tcpip.h>
   #define SEND_BUF_CAST(t) ((const char *)(t))
   #define RECV_BUF_CAST(t) ((char *)(t))
+
+__declspec(thread) char errmsg[256];
+
+char* sockerr() {
+  int errcode = WSAGetLastError();
+  DWORD len = FormatMessageA(FORMAT_MESSAGE_ARGUMENT_ARRAY | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errcode, 0, errmsg, 255, NULL);
+  if (len != 0)
+    errmsg[len] = 0;
+  else
+    sprintf(errmsg, "error %d", errcode);
+  return errmsg;
+}
 #endif
+
+#define S1(x) #x
+#define S2(x) S1(x)
+#define LOCATION __FILE__ " : " S2(__LINE__)
 
 #include "vga-charset.cpp"
 #include "script-string.cpp"
@@ -862,13 +882,13 @@ struct ScriptInterface {
         addrinfo *targetaddr;
         int status = getaddrinfo(server, string(port), &hints, &targetaddr);
         if (status != 0) {
-          asGetActiveContext()->SetException(strerror(errno), true);
+          asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: ", sockerr()}, true);
           return 0;
         }
 
         ssize_t num = ::sendto(sockfd, SEND_BUF_CAST(msg->At(0)), msg->GetSize(), 0, targetaddr->ai_addr, targetaddr->ai_addrlen);
         if (num == -1) {
-          asGetActiveContext()->SetException(strerror(errno), true);
+          asGetActiveContext()->SetException(string{LOCATION " sendto: ", sockerr()}, true);
           return 0;
         }
 
@@ -888,7 +908,7 @@ struct ScriptInterface {
 
         int rv = ::poll(&pfd, 1, 0);
         if (rv == -1) {
-          asGetActiveContext()->SetException(strerror(errno), true);
+          asGetActiveContext()->SetException(string{LOCATION " poll: ", sockerr()}, true);
           return 0;
         }
         if (rv == 0) {
@@ -898,7 +918,7 @@ struct ScriptInterface {
 
         ssize_t num = ::recvfrom(sockfd, RECV_BUF_CAST(msg->At(0)), msg->GetSize(), 0, &addr, &addrlen);
         if (num == -1) {
-          asGetActiveContext()->SetException(strerror(errno), true);
+          asGetActiveContext()->SetException(string{LOCATION " recvfrom: ", sockerr()}, true);
           return 0;
         }
 
@@ -926,25 +946,25 @@ struct ScriptInterface {
       addrinfo *serverinfo;
       int status = getaddrinfo(server, string(port), &hints, &serverinfo);
       if (status != 0) {
-        asGetActiveContext()->SetException(strerror(errno), true);
+        asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: ", sockerr()}, true);
         return nullptr;
       }
 
       int sockfd = socket(serverinfo->ai_family, serverinfo->ai_socktype, serverinfo->ai_protocol);
       if (sockfd == -1) {
-        asGetActiveContext()->SetException(strerror(errno), true);
+        asGetActiveContext()->SetException(string{LOCATION " socket: ", sockerr()}, true);
         return nullptr;
       }
 
       if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-        asGetActiveContext()->SetException(strerror(errno), true);
+        asGetActiveContext()->SetException(string{LOCATION " setsockopt: ", sockerr()}, true);
         return nullptr;
       }
 
       if (server) {
         if (bind(sockfd, serverinfo->ai_addr, serverinfo->ai_addrlen) == -1) {
           close(sockfd);
-          asGetActiveContext()->SetException(strerror(errno), true);
+          asGetActiveContext()->SetException(string{LOCATION " bind: ", sockerr()}, true);
           return nullptr;
         }
       }
