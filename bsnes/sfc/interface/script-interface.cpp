@@ -13,7 +13,7 @@ char* sockerr() {
   return strerror(errno);
 }
 
-int sockhaserr() {
+bool sockhaserr() {
   return errno != 0;
 }
 #else
@@ -45,8 +45,8 @@ char* sockerr() {
   return errmsg;
 }
 
-int sockhaserr() {
-  return WSAGetLastError() != 0;
+bool sockhaserr() {
+  return FAILED(WSAGetLastError());
 }
 #endif
 
