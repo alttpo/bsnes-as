@@ -18,7 +18,7 @@ linux-x86_64-binaries_task:
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
         - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
-    bsnes-nightly_artifacts:
+    bsnes-angelscript-nightly_artifacts:
         path: "bsnes-angelscript-nightly.zip"
 
 freebsd-x86_64-binaries_task:
@@ -41,7 +41,7 @@ freebsd-x86_64-binaries_task:
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
         - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
-    bsnes-nightly_artifacts:
+    bsnes-angelscript-nightly_artifacts:
         path: "bsnes-angelscript-nightly.zip"
 
 windows-x86_64-binaries_task:
@@ -64,7 +64,7 @@ windows-x86_64-binaries_task:
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
         - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
-    bsnes-nightly_artifacts:
+    bsnes-angelscript-nightly_artifacts:
         path: "bsnes-angelscript-nightly.zip"
 
 macOS-x86_64-binaries_task:
