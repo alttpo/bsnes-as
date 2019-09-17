@@ -4,30 +4,23 @@ AngelScript interface
 NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp) for the latest definitions of
 script functions.
 
-The SNES system is frozen during script execution and clock cycles are not advanced until the invoked script function returns.
+The SNES system is frozen during script execution and clock cycles are not advanced until the invoked script function
+returns.
 
 bsnes can bind to these optional functions defined by scripts:
 
   * `void init()` - called once immediately after script loaded or reloaded
-  * `void pre_frame()` - called after the last frame is swapped to the display
+  * `void pre_frame()` - called at scanline 0 before rendering the current frame starts
   * `void post_frame()` - called after a frame is rendered by the PPU but before it is swapped to the display
-
-No other functions than these are called by the emulator so you must use these to control your script behavior.
-
-In `void init()` you'll want to initialize any state for your script or set properties on the emulator.
-
-In `void pre_frame()` you will want to read (or write) memory values and store them in your script variables. **Do not** call frame drawing functions in this method as the frame has already been copied to the display and its contents cleared.
-
-In `void post_frame()` you may draw on top of the rendered frame using the `ppu::frame` object.
-
-`void pre_frame()` and `void post_frame()` are split to avoid a 1-frame latency for drawing.
 
 Global Functions
 ----------------
 
   * `void message(const string &in msg)` - show a message on emulator status bar, like a notification
-  * `string &fmtHex(uint64 value, int precision = 0)` - formats a `uint64` in hexadecimal using `precision` number of digits
-  * `string &fmtBinary(uint64 value, int precision = 0)` - formats a `uint64` in binary using `precision` number of digits
+  * `string &fmtHex(uint64 value, int precision = 0)` - formats a `uint64` in hexadecimal using `precision` number of
+  digits
+  * `string &fmtBinary(uint64 value, int precision = 0)` - formats a `uint64` in binary using `precision` number of
+  digits
   * `string &fmtInt(int64 value)` - formats a `int64` as a string
   * `string &fmtUint(uint64 value)` - formats a `uint64` as a string
 
@@ -37,7 +30,9 @@ Memory
 All definitions in this section are defined in the `bus` namespace, e.g. `bus::read_u8`. 
 
 * `uint8 bus::read_u8(uint32 addr)` - reads a `uint8` value from the given bus address (24-bit)
-* `uint16 bus::read_u16(uint32 addr0, uint32 addr1)` - reads a `uint16` value from the given bus addresses, using `addr0` for the low byte and `addr1` for the high byte. `addr0` and `addr1` can be any address or even the same address. `addr0` is always read before `addr1` is read. no clock cycles are advanced between reads.
+* `uint16 bus::read_u16(uint32 addr0, uint32 addr1)` - reads a `uint16` value from the given bus addresses, using
+`addr0` for the low byte and `addr1` for the high byte. `addr0` and `addr1` can be any address or even the same address.
+`addr0` is always read before `addr1` is read. no clock cycles are advanced between reads.
 * `void bus::write_u8(uint32 addr, uint8 data)` - writes a `uint8` value to the given bus address (24-bit)
 
 Reads and writes are done on the main bus and clock cycles are not advanced during read or write.
@@ -87,7 +82,7 @@ redrawn.
 Rendering Interfaces for Scripts
 ================================
 
-Note that the SNES works internally with 15-bit BGR colors values.
+Note that the SNES works internally with 15-bit BGR color values.
 
   * For scripts, the `uint16` type is used for representing 15-bit BGR color values.
   * Each color channel is allocated 5 bits, from least-significant bits for red, to most-significant bits for blue.
@@ -191,10 +186,10 @@ Global properties:
   * `void pixel_off(int x, int y)` - turns off the opacity of the pixel at x,y (retains existing color data)
   * `void pixel_on(int x, int y)` - turns on the opacity of the pixel at x,y (retains existing color data)
   * `void pixel(int x, int y)` - sets the pixel at x,y to the current global `ppu::Extra.color` value
-  * `void draw_sprite(int x, int y, int width, int height, const array<uint32> &in tiledata, const array<uint16> &in palette)` -
-  Renders a VRAM 4bpp sprite at the x,y coordinate within this extra sprite. `tiledata` is organized like VRAM for 4bpp
-  sprite tiles; compatible with data retrieved from `ppu::vram.read_sprite()` function. `palette` is a 16 value array of
-  15-bit BGR color values which may be directly copied from `ppu::CGRAM[]`.
+  * `void draw_sprite(int x, int y, int width, int height, const array<uint32> &in tiledata, const array<uint16> &in
+  palette)` - Renders a VRAM 4bpp sprite at the x,y coordinate within this extra sprite. `tiledata` is organized like
+  VRAM for 4bpp sprite tiles; compatible with data retrieved from `ppu::vram.read_sprite()` function. `palette` is a 16
+  value array of 15-bit BGR color values which may be directly copied from `ppu::CGRAM[]`.
   * `void hline(int lx, int ty, int w)` - draws a horizontal line using current drawing color
   * `void vline(int lx, int ty, int h)` - draws a vertical line using current drawing color
   * `void rect(int x, int y, int w, int h)` - draws a rectangle using current drawing color
@@ -214,11 +209,18 @@ Notes:
      * y = 0..239 from top to bottom
      * Top and bottom 8 rows are for overscan
      * The visible portion of the screen is 256x224 resolution
-     * In absolute coordinates, the visible top-left coordinate is (0,8) and the visible bottom-right coordinate is (255,223)
-     * `ppu::frame.y_offset` property exists to offset all drawing Y coordinates (in 480 column scale) to account for overscan. It defaults to `+16` so that (0,0) in drawing coordinates is the visible top-left coordinate for all drawing functions. Scripts are free to change this property to `0` (to draw in the overscan area) or to any other value.
-     * `ppu::frame.x_scale` is a multiplier to X coordinates to scale to a unified 512x480 pixel buffer; default = 2 which implies a lo-res 256 column mode; switch to 1 to use hi-res 512 column mode
-     * `ppu::frame.y_scale` is a multiplier to Y coordinates to scale to a unified 512x480 pixel buffer; default = 2 which implies a lo-res 240 row mode; switch to 1 to use hi-res 480 row mode
-  * alpha channel is represented in a `uint8` type as a 5-bit value between 0..31 where 0 is completely transparent and 31 is completely opaque.
+     * In absolute coordinates, the visible top-left coordinate is (0,8) and the visible bottom-right coordinate is
+     (255,223)
+     * `ppu::frame.y_offset` property exists to offset all drawing Y coordinates (in 480 column scale) to account for
+     overscan. It defaults to `+16` so that (0,0) in drawing coordinates is the visible top-left coordinate for all
+     drawing functions. Scripts are free to change this property to `0` (to draw in the overscan area) or to any other
+     value.
+     * `ppu::frame.x_scale` is a multiplier to X coordinates to scale to a unified 512x480 pixel buffer; default = 2
+     which implies a lo-res 256 column mode; switch to 1 to use hi-res 512 column mode
+     * `ppu::frame.y_scale` is a multiplier to Y coordinates to scale to a unified 512x480 pixel buffer; default = 2
+     which implies a lo-res 240 row mode; switch to 1 to use hi-res 480 row mode
+  * alpha channel is represented in a `uint8` type as a 5-bit value between 0..31 where 0 is completely transparent and
+  31 is completely opaque.
   * alpha blending equation is `[src_rgb*src_a + dst_rgb*(31 - src_a)] / 31`
   * `ppu::draw_op` - enum of drawing operations used to draw pixels; available drawing operations are:
      * `ppu::draw_op::op_solid` - draw solid pixels, ignoring alpha (default)
@@ -228,34 +230,48 @@ Notes:
      * Drawing operations are **destructive** to the PPU rendered frame.
 
 Globals:
-  * `uint16 ppu::rgb(uint8 r, uint8 g, uint8 b)` - function used to construct 15-bit RGB color values; each color channel is a 5-bit value between 0..31.
-  * `uint8 ppu::luma { get; }` - global read-only property representing the current PPU luminance value (0..15) where 0 is very dark and 15 is full brightness.
-  * `ppu::Frame ppu::frame { get; }` - global read-only property representing the current rendered PPU frame that is ready to swap to the display. Contains methods and properties that allow for drawing things on top of the frame.
+  * `uint16 ppu::rgb(uint8 r, uint8 g, uint8 b)` - function used to construct 15-bit RGB color values; each color
+  channel is a 5-bit value between 0..31.
+  * `uint8 ppu::luma { get; }` - global read-only property representing the current PPU luminance value (0..15) where 0
+  is very dark and 15 is full brightness.
+  * `ppu::Frame ppu::frame { get; }` - global read-only property representing the current rendered PPU frame that is
+  ready to swap to the display. Contains methods and properties that allow for drawing things on top of the frame.
 
 `ppu::Frame` properties:
-  * `int y_offset { get; set; }` - property to adjust Y-offset of drawing functions (default = +16; skips top overscan area so that x=0,y=0 is top-left of visible screen)
+  * `int y_offset { get; set; }` - property to adjust Y-offset of drawing functions (default = +16; skips top overscan
+  area so that x=0,y=0 is top-left of visible screen)
   * `ppu::draw_op draw_op { get; set; }` - current drawing operation used to draw pixels
   * `uint16 color { get; set; }` - current color for drawing with (0..0x7fff)
-  * `uint8 luma { get; set; }` - current luminance for drawing with (0..15); `color` is luma-mapped (applied before alpha blending) for drawing
+  * `uint8 luma { get; set; }` - current luminance for drawing with (0..15); `color` is luma-mapped (applied before
+  alpha blending) for drawing
   * `uint8 alpha { get; set; }` - current alpha value for drawing with (0..31)
   * `int font_height { get; set; }` - current font height in pixels; valid values are 8 or 16 (default = 8).
-  * `bool text_shadow { get; set; }` - determines whether to draw a black shadow one pixel below and to the right behind any text; text does not overdraw the shadow in order to avoid alpha-blending artifacts.
+  * `bool text_shadow { get; set; }` - determines whether to draw a black shadow one pixel below and to the right behind
+  any text; text does not overdraw the shadow in order to avoid alpha-blending artifacts.
 
 `ppu::Frame` methods:
   * `uint16 read_pixel(int x, int y)` - gets the 15-bit RGB color at the x,y coordinate in the PPU frame
   * `void pixel(int x, int y)` - sets the 15-bit RGB color at the x,y coordinate in the PPU frame
   * `void hline(int lx, int ty, int w)` - draws a horizontal line between `ty <= y < ty+h`
   * `void vline(int lx, int ty, int h)` - draws a vertical line between `lx <= x < lx+w`
-  * `void rect(int lx, int ty, int w, int h)` - draws a rectangle at the boundaries `lx <= x < lx+w` and `ty <= y < ty+h`; does not overdraw corners
-  * `void fill(int lx, int ty, int w, int h)` - fills a rectangle within `lx <= x < lx+w` and `ty <= y < ty+h`; does not overdraw
-  * `int text(int lx, int ty, const string &in text)` - draws a horizontal span of ASCII text using the current `font_height`
+  * `void rect(int lx, int ty, int w, int h)` - draws a rectangle at the boundaries `lx <= x < lx+w` and
+  `ty <= y < ty+h`; does not overdraw corners
+  * `void fill(int lx, int ty, int w, int h)` - fills a rectangle within `lx <= x < lx+w` and `ty <= y < ty+h`; does not
+  overdraw
+  * `int text(int lx, int ty, const string &in text)` - draws a horizontal span of ASCII text using the current
+  `font_height`
     * returns `len` as number of characters drawn
-    * all non-printable and control characters (CR, LF, TAB, etc) are skipped for rendering and do not contribute to the width of the text's bounding box
+    * all non-printable and control characters (CR, LF, TAB, etc) are skipped for rendering and do not contribute to the
+    width of the text's bounding box
     * top-left corner of text bounding box is specified by `(lx, ty)` coordinates
-    * bottom-right corner of text bounding box is computed as `(lx+(8*len), ty+font_height)` where `len` is the number of characters to be drawn (excludes non-printable chars)
-    * bounding box coordinates are not explicitly computed by the function up-front but serve to define the exact rendering behavior of the function
+    * bottom-right corner of text bounding box is computed as `(lx+(8*len), ty+font_height)` where `len` is the number
+    of characters to be drawn (excludes non-printable chars)
+    * bounding box coordinates are not explicitly computed by the function up-front but serve to define the exact
+    rendering behavior of the function
     * character glyphs are rendered relative to their top-left corner
-  * `void draw_4bpp_8x8(int lx, int ty, uint32[] tile_data, uint16[] palette_data)` - draws an 8x8 tile in 4bpp color mode using the given `tile_data` from VRAM and `palette_data` from CGRAM. pixels are drawn using the current drawing operations; `color` is ignored; `luma` is used to luma-map the palette colors for display.
+  * `void draw_4bpp_8x8(int lx, int ty, uint32[] tile_data, uint16[] palette_data)` - draws an 8x8 tile in 4bpp color
+  mode using the given `tile_data` from VRAM and `palette_data` from CGRAM. pixels are drawn using the current drawing
+  operations; `color` is ignored; `luma` is used to luma-map the palette colors for display.
 
 NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp) for the latest definitions of
 script functions.
