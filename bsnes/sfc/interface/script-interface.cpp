@@ -914,7 +914,7 @@ struct ScriptInterface {
       int yes = 1;
 
       memset(&hints, 0, sizeof(addrinfo));
-      hints.ai_family = AF_UNSPEC;
+      hints.ai_family = AF_INET;
       hints.ai_socktype = SOCK_DGRAM;
       if ((*host) == "") {
         server = (const char *)nullptr;
@@ -985,11 +985,6 @@ struct ScriptInterface {
       self = new hiro::m##Name(); \
       self->construct(); \
     } \
-
-#define Bind(Name) \
-    BindShared(Name) \
-    BindConstructor(Name) \
-    BindObject(Name)
 
 #define BindSizable(Name) \
     operator hiro::mSizable*() override { \
@@ -1157,7 +1152,6 @@ struct ScriptInterface {
       }
     };
 
-#undef Bind
 #define Constructor(Name) \
     static auto create##Name() -> Name* { return new Name(); }
 
