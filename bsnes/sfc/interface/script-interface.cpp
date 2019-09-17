@@ -18,7 +18,18 @@ char* sockerr() {
   #define SEND_BUF_CAST(t) ((const char *)(t))
   #define RECV_BUF_CAST(t) ((char *)(t))
 
-__declspec(thread) char errmsg[256];
+/* gcc doesn't know _Thread_local from C11 yet */
+#ifdef __GNUC__
+# define thread_local __thread
+#elif __STDC_VERSION__ >= 201112L
+# define thread_local _Thread_local
+#elif defined(_MSC_VER)
+# define thread_local __declspec( thread )
+#else
+# error Cannot define thread_local
+#endif
+
+thread_local char errmsg[256];
 
 char* sockerr() {
   int errcode = WSAGetLastError();
