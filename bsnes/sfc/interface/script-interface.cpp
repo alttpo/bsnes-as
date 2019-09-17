@@ -12,6 +12,10 @@
 char* sockerr() {
   return strerror(errno);
 }
+
+int sockhaserr() {
+  return errno != 0;
+}
 #else
   #include <winsock2.h>
   #include <ws2tcpip.h>
@@ -39,6 +43,10 @@ char* sockerr() {
   else
     sprintf(errmsg, "error %d", errcode);
   return errmsg;
+}
+
+int sockhaserr() {
+  return WSAGetLastError() != 0;
 }
 #endif
 
@@ -926,11 +934,17 @@ struct ScriptInterface {
           // no data ready:
           return 0;
         }
+        if ((pfd.events & POLLIN) == 0) {
+          // no data ready:
+          return 0;
+        }
 
         ssize_t num = ::recvfrom(sockfd, RECV_BUF_CAST(msg->At(0)), msg->GetSize(), 0, &addr, &addrlen);
         if (num == -1) {
-          asGetActiveContext()->SetException(string{LOCATION " recvfrom: ", sockerr()}, true);
-          return 0;
+          if (sockhaserr()) {
+            asGetActiveContext()->SetException(string{LOCATION " recvfrom: ", sockerr()}, true);
+            return 0;
+          }
         }
 
         return num;
