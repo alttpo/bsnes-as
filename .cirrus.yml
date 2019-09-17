@@ -45,11 +45,13 @@ linux-x86_64-binaries_task:
 #        path: "bsnes-angelscript-nightly/**"
 
 windows-x86_64-binaries_task:
+#    container:
+#        image: ubuntu:latest
+#
+#    setup_script:
+#        - apt-get update && apt-get -y install build-essential mingw-w64 zip
     container:
-        image: ubuntu:latest
-
-    setup_script:
-        - apt-get update && apt-get -y install build-essential mingw-w64 zip
+        image: purplekarrot/mingw-w64-x86-64:latest
 
     compile_script:
         - make -C bsnes local=false build=performance platform=windows compiler="x86_64-w64-mingw32-g++" windres="x86_64-w64-mingw32-windres"
