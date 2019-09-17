@@ -6,7 +6,7 @@ linux-x86_64-binaries_task:
         - apt-get update && apt-get -y install build-essential libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev zip
 
     compile_script:
-        - make -C bsnes local=false
+        - make -C bsnes local=false build=performance
 
     package_script:
         - mkdir bsnes-angelscript-nightly
@@ -16,33 +16,33 @@ linux-x86_64-binaries_task:
         - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
         - cp -a GPLv3.txt bsnes-angelscript-nightly
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
-        - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
+        #- zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
-        path: "bsnes-angelscript-nightly.zip"
+        path: bsnes-angelscript-nightly
 
-freebsd-x86_64-binaries_task:
-    freebsd_instance:
-        image: freebsd-12-0-release-amd64
-
-    setup_script:
-        - pkg install --yes gmake gdb gcc8 pkgconf sdl2 openal-soft gtksourceview2 libXv zip
-
-    compile_script:
-        - gmake -C bsnes local=false
-
-    package_script:
-        - mkdir bsnes-angelscript-nightly
-        - mkdir bsnes-angelscript-nightly/Database
-        - mkdir bsnes-angelscript-nightly/Firmware
-        - cp -a bsnes/out/bsnes bsnes-angelscript-nightly/bsnes
-        - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
-        - cp -a GPLv3.txt bsnes-angelscript-nightly
-        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
-        - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
-
-    bsnes-angelscript-nightly_artifacts:
-        path: "bsnes-angelscript-nightly.zip"
+#freebsd-x86_64-binaries_task:
+#    freebsd_instance:
+#        image: freebsd-12-0-release-amd64
+#
+#    setup_script:
+#        - pkg install --yes gmake gdb gcc8 pkgconf sdl2 openal-soft gtksourceview2 libXv zip
+#
+#    compile_script:
+#        - gmake -C bsnes local=false
+#
+#    package_script:
+#        - mkdir bsnes-angelscript-nightly
+#        - mkdir bsnes-angelscript-nightly/Database
+#        - mkdir bsnes-angelscript-nightly/Firmware
+#        - cp -a bsnes/out/bsnes bsnes-angelscript-nightly/bsnes
+#        - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
+#        - cp -a GPLv3.txt bsnes-angelscript-nightly
+#        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
+#        - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
+#
+#    bsnes-angelscript-nightly_artifacts:
+#        path: "bsnes-angelscript-nightly.zip"
 
 windows-x86_64-binaries_task:
     container:
@@ -52,7 +52,7 @@ windows-x86_64-binaries_task:
         - apt-get update && apt-get -y install build-essential mingw-w64 zip
 
     compile_script:
-        - make -C bsnes local=false platform=windows compiler="x86_64-w64-mingw32-g++" windres="x86_64-w64-mingw32-windres"
+        - make -C bsnes local=false build=performance platform=windows compiler="x86_64-w64-mingw32-g++" windres="x86_64-w64-mingw32-windres"
 
     package_script:
         - mkdir bsnes-angelscript-nightly
@@ -62,10 +62,10 @@ windows-x86_64-binaries_task:
         - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
         - cp -a GPLv3.txt bsnes-angelscript-nightly
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
-        - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
+        #- zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
-        path: "bsnes-angelscript-nightly.zip"
+        path: "bsnes-angelscript-nightly"
 
 macOS-x86_64-binaries_task:
     osx_instance:
@@ -79,7 +79,7 @@ macOS-x86_64-binaries_task:
         - cp -a bsnes/out/bsnes.app bsnes-angelscript-nightly
         - cp -a GPLv3.txt bsnes-angelscript-nightly
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
-        - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
+        #- zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
-        path: "bsnes-angelscript-nightly.zip"
+        path: "bsnes-angelscript-nightly"
