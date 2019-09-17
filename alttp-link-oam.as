@@ -517,6 +517,10 @@ void pre_frame() {
   // Don't do anything until user fills out Settings window inputs:
   if (!settings.started) return;
 
+  // Wait until the game starts:
+  auto isRunning = bus::read_u8(0x7E0010);
+  if (isRunning < 0x06 || isRunning > 0x13) return;
+
   // Attempt to open a server socket:
   if (@sock == null) {
     try {
