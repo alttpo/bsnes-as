@@ -361,7 +361,7 @@ class Link {
         // lantern fire
         chr == 0xe3 || chr == 0xf3 || chr == 0xa4 || chr == 0xa5 || chr == 0xb2 || chr == 0xb3 || chr == 0x9c ||
         // push block
-        chr == 0x86 ||
+        chr == 0x0c ||
         // large stone
         chr == 0x4a ||
         // holding pot / bush or small stone
