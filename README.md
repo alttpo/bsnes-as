@@ -109,8 +109,6 @@ gymnastics when one is used to working with 0-based array indices which most oth
 
 ![Arrays start at 1](http://i.bittwiddlers.org/5kL.gif)
 
----
-
 UI Updates
 ==========
 
@@ -131,18 +129,12 @@ AngelScript Interface
 
 Refer to [this document](angelscript.md) for details on the AngelScript interface to bsnes.
 
-Links
------
-
-  - [Official website](https://bsnes.byuu.org)
-  - [Official git repository](https://github.com/byuu/bsnes)
-  - [Donations](https://patreon.com/byuu)
-
 Nightly Builds
---------------
+==============
 
   - [Download](https://cirrus-ci.com/github/JamesDunne/bsnes-angelscript/master)
   - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=windows-x86_64-binaries)
+  - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=windows-x86_32-binaries)
   - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=macOS-x86_64-binaries)
   - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=linux-x86_64-binaries)
   - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=freebsd-x86_64-binaries)
