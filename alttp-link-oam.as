@@ -86,12 +86,12 @@ class Sprite {
   uint8 index;
   array<uint32> tiledata;
 
-  // fetches all the OAM sprite data, assumes `ppu::oam.index` is set
-  void fetchOAM(int16 rx, int16 ry) {
-    index = ppu::oam.index;
+  // fetches all the OAM sprite data for OAM sprite at `index`
+  void fetchOAM(uint8 index, int16 rx, int16 ry) {
+    auto tile = ppu::oam[index];
 
-    int16 ax = int16(ppu::oam.x);
-    int16 ay = int16(ppu::oam.y);
+    int16 ax = int16(tile.x);
+    int16 ay = int16(tile.y);
 
     // adjust x to allow for slightly off-screen sprites:
     if (ax >= 256) ax -= 512;
@@ -100,18 +100,18 @@ class Sprite {
     x = ax - rx;
     y = ay - ry;
 
-    auto chr = ppu::oam.character;
+    auto chr = tile.character;
 
-    width = ppu::oam.width;
-    height = ppu::oam.height;
+    width  = tile.width;
+    height = tile.height;
 
-    palette = ppu::oam.palette;
-    priority = ppu::oam.priority;
-    hflip = ppu::oam.hflip;
-    vflip = ppu::oam.vflip;
+    palette  = tile.palette;
+    priority = tile.priority;
+    hflip    = tile.hflip;
+    vflip    = tile.vflip;
 
     // get base address for current tiledata:
-    auto baseaddr = ppu::tile_address(ppu::oam.nameselect);
+    auto baseaddr = ppu::tile_address(tile.nameselect);
 
     // load character from VRAM:
     int count = ppu::vram.read_sprite(baseaddr, chr, width, height, tiledata);
@@ -326,14 +326,14 @@ class Link {
     int numsprites = 0;
     for (int i = 0; i < 128; i++) {
       // access current OAM sprite index:
-      ppu::oam.index = i;
+      auto tile = ppu::oam[i];
 
       // skip OAM sprite if not enabled (X, Y coords are out of display range):
-      if (!ppu::oam.is_enabled) continue;
+      if (!tile.is_enabled) continue;
 
-      if (ppu::oam.nameselect) continue;
+      if (tile.nameselect) continue;
 
-      auto chr = ppu::oam.character;
+      auto chr = tile.character;
 
       bool body = (i >= 0x64 && i <= 0x6f);
       bool fx = (
@@ -359,16 +359,18 @@ class Link {
         // lantern fire
         chr == 0xe3 || chr == 0xf3 || chr == 0xa4 || chr == 0xa5 || chr == 0xb2 || chr == 0xb3 || chr == 0x9c
       );
+      // TODO: need to access OAM at index+1 and index+2 to grab shadow under bomb
+      bool bombs = (false);
 
       // skip OAM sprites that are not related to Link:
       if (!(body || fx || weapons)) continue;
 
-      //auto distx = int16(ppu::oam.x) - rx;
-      //auto disty = int16(ppu::oam.y) - ry;
+      //auto distx = int16(tile.x) - rx;
+      //auto disty = int16(tile.y) - ry;
 
       // fetch the sprite data from OAM and VRAM:
       Sprite sprite;
-      sprite.fetchOAM(rx, ry);
+      sprite.fetchOAM(i, rx, ry);
 
       // append the sprite to our array:
       sprites.resize(++numsprites);
