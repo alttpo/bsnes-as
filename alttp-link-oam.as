@@ -359,11 +359,17 @@ class Link {
         // lantern fire
         chr == 0xe3 || chr == 0xf3 || chr == 0xa4 || chr == 0xa5 || chr == 0xb2 || chr == 0xb3 || chr == 0x9c
       );
-      // TODO: need to access OAM at index+1 and index+2 to grab shadow under bomb
-      bool bombs = (false);
+      bool bombs = (
+        // explosion:
+        chr == 0x84 || chr == 0x86 || chr == 0x88 || chr == 0x8a || chr == 0x8c || chr == 0x9b ||
+        // bomb and its shadow:
+        (i <= 125 && chr == 0x6e && ppu::oam[i+1].character == 0x6c && ppu::oam[i+2].character == 0x6c) ||
+        (i >= 1 && ppu::oam[i-1].character == 0x6e && chr == 0x6c && ppu::oam[i+1].character == 0x6c) ||
+        (i >= 2 && ppu::oam[i-2].character == 0x6e && ppu::oam[i-1].character == 0x6c && chr == 0x6c)
+      );
 
       // skip OAM sprites that are not related to Link:
-      if (!(body || fx || weapons)) continue;
+      if (!(body || fx || weapons || bombs)) continue;
 
       //auto distx = int16(tile.x) - rx;
       //auto disty = int16(tile.y) - ry;
