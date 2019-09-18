@@ -35,8 +35,7 @@ bool sockhaserr() {
 
 thread_local char errmsg[256];
 
-char* sockerr() {
-  int errcode = WSAGetLastError();
+char* sockerr(int errcode) {
   DWORD len = FormatMessageA(FORMAT_MESSAGE_ARGUMENT_ARRAY | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errcode, 0, errmsg, 255, NULL);
   if (len != 0)
     errmsg[len] = 0;
@@ -914,6 +913,7 @@ struct ScriptInterface {
           server = (const char *)*host;
         }
 
+#if !defined(PLATFORM_WINDOWS)
         addrinfo *targetaddr;
         int status = getaddrinfo(server, string(port), &hints, &targetaddr);
         if (status != 0) {
@@ -921,7 +921,6 @@ struct ScriptInterface {
           return 0;
         }
 
-#if !defined(PLATFORM_WINDOWS)
         ssize_t num = ::sendto(
           sockfd,
           SEND_BUF_CAST(msg->At(0)),
@@ -939,6 +938,14 @@ struct ScriptInterface {
 
         return num;
 #else
+        addrinfo *targetaddr;
+        int status = getaddrinfo(server, string(port), &hints, &targetaddr);
+        if (status != 0) {
+          int le = WSAGetLastError();
+          asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: le=", le, "; ", sockerr(le)}, true);
+          return 0;
+        }
+
         // [in    ]
         WSABUF buffer;
         buffer.buf = (char *)(msg->At(0));
@@ -965,7 +972,7 @@ struct ScriptInterface {
           int le = WSAGetLastError();
           switch (le) {
             default:
-              asGetActiveContext()->SetException(string{LOCATION " WSAPoll: ", sockerr()}, true);
+              asGetActiveContext()->SetException(string{LOCATION " WSASendTo: le=", le, "; ", sockerr(le)}, true);
               return 0;
           }
         }
@@ -1016,7 +1023,7 @@ struct ScriptInterface {
             int le = WSAGetLastError();
             switch (le) {
                 default:
-                    asGetActiveContext()->SetException(string{LOCATION " WSAPoll: ", sockerr()}, true);
+                    asGetActiveContext()->SetException(string{LOCATION " WSAPoll: le=", le, "; ", sockerr(le)}, true);
                     return 0;
             }
         }
@@ -1025,12 +1032,12 @@ struct ScriptInterface {
             return 0;
         }
 
-        struct sockaddr addr;
-        socklen_t addrlen;
+        struct sockaddr_in addr;
+        int addrlen = sizeof(addr);
 
         // [in out]
         WSABUF buffer;
-        buffer.buf = RECV_BUF_CAST(msg->At(0));
+        buffer.buf = (char *)(msg->At(0));
         buffer.len = msg->GetSize();
 
         // [   out]
@@ -1057,7 +1064,7 @@ struct ScriptInterface {
               return -1;
 
             default:
-              asGetActiveContext()->SetException(string{LOCATION " WSARecvFrom: ", sockerr()}, true);
+              asGetActiveContext()->SetException(string{LOCATION " WSARecvFrom: le=", le, "; ", sockerr(le)}, true);
               return 0;
           }
         }
@@ -1082,6 +1089,7 @@ struct ScriptInterface {
         server = (const char *)*host;
       }
 
+#if !defined(PLATFORM_WINDOWS)
       addrinfo *serverinfo;
       int status = getaddrinfo(server, string(port), &hints, &serverinfo);
       if (status != 0) {
@@ -1089,7 +1097,6 @@ struct ScriptInterface {
         return nullptr;
       }
 
-#if !defined(PLATFORM_WINDOWS)
       int sockfd = socket(serverinfo->ai_family, serverinfo->ai_socktype, serverinfo->ai_protocol);
       if (sockfd == -1) {
         asGetActiveContext()->SetException(string{LOCATION " socket: ", sockerr()}, true);
@@ -1114,22 +1121,33 @@ struct ScriptInterface {
 #else
       SOCKET sock = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
       if (sock == INVALID_SOCKET) {
-        asGetActiveContext()->SetException(string{LOCATION " WSASocket: ", sockerr()}, true);
+        int le = WSAGetLastError();
+        asGetActiveContext()->SetException(string{LOCATION " WSASocket: le=", le, "; ", sockerr(le)}, true);
         return nullptr;
       }
 
       int yes = 1;
       int rc = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
       if (rc == SOCKET_ERROR) {
-        asGetActiveContext()->SetException(string{LOCATION " setsockopt: ", sockerr()}, true);
+        int le = WSAGetLastError();
+        asGetActiveContext()->SetException(string{LOCATION " setsockopt: le=", le, "; ", sockerr(le)}, true);
+        return nullptr;
+      }
+
+      addrinfo *serverinfo;
+      int status = getaddrinfo(server, string(port), &hints, &serverinfo);
+      if (status != 0) {
+        int le = WSAGetLastError();
+        asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: le=", le, "; ", sockerr(le)}, true);
         return nullptr;
       }
 
       if (server) {
         rc = bind(sock, serverinfo->ai_addr, serverinfo->ai_addrlen);
         if (rc == SOCKET_ERROR) {
+          int le = WSAGetLastError();
           closesocket(sock);
-          asGetActiveContext()->SetException(string{LOCATION " bind: ", sockerr()}, true);
+          asGetActiveContext()->SetException(string{LOCATION " bind: le=", le, "; ", sockerr(le)}, true);
           return nullptr;
         }
       }
