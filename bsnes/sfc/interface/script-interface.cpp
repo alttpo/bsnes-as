@@ -35,8 +35,7 @@ bool sockhaserr() {
 
 thread_local char errmsg[256];
 
-char* sockerr() {
-  int errcode = WSAGetLastError();
+char* sockerr(int errcode) {
   DWORD len = FormatMessageA(FORMAT_MESSAGE_ARGUMENT_ARRAY | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errcode, 0, errmsg, 255, NULL);
   if (len != 0)
     errmsg[len] = 0;
@@ -52,7 +51,7 @@ bool sockhaserr() {
 
 #define S1(x) #x
 #define S2(x) S1(x)
-#define LOCATION __FILE__ " : " S2(__LINE__)
+#define LOCATION __FILE__ ":" S2(__LINE__)
 
 #include "vga-charset.cpp"
 #include "script-string.cpp"
@@ -855,18 +854,34 @@ struct ScriptInterface {
 
   struct Net {
     struct UDPSocket {
-      int sockfd;
       addrinfo *serverinfo;
+#if !defined(PLATFORM_WINDOWS)
+      int sockfd;
 
       UDPSocket(int sockfd, addrinfo *serverinfo)
-        : sockfd(sockfd), serverinfo(serverinfo)
+              : sockfd(sockfd), serverinfo(serverinfo)
       {
         ref = 1;
       }
+
       ~UDPSocket() {
         close(sockfd);
         freeaddrinfo(serverinfo);
       }
+#else
+      SOCKET sock;
+
+      UDPSocket(SOCKET sock, addrinfo *serverinfo)
+        : sock(sock), serverinfo(serverinfo)
+      {
+        ref = 1;
+      }
+
+      ~UDPSocket() {
+        closesocket(sock);
+        freeaddrinfo(serverinfo);
+      }
+#endif
 
       int ref;
       void addRef() {
@@ -898,6 +913,7 @@ struct ScriptInterface {
           server = (const char *)*host;
         }
 
+#if !defined(PLATFORM_WINDOWS)
         addrinfo *targetaddr;
         int status = getaddrinfo(server, string(port), &hints, &targetaddr);
         if (status != 0) {
@@ -905,7 +921,14 @@ struct ScriptInterface {
           return 0;
         }
 
-        ssize_t num = ::sendto(sockfd, SEND_BUF_CAST(msg->At(0)), msg->GetSize(), 0, targetaddr->ai_addr, targetaddr->ai_addrlen);
+        ssize_t num = ::sendto(
+          sockfd,
+          SEND_BUF_CAST(msg->At(0)),
+          msg->GetSize(),
+          0,
+          targetaddr->ai_addr,
+          targetaddr->ai_addrlen
+        );
         if (num == -1) {
           asGetActiveContext()->SetException(string{LOCATION " sendto: ", sockerr()}, true);
           return 0;
@@ -914,9 +937,51 @@ struct ScriptInterface {
         freeaddrinfo(targetaddr);
 
         return num;
+#else
+        addrinfo *targetaddr;
+        int status = getaddrinfo(server, string(port), &hints, &targetaddr);
+        if (status != 0) {
+          int le = WSAGetLastError();
+          asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: le=", le, "; ", sockerr(le)}, true);
+          return 0;
+        }
+
+        // [in    ]
+        WSABUF buffer;
+        buffer.buf = (char *)(msg->At(0));
+        buffer.len = msg->GetSize();
+
+        // [   out]
+        DWORD bufsize = 0;
+        // [in    ]
+        DWORD flags = 0;
+
+        int rc = ::WSASendTo(
+          sock,
+          &buffer,
+          1,
+          &bufsize,
+          flags,
+          targetaddr->ai_addr,
+          targetaddr->ai_addrlen,
+          // no overlapped I/O
+          nullptr,
+          nullptr
+        );
+        if (rc == SOCKET_ERROR) {
+          int le = WSAGetLastError();
+          switch (le) {
+            default:
+              asGetActiveContext()->SetException(string{LOCATION " WSASendTo: le=", le, "; ", sockerr(le)}, true);
+              return 0;
+          }
+        }
+        return bufsize;
+#endif
       }
 
       int recv(CScriptArray *msg) {
+#if !defined(PLATFORM_WINDOWS)
         // TODO: send back the received-from address somehow.
         struct sockaddr addr;
         socklen_t addrlen;
@@ -948,6 +1013,63 @@ struct ScriptInterface {
         }
 
         return num;
+#else
+        WSAPOLLFD pfd;
+        pfd.fd = sock;
+        pfd.events = POLLIN;
+
+        int rc = ::WSAPoll(&pfd, 1, 0);
+        if (rc == SOCKET_ERROR) {
+            int le = WSAGetLastError();
+            switch (le) {
+                default:
+                    asGetActiveContext()->SetException(string{LOCATION " WSAPoll: le=", le, "; ", sockerr(le)}, true);
+                    return 0;
+            }
+        }
+        if (rc == 0) {
+            // no data available
+            return 0;
+        }
+
+        struct sockaddr_in addr;
+        int addrlen = sizeof(addr);
+
+        // [in out]
+        WSABUF buffer;
+        buffer.buf = (char *)(msg->At(0));
+        buffer.len = msg->GetSize();
+
+        // [   out]
+        DWORD bufsize = 0;
+        // [in out]
+        DWORD flags = 0;
+
+        rc = ::WSARecvFrom(
+          sock,
+          &buffer,
+          1,
+          &bufsize,
+          &flags,
+          (SOCKADDR *)&addr,
+          &addrlen,
+          // no overlapped I/O
+          nullptr,
+          nullptr
+        );
+        if (rc == SOCKET_ERROR) {
+          int le = WSAGetLastError();
+          switch (le) {
+            case WSAEMSGSIZE:
+              return -1;
+
+            default:
+              asGetActiveContext()->SetException(string{LOCATION " WSARecvFrom: le=", le, "; ", sockerr(le)}, true);
+              return 0;
+          }
+        }
+        return bufsize;
+#endif
       }
     };
 
@@ -956,7 +1078,6 @@ struct ScriptInterface {
 
       addrinfo hints;
       const char *server;
-      int yes = 1;
 
       memset(&hints, 0, sizeof(addrinfo));
       hints.ai_family = AF_INET;
@@ -968,6 +1089,7 @@ struct ScriptInterface {
         server = (const char *)*host;
       }
 
+#if !defined(PLATFORM_WINDOWS)
       addrinfo *serverinfo;
       int status = getaddrinfo(server, string(port), &hints, &serverinfo);
       if (status != 0) {
@@ -981,6 +1103,7 @@ struct ScriptInterface {
         return nullptr;
       }
 
+      int yes = 1;
       if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
         asGetActiveContext()->SetException(string{LOCATION " setsockopt: ", sockerr()}, true);
         return nullptr;
@@ -995,6 +1118,42 @@ struct ScriptInterface {
       }
 
       return new UDPSocket(sockfd, serverinfo);
+#else
+      SOCKET sock = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
+      if (sock == INVALID_SOCKET) {
+        int le = WSAGetLastError();
+        asGetActiveContext()->SetException(string{LOCATION " WSASocket: le=", le, "; ", sockerr(le)}, true);
+        return nullptr;
+      }
+
+      int yes = 1;
+      int rc = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+      if (rc == SOCKET_ERROR) {
+        int le = WSAGetLastError();
+        asGetActiveContext()->SetException(string{LOCATION " setsockopt: le=", le, "; ", sockerr(le)}, true);
+        return nullptr;
+      }
+
+      addrinfo *serverinfo;
+      int status = getaddrinfo(server, string(port), &hints, &serverinfo);
+      if (status != 0) {
+        int le = WSAGetLastError();
+        asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: le=", le, "; ", sockerr(le)}, true);
+        return nullptr;
+      }
+
+      if (server) {
+        rc = bind(sock, serverinfo->ai_addr, serverinfo->ai_addrlen);
+        if (rc == SOCKET_ERROR) {
+          int le = WSAGetLastError();
+          closesocket(sock);
+          asGetActiveContext()->SetException(string{LOCATION " bind: le=", le, "; ", sockerr(le)}, true);
+          return nullptr;
+        }
+      }
+
+      return new UDPSocket(sock, serverinfo);
+#endif
     }
   };
 

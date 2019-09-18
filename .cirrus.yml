@@ -3,13 +3,7 @@ linux-x86_64-binaries_task:
         image: ubuntu:latest
 
     setup_script:
-        - apt-get update && apt-get -y install build-essential libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev zip
-#
-#    container:
-#        image: purplekarrot/gcc-7:latest
-#
-#    setup_script:
-#        - apt-get update && apt-get -y install libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev
+        - apt-get update && apt-get -y install build-essential libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev
 
     compile_script:
         - make -C bsnes local=false build=performance
@@ -22,7 +16,6 @@ linux-x86_64-binaries_task:
         - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
         - cp -a GPLv3.txt bsnes-angelscript-nightly
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
-        #- zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
         path: "bsnes-angelscript-nightly/**"
@@ -32,7 +25,7 @@ linux-x86_64-binaries_task:
 #        image: freebsd-12-0-release-amd64
 #
 #    setup_script:
-#        - pkg install --yes gmake gdb gcc8 pkgconf sdl2 openal-soft gtksourceview2 libXv zip
+#        - pkg install --yes gmake gdb gcc8 pkgconf sdl2 openal-soft gtksourceview2 libXv
 #
 #    compile_script:
 #        - gmake -C bsnes local=false
@@ -45,17 +38,11 @@ linux-x86_64-binaries_task:
 #        - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
 #        - cp -a GPLv3.txt bsnes-angelscript-nightly
 #        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
-#        - zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 #
 #    bsnes-angelscript-nightly_artifacts:
 #        path: "bsnes-angelscript-nightly/**"
 
 windows-x86_64-binaries_task:
-#    container:
-#        image: ubuntu:latest
-#
-#    setup_script:
-#        - apt-get update && apt-get -y install build-essential mingw-w64 zip
     container:
         image: purplekarrot/mingw-w64-x86-64:latest
 
@@ -70,7 +57,25 @@ windows-x86_64-binaries_task:
         - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
         - cp -a GPLv3.txt bsnes-angelscript-nightly
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
-        #- zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
+
+    bsnes-angelscript-nightly_artifacts:
+        path: "bsnes-angelscript-nightly/**"
+
+windows-x86_32-binaries_task:
+    container:
+        image: purplekarrot/mingw-w64-i686:latest
+
+    compile_script:
+        - make -C bsnes local=false build=performance platform=windows compiler="i686-w64-mingw32-g++-win32" windres="i686-w64-mingw32-windres"
+
+    package_script:
+        - mkdir bsnes-angelscript-nightly
+        - mkdir bsnes-angelscript-nightly/Database
+        - mkdir bsnes-angelscript-nightly/Firmware
+        - cp -a bsnes/out/bsnes bsnes-angelscript-nightly/bsnes.exe
+        - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
+        - cp -a GPLv3.txt bsnes-angelscript-nightly
+        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
         path: "bsnes-angelscript-nightly/**"
@@ -87,7 +92,6 @@ macOS-x86_64-binaries_task:
         - cp -a bsnes/out/bsnes.app bsnes-angelscript-nightly
         - cp -a GPLv3.txt bsnes-angelscript-nightly
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
-        #- zip -r bsnes-angelscript-nightly.zip bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
         path: "bsnes-angelscript-nightly/**"
