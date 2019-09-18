@@ -198,42 +198,42 @@ class Link {
     //       If set to zero, the game will wait at a certain loop until NMI executes. The NMI interrupt generally sets
     //       it to one after it's done so that the game can continue doing things other than updating the screen.
     //   $7E001A[1] = frame counter (increments from 0x00 to 0xff and wraps)
-    ctr       = bus::read_u8 (0x7E001A);
+    ctr = bus::read_u8(0x7E001A);
     //   $7E0020[2] = Link's Y coordinate
-    y         = bus::read_u16(0x7E0020, 0x7E0021);
+    y = bus::read_u16(0x7E0020, 0x7E0021);
     //   $7E0022[2] = Link's X coordinate
-    x         = bus::read_u16(0x7E0022, 0x7E0023);
+    x = bus::read_u16(0x7E0022, 0x7E0023);
     //   $7E0024[2] = Link's Z coordinate ($FFFF usually)
-    z         = bus::read_u16(0x7E0024, 0x7E0025);
+    z = bus::read_u16(0x7E0024, 0x7E0025);
     //   $7E0026[1] = Link's walking direction (flags)
     //       still    = 0x00
     //       right    = 0x01
     //       left     = 0x02
     //       down     = 0x04
     //       up       = 0x08
-    walking   = bus::read_u8 (0x7E0026);
+    walking = bus::read_u8(0x7E0026);
     //   $7E002D[1] = animation frame transition counter; when = 0x01, `frame` is advanced
-    subframe  = bus::read_u8 (0x7E002D);
+    subframe = bus::read_u8(0x7E002D);
     //   $7E002E[1] = animation steps (cycles 0 to 5 and repeats)
-    frame     = bus::read_u8 (0x7E002E);
+    frame = bus::read_u8(0x7E002E);
     //   $7E002F[1] = Link facing direction
     //       0 = up
     //       2 = down
     //       4 = left
     //       6 = right
-    facing    = bus::read_u8 (0x7E002F);
+    facing = bus::read_u8(0x7E002F);
     //   $7E0048[1] = push state
     //       0x00 - not blocked
     //       0x02 - blocked, not yet pushing
     //       0x01 - transition from blocked to pushing or restarting pushing sequence (moves to 0x03 immediately after)
     //       0x03 - pushing (moves to 0x01 every 32 (33?) frames)
-    pushing   = bus::read_u8 (0x7E0048);
+    pushing = bus::read_u8(0x7E0048);
     //   $7E004D[1] = aux Link state (0 = normal, 1 = recoil, 2 = jumping in/out water, 3 = swimming)
-    state_aux = bus::read_u8 (0x7E004D);
+    state_aux = bus::read_u8(0x7E004D);
     //   $7E0056[1] = 1 - bunny link, 0 = normal link
-    bunny     = bus::read_u8 (0x7E0056);
+    bunny = bus::read_u8(0x7E0056);
     //   $7E0057[1] = movement speed
-    speed     = int8(bus::read_u8 (0x7E0057));
+    speed = int8(bus::read_u8(0x7E0057));
     //   $7E005D[1] = Link's State
     //       0x00 - ground state
     //       0x01 - falling into a hole
@@ -266,13 +266,13 @@ class Link {
     //       0x1C - temporary bunny 538
     //       0x1D - Rolling back from Gargoyle gate or PullForRupees object
     //       0x1E - The actual spin attack motion.
-    state     = bus::read_u8 (0x7E005D);
+    state = bus::read_u8(0x7E005D);
     //   $7E005E[1] - Link's speed setting
     //       0x00 - normal
     //       0x02 - walking (or dashing) on stairs
     //       0x0c - charging sword spin (0x50 = 1) or holding something
     //       0x10 - dashing
-    dashing   = bus::read_u8 (0x7E005E);
+    dashing = bus::read_u8(0x7E005E);
     //   $7E0067[1] = Indicates which direction Link is walking (even if not going anywhere)
     //       JSD: seems to contain the exact same value as `walking` ($26)
     //       bitwise: 0000abcd.
@@ -280,16 +280,16 @@ class Link {
     //           b - Down,
     //           c - Left,
     //           d - Right
-    direction = bus::read_u8 (0x7E0067);
+    direction = bus::read_u8(0x7E0067);
     //   $7E00EE[1] - In dungeons
     //           0 - means you’re on the upper level
     //           1 - means you’re on a lower level. Important for interaction with different tile types.
     //           3 - walking down stairwell exit (e.g. in castle escape sequence, going down stairs)
-    level     = bus::read_u8 (0x7E00EE);
+    level = bus::read_u8(0x7E00EE);
     //   $7E0308[1] - bit 7 = holding
 
     // $7E0410 = screen transitioning
-    auto screen_transition = bus::read_u8 (0x7E0410);
+    auto screen_transition = bus::read_u8(0x7E0410);
 
     // Record last screen before transition:
     if (screen_transition == 0) {
@@ -297,10 +297,10 @@ class Link {
     }
 
     // fetch various room indices and flags about where exactly Link currently is:
-    auto in_dark_world  = bus::read_u8 (0x7E0FFF);
-    auto in_dungeon     = bus::read_u8 (0x7E001B);
+    auto in_dark_world = bus::read_u8(0x7E0FFF);
+    auto in_dungeon = bus::read_u8(0x7E001B);
     auto overworld_room = bus::read_u16(0x7E008A, 0x7E008B);
-    auto dungeon_room   = bus::read_u16(0x7E00A0, 0x7E00A1);
+    auto dungeon_room = bus::read_u16(0x7E00A0, 0x7E00A1);
 
     // compute aggregated location for Link into a single 24-bit number:
     location =
@@ -312,6 +312,10 @@ class Link {
     xoffs = int16(bus::read_u16(0x7E00E2, 0x7E00E3));
     yoffs = int16(bus::read_u16(0x7E00E8, 0x7E00E9));
 
+    fetch_sprites();
+  }
+
+  void fetch_sprites() {
     // get link's on-screen coordinates in OAM space:
     int16 rx = int16(x) - xoffs;
     int16 ry = int16(y) - yoffs;
@@ -329,27 +333,38 @@ class Link {
 
       if (ppu::oam.nameselect) continue;
 
-      // not a Link-related sprite?
       auto chr = ppu::oam.character;
-      if (!(
-        (chr == 0x28) || // small shadow when jumping off a cliff
-        (chr == 0x38) || // smallest shadow appears when falling from ceiling into room (x=+4)
-        (chr == 0x6c) || // shadow under Link when walking
-        ((chr >= 0x80) && (chr < 0xE0)) || // effects
-        ((chr < 0x20) && ((chr & 15) <= 8))
-      )) continue;
 
-      auto distx = int16(ppu::oam.x) - rx;
-      auto disty = int16(ppu::oam.y) - ry;
+      bool body = (i >= 0x64 && i <= 0x6f);
+      bool fx = (
+        // sparkles around sword spin attack AND magic boomerang:
+        chr == 0x80 || chr == 0x83 || chr == 0xb7 ||
+        // exclusively for spin attack:
+        chr == 0x8c || chr == 0x93 || chr == 0xd6 || chr == 0xd7 ||  // chr == 0x92 is also used here
+        // sword tink on hard tile when poking:
+        chr == 0x90 || chr == 0x92 || chr == 0xb9 ||
+        // dash dust
+        chr == 0xa9 || chr == 0xcf || chr == 0xdf ||
+        // bush leaves
+        chr == 0x59
+      );
+      bool weapons = (
+        // arrows
+        chr == 0x2a || chr == 0x2b || chr == 0x2c || chr == 0x2d ||
+        chr == 0x3a || chr == 0x3b || chr == 0x3c || chr == 0x3d ||
+        // boomerang
+        chr == 0x26 ||
+        // magic powder
+        chr == 0x09 || chr == 0x0a ||
+        // lantern fire
+        chr == 0xe3 || chr == 0xf3 || chr == 0xa4 || chr == 0xa5 || chr == 0xb2 || chr == 0xb3 || chr == 0x9c
+      );
 
-      // exclude shadows that are not directly under Link:
-      if (chr == 0x6c || chr == 0x28) {
-        if ((disty < 17) || (disty > 18)) continue;
-        if ((distx < -1) || (distx > 9)) continue;
-      } else if (chr == 0x38) {
-        if ((disty < 17) || (disty > 18)) continue;
-        if ((distx < -1) || (distx > 9)) continue;
-      }
+      // skip OAM sprites that are not related to Link:
+      if (!(body || fx || weapons)) continue;
+
+      //auto distx = int16(ppu::oam.x) - rx;
+      //auto disty = int16(ppu::oam.y) - ry;
 
       // fetch the sprite data from OAM and VRAM:
       Sprite sprite;
