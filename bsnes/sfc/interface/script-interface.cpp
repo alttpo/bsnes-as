@@ -273,14 +273,16 @@ struct ScriptInterface {
       uint1 size;
 
       auto get_is_enabled() -> bool {
-        // easy check if below visible screen:
-        if (y > 240) return false;
+        uint sprite_width = get_width();
+        uint sprite_height = get_height();
 
-        // slightly more difficult check if off to left or right of visible screen:
-        uint sprite_width = ppu_sprite_width(ppu_sprite_base_size(), size);
-
-        uint sx = x + sprite_width & 511u;
-        return !(x != 256 && sx >= 256 && sx + 7 < 512);
+        bool inX = !(x > 256 && x + sprite_width - 1 < 512);
+        bool inY =
+          // top part of sprite is in view
+          (y >= 0 && y < 240) ||
+          // OR bottom part of sprite is in view
+          (y >= 240 && (y + sprite_height - 1 & 255) > 0 && (y + sprite_height - 1 & 255) < 240);
+        return inX && inY;
       }
 
       auto get_width() -> uint8 { return ppu_sprite_width(ppu_sprite_base_size(), size); }
