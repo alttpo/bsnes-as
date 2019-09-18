@@ -338,7 +338,7 @@ class Link {
       bool body = (i >= 0x64 && i <= 0x6f);
       bool fx = (
         // sparkles around sword spin attack AND magic boomerang:
-        chr == 0x80 || chr == 0x83 || chr == 0xb7 ||
+        chr == 0x80 || chr == 0x81 || chr == 0x82 || chr == 0x83 || chr == 0xb7 ||
         // exclusively for spin attack:
         chr == 0x8c || chr == 0x93 || chr == 0xd6 || chr == 0xd7 ||  // chr == 0x92 is also used here
         // sword tink on hard tile when poking:
@@ -346,7 +346,9 @@ class Link {
         // dash dust
         chr == 0xa9 || chr == 0xcf || chr == 0xdf ||
         // bush leaves
-        chr == 0x59
+        chr == 0x59 ||
+        // item rising from opened chest
+        chr == 0x24
       );
       bool weapons = (
         // arrows
@@ -357,7 +359,17 @@ class Link {
         // magic powder
         chr == 0x09 || chr == 0x0a ||
         // lantern fire
-        chr == 0xe3 || chr == 0xf3 || chr == 0xa4 || chr == 0xa5 || chr == 0xb2 || chr == 0xb3 || chr == 0x9c
+        chr == 0xe3 || chr == 0xf3 || chr == 0xa4 || chr == 0xa5 || chr == 0xb2 || chr == 0xb3 || chr == 0x9c ||
+        // push block
+        chr == 0x86 ||
+        // large stone
+        chr == 0x4a ||
+        // holding pot / bush or small stone
+        chr == 0x46 || chr == 0x44 ||
+        // shadow underneath pot / bush or small stone
+        (i >= 1 && (ppu::oam[i-1].character == 0x46 || ppu::oam[i-1].character == 0x44) && chr == 0x6c) ||
+        // pot shards or stone shards (large and small)
+        chr == 0x58 || chr == 0x48
       );
       bool bombs = (
         // explosion:
