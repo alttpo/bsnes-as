@@ -265,65 +265,55 @@ struct ScriptInterface {
       uint9 x;
       uint8 y;
       uint8 character;
-      uint1 nameselect;
-      uint1 vflip;
-      uint1 hflip;
+      bool  nameselect;
+      bool  vflip;
+      bool  hflip;
       uint2 priority;
       uint3 palette;
       uint1 size;
-    } oam_object;
-    uint8 oam_index;
 
-    auto oam_get_index() -> uint8 { return oam_index; }
-    auto oam_set_index(uint8 index) -> void {
-      oam_index = index;
+      auto get_is_enabled() -> bool {
+        // easy check if below visible screen:
+        if (y > 240) return false;
+
+        // slightly more difficult check if off to left or right of visible screen:
+        uint sprite_width = ppu_sprite_width(ppu_sprite_base_size(), size);
+
+        uint sx = x + sprite_width & 511u;
+        return !(x != 256 && sx >= 256 && sx + 7 < 512);
+      }
+
+      auto get_width() -> uint8 { return ppu_sprite_width(ppu_sprite_base_size(), size); }
+      auto get_height() -> uint8 { return ppu_sprite_height(ppu_sprite_base_size(), size); }
+    } oam_objects[128];
+
+    static auto oam_get_object(ScriptInterface::PPUAccess *local, uint8 index) -> ScriptInterface::PPUAccess::OAMObject* {
+      ScriptInterface::PPUAccess::OAMObject oam_object;
       if (system.fastPPU()) {
         auto po = ppufast.objects[index];
-        oam_object.x = po.x;
-        oam_object.y = po.y;
-        oam_object.character = po.character;
-        oam_object.nameselect = po.nameselect;
-        oam_object.vflip = po.vflip;
-        oam_object.hflip = po.hflip;
-        oam_object.priority = po.priority;
-        oam_object.palette = po.palette;
-        oam_object.size = po.size;
+        local->oam_objects[index].x = po.x;
+        local->oam_objects[index].y = po.y;
+        local->oam_objects[index].character = po.character;
+        local->oam_objects[index].nameselect = po.nameselect;
+        local->oam_objects[index].vflip = po.vflip;
+        local->oam_objects[index].hflip = po.hflip;
+        local->oam_objects[index].priority = po.priority;
+        local->oam_objects[index].palette = po.palette;
+        local->oam_objects[index].size = po.size;
       } else {
         auto po = ppu.obj.oam.object[index];
-        oam_object.x = po.x;
-        oam_object.y = po.y;
-        oam_object.character = po.character;
-        oam_object.nameselect = po.nameselect;
-        oam_object.vflip = po.vflip;
-        oam_object.hflip = po.hflip;
-        oam_object.priority = po.priority;
-        oam_object.palette = po.palette;
-        oam_object.size = po.size;
+        local->oam_objects[index].x = po.x;
+        local->oam_objects[index].y = po.y;
+        local->oam_objects[index].character = po.character;
+        local->oam_objects[index].nameselect = po.nameselect;
+        local->oam_objects[index].vflip = po.vflip;
+        local->oam_objects[index].hflip = po.hflip;
+        local->oam_objects[index].priority = po.priority;
+        local->oam_objects[index].palette = po.palette;
+        local->oam_objects[index].size = po.size;
       }
+      return &local->oam_objects[index];
     }
-
-    auto oam_is_enabled() -> bool {
-      // easy check if below visible screen:
-      if (oam_object.y > 240) return false;
-
-      // slightly more difficult check if off to left or right of visible screen:
-      uint sprite_width = ppu_sprite_width(ppu_sprite_base_size(), oam_object.size);
-
-      uint sx = oam_object.x + sprite_width & 511u;
-      return !(oam_object.x != 256 && sx >= 256 && sx + 7 < 512);
-    }
-
-    auto oam_get_x() -> uint16 { return oam_object.x; }
-    auto oam_get_y() -> uint8 { return oam_object.y; }
-    auto oam_get_character() -> uint8 { return oam_object.character; }
-    auto oam_get_nameselect() -> bool { return oam_object.nameselect; }
-    auto oam_get_vflip() -> bool { return oam_object.vflip; }
-    auto oam_get_hflip() -> bool { return oam_object.hflip; }
-    auto oam_get_priority() -> uint8 { return oam_object.priority; }
-    auto oam_get_palette() -> uint8 { return oam_object.palette; }
-    auto oam_get_size() -> uint8 { return oam_object.size; }
-    auto oam_get_width() -> uint8 { return ppu_sprite_width(ppu_sprite_base_size(), oam_object.size); }
-    auto oam_get_height() -> uint8 { return ppu_sprite_height(ppu_sprite_base_size(), oam_object.size); }
   } ppuAccess;
 
   struct PostFrame {
@@ -1425,21 +1415,23 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("CGRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptInterface::PPUAccess, cgram_read), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterGlobalProperty("CGRAM cgram", &scriptInterface.ppuAccess); assert(r >= 0);
 
-  r = script.engine->RegisterObjectType("OAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8 get_index()", asMETHOD(ScriptInterface::PPUAccess, oam_get_index), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "void set_index(uint8 index)", asMETHOD(ScriptInterface::PPUAccess, oam_set_index), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "bool   get_is_enabled()", asMETHOD(ScriptInterface::PPUAccess, oam_is_enabled), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint16 get_x()", asMETHOD(ScriptInterface::PPUAccess, oam_get_x), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_y()", asMETHOD(ScriptInterface::PPUAccess, oam_get_y), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_character()", asMETHOD(ScriptInterface::PPUAccess, oam_get_character), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "bool   get_nameselect()", asMETHOD(ScriptInterface::PPUAccess, oam_get_nameselect), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "bool   get_vflip()", asMETHOD(ScriptInterface::PPUAccess, oam_get_vflip), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "bool   get_hflip()", asMETHOD(ScriptInterface::PPUAccess, oam_get_hflip), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_priority()", asMETHOD(ScriptInterface::PPUAccess, oam_get_priority), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_palette()", asMETHOD(ScriptInterface::PPUAccess, oam_get_palette), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_size()", asMETHOD(ScriptInterface::PPUAccess, oam_get_size), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_width()", asMETHOD(ScriptInterface::PPUAccess, oam_get_width), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("OAM", "uint8  get_height()", asMETHOD(ScriptInterface::PPUAccess, oam_get_height), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectType    ("OAMSprite", sizeof(ScriptInterface::PPUAccess::OAMObject), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod  ("OAMSprite", "bool   get_is_enabled()", asMETHOD(ScriptInterface::PPUAccess::OAMObject, get_is_enabled), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("OAMSprite", "uint16 x", asOFFSET(ScriptInterface::PPUAccess::OAMObject, x)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("OAMSprite", "uint8  y", asOFFSET(ScriptInterface::PPUAccess::OAMObject, y)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("OAMSprite", "uint8  character", asOFFSET(ScriptInterface::PPUAccess::OAMObject, character)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("OAMSprite", "bool   nameselect", asOFFSET(ScriptInterface::PPUAccess::OAMObject, nameselect)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("OAMSprite", "bool   vflip", asOFFSET(ScriptInterface::PPUAccess::OAMObject, vflip)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("OAMSprite", "bool   hflip", asOFFSET(ScriptInterface::PPUAccess::OAMObject, hflip)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("OAMSprite", "uint8  priority", asOFFSET(ScriptInterface::PPUAccess::OAMObject, priority)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("OAMSprite", "uint8  palette", asOFFSET(ScriptInterface::PPUAccess::OAMObject, palette)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("OAMSprite", "uint8  size", asOFFSET(ScriptInterface::PPUAccess::OAMObject, size)); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod  ("OAMSprite", "uint8  get_width()", asMETHOD(ScriptInterface::PPUAccess::OAMObject, get_width), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod  ("OAMSprite", "uint8  get_height()", asMETHOD(ScriptInterface::PPUAccess::OAMObject, get_height), asCALL_THISCALL); assert(r >= 0);
+
+  r = script.engine->RegisterObjectType  ("OAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "OAMSprite @get_opIndex(uint8 chr)", asFUNCTION(ScriptInterface::PPUAccess::oam_get_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
   r = script.engine->RegisterGlobalProperty("OAM oam", &scriptInterface.ppuAccess); assert(r >= 0);
 
   {
