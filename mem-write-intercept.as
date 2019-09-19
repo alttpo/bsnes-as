@@ -16,8 +16,13 @@ void tilemap_written(uint32 addr, uint8 value) {
   writes.insertLast(TilemapWrite(addr, value));
 }
 
+void dma_written(uint32 addr, uint8 value) {
+  message("bus::write_u8(0x" + fmtHex(addr, 6) + ", 0x" + fmtHex(value, 2) + ");");
+}
+
 void init() {
-  bus::add_write_interceptor(0x7E2000, 0x2000, @tilemap_written);
+  bus::add_write_interceptor("7e:2000-3fff", 0, @tilemap_written);
+  bus::add_write_interceptor("00-3f:2100-2fff,4200-43ff", 0, @dma_written);
 }
 
 void pre_frame() {

@@ -179,10 +179,10 @@ struct ScriptInterface {
       }
     };
 
-    static auto add_write_interceptor(uint32 addr, uint32 size, asIScriptFunction *cb) -> void {
+    static auto add_write_interceptor(const string *addr, uint32 size, asIScriptFunction *cb) -> void {
       auto ctx = asGetActiveContext();
 
-      ::SuperFamicom::bus.add_write_interceptor(addr, size, registered_callback(cb, ctx));
+      ::SuperFamicom::bus.add_write_interceptor(*addr, size, registered_callback(cb, ctx));
     }
   } bus;
 
@@ -1462,7 +1462,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(ScriptInterface::Bus::write_u8), asCALL_CDECL); assert(r >= 0);
 
     r = script.engine->RegisterFuncdef("void WriteInterceptCallback(uint32 addr, uint8 value)"); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("void add_write_interceptor(uint32 addr, uint32 size, WriteInterceptCallback @cb)", asFUNCTION(ScriptInterface::Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("void add_write_interceptor(const string &in addr, uint32 size, WriteInterceptCallback @cb)", asFUNCTION(ScriptInterface::Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
   }
 
   // create ppu namespace

@@ -209,6 +209,7 @@ class GameState {
   // for intercepting writes to the tilemap:
   array<TilemapWrite@> frameWrites;
   array<TilemapWrite@> roomWrites;
+  bool intercepting;
 
   void tilemap_written(uint32 addr, uint8 value) {
     // record the tilemap write:
@@ -437,6 +438,12 @@ class GameState {
   }
 
   void fetch_room_updates() {
+    if (!intercepting) {
+      // intercept writes to the tilemap:
+      bus::add_write_interceptor("7e:2000-3fff", 0, @bus::WriteInterceptCallback(local.tilemap_written));
+      intercepting = true;
+    }
+
     auto frameWritesLen = frameWrites.length();
     if (frameWritesLen > 0) {
       // Append the writes from this frame to the list of writes for the current room:
@@ -610,11 +617,6 @@ void pre_frame() {
       settings.started = false;
       settings.show();
     }
-  }
-
-  if (!intercepting) {
-    // intercept writes to the tilemap:
-    bus::add_write_interceptor(0x7E2000, 0x2000, @bus::WriteInterceptCallback(local.tilemap_written));
   }
 
   // fetch local game state from WRAM:

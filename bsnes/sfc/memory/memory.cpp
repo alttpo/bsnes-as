@@ -9,6 +9,7 @@ Bus::~Bus() {
   if(lookup) delete[] lookup;
   if(target) delete[] target;
   if(interceptor_lookup) delete[] interceptor_lookup;
+  if(interceptor_target) delete[] interceptor_target;
 }
 
 auto Bus::reset() -> void {
@@ -38,8 +39,10 @@ auto Bus::reset_interceptors() -> void {
   }
 
   if(interceptor_lookup) delete[] interceptor_lookup;
+  if(interceptor_target) delete[] interceptor_target;
 
   interceptor_lookup = new uint8 [16 * 1024 * 1024]();
+  interceptor_target = new uint32 [16 * 1024 * 1024]();
 
   interceptor[0] = [](uint, uint8) -> void {};
 }
@@ -119,7 +122,10 @@ auto Bus::unmap(const string& addr) -> void {
   }
 }
 
-auto Bus::add_write_interceptor(uint addr_start, uint size, const function<void  (uint, uint8)> &intercept) -> uint {
+auto Bus::add_write_interceptor(
+  const string& addr, uint size,
+  const function<void  (uint, uint8)> &intercept
+) -> uint {
   uint id = 1;
   while(interceptor_counter[id]) {
     if(++id >= 256) return print("SFC error: bus intercept map exhausted\n"), 0;
@@ -127,14 +133,36 @@ auto Bus::add_write_interceptor(uint addr_start, uint size, const function<void 
 
   interceptor[id] = intercept;
 
-  for(uint addr = addr_start; addr < addr_start + size; addr++) {
-    uint pid = interceptor_lookup[addr];
-    if(pid && --interceptor_counter[pid] == 0) {
-      interceptor[pid].reset();
-    }
+  const uint base = 0;
+  const uint mask = 0;
 
-    interceptor_lookup[addr] = id;
-    interceptor_counter[id]++;
+  auto p = addr.split(":", 1L);
+  auto banks = p(0).split(",");
+  auto addrs = p(1).split(",");
+  for(auto& bank : banks) {
+    for(auto& addr : addrs) {
+      auto bankRange = bank.split("-", 1L);
+      auto addrRange = addr.split("-", 1L);
+      uint bankLo = bankRange(0).hex();
+      uint bankHi = bankRange(1, bankRange(0)).hex();
+      uint addrLo = addrRange(0).hex();
+      uint addrHi = addrRange(1, addrRange(0)).hex();
+
+      for(uint bank = bankLo; bank <= bankHi; bank++) {
+        for(uint addr = addrLo; addr <= addrHi; addr++) {
+          uint pid = interceptor_lookup[bank << 16u | addr];
+          if(pid && --interceptor_counter[pid] == 0) {
+            interceptor[pid].reset();
+          }
+
+          uint offset = reduce(bank << 16u | addr, mask);
+          if(size) offset = base + mirror(offset, size - base);
+          interceptor_lookup[bank << 16u | addr] = id;
+          interceptor_target[bank << 16u | addr] = offset;
+          interceptor_counter[id]++;
+        }
+      }
+    }
   }
 
   return id;
