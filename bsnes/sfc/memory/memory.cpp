@@ -16,24 +16,31 @@ auto Bus::reset() -> void {
     reader[id].reset();
     writer[id].reset();
     counter[id] = 0;
-    // [jsd]
-    interceptor[id].reset();
-    interceptor_counter[id] = 0;
   }
 
   if(lookup) delete[] lookup;
   if(target) delete[] target;
-  // [jsd]
-  if(interceptor_lookup) delete[] interceptor_lookup;
 
   lookup = new uint8 [16 * 1024 * 1024]();
   target = new uint32[16 * 1024 * 1024]();
-  // [jsd]
-  interceptor_lookup = new uint8 [16 * 1024 * 1024]();
 
   reader[0] = [](uint, uint8 data) -> uint8 { return data; };
   writer[0] = [](uint, uint8) -> void {};
+
   // [jsd]
+  reset_interceptors();
+}
+
+auto Bus::reset_interceptors() -> void {
+  for(uint id : range(256)) {
+    interceptor[id].reset();
+    interceptor_counter[id] = 0;
+  }
+
+  if(interceptor_lookup) delete[] interceptor_lookup;
+
+  interceptor_lookup = new uint8 [16 * 1024 * 1024]();
+
   interceptor[0] = [](uint, uint8) -> void {};
 }
 

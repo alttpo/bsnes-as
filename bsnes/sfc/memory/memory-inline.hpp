@@ -31,3 +31,7 @@ auto Bus::write(uint addr, uint8 data) -> void {
   interceptor[interceptor_lookup[addr]](addr, data);
   return writer[lookup[addr]](target[addr], data);
 }
+
+auto Bus::write_no_intercept(uint addr, uint8 data) -> void {
+  return writer[lookup[addr]](target[addr], data);
+}

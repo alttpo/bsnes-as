@@ -61,22 +61,6 @@ typedef uint16 r5g5b5;
 // B5G5R5 is used by the SNES system
 typedef uint16 b5g5r5;
 
-static auto script_bus_read_u8(uint32 addr) -> uint8 {
-  return bus.read(addr, 0);
-}
-
-static auto script_bus_write_u8(uint32 addr, uint8 data) -> void {
-  bus.write(addr, data);
-}
-
-static auto script_bus_read_u16(uint32 addr0, uint32 addr1) -> uint16 {
-  return bus.read(addr0, 0) | (bus.read(addr1,0) << 8u);
-}
-
-static auto script_message(const string *msg) -> void {
-  platform->scriptMessage(msg);
-}
-
 struct ScriptInterface;
 extern ScriptInterface scriptInterface;
 
@@ -99,6 +83,10 @@ struct ScriptInterface {
     //printf("sect: %s\n", function->GetScriptSectionName());
     // Determine the line number where the exception occurred
     //printf("line: %d\n", ctx->GetExceptionLineNumber());
+  }
+
+  static auto message(const string *msg) -> void {
+    platform->scriptMessage(msg);
   }
 
   static void uint8_array_append_uint16(CScriptArray *array, const uint16 *value) {
@@ -150,14 +138,36 @@ struct ScriptInterface {
   }
 
   struct Bus {
+    static auto read_u8(uint32 addr) -> uint8 {
+      return ::SuperFamicom::bus.read(addr, 0);
+    }
+
+    static auto write_u8(uint32 addr, uint8 data) -> void {
+      // prevent scripts from intercepting their own writes:
+      ::SuperFamicom::bus.write_no_intercept(addr, data);
+    }
+
+    static auto read_u16(uint32 addr0, uint32 addr1) -> uint16 {
+      return ::SuperFamicom::bus.read(addr0, 0) | (::SuperFamicom::bus.read(addr1,0) << 8u);
+    }
+
     struct registered_callback {
       asIScriptFunction *cb;
       asIScriptContext  *ctx;
 
       registered_callback(asIScriptFunction *cb, asIScriptContext *ctx) : cb(cb), ctx(ctx) {
+        //printf("(%p) [%p]->AddRef()\n", this, cb);
         cb->AddRef();
       }
+      registered_callback(const registered_callback& other) : cb(other.cb), ctx(other.ctx) {
+        //printf("(%p) [%p]->AddRef()\n", this, cb);
+        cb->AddRef();
+      }
+      registered_callback(const registered_callback&& other) : cb(other.cb), ctx(other.ctx) {
+        //printf("(%p) moved in [%p]\n", this, cb);
+      }
       ~registered_callback() {
+        //printf("(%p) [%p]->Release()\n", this, cb);
         cb->Release();
       }
 
@@ -1442,14 +1452,14 @@ auto Interface::registerScriptDefs() -> void {
   registerScriptString();
 
   // global function to write debug messages:
-  r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(script_message), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(ScriptInterface::message), asCALL_CDECL); assert(r >= 0);
 
   // default bus memory functions:
   {
     r = script.engine->SetDefaultNamespace("bus"); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(script_bus_read_u8), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32 addr0, uint32 addr1)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(script_bus_write_u8), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(ScriptInterface::Bus::read_u8), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32 addr0, uint32 addr1)", asFUNCTION(ScriptInterface::Bus::read_u16), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(ScriptInterface::Bus::write_u8), asCALL_CDECL); assert(r >= 0);
 
     r = script.engine->RegisterFuncdef("void WriteInterceptCallback(uint32 addr, uint8 value)"); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("void add_write_interceptor(uint32 addr, uint32 size, WriteInterceptCallback @cb)", asFUNCTION(ScriptInterface::Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
@@ -1746,6 +1756,10 @@ auto Interface::loadScript(string location) -> void {
 }
 
 auto Interface::unloadScript() -> void {
+  // free any references to script callbacks:
+  ::SuperFamicom::bus.reset_interceptors();
+  // TODO: GUI callbacks
+
   if (script.module) {
     script.module->Discard();
     script.module = nullptr;
