@@ -149,6 +149,33 @@ struct ScriptInterface {
     }
   }
 
+  struct Bus {
+    struct registered_callback {
+      asIScriptFunction *cb;
+      asIScriptContext  *ctx;
+
+      registered_callback(asIScriptFunction *cb, asIScriptContext *ctx) : cb(cb), ctx(ctx) {
+        cb->AddRef();
+      }
+      ~registered_callback() {
+        cb->Release();
+      }
+
+      auto operator()(uint addr, uint8 new_value) -> void {
+        ctx->Prepare(cb);
+        ctx->SetArgDWord(0, addr);
+        ctx->SetArgByte(1, new_value);
+        ctx->Execute();
+      }
+    };
+
+    static auto add_write_interceptor(uint32 addr, uint32 size, asIScriptFunction *cb) -> void {
+      auto ctx = asGetActiveContext();
+
+      ::SuperFamicom::bus.add_write_interceptor(addr, size, registered_callback(cb, ctx));
+    }
+  } bus;
+
   struct PPUAccess {
     // Global functions related to PPU:
     static auto ppu_rgb(uint8 r, uint8 g, uint8 b) -> b5g5r5 {
@@ -1418,10 +1445,15 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(script_message), asCALL_CDECL); assert(r >= 0);
 
   // default bus memory functions:
-  r = script.engine->SetDefaultNamespace("bus"); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(script_bus_read_u8), asCALL_CDECL); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32 addr0, uint32 addr1)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(script_bus_write_u8), asCALL_CDECL); assert(r >= 0);
+  {
+    r = script.engine->SetDefaultNamespace("bus"); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(script_bus_read_u8), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32 addr0, uint32 addr1)", asFUNCTION(script_bus_read_u16), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(script_bus_write_u8), asCALL_CDECL); assert(r >= 0);
+
+    r = script.engine->RegisterFuncdef("void WriteInterceptCallback(uint32 addr, uint8 value)"); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("void add_write_interceptor(uint32 addr, uint32 size, WriteInterceptCallback @cb)", asFUNCTION(ScriptInterface::Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
+  }
 
   // create ppu namespace
   r = script.engine->SetDefaultNamespace("ppu"); assert(r >= 0);
@@ -1644,7 +1676,7 @@ auto Interface::registerScriptDefs() -> void {
 
     // LineEdit
     // Register a simple funcdef for the callback
-    r = script.engine->RegisterFuncdef("void LineEditCallback(LineEdit @self)");
+    r = script.engine->RegisterFuncdef("void LineEditCallback(LineEdit @self)"); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_FACTORY, "LineEdit@ f()", asFUNCTION(ScriptInterface::GUI::createLineEdit), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::LineEdit, ref_add), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("LineEdit", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::LineEdit, ref_release), asCALL_THISCALL); assert( r >= 0 );
@@ -1663,7 +1695,7 @@ auto Interface::registerScriptDefs() -> void {
 
     // Button
     // Register a simple funcdef for the callback
-    r = script.engine->RegisterFuncdef("void ButtonCallback(Button @self)");
+    r = script.engine->RegisterFuncdef("void ButtonCallback(Button @self)"); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Button", asBEHAVE_FACTORY, "Button@ f()", asFUNCTION(ScriptInterface::GUI::createButton), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Button", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::Button, ref_add), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("Button", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::Button, ref_release), asCALL_THISCALL); assert( r >= 0 );

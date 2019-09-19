@@ -37,6 +37,8 @@ struct Bus {
   ) -> uint;
   auto unmap(const string& address) -> void;
 
+  auto add_write_interceptor(uint addr_start, uint size, const function<void  (uint, uint8)> &intercept) -> uint;
+
 private:
   uint8* lookup = nullptr;
   uint32* target = nullptr;
@@ -44,6 +46,11 @@ private:
   function<uint8 (uint, uint8)> reader[256];
   function<void  (uint, uint8)> writer[256];
   uint counter[256];
+
+  // [jsd] for intercepting writes:
+  uint8* interceptor_lookup = nullptr;
+  function<void  (uint, uint8)> interceptor[256];
+  uint interceptor_counter[256];
 };
 
 extern Bus bus;

@@ -8,6 +8,7 @@ Bus bus;
 Bus::~Bus() {
   if(lookup) delete[] lookup;
   if(target) delete[] target;
+  if(interceptor_lookup) delete[] interceptor_lookup;
 }
 
 auto Bus::reset() -> void {
@@ -15,16 +16,25 @@ auto Bus::reset() -> void {
     reader[id].reset();
     writer[id].reset();
     counter[id] = 0;
+    // [jsd]
+    interceptor[id].reset();
+    interceptor_counter[id] = 0;
   }
 
   if(lookup) delete[] lookup;
   if(target) delete[] target;
+  // [jsd]
+  if(interceptor_lookup) delete[] interceptor_lookup;
 
   lookup = new uint8 [16 * 1024 * 1024]();
   target = new uint32[16 * 1024 * 1024]();
+  // [jsd]
+  interceptor_lookup = new uint8 [16 * 1024 * 1024]();
 
   reader[0] = [](uint, uint8 data) -> uint8 { return data; };
   writer[0] = [](uint, uint8) -> void {};
+  // [jsd]
+  interceptor[0] = [](uint, uint8) -> void {};
 }
 
 auto Bus::map(
@@ -100,6 +110,27 @@ auto Bus::unmap(const string& addr) -> void {
       }
     }
   }
+}
+
+auto Bus::add_write_interceptor(uint addr_start, uint size, const function<void  (uint, uint8)> &intercept) -> uint {
+  uint id = 1;
+  while(interceptor_counter[id]) {
+    if(++id >= 256) return print("SFC error: bus intercept map exhausted\n"), 0;
+  }
+
+  interceptor[id] = intercept;
+
+  for(uint addr = addr_start; addr < addr_start + size; addr++) {
+    uint pid = interceptor_lookup[addr];
+    if(pid && --interceptor_counter[pid] == 0) {
+      interceptor[pid].reset();
+    }
+
+    interceptor_lookup[addr] = id;
+    interceptor_counter[id]++;
+  }
+
+  return id;
 }
 
 }
