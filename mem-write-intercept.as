@@ -11,13 +11,13 @@ class TilemapWrite {
   }
 };
 
-void init() {
-  bus::add_write_interceptor(0x7E2000, 0x2000, @tilemap_written);
-}
-
 void tilemap_written(uint32 addr, uint8 value) {
   // record the tilemap write:
   writes.insertLast(TilemapWrite(addr, value));
+}
+
+void init() {
+  bus::add_write_interceptor(0x7E2000, 0x2000, @tilemap_written);
 }
 
 void pre_frame() {

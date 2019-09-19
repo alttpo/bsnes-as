@@ -2,6 +2,10 @@
 net::UDPSocket@ sock;
 SettingsWindow @settings;
 
+void init() {
+  @settings = SettingsWindow();
+}
+
 class SettingsWindow {
   private gui::Window @window;
   private gui::LineEdit @txtServerIP;
@@ -162,9 +166,19 @@ class Sprite {
   }
 };
 
+class TilemapWrite {
+  uint32 addr;
+  uint8 value;
+
+  TilemapWrite(uint32 addr, uint8 value) {
+    this.addr = addr;
+    this.value = value;
+  }
+};
+
 enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
 
-class Link {
+class GameState {
   // graphics data for current frame:
   array<array<uint16>> palettes(8, array<uint16>(16));
   array<Sprite@> sprites;
@@ -191,6 +205,15 @@ class Link {
   uint8 dashing;
   uint8 direction;
   uint8 level;
+
+  // for intercepting writes to the tilemap:
+  array<TilemapWrite@> frameWrites;
+  array<TilemapWrite@> roomWrites;
+
+  void tilemap_written(uint32 addr, uint8 value) {
+    // record the tilemap write:
+    frameWrites.insertLast(TilemapWrite(addr, value));
+  }
 
   void fetch() {
     // RAM locations ($7E00xx):
@@ -302,17 +325,25 @@ class Link {
     auto overworld_room = bus::read_u16(0x7E008A, 0x7E008B);
     auto dungeon_room = bus::read_u16(0x7E00A0, 0x7E00A1);
 
+    auto previous_location = location;
+
     // compute aggregated location for Link into a single 24-bit number:
     location =
       uint32(in_dark_world & 1) << 17 |
       uint32(in_dungeon & 1) << 16 |
       uint32(in_dungeon != 0 ? dungeon_room : overworld_room);
 
+    // clear out list of room tilemap writes if location changed:
+    if (previous_location != location) {
+      roomWrites.resize(0);
+    }
+
     // get screen x,y offset by reading BG2 scroll registers:
     xoffs = int16(bus::read_u16(0x7E00E2, 0x7E00E3));
     yoffs = int16(bus::read_u16(0x7E00E8, 0x7E00E9));
 
     fetch_sprites();
+    fetch_room_updates();
   }
 
   void fetch_sprites() {
@@ -405,6 +436,17 @@ class Link {
     }
   }
 
+  void fetch_room_updates() {
+    auto frameWritesLen = frameWrites.length();
+    if (frameWritesLen > 0) {
+      // Append the writes from this frame to the list of writes for the current room:
+      if (frameWritesLen <= 32) {
+        roomWrites.insertLast(frameWrites);
+      }
+      frameWrites.resize(0);
+    }
+  }
+
   bool can_see(uint32 other_location) {
     if (location == other_location) return true;
 
@@ -432,26 +474,21 @@ class Link {
       r.insertLast(palettes[i]);
     }
 
-    if (false) {
-      // Serialize room modifications:
-      auto mod_count = bus::read_u16(0x7E04AC, 0x7E04AD);
+    {
+      // Serialize current room tilemap writes:
+      auto mod_count = uint8(roomWrites.length());
       r.insertLast(mod_count);
       for (uint i = 0; i < mod_count; i++) {
-        r.insertLast(bus::read_u8(0x7EF800 + i));
-      }
-      for (uint i = 0; i < mod_count; i++) {
-        r.insertLast(bus::read_u8(0x7EFA00 + i));
-      }
-    }
-    if (false) {
-      for (uint i = 0; i < 0x7EFCC0 - 0x7EF580; i++) {
-        r.insertLast(bus::read_u8(0x7EF580 + i));
+        r.insertLast(uint8(roomWrites[i].addr & 0xFF));
+        r.insertLast(uint8((roomWrites[i].addr >> 8) & 0xFF));
+        r.insertLast(uint8((roomWrites[i].addr >> 16) & 0xFF));
+        r.insertLast(roomWrites[i].value);
       }
     }
   }
 
   void sendto(string server, int port) {
-    // send updated state for our Link to player 2:
+    // send updated state for our GameState to remote player:
     array<uint8> msg;
     serialize(msg);
     //message("sent " + fmtInt(msg.length()));
@@ -496,21 +533,14 @@ class Link {
         }
       }
 
-      if (false) {
-        // Read room modifications:
-        auto mod_count = uint16(r[c++]) | (uint16(r[c++]) << 8);
-        bus::write_u8(0x7E04AC, mod_count & 0xFF);
-        bus::write_u8(0x7E04AD, mod_count >> 8);
+      {
+        // Read room tilemap writes:
+        auto mod_count = r[c++];
+        roomWrites.resize(mod_count);
         for (uint i = 0; i < mod_count; i++) {
-          bus::write_u8(0x7EF800 + i, r[c++]);
-        }
-        for (uint i = 0; i < mod_count; i++) {
-          bus::write_u8(0x7EFA00 + i, r[c++]);
-        }
-      }
-      if (false) {
-        for (uint i = 0; i < 0x7EFCC0 - 0x7EF580; i++) {
-          bus::write_u8(0x7EF580 + i, r[c++]);
+          auto addr = uint32(r[c++]) | (uint32(r[c++]) << 8) | (uint32(r[c++]) << 16);
+          auto value = r[c++];
+          @roomWrites[i] = TilemapWrite(addr, value);
         }
       }
 
@@ -543,18 +573,31 @@ class Link {
 
     ppu::extra.count = ppu::extra.count + sprites.length();
   }
+
+  void updateTilemap() {
+    auto len = roomWrites.length();
+    message("tilemap writes " + fmtInt(len));
+    for (uint i = 0; i < len; i++) {
+      auto addr = roomWrites[i].addr;
+      auto value = roomWrites[i].value;
+      message("  [0x" + fmtHex(addr, 6) + "] <- 0x" + fmtHex(value, 2));
+      bus::write_u8(addr, value);
+    }
+  }
 };
 
-Link link;
-Link player2;
+GameState local;
+GameState remote;
+
+bool intercepting = false;
 
 void pre_frame() {
-  // Don't do anything until user fills out Settings window inputs:
-  if (!settings.started) return;
-
   // Wait until the game starts:
   auto isRunning = bus::read_u8(0x7E0010);
   if (isRunning < 0x06 || isRunning > 0x13) return;
+
+  // Don't do anything until user fills out Settings window inputs:
+  if (!settings.started) return;
 
   // Attempt to open a server socket:
   if (@sock == null) {
@@ -569,33 +612,38 @@ void pre_frame() {
     }
   }
 
-  // TODO for ALTTP:
-  // TODO: use animation state + frame to properly position extra-tiles
+  if (!intercepting) {
+    // intercept writes to the tilemap:
+    bus::add_write_interceptor(0x7E2000, 0x2000, @bus::WriteInterceptCallback(local.tilemap_written));
+  }
 
-  // fetch our Link's current state from RAM:
-  link.fetch();
+  // fetch local game state from WRAM:
+  local.fetch();
 
-  // receive network update from server:
-  player2.receive();
+  // receive network update from remote player:
+  remote.receive();
 
   // reset number of extra tiles to render to 0:
   ppu::extra.count = 0;
 
-  // only draw player 2 if location (room, dungeon, light/dark world) is identical to current player's:
-  if (link.can_see(player2.location)) {
+  // only draw remote player if location (room, dungeon, light/dark world) is identical to local player's:
+  if (local.can_see(remote.location)) {
     // draw Link on screen; overly simplistic drawing code here does not accurately render Link in all poses.
     // need to determine Link's current animation frame from somewhere in RAM.
 
     // subtract BG2 offset from sprite x,y coords to get local screen coords:
-    int16 rx = int16(player2.x) - link.xoffs;
-    int16 ry = int16(player2.y) - link.yoffs;
+    int16 rx = int16(remote.x) - local.xoffs;
+    int16 ry = int16(remote.y) - local.yoffs;
 
-    // draw player 2 relative to current BG offsets:
-    player2.render(rx, ry);
+    // update local tilemap according to remote player's writes:
+    remote.updateTilemap();
+
+    // draw remote player relative to current BG offsets:
+    remote.render(rx, ry);
   }
 
   // send updated state for our Link to player 2:
-  link.sendto(settings.clientIP, 4590);
+  local.sendto(settings.clientIP, 4590);
 }
 
 void post_frame() {
@@ -609,19 +657,15 @@ void post_frame() {
   }
   */
   /*
-  ppu::frame.text( 0, 0, fmtHex(link.state,     2));
-  ppu::frame.text(20, 0, fmtHex(link.walking,   1));
-  ppu::frame.text(32, 0, fmtHex(link.facing,    1));
-  ppu::frame.text(44, 0, fmtHex(link.state_aux, 1));
-  ppu::frame.text(56, 0, fmtHex(link.frame,     1));
-  ppu::frame.text(68, 0, fmtHex(link.dashing,   1));
-  ppu::frame.text(80, 0, fmtHex(link.speed,     2));
+  ppu::frame.text( 0, 0, fmtHex(local.state,     2));
+  ppu::frame.text(20, 0, fmtHex(local.walking,   1));
+  ppu::frame.text(32, 0, fmtHex(local.facing,    1));
+  ppu::frame.text(44, 0, fmtHex(local.state_aux, 1));
+  ppu::frame.text(56, 0, fmtHex(local.frame,     1));
+  ppu::frame.text(68, 0, fmtHex(local.dashing,   1));
+  ppu::frame.text(80, 0, fmtHex(local.speed,     2));
 
   ppu::frame.text(108, 0, fmtHex(bus::read_u8(0x7E00EE), 2));
   ppu::frame.text(128, 0, fmtHex(bus::read_u8(0x7E00EF), 2));
   */
-}
-
-void init() {
-  @settings = SettingsWindow();
 }
