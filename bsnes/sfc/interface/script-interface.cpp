@@ -1,5 +1,5 @@
 
-//#include <sfc/sfc.hpp>
+#include <sfc/sfc.hpp>
 
 #if !defined(PLATFORM_WINDOWS)
   #include <sys/types.h>
@@ -315,6 +315,32 @@ struct ScriptInterface {
         local->oam_objects[index].size = po.size;
       }
       return &local->oam_objects[index];
+    }
+
+    static auto oam_set_object(ScriptInterface::PPUAccess *local, uint8 index, ScriptInterface::PPUAccess::OAMObject *obj) -> void {
+      if (system.fastPPU()) {
+        auto &po = ppufast.objects[index];
+        po.x = obj->x;
+        po.y = obj->y;
+        po.character = obj->character;
+        po.nameselect = obj->nameselect;
+        po.vflip = obj->vflip;
+        po.hflip = obj->hflip;
+        po.priority = obj->priority;
+        po.palette = obj->palette;
+        po.size = obj->size;
+      } else {
+        auto &po = ppu.obj.oam.object[index];
+        po.x = obj->x;
+        po.y = obj->y;
+        po.character = obj->character;
+        po.nameselect = obj->nameselect;
+        po.vflip = obj->vflip;
+        po.hflip = obj->hflip;
+        po.priority = obj->priority;
+        po.palette = obj->palette;
+        po.size = obj->size;
+      }
     }
   } ppuAccess;
 
@@ -1433,6 +1459,7 @@ auto Interface::registerScriptDefs() -> void {
 
   r = script.engine->RegisterObjectType  ("OAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "OAMSprite @get_opIndex(uint8 chr)", asFUNCTION(ScriptInterface::PPUAccess::oam_get_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("OAM", "void set_opIndex(uint8 chr, OAMSprite @sprite)", asFUNCTION(ScriptInterface::PPUAccess::oam_set_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   r = script.engine->RegisterGlobalProperty("OAM oam", &scriptInterface.ppuAccess); assert(r >= 0);
 
