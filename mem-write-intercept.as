@@ -21,12 +21,29 @@ void dma_written(uint32 addr, uint8 value) {
   message("bus::write_u8(0x" + fmtHex(addr, 6) + ", 0x" + fmtHex(value, 2) + ");");
 }
 
+uint8 vmaddrl, vmaddrh;
+
 void ppu_written(uint32 addr, uint8 value) {
-  message("bus::write_u8(0x" + fmtHex(addr, 6) + ", 0x" + fmtHex(value, 2) + ");");
+  if (addr == 0x2116) vmaddrl = value;
+  else if (addr == 0x2117) vmaddrh = value;
+  else message("bus::write_u8(0x" + fmtHex(addr, 6) + ", 0x" + fmtHex(value, 2) + ");");
 }
 
 void dma_interceptor(cpu::DMAIntercept @dma) {
-  message("DMA[" + fmtInt(dma.channel) + "]...");
+  // Find DMA writes to tile memory in VRAM:
+  if (
+    // ALTTP specific:
+    dma.sourceBank == 0x00 && dma.sourceAddress >= 0x1006 && dma.sourceAddress < 0x1100 &&
+    // writing to 0x2118, 0x2119 VMDATAL & VMDATAH regs:
+    dma.targetAddress == 0x18 &&
+    vmaddrh < 0x40
+  ) {
+    message("DMA[" + fmtInt(dma.channel) + "] from 0x" +
+      fmtHex(dma.sourceBank, 2) + fmtHex(dma.sourceAddress, 4) +
+      " to 0x" + fmtHex(0x2100 | uint16(dma.targetAddress), 2) +
+      " (ppu 0x" + fmtHex(uint16(vmaddrh) << 8 | vmaddrl, 4) + ") size 0x" + fmtHex(dma.transferSize, 4)
+    );
+  }
 }
 
 void init() {
