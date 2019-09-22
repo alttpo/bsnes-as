@@ -67,6 +67,42 @@ struct CPU : Processor::WDC65816, Thread, PPUcounter {
   //serialization.cpp
   auto serialize(serializer&) -> void;
 
+  // [jsd] DMA interception for scripts
+  struct DMAIntercept {
+    uint3 channel = 0;
+
+    //$43x0
+    uint3 transferMode = 7;
+    uint1 fixedTransfer = 1;
+    uint1 reverseTransfer = 1;
+    uint1 unused = 1;
+    uint1 indirect = 1;
+    uint1 direction = 1;
+
+    //$43x1
+    uint8 targetAddress = 0xff;
+
+    //$43x2-$43x3
+    uint16 sourceAddress = 0xffff;
+
+    //$43x4
+    uint8 sourceBank = 0xff;
+
+    //$43x5-$43x6
+    union {
+      uint16 transferSize;
+      uint16 indirectAddress;
+    };
+
+    //$43x7
+    uint8 indirectBank = 0xff;
+  };
+
+  auto register_dma_interceptor(
+    const function<void (const CPU::DMAIntercept &)> &intercept
+  ) -> void;
+  auto reset_dma_interceptor() -> void;
+
   uint8 wram[128 * 1024];
   vector<Thread*> coprocessors;
 
@@ -238,6 +274,8 @@ private:
 
     Channel() : transferSize(0xffff) {}
   } channels[8];
+
+  function<void (const CPU::DMAIntercept &)> dma_interceptor;
 };
 
 extern CPU cpu;

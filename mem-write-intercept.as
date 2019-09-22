@@ -13,22 +13,32 @@ class TilemapWrite {
 
 void tilemap_written(uint32 addr, uint8 value) {
   // record the tilemap write:
-  writes.insertLast(TilemapWrite(addr, value));
+  //writes.insertLast(TilemapWrite(addr, value));
+  message("0x" + fmtHex(addr, 6) + " <- 0x" + fmtHex(value, 2));
 }
 
 void dma_written(uint32 addr, uint8 value) {
   message("bus::write_u8(0x" + fmtHex(addr, 6) + ", 0x" + fmtHex(value, 2) + ");");
 }
 
+void ppu_written(uint32 addr, uint8 value) {
+  message("bus::write_u8(0x" + fmtHex(addr, 6) + ", 0x" + fmtHex(value, 2) + ");");
+}
+
+void dma_interceptor(cpu::DMAIntercept @dma) {
+  message("DMA[" + fmtInt(dma.channel) + "]...");
+}
+
 void init() {
   bus::add_write_interceptor("7e:2000-3fff", 0, @tilemap_written);
-  bus::add_write_interceptor("00-3f:2100-2fff,4200-43ff", 0, @dma_written);
+  bus::add_write_interceptor("00-3f,80-bf:2116-2119", 0, @ppu_written);
+  cpu::register_dma_interceptor(@dma_interceptor);
 }
 
 void pre_frame() {
   auto len = writes.length();
+  message("pre_frame writes " + fmtInt(len));
   if (len > 0) {
-    message("pre_frame writes " + fmtInt(len));
     if (len <= 32) {
       for (uint i = 0; i < len; i++) {
         auto write = writes[i];

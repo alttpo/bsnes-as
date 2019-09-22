@@ -64,6 +64,10 @@ auto CPU::load() -> bool {
   version = configuration.system.cpu.version;
   if(version < 1) version = 1;
   if(version > 2) version = 2;
+
+  // [jsd]
+  reset_dma_interceptor();
+
   return true;
 }
 

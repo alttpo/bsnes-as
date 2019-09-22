@@ -151,22 +151,22 @@ struct ScriptInterface {
       return ::SuperFamicom::bus.read(addr0, 0) | (::SuperFamicom::bus.read(addr1,0) << 8u);
     }
 
-    struct registered_callback {
+    struct write_interceptor {
       asIScriptFunction *cb;
       asIScriptContext  *ctx;
 
-      registered_callback(asIScriptFunction *cb, asIScriptContext *ctx) : cb(cb), ctx(ctx) {
+      write_interceptor(asIScriptFunction *cb, asIScriptContext *ctx) : cb(cb), ctx(ctx) {
         //printf("(%p) [%p]->AddRef()\n", this, cb);
         cb->AddRef();
       }
-      registered_callback(const registered_callback& other) : cb(other.cb), ctx(other.ctx) {
+      write_interceptor(const write_interceptor& other) : cb(other.cb), ctx(other.ctx) {
         //printf("(%p) [%p]->AddRef()\n", this, cb);
         cb->AddRef();
       }
-      registered_callback(const registered_callback&& other) : cb(other.cb), ctx(other.ctx) {
+      write_interceptor(const write_interceptor&& other) : cb(other.cb), ctx(other.ctx) {
         //printf("(%p) moved in [%p]\n", this, cb);
       }
-      ~registered_callback() {
+      ~write_interceptor() {
         //printf("(%p) [%p]->Release()\n", this, cb);
         cb->Release();
       }
@@ -182,7 +182,40 @@ struct ScriptInterface {
     static auto add_write_interceptor(const string *addr, uint32 size, asIScriptFunction *cb) -> void {
       auto ctx = asGetActiveContext();
 
-      ::SuperFamicom::bus.add_write_interceptor(*addr, size, registered_callback(cb, ctx));
+      ::SuperFamicom::bus.add_write_interceptor(*addr, size, write_interceptor(cb, ctx));
+    }
+
+    struct dma_interceptor {
+      asIScriptFunction *cb;
+      asIScriptContext  *ctx;
+
+      dma_interceptor(asIScriptFunction *cb, asIScriptContext *ctx) : cb(cb), ctx(ctx) {
+        //printf("(%p) [%p]->AddRef()\n", this, cb);
+        cb->AddRef();
+      }
+      dma_interceptor(const dma_interceptor& other) : cb(other.cb), ctx(other.ctx) {
+        //printf("(%p) [%p]->AddRef()\n", this, cb);
+        cb->AddRef();
+      }
+      dma_interceptor(const dma_interceptor&& other) : cb(other.cb), ctx(other.ctx) {
+        //printf("(%p) moved in [%p]\n", this, cb);
+      }
+      ~dma_interceptor() {
+        //printf("(%p) [%p]->Release()\n", this, cb);
+        cb->Release();
+      }
+
+      auto operator()(const CPU::DMAIntercept &dma) -> void {
+        ctx->Prepare(cb);
+        ctx->SetArgObject(0, (void *)&dma);
+        ctx->Execute();
+      }
+    };
+
+    static auto register_dma_interceptor(asIScriptFunction *cb) -> void {
+      auto ctx = asGetActiveContext();
+
+      ::SuperFamicom::cpu.register_dma_interceptor(dma_interceptor(cb, ctx));
     }
   } bus;
 
@@ -1465,6 +1498,27 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterGlobalFunction("void add_write_interceptor(const string &in addr, uint32 size, WriteInterceptCallback @cb)", asFUNCTION(ScriptInterface::Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
   }
 
+  {
+    r = script.engine->SetDefaultNamespace("cpu"); assert(r >= 0);
+    r = script.engine->RegisterObjectType    ("DMAIntercept", sizeof(CPU::DMAIntercept), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint8  channel", asOFFSET(CPU::DMAIntercept, channel)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint8  transferMode", asOFFSET(CPU::DMAIntercept, transferMode)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint8  fixedTransfer", asOFFSET(CPU::DMAIntercept, fixedTransfer)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint8  reverseTransfer", asOFFSET(CPU::DMAIntercept, reverseTransfer)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint8  unused", asOFFSET(CPU::DMAIntercept, unused)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint8  indirect", asOFFSET(CPU::DMAIntercept, indirect)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint8  direction", asOFFSET(CPU::DMAIntercept, direction)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint8  targetAddress", asOFFSET(CPU::DMAIntercept, targetAddress)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint16 sourceAddress", asOFFSET(CPU::DMAIntercept, sourceAddress)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint8  sourceBank", asOFFSET(CPU::DMAIntercept, sourceBank)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint16 transferSize", asOFFSET(CPU::DMAIntercept, transferSize)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint16 indirectAddress", asOFFSET(CPU::DMAIntercept, indirectAddress)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("DMAIntercept", "uint8  indirectBank", asOFFSET(CPU::DMAIntercept, indirectBank)); assert(r >= 0);
+
+    r = script.engine->RegisterFuncdef("void DMAInterceptCallback(DMAIntercept @dma)"); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("void register_dma_interceptor(DMAInterceptCallback @cb)", asFUNCTION(ScriptInterface::Bus::register_dma_interceptor), asCALL_CDECL); assert(r >= 0);
+  }
+
   // create ppu namespace
   r = script.engine->SetDefaultNamespace("ppu"); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(ScriptInterface::PPUAccess::ppu_rgb), asCALL_CDECL); assert(r >= 0);
@@ -1758,6 +1812,7 @@ auto Interface::loadScript(string location) -> void {
 auto Interface::unloadScript() -> void {
   // free any references to script callbacks:
   ::SuperFamicom::bus.reset_interceptors();
+  ::SuperFamicom::cpu.reset_dma_interceptor();
   // TODO: GUI callbacks
 
   if (script.module) {

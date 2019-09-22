@@ -17,7 +17,39 @@ auto CPU::dmaRun() -> void {
   counter.dma += 8;
   step<8,0>();
   dmaEdge();
-  for(auto& channel : channels) channel.dmaRun();
+  // [jsd]
+  for(int i = 0; i < 8; i++) {
+    auto& channel = channels[i];
+    if (channel.dmaEnable) {
+      dma_interceptor(DMAIntercept{
+        .channel = i,
+
+        //$43x0
+        .transferMode = channel.transferMode,
+        .fixedTransfer = channel.fixedTransfer,
+        .reverseTransfer = channel.reverseTransfer,
+        .unused = channel.unused,
+        .indirect = channel.indirect,
+        .direction = channel.direction,
+
+        //$43x1
+        .targetAddress = channel.targetAddress,
+
+        //$43x2-$43x3
+        .sourceAddress = channel.sourceAddress,
+
+        //$43x4
+        .sourceBank = channel.sourceBank,
+
+        //$43x5-$43x6
+        .transferSize = channel.transferSize,
+
+        //$43x7
+        .indirectBank = channel.indirectBank
+      });
+    }
+    channel.dmaRun();
+  }
   status.irqLock = true;
 }
 
@@ -38,6 +70,26 @@ auto CPU::hdmaRun() -> void {
   for(auto& channel : channels) channel.hdmaTransfer();
   for(auto& channel : channels) channel.hdmaAdvance();
   status.irqLock = true;
+}
+
+// [jsd]
+auto CPU::register_dma_interceptor(
+  const function<void (const CPU::DMAIntercept &)> &intercept
+) -> void {
+  if (dma_interceptor) {
+    dma_interceptor.reset();
+  }
+
+  dma_interceptor = intercept;
+}
+
+auto CPU::reset_dma_interceptor() -> void {
+  if (dma_interceptor) {
+    dma_interceptor.reset();
+  }
+
+  // set a dummy interceptor:
+  dma_interceptor = [](const CPU::DMAIntercept &) -> void {};
 }
 
 //
@@ -76,11 +128,11 @@ auto CPU::Channel::readB(uint8 address, bool valid) -> uint8 {
 }
 
 auto CPU::Channel::writeA(uint24 address, uint8 data) -> void {
-  if(validA(address)) bus.write(address, data);
+  if(validA(address)) bus.write_no_intercept(address, data);
 }
 
 auto CPU::Channel::writeB(uint8 address, uint8 data, bool valid) -> void {
-  if(valid) bus.write(0x2100 | address, data);
+  if(valid) bus.write_no_intercept(0x2100 | address, data);
 }
 
 auto CPU::Channel::transfer(uint24 addressA, uint2 index) -> void {
