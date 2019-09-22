@@ -142,13 +142,31 @@ struct ScriptInterface {
       return ::SuperFamicom::bus.read(addr, 0);
     }
 
-    static auto write_u8(uint32 addr, uint8 data) -> void {
-      // prevent scripts from intercepting their own writes:
-      ::SuperFamicom::bus.write_no_intercept(addr, data);
+    static auto read_block(uint32 addr, uint16 size, CScriptArray *output) -> void {
+      if (output == nullptr) {
+        asGetActiveContext()->SetException("output array cannot be null", true);
+        return;
+      }
+      if (output->GetElementTypeId() != asTYPEID_UINT8) {
+        asGetActiveContext()->SetException("output array must be of type uint8[]", true);
+        return;
+      }
+
+      output->Resize(0);
+      output->Reserve(size);
+      for (uint32 a = 0; a < size; a++) {
+        auto value = ::SuperFamicom::bus.read(addr + a);
+        output->InsertLast(&value);
+      }
     }
 
     static auto read_u16(uint32 addr0, uint32 addr1) -> uint16 {
       return ::SuperFamicom::bus.read(addr0, 0) | (::SuperFamicom::bus.read(addr1,0) << 8u);
+    }
+
+    static auto write_u8(uint32 addr, uint8 data) -> void {
+      // prevent scripts from intercepting their own writes:
+      ::SuperFamicom::bus.write_no_intercept(addr, data);
     }
 
     struct write_interceptor {
@@ -1492,6 +1510,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->SetDefaultNamespace("bus"); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(ScriptInterface::Bus::read_u8), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32 addr0, uint32 addr1)", asFUNCTION(ScriptInterface::Bus::read_u16), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("void read_block(uint32 addr, uint16 size, const array<uint8> &in output)",  asFUNCTION(ScriptInterface::Bus::read_block), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(ScriptInterface::Bus::write_u8), asCALL_CDECL); assert(r >= 0);
 
     r = script.engine->RegisterFuncdef("void WriteInterceptCallback(uint32 addr, uint8 value)"); assert(r >= 0);
