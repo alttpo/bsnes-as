@@ -665,17 +665,17 @@ class GameState {
   void updateTilemap() {
     // update tilemap in WRAM:
     auto len = roomWrites.length();
-    message("tilemap writes " + fmtInt(len));
+    //message("tilemap writes " + fmtInt(len));
     for (uint i = 0; i < len; i++) {
       auto addr = roomWrites[i].addr;
       auto value = roomWrites[i].value;
-      message("  [0x" + fmtHex(addr, 6) + "] <- 0x" + fmtHex(value, 2));
+      //message("  [0x" + fmtHex(addr, 6) + "] <- 0x" + fmtHex(value, 2));
       bus::write_u8(addr, value);
     }
 
     // make VRAM updates:
     len = roomVRAMWrites.length();
-    message("vram writes " + fmtInt(len));
+    //message("vram writes " + fmtInt(len));
     for (uint i = 0; i < len; i++) {
       ppu::write_data(
         uint16(roomVRAMWrites[i].vmaddrl) | (uint16(roomVRAMWrites[i].vmaddrh) << 8),
