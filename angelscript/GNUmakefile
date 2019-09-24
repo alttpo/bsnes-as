@@ -78,10 +78,11 @@ obj/as_tokenizer.o: $(angel.path)/source/as_tokenizer.cpp
 obj/as_typeinfo.o: $(angel.path)/source/as_typeinfo.cpp
 obj/as_variablescope.o: $(angel.path)/source/as_variablescope.cpp
 
-angel.addons := scriptarray
+angel.addons := scriptarray scriptdictionary
 angel.objects += $(angel.addons:%=obj/as_addon_%.o)
 
 obj/as_addon_scriptarray.o: $(angel.path)/add_on/scriptarray/scriptarray.cpp
+obj/as_addon_scriptdictionary.o: $(angel.path)/add_on/scriptdictionary/scriptdictionary.cpp
 
 flags += -I$(angel.path)/include $(angel.addons:%=-I$(angel.path)/add_on/%)
 

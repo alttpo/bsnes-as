@@ -4,6 +4,7 @@ project(bsnes)
 set(CMAKE_CXX_STANDARD 14)
 
 include_directories(angelscript/add_on/scriptarray)
+include_directories(angelscript/add_on/scriptdictionary)
 include_directories(angelscript/include)
 include_directories(.)
 include_directories(bsnes)
