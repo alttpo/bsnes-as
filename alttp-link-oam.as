@@ -176,6 +176,12 @@ class TilemapWrite {
   }
 };
 
+class VRAMWrite {
+  uint8 vmaddrl;
+  uint8 vmaddrh;
+  array<uint8> data;
+};
+
 enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
 
 class GameState {
@@ -209,6 +215,8 @@ class GameState {
   // for intercepting writes to the tilemap:
   array<TilemapWrite@> frameWrites;
   array<TilemapWrite@> roomWrites;
+  array<VRAMWrite@> roomVRAMWrites;
+  uint8 vmaddrl, vmaddrh;
   bool intercepting;
 
   void tilemap_written(uint32 addr, uint8 value) {
@@ -334,9 +342,10 @@ class GameState {
       uint32(in_dungeon & 1) << 16 |
       uint32(in_dungeon != 0 ? dungeon_room : overworld_room);
 
-    // clear out list of room tilemap writes if location changed:
+    // clear out list of room changes if location changed:
     if (previous_location != location) {
       roomWrites.resize(0);
+      roomVRAMWrites.resize(0);
     }
 
     // get screen x,y offset by reading BG2 scroll registers:
@@ -437,10 +446,55 @@ class GameState {
     }
   }
 
+  void ppu_vmaddr_written(uint32 addr, uint8 value) {
+    if (addr == 0x2116) vmaddrl = value;
+    else if (addr == 0x2117) vmaddrh = value;
+  }
+
+  void dma_interceptor(cpu::DMAIntercept @dma) {
+    // Find DMA writes to tile memory in VRAM:
+    if (
+      // reading from 0x001006 temporary buffer:
+      dma.sourceBank == 0x00 && dma.sourceAddress >= 0x1006 && dma.sourceAddress < 0x1100 &&
+      // writing to 0x2118, 0x2119 VMDATAL & VMDATAH regs:
+      dma.targetAddress == 0x18 &&
+      vmaddrh < 0x40
+    ) {
+      array<uint8> data;
+
+      // capture source of DMA transfer to array:
+      uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
+      bus::read_block(addr, dma.transferSize, data);
+
+      // record VRAM transfer for the room:
+      auto write = VRAMWrite();
+      write.vmaddrl = vmaddrl;
+      write.vmaddrh = vmaddrh;
+      write.data = data;
+      roomVRAMWrites.insertLast(write);
+
+      //message("DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
+      //        " to 0x" + fmtHex(0x2100 | uint16(dma.targetAddress), 2) +
+      //        " (ppu 0x" + fmtHex(uint16(vmaddrh) << 8 | vmaddrl, 4) + ") size 0x" + fmtHex(dma.transferSize, 4)
+      //);
+
+      //string str = "{";
+      //for (uint i = 0; i < dma.transferSize; i++) {
+      //  str += "0x" + fmtHex(data[i], 2);
+      //  if (i < dma.transferSize - 1) str += ",";
+      //}
+      //str += "}";
+      //message(str);
+    }
+  }
+
   void fetch_room_updates() {
     if (!intercepting) {
       // intercept writes to the tilemap:
       bus::add_write_interceptor("7e:2000-3fff", 0, @bus::WriteInterceptCallback(local.tilemap_written));
+      bus::add_write_interceptor("00-3f,80-bf:2116-2117", 0, @bus::WriteInterceptCallback(local.ppu_vmaddr_written));
+      cpu::register_dma_interceptor(@cpu::DMAInterceptCallback(local.dma_interceptor));
+
       intercepting = true;
     }
 
@@ -490,6 +544,18 @@ class GameState {
         r.insertLast(uint8((roomWrites[i].addr >> 8) & 0xFF));
         r.insertLast(uint8((roomWrites[i].addr >> 16) & 0xFF));
         r.insertLast(roomWrites[i].value);
+      }
+
+      // Serialize VRAM updates:
+      mod_count = uint8(roomVRAMWrites.length());
+      r.insertLast(mod_count);
+      for (uint i = 0; i < mod_count; i++) {
+        r.insertLast(roomVRAMWrites[i].vmaddrl);
+        r.insertLast(roomVRAMWrites[i].vmaddrh);
+        auto data_len = uint16(roomVRAMWrites[i].data.length());
+        r.insertLast(uint8((data_len) & 0xFF));
+        r.insertLast(uint8((data_len >> 8) & 0xFF));
+        r.insertLast(roomVRAMWrites[i].data);
       }
     }
   }
@@ -549,6 +615,21 @@ class GameState {
           auto value = r[c++];
           @roomWrites[i] = TilemapWrite(addr, value);
         }
+
+        // Read VRAM updates:
+        mod_count = r[c++];
+        roomVRAMWrites.resize(mod_count);
+        for (uint i = 0; i < mod_count; i++) {
+          auto write = VRAMWrite();
+          write.vmaddrl = r[c++];
+          write.vmaddrh = r[c++];
+          auto data_len = uint16(r[c++]) | (uint16(r[c++]) << 8);
+          write.data.resize(data_len);
+          for (uint j = 0; j < data_len; j++) {
+            write.data[j] = r[c++];
+          }
+          @roomVRAMWrites[i] = write;
+        }
       }
 
       //message("deser " + fmtInt(c) + " vs len " + fmtInt(n));
@@ -582,6 +663,7 @@ class GameState {
   }
 
   void updateTilemap() {
+    // update tilemap in WRAM:
     auto len = roomWrites.length();
     message("tilemap writes " + fmtInt(len));
     for (uint i = 0; i < len; i++) {
@@ -589,6 +671,16 @@ class GameState {
       auto value = roomWrites[i].value;
       message("  [0x" + fmtHex(addr, 6) + "] <- 0x" + fmtHex(value, 2));
       bus::write_u8(addr, value);
+    }
+
+    // make VRAM updates:
+    len = roomVRAMWrites.length();
+    message("vram writes " + fmtInt(len));
+    for (uint i = 0; i < len; i++) {
+      ppu::write_data(
+        uint16(roomVRAMWrites[i].vmaddrl) | (uint16(roomVRAMWrites[i].vmaddrh) << 8),
+        roomVRAMWrites[i].data
+      );
     }
   }
 };

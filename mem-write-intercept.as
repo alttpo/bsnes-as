@@ -44,8 +44,7 @@ void dma_interceptor(cpu::DMAIntercept @dma) {
     uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
     bus::read_block(addr, dma.transferSize, data);
 
-    message("DMA[" + fmtInt(dma.channel) + "] from 0x" +
-      fmtHex(addr, 6) +
+    message("DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
       " to 0x" + fmtHex(0x2100 | uint16(dma.targetAddress), 2) +
       " (ppu 0x" + fmtHex(uint16(vmaddrh) << 8 | vmaddrl, 4) + ") size 0x" + fmtHex(dma.transferSize, 4)
     );
@@ -62,8 +61,8 @@ void dma_interceptor(cpu::DMAIntercept @dma) {
 
 void init() {
   //bus::add_write_interceptor("00-3f,7e-7f:1000-10ff", 0, @tilemap_written);
-  bus::add_write_interceptor("7e-7f:2000-3fff", 0, @tilemap_written);
-  bus::add_write_interceptor("00-3f,80-bf:2116-2119", 0, @ppu_written);
+  bus::add_write_interceptor("7e:2000-3fff", 0, @tilemap_written);
+  bus::add_write_interceptor("00-3f,80-bf:2116-2117", 0, @ppu_written);
   cpu::register_dma_interceptor(@dma_interceptor);
 }
 
