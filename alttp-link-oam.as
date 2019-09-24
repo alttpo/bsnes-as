@@ -212,6 +212,8 @@ class GameState {
   uint8 direction;
   uint8 level;
 
+  uint8 screen_transition;
+
   // for intercepting writes to the tilemap:
   array<TilemapWrite@> frameWrites;
   array<TilemapWrite@> roomWrites;
@@ -321,7 +323,7 @@ class GameState {
     //   $7E0308[1] - bit 7 = holding
 
     // $7E0410 = screen transitioning
-    auto screen_transition = bus::read_u8(0x7E0410);
+    screen_transition = bus::read_u8(0x7E0410);
 
     // Record last screen before transition:
     if (screen_transition == 0) {
@@ -663,6 +665,9 @@ class GameState {
   }
 
   void updateTilemap() {
+    // don't update tilemap or VRAM during screen transitions:
+    if (screen_transition != 0) return;
+
     // update tilemap in WRAM:
     auto len = roomWrites.length();
     //message("tilemap writes " + fmtInt(len));
