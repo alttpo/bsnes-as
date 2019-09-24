@@ -422,9 +422,12 @@ class GameState {
         (i >= 1 && ppu::oam[i-1].character == 0x6e && chr == 0x6c && ppu::oam[i+1].character == 0x6c) ||
         (i >= 2 && ppu::oam[i-2].character == 0x6e && ppu::oam[i-1].character == 0x6c && chr == 0x6c)
       );
+      bool follower = (
+        chr == 0x20 || chr == 0x22
+      );
 
       // skip OAM sprites that are not related to Link:
-      if (!(body || fx || weapons || bombs)) continue;
+      if (!(body || fx || weapons || bombs || follower)) continue;
 
       //auto distx = int16(tile.x) - rx;
       //auto disty = int16(tile.y) - ry;
