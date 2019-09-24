@@ -292,6 +292,43 @@ struct ScriptInterface {
       return tiledataAddress;
     }
 
+    static auto ppu_write_data(uint16 vmaddr, CScriptArray *data) -> void {
+      //printf("ppu_write_data()\n");
+      if (data == nullptr) {
+        asGetActiveContext()->SetException("input array cannot be null", true);
+        return;
+      }
+      if (data->GetElementTypeId() != asTYPEID_UINT8 && data->GetElementTypeId() != asTYPEID_UINT16) {
+        asGetActiveContext()->SetException("input array must be of type uint8[] or uint16[]", true);
+        return;
+      }
+
+      auto vram = system.fastPPU() ? (uint16 *)ppufast.vram : (uint16 *)ppu.vram.data;
+      auto words = data->GetSize();
+
+      if (data->GetElementTypeId() == asTYPEID_UINT8) {
+        if (words & 1u) {
+          asGetActiveContext()->SetException("input uint8[] array must have even length", true);
+          return;
+        }
+        words = words / 2;
+
+        auto p = reinterpret_cast<const uint8 *>(data->At(0));
+        for (uint a = 0; a < words; a++) {
+          auto lo = *p++;
+          auto hi = *p++;
+          vram[(vmaddr + a) & 0x7fff] = (uint16(hi) << 8) | uint16(lo);
+        }
+      } else if (data->GetElementTypeId() == asTYPEID_UINT16) {
+        auto p = reinterpret_cast<const uint16 *>(data->At(0));
+        for (uint a = 0; a < words; a++) {
+          auto word = *p++;
+          vram[(vmaddr + a) & 0x7fff] = word;
+        }
+      }
+      //printf("ppu_write_data() end\n");
+    }
+
     auto cgram_read(uint8 palette) -> uint16 {
       if (system.fastPPU()) {
         return ppufast.cgram[palette];
@@ -1546,6 +1583,7 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterGlobalFunction("uint8 sprite_height(uint8 baseSize, uint8 size)", asFUNCTION(ScriptInterface::PPUAccess::ppu_sprite_height), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint8 sprite_base_size()", asFUNCTION(ScriptInterface::PPUAccess::ppu_sprite_base_size), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint16 tile_address(bool nameselect)", asFUNCTION(ScriptInterface::PPUAccess::ppu_tile_address), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("void write_data(uint16 vmaddr, const array<uint8> &in data)", asFUNCTION(ScriptInterface::PPUAccess::ppu_write_data), asCALL_CDECL); assert(r >= 0);
 
   // define ppu::VRAM object type for opIndex convenience:
   r = script.engine->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
