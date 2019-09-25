@@ -22,30 +22,30 @@ auto CPU::dmaRun() -> void {
     auto& channel = channels[i];
     if (channel.dmaEnable) {
       dma_interceptor(DMAIntercept{
-        .channel = i,
+        /*.channel = */i,
 
         //$43x0
-        .transferMode = channel.transferMode,
-        .fixedTransfer = channel.fixedTransfer,
-        .reverseTransfer = channel.reverseTransfer,
-        .unused = channel.unused,
-        .indirect = channel.indirect,
-        .direction = channel.direction,
+        /*.transferMode = */channel.transferMode,
+        /*.fixedTransfer = */channel.fixedTransfer,
+        /*.reverseTransfer = */channel.reverseTransfer,
+        /*.unused = */channel.unused,
+        /*.indirect = */channel.indirect,
+        /*.direction = */channel.direction,
 
         //$43x1
-        .targetAddress = channel.targetAddress,
+        /*.targetAddress = */channel.targetAddress,
 
         //$43x2-$43x3
-        .sourceAddress = channel.sourceAddress,
+        /*.sourceAddress = */channel.sourceAddress,
 
         //$43x4
-        .sourceBank = channel.sourceBank,
+        /*.sourceBank = */channel.sourceBank,
 
         //$43x5-$43x6
-        .transferSize = channel.transferSize,
+        /*.transferSize = */channel.transferSize,
 
         //$43x7
-        .indirectBank = channel.indirectBank
+        /*.indirectBank = */channel.indirectBank
       });
     }
     channel.dmaRun();
