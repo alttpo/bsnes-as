@@ -1531,7 +1531,6 @@ auto Interface::registerScriptDefs() -> void {
 
   // Register script-array extension:
   RegisterScriptArray(script.engine, true /* bool defaultArrayType */);
-  RegisterScriptDictionary(script.engine);
 
   r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const uint16 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint16), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint32), asCALL_CDECL_OBJFIRST); assert(r >= 0);
