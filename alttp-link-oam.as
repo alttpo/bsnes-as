@@ -241,100 +241,22 @@ class GameState {
   }
 
   void fetch() {
-    // RAM locations ($7E00xx):
-    //   $7E0012[0x01] - NMI Boolean
-    //       If set to zero, the game will wait at a certain loop until NMI executes. The NMI interrupt generally sets
-    //       it to one after it's done so that the game can continue doing things other than updating the screen.
-    //   $7E001A[1] = frame counter (increments from 0x00 to 0xff and wraps)
     ctr = bus::read_u8(0x7E001A);
-    //   $7E0020[2] = Link's Y coordinate
     y = bus::read_u16(0x7E0020, 0x7E0021);
-    //   $7E0022[2] = Link's X coordinate
     x = bus::read_u16(0x7E0022, 0x7E0023);
-    //   $7E0024[2] = Link's Z coordinate ($FFFF usually)
     z = bus::read_u16(0x7E0024, 0x7E0025);
-    //   $7E0026[1] = Link's walking direction (flags)
-    //       still    = 0x00
-    //       right    = 0x01
-    //       left     = 0x02
-    //       down     = 0x04
-    //       up       = 0x08
     walking = bus::read_u8(0x7E0026);
-    //   $7E002D[1] = animation frame transition counter; when = 0x01, `frame` is advanced
     subframe = bus::read_u8(0x7E002D);
-    //   $7E002E[1] = animation steps (cycles 0 to 5 and repeats)
     frame = bus::read_u8(0x7E002E);
-    //   $7E002F[1] = Link facing direction
-    //       0 = up
-    //       2 = down
-    //       4 = left
-    //       6 = right
     facing = bus::read_u8(0x7E002F);
-    //   $7E0048[1] = push state
-    //       0x00 - not blocked
-    //       0x02 - blocked, not yet pushing
-    //       0x01 - transition from blocked to pushing or restarting pushing sequence (moves to 0x03 immediately after)
-    //       0x03 - pushing (moves to 0x01 every 32 (33?) frames)
     pushing = bus::read_u8(0x7E0048);
-    //   $7E004D[1] = aux Link state (0 = normal, 1 = recoil, 2 = jumping in/out water, 3 = swimming)
     state_aux = bus::read_u8(0x7E004D);
-    //   $7E0056[1] = 1 - bunny link, 0 = normal link
     bunny = bus::read_u8(0x7E0056);
-    //   $7E0057[1] = movement speed
     speed = int8(bus::read_u8(0x7E0057));
-    //   $7E005D[1] = Link's State
-    //       0x00 - ground state
-    //       0x01 - falling into a hole
-    //       0x02 - recoil from hitting wall / enemies
-    //       0x03 - spin attacking
-    //       0x04 - swimming
-    //       0x05 - Turtle Rock platforms
-    //       0x06 - recoil again (other movement)
-    //       0x07 - hit by Aghanim’s bug zapper
-    //       0x08 - using ether medallion
-    //       0x09 - using bombos medallion
-    //       0x0A - using quake medallion
-    //       0x0B - ???
-    //       0x0C - ???
-    //       0x0D - ???
-    //       0x0E - ???
-    //       0x0F - ???
-    //       0x10 - ???
-    //       0x11 - falling off a ledge
-    //       0x12 - used when coming out of a dash by pressing a direction other than the dash direction
-    //       0x13 - hookshot
-    //       0x14 - magic mirror
-    //       0x15 - holding up an item
-    //       0x16 - asleep in his bed
-    //       0x17 - permabunny
-    //       0x18 - stuck under a heavy rock
-    //       0x19 - Receiving Ether Medallion
-    //       0x1A - Receiving Bombos Medallion
-    //       0x1B - Opening Desert Palace
-    //       0x1C - temporary bunny 538
-    //       0x1D - Rolling back from Gargoyle gate or PullForRupees object
-    //       0x1E - The actual spin attack motion.
     state = bus::read_u8(0x7E005D);
-    //   $7E005E[1] - Link's speed setting
-    //       0x00 - normal
-    //       0x02 - walking (or dashing) on stairs
-    //       0x0c - charging sword spin (0x50 = 1) or holding something
-    //       0x10 - dashing
     dashing = bus::read_u8(0x7E005E);
-    //   $7E0067[1] = Indicates which direction Link is walking (even if not going anywhere)
-    //       JSD: seems to contain the exact same value as `walking` ($26)
-    //       bitwise: 0000abcd.
-    //           a - Up,
-    //           b - Down,
-    //           c - Left,
-    //           d - Right
     direction = bus::read_u8(0x7E0067);
-    //   $7E00EE[1] - In dungeons
-    //           0 - means you’re on the upper level
-    //           1 - means you’re on a lower level. Important for interaction with different tile types.
-    //           3 - walking down stairwell exit (e.g. in castle escape sequence, going down stairs)
     level = bus::read_u8(0x7E00EE);
-    //   $7E0308[1] - bit 7 = holding
 
     // $7E0410 = screen transitioning
     screen_transition = bus::read_u8(0x7E0410);
@@ -468,6 +390,7 @@ class GameState {
   void ppu_vmaddr_written(uint32 addr, uint8 value) {
     if (addr == 0x2116) vmaddrl = value;
     else if (addr == 0x2117) vmaddrh = value;
+    else message("ppu[0x" + fmtHex(addr, 4) + "] = 0x" + fmtHex(value, 2));
   }
 
   void dma_interceptor(cpu::DMAIntercept @dma) {
@@ -490,20 +413,21 @@ class GameState {
       write.vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
       write.data = data;
       roomVRAMWrites.insertLast(write);
-
-      //message("DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
-      //        " to 0x" + fmtHex(0x2100 | uint16(dma.targetAddress), 2) +
-      //        " (ppu 0x" + fmtHex(uint16(vmaddrh) << 8 | vmaddrl, 4) + ") size 0x" + fmtHex(dma.transferSize, 4)
-      //);
-
-      //string str = "{";
-      //for (uint i = 0; i < dma.transferSize; i++) {
-      //  str += "0x" + fmtHex(data[i], 2);
-      //  if (i < dma.transferSize - 1) str += ",";
-      //}
-      //str += "}";
-      //message(str);
-    }
+    } /* else if (dma.targetAddress == 18) {
+      uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
+      auto vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
+      message(
+        "DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
+        " to PPU 0x" + fmtHex(vmaddr, 4) + " size 0x" + fmtHex(dma.transferSize, 4)
+      );
+    } else {
+      uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
+      auto vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
+      message(
+        "DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
+        " to 0x21" + fmtHex(dma.targetAddress, 2) + " size 0x" + fmtHex(dma.transferSize, 4)
+      );
+    } */
   }
 
   void fetch_room_updates() {
@@ -511,6 +435,7 @@ class GameState {
       // intercept writes to the tilemap:
       bus::add_write_interceptor("7e:2000-3fff", 0, @bus::WriteInterceptCallback(local.tilemap_written));
       bus::add_write_interceptor("00-3f,80-bf:2116-2117", 0, @bus::WriteInterceptCallback(local.ppu_vmaddr_written));
+      //bus::add_write_interceptor("00-3f,80-bf:2116-2119", 0, @bus::WriteInterceptCallback(local.ppu_vmaddr_written));
       cpu::register_dma_interceptor(@cpu::DMAInterceptCallback(local.dma_interceptor));
 
       intercepting = true;
