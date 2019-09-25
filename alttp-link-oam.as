@@ -177,8 +177,7 @@ class TilemapWrite {
 };
 
 class VRAMWrite {
-  uint8 vmaddrl;
-  uint8 vmaddrh;
+  uint16 vmaddr;
   array<uint8> data;
 };
 
@@ -473,8 +472,7 @@ class GameState {
 
       // record VRAM transfer for the room:
       auto write = VRAMWrite();
-      write.vmaddrl = vmaddrl;
-      write.vmaddrh = vmaddrh;
+      write.vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
       write.data = data;
       roomVRAMWrites.insertLast(write);
 
@@ -555,8 +553,8 @@ class GameState {
       mod_count = uint8(roomVRAMWrites.length());
       r.insertLast(mod_count);
       for (uint i = 0; i < mod_count; i++) {
-        r.insertLast(roomVRAMWrites[i].vmaddrl);
-        r.insertLast(roomVRAMWrites[i].vmaddrh);
+        r.insertLast(roomVRAMWrites[i].vmaddr & 0xFF);
+        r.insertLast((roomVRAMWrites[i].vmaddr >> 8) & 0xFF);
         auto data_len = uint16(roomVRAMWrites[i].data.length());
         r.insertLast(uint8((data_len) & 0xFF));
         r.insertLast(uint8((data_len >> 8) & 0xFF));
@@ -626,8 +624,9 @@ class GameState {
         roomVRAMWrites.resize(mod_count);
         for (uint i = 0; i < mod_count; i++) {
           auto write = VRAMWrite();
-          write.vmaddrl = r[c++];
-          write.vmaddrh = r[c++];
+          auto vmaddrl = r[c++];
+          auto vmaddrh = r[c++];
+          write.vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
           auto data_len = uint16(r[c++]) | (uint16(r[c++]) << 8);
           write.data.resize(data_len);
           for (uint j = 0; j < data_len; j++) {
@@ -686,9 +685,24 @@ class GameState {
     //message("vram writes " + fmtInt(len));
     for (uint i = 0; i < len; i++) {
       ppu::write_data(
-        uint16(roomVRAMWrites[i].vmaddrl) | (uint16(roomVRAMWrites[i].vmaddrh) << 8),
+        roomVRAMWrites[i].vmaddr,
         roomVRAMWrites[i].data
       );
+    }
+  }
+
+  void syncFrom(GameState @remote) {
+    auto rw = remote.roomVRAMWrites;
+    auto lw = roomVRAMWrites;
+
+    for (uint i = 0; i < rw.length(); i++) {
+      uint j;
+      for (j = 0; j < lw.length(); j++) {
+        if (rw[i].vmaddr == lw[j].vmaddr) break;
+      }
+      if (j == lw.length()) {
+        lw.insertLast(rw[i]);
+      }
     }
   }
 };
@@ -724,6 +738,9 @@ void pre_frame() {
 
   // receive network update from remote player:
   remote.receive();
+
+  // synchronize room state from remote player:
+  local.syncFrom(remote);
 
   // reset number of extra tiles to render to 0:
   ppu::extra.count = 0;
