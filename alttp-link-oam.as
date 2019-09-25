@@ -568,8 +568,8 @@ class GameState {
       mod_count = uint8(roomVRAMWrites.length());
       r.insertLast(mod_count);
       for (uint i = 0; i < mod_count; i++) {
-        r.insertLast(roomVRAMWrites[i].vmaddr & 0xFF);
-        r.insertLast((roomVRAMWrites[i].vmaddr >> 8) & 0xFF);
+        r.insertLast(uint8(roomVRAMWrites[i].vmaddr & 0xFF));
+        r.insertLast(uint8((roomVRAMWrites[i].vmaddr >> 8) & 0xFF));
         auto data_len = uint16(roomVRAMWrites[i].data.length());
         r.insertLast(uint8((data_len) & 0xFF));
         r.insertLast(uint8((data_len >> 8) & 0xFF));
@@ -639,9 +639,7 @@ class GameState {
         roomVRAMWrites.resize(mod_count);
         for (uint i = 0; i < mod_count; i++) {
           auto write = VRAMWrite();
-          auto vmaddrl = r[c++];
-          auto vmaddrh = r[c++];
-          write.vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
+          write.vmaddr = uint16(r[c++]) | (uint16(r[c++]) << 8);
           auto data_len = uint16(r[c++]) | (uint16(r[c++]) << 8);
           write.data.resize(data_len);
           for (uint j = 0; j < data_len; j++) {
@@ -707,16 +705,25 @@ class GameState {
   }
 
   void syncFrom(GameState @remote) {
-    auto rw = remote.roomVRAMWrites;
-    auto lw = roomVRAMWrites;
-
-    for (uint i = 0; i < rw.length(); i++) {
+    // sync tilemap updates:
+    for (uint i = 0; i < remote.roomWrites.length(); i++) {
       uint j;
-      for (j = 0; j < lw.length(); j++) {
-        if (rw[i].vmaddr == lw[j].vmaddr) break;
+      for (j = 0; j < roomWrites.length(); j++) {
+        if (remote.roomWrites[i].addr == roomWrites[j].addr) break;
       }
-      if (j == lw.length()) {
-        lw.insertLast(rw[i]);
+      if (j == roomWrites.length()) {
+        roomWrites.insertLast(remote.roomWrites[i]);
+      }
+    }
+
+    // sync VRAM updates:
+    for (uint i = 0; i < remote.roomVRAMWrites.length(); i++) {
+      uint j;
+      for (j = 0; j < roomVRAMWrites.length(); j++) {
+        if (remote.roomVRAMWrites[i].vmaddr == roomVRAMWrites[j].vmaddr) break;
+      }
+      if (j == roomVRAMWrites.length()) {
+        roomVRAMWrites.insertLast(remote.roomVRAMWrites[i]);
       }
     }
   }
@@ -754,14 +761,14 @@ void pre_frame() {
   // receive network update from remote player:
   remote.receive();
 
-  // synchronize room state from remote player:
-  local.syncFrom(remote);
-
   // reset number of extra tiles to render to 0:
   ppu::extra.count = 0;
 
   // only draw remote player if location (room, dungeon, light/dark world) is identical to local player's:
   if (local.can_see(remote.location)) {
+    // synchronize room state from remote player:
+    local.syncFrom(remote);
+
     // draw Link on screen; overly simplistic drawing code here does not accurately render Link in all poses.
     // need to determine Link's current animation frame from somewhere in RAM.
 
