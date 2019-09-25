@@ -48,12 +48,27 @@ class SettingsWindow {
       }
       vl.append(hz, gui::Size(0, 0));
 
-      @ok = gui::Button();
-      ok.text = "Start";
-      @ok.on_activate = @gui::ButtonCallback(this.startClicked);
-      vl.append(ok, gui::Size(0, 0));
+      @hz = gui::HorizontalLayout();
+      {
+        @ok = gui::Button();
+        ok.text = "Start";
+        @ok.on_activate = @gui::ButtonCallback(this.startClicked);
+        hz.append(ok, gui::Size(0, 0));
+
+        auto swap = gui::Button();
+        swap.text = "Swap";
+        @swap.on_activate = @gui::ButtonCallback(this.swapClicked);
+        hz.append(swap, gui::Size(0, 0));
+      }
+      vl.append(hz, gui::Size(0, 0));
     }
     window.append(vl);
+  }
+
+  private void swapClicked(gui::Button @self) {
+    auto tmp = txtServerIP.text;
+    txtServerIP.text = txtClientIP.text;
+    txtClientIP.text = tmp;
   }
 
   private void startClicked(gui::Button @self) {
