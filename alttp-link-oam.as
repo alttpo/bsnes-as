@@ -183,9 +183,9 @@ class Sprite {
 
 class TilemapWrite {
   uint32 addr;
-  uint8 value;
+  uint16 value;
 
-  TilemapWrite(uint32 addr, uint8 value) {
+  TilemapWrite(uint32 addr, uint16 value) {
     this.addr = addr;
     this.value = value;
   }
@@ -235,9 +235,10 @@ class GameState {
   bool safe_to_update_tilemap = false;
 
   // for intercepting writes to the tilemap:
-  array<TilemapWrite@> frameWrites;
-  array<TilemapWrite@> roomWrites;
-  array<VRAMWrite@> roomVRAMWrites;
+  array<TilemapWrite@> tileWrites;
+  uint tileWritesIndex;
+  array<VRAMWrite@> vramWrites;
+  uint vramWritesIndex;
   uint8 vmaddrl, vmaddrh;
   bool intercepting;
 
@@ -266,7 +267,7 @@ class GameState {
     //            = 0x09 in overworld
     module = bus::read_u8(0x7E0010);
 
-    // when module = 0x07:
+    // when module = 0x07: dungeon
     //    sub_module = 0x00 normal gameplay in dungeon
     //               = 0x01 going through door
     //               = 0x03 triggered a star tile to change floor hole configuration
@@ -276,7 +277,7 @@ class GameState {
     //               = 0x0f entering dungeon first time (or from mirror)
     //               = 0x16 when orange/blue barrier blocks transition
     //               = 0x19 when using mirror
-    // when module = 0x09:
+    // when module = 0x09: overworld
     //    sub_module = 0x00 normal gameplay in overworld
     //               = 0x0e
     //      sub_sub_module = 0x01 in item menu
@@ -332,8 +333,10 @@ class GameState {
       // clear out list of room changes if location changed:
       if (last_location != location) {
         message("room from 0x" + fmtHex(last_location, 6) + " to 0x" + fmtHex(location, 6));
-        roomWrites.resize(0);
-        roomVRAMWrites.resize(0);
+        tileWrites.resize(0);
+        vramWrites.resize(0);
+        tileWritesIndex = 0;
+        vramWritesIndex = 0;
       }
     }
 
@@ -438,13 +441,23 @@ class GameState {
     }
   }
 
+  uint32 tilemap_addrl;
+  uint8 tilemap_valuel;
+
   // called when tilemap data is updated:
   void tilemap_written(uint32 addr, uint8 value) {
     if (!safe_to_update_tilemap) return;
 
-    // record the tilemap write:
-    frameWrites.insertLast(TilemapWrite(addr, value));
-    //message("sync tilemap [0x" + fmtHex(addr, 6) + "] = 0x" + fmtHex(value, 2));
+    // tilemap writes happen in lo-high byte order:
+    if ((addr & 1) == 0) {
+      tilemap_addrl = addr;
+      tilemap_valuel = value;
+    } else if ((tilemap_addrl | 1) == addr) {
+      // record the 16-bit tilemap write:
+      tileWrites.insertLast(TilemapWrite(tilemap_addrl, uint16(tilemap_valuel) | (uint16(value) << 8)));
+      tileWritesIndex = tileWrites.length();
+    }
+    message("sync tilemap [0x" + fmtHex(addr, 6) + "] = 0x" + fmtHex(value, 2));
   }
 
   // called when VMADDRL and VMADDRH registers are written to:
@@ -477,12 +490,13 @@ class GameState {
       write.vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
       uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
       bus::read_block(addr, dma.transferSize, write.data);
-      roomVRAMWrites.insertLast(write);
-      //message(
-      //  "sync DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
-      //  " to PPU 0x" + fmtHex(write.vmaddr, 4) + " size 0x" + fmtHex(dma.transferSize, 4)
-      //);
-    } else if (
+      vramWrites.insertLast(write);
+      vramWritesIndex = vramWrites.length();
+      message(
+        "sync DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
+        " to PPU 0x" + fmtHex(write.vmaddr, 4) + " size 0x" + fmtHex(dma.transferSize, 4)
+      );
+    } /* else if (
       // writing to 0x2118, 0x2119 VMDATAL & VMDATAH regs:
       dma.targetAddress == 0x18 &&
       // writing to tilemap VRAM for BG layers:
@@ -494,7 +508,7 @@ class GameState {
       //  "DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
       //  " to PPU 0x" + fmtHex(vmaddr, 4) + " size 0x" + fmtHex(dma.transferSize, 4)
       //);
-    }
+    } */
 
     // torch lights being animated in dungeons:
     // DMA[0] from 0x7ea680 to PPU 0x3b00 size 0x0400
@@ -532,15 +546,6 @@ class GameState {
 
       intercepting = true;
     }
-
-    auto frameWritesLen = frameWrites.length();
-    if (frameWritesLen > 0) {
-      // Append the writes from this frame to the list of writes for the current room:
-      if (frameWritesLen <= 32) {
-        roomWrites.insertLast(frameWrites);
-      }
-      frameWrites.resize(0);
-    }
   }
 
   bool can_see(uint32 other_location) {
@@ -565,25 +570,26 @@ class GameState {
 
     {
       // Serialize current room tilemap writes:
-      auto mod_count = uint8(roomWrites.length());
+      auto mod_count = uint8(tileWrites.length());
       r.insertLast(mod_count);
       for (uint i = 0; i < mod_count; i++) {
-        r.insertLast(uint8(roomWrites[i].addr & 0xFF));
-        r.insertLast(uint8((roomWrites[i].addr >> 8) & 0xFF));
-        r.insertLast(uint8((roomWrites[i].addr >> 16) & 0xFF));
-        r.insertLast(roomWrites[i].value);
+        r.insertLast(uint8(tileWrites[i].addr & 0xFF));
+        r.insertLast(uint8((tileWrites[i].addr >> 8) & 0xFF));
+        r.insertLast(uint8((tileWrites[i].addr >> 16) & 0xFF));
+        r.insertLast(uint8(tileWrites[i].value & 0xFF));
+        r.insertLast(uint8((tileWrites[i].value >> 8) & 0xFF));
       }
 
       // Serialize VRAM updates:
-      mod_count = uint8(roomVRAMWrites.length());
+      mod_count = uint8(vramWrites.length());
       r.insertLast(mod_count);
       for (uint i = 0; i < mod_count; i++) {
-        r.insertLast(uint8(roomVRAMWrites[i].vmaddr & 0xFF));
-        r.insertLast(uint8((roomVRAMWrites[i].vmaddr >> 8) & 0xFF));
-        auto data_len = uint16(roomVRAMWrites[i].data.length());
+        r.insertLast(uint8(vramWrites[i].vmaddr & 0xFF));
+        r.insertLast(uint8((vramWrites[i].vmaddr >> 8) & 0xFF));
+        auto data_len = uint16(vramWrites[i].data.length());
         r.insertLast(uint8((data_len) & 0xFF));
         r.insertLast(uint8((data_len >> 8) & 0xFF));
-        r.insertLast(roomVRAMWrites[i].data);
+        r.insertLast(vramWrites[i].data);
       }
     }
   }
@@ -637,16 +643,16 @@ class GameState {
       {
         // Read room tilemap writes:
         auto mod_count = r[c++];
-        roomWrites.resize(mod_count);
+        tileWrites.resize(mod_count);
         for (uint i = 0; i < mod_count; i++) {
           auto addr = uint32(r[c++]) | (uint32(r[c++]) << 8) | (uint32(r[c++]) << 16);
-          auto value = r[c++];
-          @roomWrites[i] = TilemapWrite(addr, value);
+          auto value = uint16(r[c++]) | (uint16(r[c++]) << 8);
+          @tileWrites[i] = TilemapWrite(addr, value);
         }
 
         // Read VRAM updates:
         mod_count = r[c++];
-        roomVRAMWrites.resize(mod_count);
+        vramWrites.resize(mod_count);
         for (uint i = 0; i < mod_count; i++) {
           auto write = VRAMWrite();
           write.vmaddr = uint16(r[c++]) | (uint16(r[c++]) << 8);
@@ -655,7 +661,7 @@ class GameState {
           for (uint j = 0; j < data_len; j++) {
             write.data[j] = r[c++];
           }
-          @roomVRAMWrites[i] = write;
+          @vramWrites[i] = write;
         }
       }
 
@@ -691,49 +697,45 @@ class GameState {
 
   void updateTilemap() {
     // update tilemap in WRAM:
-    auto len = roomWrites.length();
-    //message("tilemap writes " + fmtInt(len));
-    for (uint i = 0; i < len; i++) {
-      auto addr = roomWrites[i].addr;
-      auto value = roomWrites[i].value;
-      //message("  wram[0x" + fmtHex(addr, 6) + "] <- 0x" + fmtHex(value, 2));
-      bus::write_u8(addr, value);
+    auto len = tileWrites.length();
+    message("tilemap writes " + fmtInt(len));
+    uint i;
+    for (i = tileWritesIndex; i < len; i++) {
+      auto addr = tileWrites[i].addr;
+      auto value = tileWrites[i].value;
+      message("  wram[0x" + fmtHex(addr, 6) + "] <- 0x" + fmtHex(value, 4));
+      bus::write_u8(addr, value & 0xFF);
+      bus::write_u8(addr|1, (value >> 8) & 0xFF);
     }
+    tileWritesIndex = i;
 
     // make VRAM updates:
-    len = roomVRAMWrites.length();
-    //message("vram writes " + fmtInt(len));
-    for (uint i = 0; i < len; i++) {
-      //message("  vram[0x" + fmtHex(roomVRAMWrites[i].vmaddr, 4) + "] <- ...data...");
+    len = vramWrites.length();
+    message("vram writes " + fmtInt(len));
+    for (i = vramWritesIndex; i < len; i++) {
+      message("  vram[0x" + fmtHex(vramWrites[i].vmaddr, 4) + "] <- ...data...");
       ppu::write_data(
-        roomVRAMWrites[i].vmaddr,
-        roomVRAMWrites[i].data
+        vramWrites[i].vmaddr,
+        vramWrites[i].data
       );
     }
+    vramWritesIndex = i;
   }
 
   void syncFrom(GameState @remote) {
     // sync tilemap updates:
-    for (uint i = 0; i < remote.roomWrites.length(); i++) {
-      uint j;
-      for (j = 0; j < roomWrites.length(); j++) {
-        if (remote.roomWrites[i].addr == roomWrites[j].addr) break;
-      }
-      if (j == roomWrites.length()) {
-        roomWrites.insertLast(remote.roomWrites[i]);
-      }
+    auto rlen = remote.tileWrites.length();
+    for (uint i = tileWritesIndex; i < rlen; i++) {
+      tileWrites.insertLast(remote.tileWrites[i]);
     }
+    //tileWritesIndex = rlen;
 
     // sync VRAM updates:
-    for (uint i = 0; i < remote.roomVRAMWrites.length(); i++) {
-      uint j;
-      for (j = 0; j < roomVRAMWrites.length(); j++) {
-        if (remote.roomVRAMWrites[i].vmaddr == roomVRAMWrites[j].vmaddr) break;
-      }
-      if (j == roomVRAMWrites.length()) {
-        roomVRAMWrites.insertLast(remote.roomVRAMWrites[i]);
-      }
+    rlen = remote.vramWrites.length();
+    for (uint i = vramWritesIndex; i < rlen; i++) {
+      vramWrites.insertLast(remote.vramWrites[i]);
     }
+    //vramWritesIndex = rlen;
   }
 };
 
@@ -777,17 +779,17 @@ void pre_frame() {
     // synchronize room state from remote player:
     local.syncFrom(remote);
 
+    // update local tilemap according to remote player's writes:
+    if (local.safe_to_update_tilemap) {
+      local.updateTilemap();
+    }
+
     // draw Link on screen; overly simplistic drawing code here does not accurately render Link in all poses.
     // need to determine Link's current animation frame from somewhere in RAM.
 
     // subtract BG2 offset from sprite x,y coords to get local screen coords:
     int16 rx = int16(remote.x) - local.xoffs;
     int16 ry = int16(remote.y) - local.yoffs;
-
-    // update local tilemap according to remote player's writes:
-    if (local.safe_to_update_tilemap) {
-      remote.updateTilemap();
-    }
 
     // draw remote player relative to current BG offsets:
     remote.render(rx, ry);
