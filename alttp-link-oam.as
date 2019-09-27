@@ -226,7 +226,13 @@ class GameState {
   uint8 direction;
   uint8 level;
 
-  uint8 screen_transition;
+  uint8 ow_screen_transition;
+  uint8 module;
+  uint8 sub_module;
+  uint8 sub_sub_module;
+  uint8 to_dark_world;
+
+  bool safe_to_update_tilemap = false;
 
   // for intercepting writes to the tilemap:
   array<TilemapWrite@> frameWrites;
@@ -234,11 +240,6 @@ class GameState {
   array<VRAMWrite@> roomVRAMWrites;
   uint8 vmaddrl, vmaddrh;
   bool intercepting;
-
-  void tilemap_written(uint32 addr, uint8 value) {
-    // record the tilemap write:
-    frameWrites.insertLast(TilemapWrite(addr, value));
-  }
 
   void fetch() {
     ctr = bus::read_u8(0x7E001A);
@@ -258,32 +259,82 @@ class GameState {
     direction = bus::read_u8(0x7E0067);
     level = bus::read_u8(0x7E00EE);
 
-    // $7E0410 = screen transitioning
-    screen_transition = bus::read_u8(0x7E0410);
+    // $7E0410 = OW screen transitioning directional
+    ow_screen_transition = bus::read_u8(0x7E0410);
 
-    // Record last screen before transition:
-    if (screen_transition == 0) {
+    // module     = 0x07 in dungeons
+    //            = 0x09 in overworld
+    module = bus::read_u8(0x7E0010);
+
+    // when module = 0x07:
+    //    sub_module = 0x00 normal gameplay in dungeon
+    //               = 0x01 going through door
+    //               = 0x03 triggered a star tile to change floor hole configuration
+    //               = 0x05 initializing room? / locked doors?
+    //               = 0x07 falling down hole in floor
+    //               = 0x0e going up/down stairs
+    //               = 0x0f entering dungeon first time (or from mirror)
+    //               = 0x16 when orange/blue barrier blocks transition
+    //               = 0x19 when using mirror
+    // when module = 0x09:
+    //    sub_module = 0x00 normal gameplay in overworld
+    //               = 0x0e
+    //      sub_sub_module = 0x01 in item menu
+    //                     = 0x02 in dialog with NPC
+    //               = 0x23 transitioning from light world to dark world or vice-versa
+    // when module = 0x12: Link is dying
+    //    sub_module = 0x00
+    //               = 0x02 bonk
+    //               = 0x03 black oval closing in
+    //               = 0x04 red screen and spinning animation
+    //               = 0x05 red screen and Link face down
+    //               = 0x06 fade to black
+    //               = 0x07 game over animation
+    //               = 0x08 game over screen done
+    //               = 0x09 save and continue menu
+    sub_module = bus::read_u8(0x7E0011);
+
+    // sub-sub-module goes from 01 to 0f during special animations such as link walking up/down stairs and
+    // falling from ceiling and used as a counter for orange/blue barrier blocks transition going up/down
+    sub_sub_module = bus::read_u8(0x7E00B0);
+
+    //auto transition_ctr = bus::read_u8(0x7E0126);
+
+    //message(fmtHex(screen_transition, 2) + ", " + fmtHex(subsubmodule, 2));
+
+    // determines when it's safe to synchronize tilemap and VRAM:
+    safe_to_update_tilemap = (
+      ow_screen_transition == 0 &&
+      (
+        // overworld:
+        (module == 0x09 && sub_module == 0x00) ||
+        // dungeon:
+        (module == 0x07 && sub_module == 0x00)
+      )
+    );
+
+    // Don't update location until screen transition is complete:
+    if (safe_to_update_tilemap) {
       last_location = location;
-    }
 
-    // fetch various room indices and flags about where exactly Link currently is:
-    auto in_dark_world = bus::read_u8(0x7E0FFF);
-    auto in_dungeon = bus::read_u8(0x7E001B);
-    auto overworld_room = bus::read_u16(0x7E008A, 0x7E008B);
-    auto dungeon_room = bus::read_u16(0x7E00A0, 0x7E00A1);
+      // fetch various room indices and flags about where exactly Link currently is:
+      auto in_dark_world = bus::read_u8(0x7E0FFF);
+      auto in_dungeon = bus::read_u8(0x7E001B);
+      auto overworld_room = bus::read_u16(0x7E008A, 0x7E008B);
+      auto dungeon_room = bus::read_u16(0x7E00A0, 0x7E00A1);
 
-    auto previous_location = location;
+      // compute aggregated location for Link into a single 24-bit number:
+      location =
+        uint32(in_dark_world & 1) << 17 |
+        uint32(in_dungeon & 1) << 16 |
+        uint32(in_dungeon != 0 ? dungeon_room : overworld_room);
 
-    // compute aggregated location for Link into a single 24-bit number:
-    location =
-      uint32(in_dark_world & 1) << 17 |
-      uint32(in_dungeon & 1) << 16 |
-      uint32(in_dungeon != 0 ? dungeon_room : overworld_room);
-
-    // clear out list of room changes if location changed:
-    if (previous_location != location) {
-      roomWrites.resize(0);
-      roomVRAMWrites.resize(0);
+      // clear out list of room changes if location changed:
+      if (last_location != location) {
+        message("room from 0x" + fmtHex(last_location, 6) + " to 0x" + fmtHex(location, 6));
+        roomWrites.resize(0);
+        roomVRAMWrites.resize(0);
+      }
     }
 
     // get screen x,y offset by reading BG2 scroll registers:
@@ -387,6 +438,16 @@ class GameState {
     }
   }
 
+  // called when tilemap data is updated:
+  void tilemap_written(uint32 addr, uint8 value) {
+    if (!safe_to_update_tilemap) return;
+
+    // record the tilemap write:
+    frameWrites.insertLast(TilemapWrite(addr, value));
+    //message("sync tilemap [0x" + fmtHex(addr, 6) + "] = 0x" + fmtHex(value, 2));
+  }
+
+  // called when VMADDRL and VMADDRH registers are written to:
   void ppu_vmaddr_written(uint32 addr, uint8 value) {
     if (addr == 0x2116) vmaddrl = value;
     else if (addr == 0x2117) vmaddrh = value;
@@ -394,26 +455,56 @@ class GameState {
   }
 
   void dma_interceptor(cpu::DMAIntercept @dma) {
+    if (!safe_to_update_tilemap) return;
+
     // Find DMA writes to tile memory in VRAM:
     if (
-      // reading from 0x001006 temporary buffer:
-      dma.sourceBank == 0x00 && dma.sourceAddress >= 0x1006 && dma.sourceAddress < 0x1100 &&
+      (
+        // reading from 0x001006 temporary buffer (for bushes / stones picked up in OW):
+        (dma.sourceBank == 0x00 && dma.sourceAddress >= 0x1006 && dma.sourceAddress < 0x1100) ||
+        // reading from 0x001100 temporary buffer (for doors in dungeons opening/closing?):
+        (dma.sourceBank == 0x00 && dma.sourceAddress >= 0x1100 && dma.sourceAddress < 0x1980)
+      ) &&
       // writing to 0x2118, 0x2119 VMDATAL & VMDATAH regs:
       dma.targetAddress == 0x18 &&
-      vmaddrh < 0x40
+      // writing to tilemap VRAM for BG layers:
+      vmaddrh < 0x40 &&
+      // don't take the larger transfers:
+      dma.transferSize < 0x40
     ) {
-      array<uint8> data;
-
-      // capture source of DMA transfer to array:
-      uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
-      bus::read_block(addr, dma.transferSize, data);
-
       // record VRAM transfer for the room:
       auto write = VRAMWrite();
       write.vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
-      write.data = data;
+      uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
+      bus::read_block(addr, dma.transferSize, write.data);
       roomVRAMWrites.insertLast(write);
-    } /* else if (dma.targetAddress == 18) {
+      //message(
+      //  "sync DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
+      //  " to PPU 0x" + fmtHex(write.vmaddr, 4) + " size 0x" + fmtHex(dma.transferSize, 4)
+      //);
+    } else if (
+      // writing to 0x2118, 0x2119 VMDATAL & VMDATAH regs:
+      dma.targetAddress == 0x18 &&
+      // writing to tilemap VRAM for BG layers:
+      vmaddrh < 0x3b
+    ) {
+      uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
+      auto vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
+      //message(
+      //  "DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
+      //  " to PPU 0x" + fmtHex(vmaddr, 4) + " size 0x" + fmtHex(dma.transferSize, 4)
+      //);
+    }
+
+    // torch lights being animated in dungeons:
+    // DMA[0] from 0x7ea680 to PPU 0x3b00 size 0x0400
+    // DMA[0] from 0x7eaa80 to PPU 0x3b00 size 0x0400
+    // DMA[0] from 0x7eae80 to PPU 0x3b00 size 0x0400
+
+    /* else if (
+      // reading from 0x7EB340 temporary buffer for orange/blue tiles:
+      dma.sourceBank == 0x7E && dma.sourceAddress >= 0x9000 && dma.sourceAddress < 0xBFFF
+    ) {
       uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
       auto vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
       message(
@@ -434,6 +525,7 @@ class GameState {
     if (!intercepting) {
       // intercept writes to the tilemap:
       bus::add_write_interceptor("7e:2000-3fff", 0, @bus::WriteInterceptCallback(local.tilemap_written));
+      bus::add_write_interceptor("7e:4000-5fff", 0, @bus::WriteInterceptCallback(local.tilemap_written));
       bus::add_write_interceptor("00-3f,80-bf:2116-2117", 0, @bus::WriteInterceptCallback(local.ppu_vmaddr_written));
       //bus::add_write_interceptor("00-3f,80-bf:2116-2119", 0, @bus::WriteInterceptCallback(local.ppu_vmaddr_written));
       cpu::register_dma_interceptor(@cpu::DMAInterceptCallback(local.dma_interceptor));
@@ -452,14 +544,7 @@ class GameState {
   }
 
   bool can_see(uint32 other_location) {
-    if (location == other_location) return true;
-
-    // If the player changed light/dark world or overworld/dungeon then not able to see other player:
-    if ((last_location & 0x30000) != (location & 0x30000)) {
-      return false;
-    }
-
-    return last_location == other_location;
+    return (location == other_location);
   }
 
   void serialize(array<uint8> &r) {
@@ -605,16 +690,13 @@ class GameState {
   }
 
   void updateTilemap() {
-    // don't update tilemap or VRAM during screen transitions:
-    if (screen_transition != 0) return;
-
     // update tilemap in WRAM:
     auto len = roomWrites.length();
     //message("tilemap writes " + fmtInt(len));
     for (uint i = 0; i < len; i++) {
       auto addr = roomWrites[i].addr;
       auto value = roomWrites[i].value;
-      //message("  [0x" + fmtHex(addr, 6) + "] <- 0x" + fmtHex(value, 2));
+      //message("  wram[0x" + fmtHex(addr, 6) + "] <- 0x" + fmtHex(value, 2));
       bus::write_u8(addr, value);
     }
 
@@ -622,6 +704,7 @@ class GameState {
     len = roomVRAMWrites.length();
     //message("vram writes " + fmtInt(len));
     for (uint i = 0; i < len; i++) {
+      //message("  vram[0x" + fmtHex(roomVRAMWrites[i].vmaddr, 4) + "] <- ...data...");
       ppu::write_data(
         roomVRAMWrites[i].vmaddr,
         roomVRAMWrites[i].data
@@ -702,7 +785,9 @@ void pre_frame() {
     int16 ry = int16(remote.y) - local.yoffs;
 
     // update local tilemap according to remote player's writes:
-    remote.updateTilemap();
+    if (local.safe_to_update_tilemap) {
+      remote.updateTilemap();
+    }
 
     // draw remote player relative to current BG offsets:
     remote.render(rx, ry);
@@ -713,15 +798,22 @@ void pre_frame() {
 }
 
 void post_frame() {
-  /*
   ppu::frame.text_shadow = true;
 
+  /*
   // draw some debug info:
   for (int i = 0; i < 16; i++) {
     ppu::frame.text(i * 16, 224-16, fmtHex(bus::read_u8(0x7E0400 + i), 2));
     ppu::frame.text(i * 16, 224- 8, fmtHex(bus::read_u8(0x7E0410 + i), 2));
   }
   */
+
+  ppu::frame.text( 0, 0, fmtHex(local.ow_screen_transition, 2));
+  ppu::frame.text(20, 0, fmtHex(local.module,               2));
+  ppu::frame.text(40, 0, fmtHex(local.sub_module,           2));
+  ppu::frame.text(60, 0, fmtHex(local.sub_sub_module,       2));
+  ppu::frame.text(80, 0, fmtHex(local.to_dark_world,        2));
+
   /*
   ppu::frame.text( 0, 0, fmtHex(local.state,     2));
   ppu::frame.text(20, 0, fmtHex(local.walking,   1));
