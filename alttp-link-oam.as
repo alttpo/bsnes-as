@@ -420,8 +420,8 @@ class GameState {
         chr == 0x0c ||
         // large stone
         chr == 0x4a ||
-        // holding pot / bush or small stone
-        chr == 0x46 || chr == 0x44 ||
+        // holding pot / bush or small stone or sign
+        chr == 0x46 || chr == 0x44 || chr == 0x42 ||
         // shadow underneath pot / bush or small stone
         (i >= 1 && (ppu::oam[i-1].character == 0x46 || ppu::oam[i-1].character == 0x44) && chr == 0x6c) ||
         // pot shards or stone shards (large and small)
@@ -804,9 +804,6 @@ void pre_frame() {
     if (local.safe_to_update_tilemap()) {
       local.updateTilemap();
     }
-
-    // draw Link on screen; overly simplistic drawing code here does not accurately render Link in all poses.
-    // need to determine Link's current animation frame from somewhere in RAM.
 
     // subtract BG2 offset from sprite x,y coords to get local screen coords:
     int16 rx = int16(remote.x) - local.xoffs;
