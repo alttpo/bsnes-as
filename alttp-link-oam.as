@@ -232,7 +232,41 @@ class GameState {
   uint8 sub_sub_module;
   uint8 to_dark_world;
 
-  bool safe_to_update_tilemap = false;
+  void update_module() {
+    module = bus::read_u8(0x7E0010);
+    sub_module = bus::read_u8(0x7E0011);
+  }
+
+  bool safe_to_update_tilemap() {
+    if (module == 0x09) {
+      if (sub_module == 0x00 || sub_module == 0x06) {
+        return true;
+      }
+      return false;
+    } else if (module == 0x07) {
+      if (sub_module == 0x00) {
+        return true;
+      }
+      return false;
+    } else {
+      return false;
+    }
+  }
+  bool safe_to_fetch_tilemap() {
+    if (module == 0x09) {
+      if (sub_module == 0x00 || sub_module == 0x06) {
+        return true;
+      }
+      return false;
+    } else if (module == 0x07) {
+      if (sub_module == 0x00) {
+        return true;
+      }
+      return false;
+    } else {
+      return false;
+    }
+  }
 
   // for intercepting writes to the tilemap:
   array<TilemapWrite@> tileWrites;
@@ -303,19 +337,8 @@ class GameState {
 
     //message(fmtHex(screen_transition, 2) + ", " + fmtHex(subsubmodule, 2));
 
-    // determines when it's safe to synchronize tilemap and VRAM:
-    safe_to_update_tilemap = (
-      ow_screen_transition == 0 &&
-      (
-        // overworld:
-        (module == 0x09 && sub_module == 0x00) ||
-        // dungeon:
-        (module == 0x07 && sub_module == 0x00)
-      )
-    );
-
     // Don't update location until screen transition is complete:
-    if (safe_to_update_tilemap) {
+    if (safe_to_update_tilemap()) {
       last_location = location;
 
       // fetch various room indices and flags about where exactly Link currently is:
@@ -446,7 +469,7 @@ class GameState {
 
   // called when tilemap data is updated:
   void tilemap_written(uint32 addr, uint8 value) {
-    if (!safe_to_update_tilemap) return;
+    if (!safe_to_fetch_tilemap()) return;
 
     // tilemap writes happen in lo-high byte order:
     if ((addr & 1) == 0) {
@@ -468,7 +491,7 @@ class GameState {
   }
 
   void dma_interceptor(cpu::DMAIntercept @dma) {
-    if (!safe_to_update_tilemap) return;
+    if (!safe_to_fetch_tilemap()) return;
 
     // Find DMA writes to tile memory in VRAM:
     if (
@@ -698,7 +721,7 @@ class GameState {
   void updateTilemap() {
     // update tilemap in WRAM:
     auto len = tileWrites.length();
-    message("tilemap writes " + fmtInt(len));
+    //message("tilemap writes " + fmtInt(len));
     uint i;
     for (i = tileWritesIndex; i < len; i++) {
       auto addr = tileWrites[i].addr;
@@ -711,7 +734,7 @@ class GameState {
 
     // make VRAM updates:
     len = vramWrites.length();
-    message("vram writes " + fmtInt(len));
+    //message("vram writes " + fmtInt(len));
     for (i = vramWritesIndex; i < len; i++) {
       message("  vram[0x" + fmtHex(vramWrites[i].vmaddr, 4) + "] <- ...data...");
       ppu::write_data(
@@ -728,14 +751,12 @@ class GameState {
     for (uint i = tileWritesIndex; i < rlen; i++) {
       tileWrites.insertLast(remote.tileWrites[i]);
     }
-    //tileWritesIndex = rlen;
 
     // sync VRAM updates:
     rlen = remote.vramWrites.length();
     for (uint i = vramWritesIndex; i < rlen; i++) {
       vramWrites.insertLast(remote.vramWrites[i]);
     }
-    //vramWritesIndex = rlen;
   }
 };
 
@@ -780,7 +801,7 @@ void pre_frame() {
     local.syncFrom(remote);
 
     // update local tilemap according to remote player's writes:
-    if (local.safe_to_update_tilemap) {
+    if (local.safe_to_update_tilemap()) {
       local.updateTilemap();
     }
 
