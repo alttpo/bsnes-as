@@ -83,6 +83,7 @@ struct image {
 
   //scale.hpp
   inline auto scale(uint width, uint height, bool linear = true) -> void;
+  inline auto scaleIntegralTo(image &output, int scalar) const -> void;
 
   //blend.hpp
   inline auto impose(blend mode, uint targetX, uint targetY, image source, uint x, uint y, uint width, uint height) -> void;

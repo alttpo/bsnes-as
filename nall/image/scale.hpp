@@ -174,4 +174,28 @@ auto image::scaleNearest(unsigned outputWidth, unsigned outputHeight) -> void {
   _height = outputHeight;
 }
 
+auto image::scaleIntegralTo(image &output, int scalar) const -> void {
+  if (scalar < 1) scalar = 1;
+
+  uint8_t *out0 = output._data;
+
+  uint8_t *input = _data;
+  for(unsigned y = 0; y < height(); y++) {
+    if (y * scalar >= output.height()) return;
+
+    for(unsigned x = 0; x < width(); x++) {
+      if (x * scalar >= output.width()) break;
+
+      uint64_t p = read(input);
+      input += stride();
+
+      for (unsigned j = 0; j < scalar; j++) {
+        for (unsigned i = 0; i < scalar; i++) {
+          output.write(out0 + output.pitch() * (y*scalar+j) + output.stride() * (x*scalar+i), p);
+        }
+      }
+    }
+  }
+}
+
 }
