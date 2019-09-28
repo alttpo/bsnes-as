@@ -22,7 +22,6 @@ class SettingsWindow {
     window.size = gui::Size(256, 24*3);
 
     auto vl = gui::VerticalLayout();
-    window.append(vl);
     {
       auto @hz = gui::HorizontalLayout();
       {
@@ -62,6 +61,7 @@ class SettingsWindow {
       }
       vl.append(hz, gui::Size(-1, -1));
     }
+    window.append(vl);
 
     vl.resize();
     window.visible = true;
