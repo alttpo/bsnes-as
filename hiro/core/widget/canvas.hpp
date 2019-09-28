@@ -15,6 +15,9 @@ struct mCanvas : mWidget {
   auto size() const -> Size;
   auto update() -> type&;
 
+  // [jsd]
+  auto iconRef() -> image&;
+
 //private:
   struct State {
     Alignment alignment;

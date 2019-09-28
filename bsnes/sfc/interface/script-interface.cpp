@@ -1510,7 +1510,7 @@ struct ScriptInterface {
       }
 
       auto setSize(hiro::Size *size) -> void {
-        // Set 15-big BGR format for PPU-compatible images:
+        // Set 15-bit BGR format for PPU-compatible images:
         image icon(false, 16, 0x8000u, 0x001Fu, 0x03E0u, 0x7C00u);
         icon.allocate(size->width(), size->height());
         icon.fill(0x8000u);
@@ -1519,6 +1519,73 @@ struct ScriptInterface {
 
       auto update() -> void {
         self->update();
+      }
+
+      auto fill(uint16 color) -> void {
+        self->iconRef().fill(color);
+      }
+
+      auto pixel(int x, int y, uint16 color) -> void {
+        auto& icon = self->iconRef();
+        // bounds check:
+        if (x < 0 || y < 0 || x >= icon.width() || y >= icon.height()) return;
+        // set pixel with full alpha (1-bit on/off):
+        icon.write(icon.data() + (y * icon.pitch()) + (x * icon.stride()), color | 0x8000u);
+      }
+
+      auto draw_sprite_4bpp(int x, int y, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
+        // Check validity of array inputs:
+        if (tile_data == nullptr) {
+          asGetActiveContext()->SetException("tile_data array cannot be null", true);
+          return;
+        }
+        if (tile_data->GetElementTypeId() != asTYPEID_UINT32) {
+          asGetActiveContext()->SetException("tile_data array must be uint32[]", true);
+          return;
+        }
+        if (tile_data->GetSize() < 8) {
+          asGetActiveContext()->SetException("tile_data array must have at least 8 elements", true);
+          return;
+        }
+
+        if (palette_data == nullptr) {
+          asGetActiveContext()->SetException("palette_data array cannot be null", true);
+          return;
+        }
+        if (palette_data->GetElementTypeId() != asTYPEID_UINT16) {
+          asGetActiveContext()->SetException("palette_data array must be uint16[]", true);
+          return;
+        }
+        if (palette_data->GetSize() < 16) {
+          asGetActiveContext()->SetException("palette_data array must have 16 elements", true);
+          return;
+        }
+
+        auto tile_data_p = static_cast<const uint32 *>(tile_data->At(0));
+        if (tile_data_p == nullptr) {
+          asGetActiveContext()->SetException("tile_data array value pointer must not be null", true);
+          return;
+        }
+        auto palette_p = static_cast<const b5g5r5 *>(palette_data->At(0));
+        if (palette_p == nullptr) {
+          asGetActiveContext()->SetException("palette_data array value pointer must not be null", true);
+          return;
+        }
+
+        for (int py = 0; py < 8; py++) {
+          uint32 tile = tile_data_p[py];
+          for (int px = 0; px < 8; px++) {
+            uint32 c = 0u, shift = 7u - px;
+            c += tile >> (shift +  0u) & 1u;
+            c += tile >> (shift +  7u) & 2u;
+            c += tile >> (shift + 14u) & 4u;
+            c += tile >> (shift + 21u) & 8u;
+            if (c) {
+              auto color = palette_p[c];
+              pixel(x + px, y + py, color);
+            }
+          }
+        }
       }
     };
 
@@ -1861,6 +1928,9 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Canvas", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::Canvas, setVisible), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Canvas", "void set_size(Size &in size)", asMETHOD(ScriptInterface::GUI::Canvas, setSize), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Canvas", "void update()", asMETHOD(ScriptInterface::GUI::Canvas, update), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Canvas", "void fill(uint16 color)", asMETHOD(ScriptInterface::GUI::Canvas, fill), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Canvas", "void pixel(int x, int y, uint16 color)", asMETHOD(ScriptInterface::GUI::Canvas, pixel), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Canvas", "void draw_sprite_4bpp(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asMETHOD(ScriptInterface::GUI::Canvas, draw_sprite_4bpp), asCALL_THISCALL); assert( r >= 0 );
   }
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);

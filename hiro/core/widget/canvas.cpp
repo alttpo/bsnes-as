@@ -26,6 +26,10 @@ auto mCanvas::icon() const -> image {
   return state.icon;
 }
 
+auto mCanvas::iconRef() -> image& {
+  return state.icon;
+}
+
 auto mCanvas::setAlignment(Alignment alignment) -> type& {
   state.alignment = alignment;
   signal(setAlignment, alignment);
