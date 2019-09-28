@@ -1345,8 +1345,6 @@ struct ScriptInterface {
       Window() {
         self = new hiro::mWindow();
         self->construct();
-        self->setVisible();
-        self->setFocused();
       }
 
       // create a Window relative to main presentation window
@@ -1418,7 +1416,6 @@ struct ScriptInterface {
         self = new hiro::mLineEdit();
         self->construct();
         self->setFocusable();
-        self->setVisible();
       }
 
       auto getText() -> string* {
@@ -1456,7 +1453,6 @@ struct ScriptInterface {
       Label() {
         self = new hiro::mLabel();
         self->construct();
-        self->setVisible();
       }
 
       auto getText() -> string * {
@@ -1477,7 +1473,6 @@ struct ScriptInterface {
         self = new hiro::mButton();
         self->construct();
         self->setFocusable();
-        self->setVisible();
       }
 
       auto getText() -> string* {
