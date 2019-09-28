@@ -1499,6 +1499,30 @@ struct ScriptInterface {
       }
     };
 
+    struct Canvas : Sizable {
+      BindShared(Canvas)
+      BindObject(Canvas)
+      BindSizable(Canvas)
+
+      Canvas() {
+        self = new hiro::mCanvas();
+        self->construct();
+      }
+
+      auto setSize(hiro::Size *size) -> void {
+        // Set 15-big BGR format for PPU-compatible images:
+        image icon(false, 16, 0x8000u, 0x001Fu, 0x03E0u, 0x7C00u);
+        icon.allocate(size->width(), size->height());
+        icon.fill(0x8000u);
+        self->setIcon(icon);
+      }
+
+      auto update() -> void {
+        self->update();
+      }
+    };
+
+
 #define Constructor(Name) \
     static auto create##Name() -> Name* { return new Name(); }
 
@@ -1514,6 +1538,7 @@ struct ScriptInterface {
     Constructor(LineEdit)
     Constructor(Label)
     Constructor(Button)
+    Constructor(Canvas)
 
 #undef Constructor
   };
@@ -1748,6 +1773,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectType("LineEdit", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectType("Label", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectType("Button", 0, asOBJ_REF); assert(r >= 0);
+    r = script.engine->RegisterObjectType("Canvas", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectType("Size", sizeof(hiro::Size), asOBJ_VALUE); assert(r >= 0);
 
     // Size value type:
@@ -1769,6 +1795,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Window", "void append(LineEdit @sizable)", asMETHOD(ScriptInterface::GUI::Window, appendSizable), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void append(Label @sizable)", asMETHOD(ScriptInterface::GUI::Window, appendSizable), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void append(Button @sizable)", asMETHOD(ScriptInterface::GUI::Window, appendSizable), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Window", "void append(Canvas @sizable)", asMETHOD(ScriptInterface::GUI::Window, appendSizable), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::Window, setVisible), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_title(const string &in title)", asMETHOD(ScriptInterface::GUI::Window, setTitle), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Window", "void set_size(Size &in size)", asMETHOD(ScriptInterface::GUI::Window, setSize), asCALL_THISCALL); assert( r >= 0 );
@@ -1782,6 +1809,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("VerticalLayout", "void append(LineEdit @sizable, Size &in size)", asMETHOD(ScriptInterface::GUI::VerticalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("VerticalLayout", "void append(Label @sizable, Size &in size)", asMETHOD(ScriptInterface::GUI::VerticalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("VerticalLayout", "void append(Button @sizable, Size &in size)", asMETHOD(ScriptInterface::GUI::VerticalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("VerticalLayout", "void append(Canvas @sizable, Size &in size)", asMETHOD(ScriptInterface::GUI::VerticalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("VerticalLayout", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::VerticalLayout, setVisible), asCALL_THISCALL); assert( r >= 0 );
 
     // HorizontalLayout
@@ -1793,6 +1821,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("HorizontalLayout", "void append(LineEdit @sizable, Size &in size)", asMETHOD(ScriptInterface::GUI::HorizontalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("HorizontalLayout", "void append(Label @sizable, Size &in size)", asMETHOD(ScriptInterface::GUI::HorizontalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("HorizontalLayout", "void append(Button @sizable, Size &in size)", asMETHOD(ScriptInterface::GUI::HorizontalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("HorizontalLayout", "void append(Canvas @sizable, Size &in size)", asMETHOD(ScriptInterface::GUI::HorizontalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("HorizontalLayout", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::HorizontalLayout, setVisible), asCALL_THISCALL); assert( r >= 0 );
 
     // LineEdit
@@ -1824,6 +1853,14 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Button", "string &get_text()", asMETHOD(ScriptInterface::GUI::Button, getText), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Button", "void set_text(const string &in text)", asMETHOD(ScriptInterface::GUI::Button, setText), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Button", "void set_on_activate(ButtonCallback @cb)", asMETHOD(ScriptInterface::GUI::Button, setOnActivate), asCALL_THISCALL); assert( r >= 0 );
+
+    // Canvas
+    r = script.engine->RegisterObjectBehaviour("Canvas", asBEHAVE_FACTORY, "Canvas@ f()", asFUNCTION(ScriptInterface::GUI::createCanvas), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Canvas", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::GUI::Canvas, ref_add), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectBehaviour("Canvas", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::Canvas, ref_release), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Canvas", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::Canvas, setVisible), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Canvas", "void set_size(Size &in size)", asMETHOD(ScriptInterface::GUI::Canvas, setSize), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Canvas", "void update()", asMETHOD(ScriptInterface::GUI::Canvas, update), asCALL_THISCALL); assert( r >= 0 );
   }
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
