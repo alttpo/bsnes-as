@@ -343,6 +343,24 @@ struct ScriptInterface {
       return ppu.vram[addr];
     }
 
+    auto vram_read_block(uint16 addr, uint16 size, uint offs, CScriptArray *output) -> void {
+      if (output == nullptr) {
+        asGetActiveContext()->SetException("output array cannot be null", true);
+        return;
+      }
+      if (output->GetElementTypeId() != asTYPEID_UINT16) {
+        asGetActiveContext()->SetException("output array must be of type uint16[]", true);
+        return;
+      }
+
+      auto vram = system.fastPPU() ? (uint16 *)ppufast.vram : (uint16 *)ppu.vram.data;
+
+      for (uint i = 0; i < size; i++) {
+        auto tmp = vram[addr + i];
+        output->SetValue(offs + i, &tmp);
+      }
+    }
+
     // Read a sprite from VRAM into `output`
     auto vram_read_sprite(uint16 tiledataAddress, uint8 chr, uint8 width, uint8 height, CScriptArray *output) -> uint {
       if (output == nullptr) {
@@ -1553,18 +1571,18 @@ struct ScriptInterface {
         img.write(img.data() + (y * img.pitch()) + (x * img.stride()), color | 0x8000u);
       }
 
-      auto draw_sprite_4bpp(int x, int y, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
+      auto draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
         // Check validity of array inputs:
         if (tile_data == nullptr) {
           asGetActiveContext()->SetException("tile_data array cannot be null", true);
           return;
         }
-        if (tile_data->GetElementTypeId() != asTYPEID_UINT32) {
-          asGetActiveContext()->SetException("tile_data array must be uint32[]", true);
+        if (tile_data->GetElementTypeId() != asTYPEID_UINT16) {
+          asGetActiveContext()->SetException("tile_data array must be uint16[]", true);
           return;
         }
-        if (tile_data->GetSize() < 8) {
-          asGetActiveContext()->SetException("tile_data array must have at least 8 elements", true);
+        if (tile_data->GetSize() < 16) {
+          asGetActiveContext()->SetException("tile_data array must have at least 16 elements", true);
           return;
         }
 
@@ -1581,7 +1599,7 @@ struct ScriptInterface {
           return;
         }
 
-        auto tile_data_p = static_cast<const uint32 *>(tile_data->At(0));
+        auto tile_data_p = static_cast<const uint16 *>(tile_data->At(0));
         if (tile_data_p == nullptr) {
           asGetActiveContext()->SetException("tile_data array value pointer must not be null", true);
           return;
@@ -1592,17 +1610,27 @@ struct ScriptInterface {
           return;
         }
 
-        for (int py = 0; py < 8; py++) {
-          uint32 tile = tile_data_p[py];
-          for (int px = 0; px < 8; px++) {
-            uint32 c = 0u, shift = 7u - px;
-            c += tile >> (shift +  0u) & 1u;
-            c += tile >> (shift +  7u) & 2u;
-            c += tile >> (shift + 14u) & 4u;
-            c += tile >> (shift + 21u) & 8u;
-            if (c) {
-              auto color = palette_p[c];
-              pixel(x + px, y + py, color);
+        auto tileWidth = width >> 3u;
+        auto tileHeight = height >> 3u;
+        for (int ty = 0; ty < tileHeight; ty++) {
+          for (int tx = 0; tx < tileWidth; tx++) {
+            // data is stored in runs of 8x8 pixel tiles:
+            auto p = tile_data_p + (((((c >> 4u) + ty) << 4u) + (tx + c & 15)) << 4u);
+
+            for (int py = 0; py < 8; py++) {
+              // consume 8 pixel columns:
+              uint32 tile = uint32(p[py]) | (uint32(p[py+8]) << 16u);
+              for (int px = 0; px < 8; px++) {
+                uint32 t = 0u, shift = 7u - px;
+                t += tile >> (shift + 0u) & 1u;
+                t += tile >> (shift + 7u) & 2u;
+                t += tile >> (shift + 14u) & 4u;
+                t += tile >> (shift + 21u) & 8u;
+                if (t) {
+                  auto color = palette_p[t];
+                  pixel(x + (tx << 3) + px, y + (ty << 3) + py, color);
+                }
+              }
             }
           }
         }
@@ -1700,6 +1728,7 @@ auto Interface::registerScriptDefs() -> void {
   // define ppu::VRAM object type for opIndex convenience:
   r = script.engine->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("VRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptInterface::PPUAccess, vram_read), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("VRAM", "void read_block(uint16 addr, uint16 size, uint offs, array<uint16> &inout output)", asMETHOD(ScriptInterface::PPUAccess, vram_read_block), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("VRAM", "uint read_sprite(uint16 tiledataAddress, uint8 chr, uint8 width, uint8 height, array<uint32> &inout output)", asMETHOD(ScriptInterface::PPUAccess, vram_read_sprite), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterGlobalProperty("VRAM vram", &scriptInterface.ppuAccess); assert(r >= 0);
 
@@ -1952,7 +1981,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Canvas", "void update()", asMETHOD(ScriptInterface::GUI::Canvas, update), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Canvas", "void fill(uint16 color)", asMETHOD(ScriptInterface::GUI::Canvas, fill), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Canvas", "void pixel(int x, int y, uint16 color)", asMETHOD(ScriptInterface::GUI::Canvas, pixel), asCALL_THISCALL); assert( r >= 0 );
-    r = script.engine->RegisterObjectMethod("Canvas", "void draw_sprite_4bpp(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asMETHOD(ScriptInterface::GUI::Canvas, draw_sprite_4bpp), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Canvas", "void draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const array<uint16> &in tiledata, const array<uint16> &in palette)", asMETHOD(ScriptInterface::GUI::Canvas, draw_sprite_4bpp), asCALL_THISCALL); assert( r >= 0 );
   }
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
