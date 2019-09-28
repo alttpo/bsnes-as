@@ -1515,6 +1515,7 @@ struct ScriptInterface {
       image img;
       image scaled;
       hiro::Geometry lastGeometry;
+      int scalar = 1;
 
       auto setSize(hiro::Size *size) -> void {
         // Set 15-bit BGR format for PPU-compatible images:
@@ -1526,16 +1527,16 @@ struct ScriptInterface {
         // scale img to fit container:
         auto geom = self->geometry();
         if (geom != lastGeometry) {
-          scaled.allocate(geom.width(), geom.height());
+          scalar = max(geom.width(), img.width()) / img.width();
+          scaled.allocate(img.width() * scalar, img.height() * scalar);
           scaled.fill(0x0000u);
           lastGeometry = geom;
         }
 
-        img.scaleIntegralTo(scaled, max(geom.width(), img.width()) / img.width());
+        img.scaleIntegralTo(scaled, scalar);
         self->setIcon(scaled);
-
-        //self->setIcon(img);
-        self->update(); // update() is redundant after setIcon()
+        // update() is redundant after setIcon()
+        //self->update();
       }
 
       auto fill(uint16 color) -> void {
