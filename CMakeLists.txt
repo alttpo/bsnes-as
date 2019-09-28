@@ -12,7 +12,7 @@ include_directories(nall)
 include_directories(ruby)
 include_directories(.)
 
-add_compile_definitions(Hiro_Canvas)
+add_compile_definitions(Hiro_Canvas Hiro_Window Hiro_Button Hiro_Label Hiro_HorizontalLayout Hiro_VerticalLayout)
 
 add_executable(bsnes
         bsnes/emulator/audio/audio.cpp
