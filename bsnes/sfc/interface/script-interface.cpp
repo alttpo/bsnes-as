@@ -1504,33 +1504,39 @@ struct ScriptInterface {
       BindObject(Canvas)
       BindSizable(Canvas)
 
-      Canvas() {
+      Canvas() : img(false, 16, 0x8000u, 0x001Fu, 0x03E0u, 0x7C00u) {
         self = new hiro::mCanvas();
         self->construct();
       }
 
+      image img;
+
       auto setSize(hiro::Size *size) -> void {
         // Set 15-bit BGR format for PPU-compatible images:
-        image icon(false, 16, 0x8000u, 0x001Fu, 0x03E0u, 0x7C00u);
-        icon.allocate(size->width(), size->height());
-        icon.fill(0x8000u);
-        self->setIcon(icon);
+        img.allocate(size->width(), size->height());
+        img.fill(0x8000u);
       }
 
       auto update() -> void {
+        // copy image:
+        //image scaled = img;
+        // scale img to fit container:
+        //auto geom = self->geometry();
+        //scaled.scale(geom.width(), geom.height(), false);
+        //self->setIcon(scaled);
+        self->setIcon(img);
         self->update();
       }
 
       auto fill(uint16 color) -> void {
-        self->iconRef().fill(color);
+        img.fill(color);
       }
 
       auto pixel(int x, int y, uint16 color) -> void {
-        auto& icon = self->iconRef();
         // bounds check:
-        if (x < 0 || y < 0 || x >= icon.width() || y >= icon.height()) return;
+        if (x < 0 || y < 0 || x >= img.width() || y >= img.height()) return;
         // set pixel with full alpha (1-bit on/off):
-        icon.write(icon.data() + (y * icon.pitch()) + (x * icon.stride()), color | 0x8000u);
+        img.write(img.data() + (y * img.pitch()) + (x * img.stride()), color | 0x8000u);
       }
 
       auto draw_sprite_4bpp(int x, int y, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
