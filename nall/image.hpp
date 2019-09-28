@@ -66,6 +66,8 @@ struct image {
   inline auto load(const string& filename) -> bool;
   inline auto copy(const void* data, uint pitch, uint width, uint height) -> void;
   inline auto allocate(uint width, uint height) -> void;
+  // [jsd]
+  inline auto use(uint8_t *data, uint width, uint height) -> void;
 
   //fill.hpp
   inline auto fill(uint64_t color = 0) -> void;
@@ -92,6 +94,7 @@ struct image {
   inline auto alphaMultiply() -> void;
   inline auto transform(const image& source = {}) -> void;
   inline auto transform(bool endian, uint depth, uint64_t alphaMask, uint64_t redMask, uint64_t greenMask, uint64_t blueMask) -> void;
+  inline auto transformTo(image& output) const -> void;
 
   //static.hpp
   static inline auto bitDepth(uint64_t color) -> uint;
@@ -147,6 +150,7 @@ private:
   uint8_t* _data   = nullptr;
   uint _width  = 0;
   uint _height = 0;
+  bool _dataOwned = true;
 
   bool _endian =  0;  //0 = lsb, 1 = msb
   uint _depth  = 32;

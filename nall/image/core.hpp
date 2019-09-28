@@ -132,8 +132,9 @@ auto image::write(uint8_t* data, uint64_t value) const -> void {
 }
 
 auto image::free() -> void {
-  if(_data) delete[] _data;
+  if(_data && _dataOwned) delete[] _data;
   _data = nullptr;
+  _dataOwned = true;
 }
 
 auto image::load(const string& filename) -> bool {
@@ -158,6 +159,15 @@ auto image::allocate(unsigned width, unsigned height) -> void {
   _width = width;
   _height = height;
   _data = allocate(_width, _height, stride());
+}
+
+// [jsd]
+auto image::use(uint8_t *data, uint width, uint height) -> void {
+  free();
+  _dataOwned = false;
+  _data = data;
+  _width = width;
+  _height = height;
 }
 
 //private

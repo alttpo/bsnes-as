@@ -204,8 +204,13 @@ auto pCanvas::_rasterize() -> void {
     auto target = (uint32_t*)[bitmap bitmapData];
 
     if(auto icon = state().icon) {
-      icon.transform(0, 32, 255u << 24, 255u << 0, 255u << 8, 255u << 16);  //Cocoa uses ABGR format
-      memory::copy(target, icon.data(), icon.size());
+      //icon.transform(0, 32, 255u << 24, 255u << 0, 255u << 8, 255u << 16);  //Cocoa uses ABGR format
+      //memory::copy(target, icon.data(), icon.size());
+
+      // [jsd] optimized to avoid allocation
+      image fakeTarget(0, 32, 255u << 24, 255u << 0, 255u << 8, 255u << 16);  //Cocoa uses ABGR format
+      fakeTarget.use((uint8_t*)target, width, height);
+      icon.transformTo(fakeTarget);
     } else if(auto& gradient = state().gradient) {
       auto& colors = gradient.state.colors;
       image fill;
