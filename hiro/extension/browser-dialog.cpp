@@ -241,8 +241,12 @@ auto BrowserDialogWindow::run() -> BrowserDialog::Response {
       return (void)window.setModal(false);
     }
     if(state.action == "openObject" && isObject(name)) {
-      response.selected.append({state.path, name});
-      return (void)window.setModal(false);
+      if(isMatch(name)) {
+        response.selected.append({state.path, name});
+        return (void)window.setModal(false);
+      } else if(isFolder(name)) {
+        return setPath({state.path, name});
+      }
     }
     if(state.action == "saveFile") return accept();
     setPath(state.path, name);
@@ -359,7 +363,7 @@ auto BrowserDialogWindow::run() -> BrowserDialog::Response {
   window.setAlignment(state.relativeTo, state.alignment);
   window.setDismissable();
   window.setVisible();
-  fileName.setFocused();
+  fileName.setText(state.name).setFocused().doChange();
   Application::processEvents();
   view->resizeColumns();
   window.setModal();
@@ -477,6 +481,11 @@ auto BrowserDialog::setAlignment(sWindow relativeTo, Alignment alignment) -> typ
 
 auto BrowserDialog::setFilters(const vector<string>& filters) -> type& {
   state.filters = filters;
+  return *this;
+}
+
+auto BrowserDialog::setName(const string& name) -> type& {
+  state.name = name;
   return *this;
 }
 

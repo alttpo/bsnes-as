@@ -14,6 +14,7 @@ linux-x86_64-binaries_task:
         - mkdir bsnes-angelscript-nightly/Firmware
         - cp -a bsnes/out/bsnes bsnes-angelscript-nightly/bsnes
         - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
+        - cp -a shaders bsnes-angelscript-nightly/Shaders
         - cp -a GPLv3.txt bsnes-angelscript-nightly
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
 
@@ -55,6 +56,7 @@ windows-x86_64-binaries_task:
         - mkdir bsnes-angelscript-nightly/Firmware
         - cp -a bsnes/out/bsnes bsnes-angelscript-nightly/bsnes.exe
         - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
+        - cp -a shaders bsnes-angelscript-nightly/Shaders
         - cp -a GPLv3.txt bsnes-angelscript-nightly
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
 
@@ -74,6 +76,7 @@ windows-x86_32-binaries_task:
         - mkdir bsnes-angelscript-nightly/Firmware
         - cp -a bsnes/out/bsnes bsnes-angelscript-nightly/bsnes.exe
         - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
+        - cp -a shaders bsnes-angelscript-nightly/Shaders
         - cp -a GPLv3.txt bsnes-angelscript-nightly
         - cp -a alttp-link-oam.as bsnes-angelscript-nightly
 
