@@ -18,11 +18,11 @@ class SettingsWindow {
 
   SettingsWindow() {
     @window = gui::Window(164, 22, true);
-    window.visible = true;
     window.title = "Connect to IP address";
     window.size = gui::Size(256, 24*3);
 
     auto vl = gui::VerticalLayout();
+    window.append(vl);
     {
       auto @hz = gui::HorizontalLayout();
       {
@@ -46,23 +46,25 @@ class SettingsWindow {
         txtClientIP.text = "127.0.0.2";
         hz.append(txtClientIP, gui::Size(128, 20));
       }
-      vl.append(hz, gui::Size(0, 0));
+      vl.append(hz, gui::Size(-1, -1));
 
       @hz = gui::HorizontalLayout();
       {
         @ok = gui::Button();
         ok.text = "Start";
         @ok.on_activate = @gui::ButtonCallback(this.startClicked);
-        hz.append(ok, gui::Size(0, 0));
+        hz.append(ok, gui::Size(-1, -1));
 
         auto swap = gui::Button();
         swap.text = "Swap";
         @swap.on_activate = @gui::ButtonCallback(this.swapClicked);
-        hz.append(swap, gui::Size(0, 0));
+        hz.append(swap, gui::Size(-1, -1));
       }
-      vl.append(hz, gui::Size(0, 0));
+      vl.append(hz, gui::Size(-1, -1));
     }
-    window.append(vl);
+
+    vl.resize();
+    window.visible = true;
   }
 
   private void swapClicked(gui::Button @self) {
