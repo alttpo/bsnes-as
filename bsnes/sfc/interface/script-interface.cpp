@@ -346,14 +346,14 @@ struct ScriptInterface {
     }
 
     struct OAMObject {
-      uint9 x;
-      uint8 y;
-      uint8 character;
-      bool  vflip;
-      bool  hflip;
-      uint2 priority;
-      uint3 palette;
-      uint1 size;
+      uint9  x;
+      uint8  y;
+      uint16 character;
+      bool   vflip;
+      bool   hflip;
+      uint2  priority;
+      uint3  palette;
+      uint1  size;
 
       auto get_is_enabled() -> bool {
         uint sprite_width = get_width();
@@ -403,8 +403,8 @@ struct ScriptInterface {
         auto &po = ppufast.objects[index];
         po.x = obj->x;
         po.y = obj->y;
-        po.character = (obj->character & 0xFF);
-        po.nameselect = (obj->character >> 8) & 1;
+        po.character = (obj->character & 0xFFu);
+        po.nameselect = (obj->character >> 8u) & 1u;
         po.vflip = obj->vflip;
         po.hflip = obj->hflip;
         po.priority = obj->priority;
@@ -414,8 +414,8 @@ struct ScriptInterface {
         auto &po = ppu.obj.oam.object[index];
         po.x = obj->x;
         po.y = obj->y;
-        po.character = (obj->character & 0xFF);
-        po.nameselect = (obj->character >> 8) & 1;
+        po.character = (obj->character & 0xFFu);
+        po.nameselect = (obj->character >> 8u) & 1u;
         po.vflip = obj->vflip;
         po.hflip = obj->hflip;
         po.priority = obj->priority;
