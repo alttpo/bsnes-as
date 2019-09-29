@@ -1,10 +1,40 @@
 // ALTTP script to draw current Link sprites on top of rendered frame:
 net::UDPSocket@ sock;
 SettingsWindow @settings;
+SpriteWindow @sprites;
 
 void init() {
   @settings = SettingsWindow();
+  @sprites = SpriteWindow();
 }
+
+class SpriteWindow {
+private gui::Window @window;
+private gui::VerticalLayout @vl;
+  gui::Canvas @canvas;
+
+  SpriteWindow() {
+    // relative position to bsnes window:
+    @window = gui::Window(256*2, 0, true);
+    window.title = "Sprite VRAM";
+    window.size = gui::Size(256, 512);
+
+    @vl = gui::VerticalLayout();
+    window.append(vl);
+
+    @canvas = gui::Canvas();
+    canvas.size = gui::Size(128, 256);
+    vl.append(canvas, gui::Size(-1, -1));
+
+    vl.resize();
+    canvas.update();
+    window.visible = true;
+  }
+
+  void update() {
+    canvas.update();
+  }
+};
 
 class SettingsWindow {
   private gui::Window @window;
@@ -98,14 +128,13 @@ int16 abs16(int16 n) {
 class Sprite {
   int16 x;
   int16 y;
-  uint8 width;
-  uint8 height;
+  uint8 size;
   uint8 palette;
   uint8 priority;
   bool hflip;
   bool vflip;
   uint8 index;
-  array<uint32> tiledata;
+  array<uint16> tiledata;
 
   // fetches all the OAM sprite data for OAM sprite at `index`
   void fetchOAM(uint8 index, int16 rx, int16 ry) {
@@ -123,60 +152,59 @@ class Sprite {
 
     auto chr = tile.character;
 
-    width  = tile.width;
-    height = tile.height;
-
+    size     = tile.size;
     palette  = tile.palette;
     priority = tile.priority;
     hflip    = tile.hflip;
     vflip    = tile.vflip;
 
-    // get base address for current tiledata:
-    auto baseaddr = ppu::tile_address(tile.nameselect);
-
     // load character from VRAM:
-    int count = ppu::vram.read_sprite(baseaddr, chr, width, height, tiledata);
+    if (size == 0) {
+      // 8x8 sprite:
+      tiledata.resize(16);
+      ppu::vram.read_block(ppu::vram.chr_address(chr), 0, 16, tiledata);
+    } else {
+      // 16x16 sprite:
+      tiledata.resize(64);
+      ppu::vram.read_block(ppu::vram.chr_address(chr), 0, 32, tiledata);
+      ppu::vram.read_block(ppu::vram.chr_address(chr+0x10), 32, 32, tiledata);
+    }
     //message("count = " + fmtInt(count) + " " + fmtInt(width) + "x" + fmtInt(height));
   }
 
   void serialize(array<uint8> &r) {
+    r.insertLast(index);
     r.insertLast(uint16(x));
     r.insertLast(uint16(y));
-    r.insertLast(width);
-    r.insertLast(height);
+    r.insertLast(size);
     r.insertLast(palette);
     r.insertLast(priority);
     r.insertLast(hflip ? uint8(1) : uint8(0));
     r.insertLast(vflip ? uint8(1) : uint8(0));
-    r.insertLast(index);
     r.insertLast(tiledata);
   }
 
   int deserialize(array<uint8> &r, int c) {
+    index = r[c++];
     x = int16(uint16(r[c++]) | uint16(r[c++] << 8));
     y = int16(uint16(r[c++]) | uint16(r[c++] << 8));
-    width = r[c++];
-    height = r[c++];
+    size = r[c++];
     palette = r[c++];
     priority = r[c++];
     hflip = (r[c++] != 0 ? true : false);
     vflip = (r[c++] != 0 ? true : false);
-    index = r[c++];
 
     //message("de x=" + fmtInt(x) + " y=" + fmtInt(y) + " w=" + fmtInt(width) + " h=" + fmtInt(height) + " p=" + fmtInt(priority));
 
     // compute total size of sprite:
-    auto count = int(width / 8) * int(height);
+    auto count = size == 0 ? 16 : 64;
     tiledata.resize(count);
 
     // read in tiledata:
     auto len = int(r.length());
     for (int i = 0; i < count; i++) {
-      if (c + 4 > len) return c;
-      tiledata[i] = uint32(r[c++])
-                    | (uint32(r[c++]) << 8)
-                    | (uint32(r[c++]) << 16)
-                    | (uint32(r[c++]) << 24);
+      if (c + 2 > len) return c;
+      tiledata[i] = uint16(r[c++]) | (uint16(r[c++]) << 8);
     }
 
     return c;
@@ -195,10 +223,8 @@ class TilemapWrite {
 
 class VRAMWrite {
   uint16 vmaddr;
-  array<uint8> data;
+  array<uint16> data;
 };
-
-enum push_state { push_none = 0, push_start = 1, push_blocked = 2, push_pushing = 3 };
 
 class GameState {
   // graphics data for current frame:
@@ -389,9 +415,8 @@ class GameState {
       // skip OAM sprite if not enabled (X, Y coords are out of display range):
       if (!tile.is_enabled) continue;
 
-      if (tile.nameselect) continue;
-
       auto chr = tile.character;
+      if (chr >= 0x100) continue;
 
       bool body = (i >= 0x64 && i <= 0x6f);
       bool fx = (
@@ -514,7 +539,9 @@ class GameState {
       auto write = VRAMWrite();
       write.vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
       uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
-      bus::read_block(addr, dma.transferSize, write.data);
+      array<uint8> block;
+      bus::read_block(addr, dma.transferSize, block);
+      write.data.insertLast(block);
       vramWrites.insertLast(write);
       vramWritesIndex = vramWrites.length();
       message(
@@ -695,29 +722,104 @@ class GameState {
   }
 
   void render(int x, int y) {
+    // true/false map to determine which characters are free for replacement in current frame:
+    array<bool> chr(512);
+    // assume first 0x40 characters are in-use (Link body, sword, shield, weapons, rupees, etc):
+    for (uint j = 0; j < 0x40; j++) {
+      chr[j] = true;
+    }
+    // exclude follower sprite from default assumption of in-use:
+    chr[0x20] = false;
+    chr[0x21] = false;
+    chr[0x30] = false;
+    chr[0x31] = false;
+    chr[0x22] = false;
+    chr[0x23] = false;
+    chr[0x32] = false;
+    chr[0x33] = false;
+    // run through OAM sprites and determine which characters are actually in-use:
+    for (uint j = 0; j < 128; j++) {
+      auto tile = ppu::oam[j];
+      // NOTE: we could skip the is_enabled check which would make the OAM appear to be a LRU cache of characters
+      if (!tile.is_enabled) continue;
+
+      // mark chr as used in current frame:
+      uint addr = tile.character;
+      if (tile.size == 0) {
+        // 8x8 tile:
+        chr[addr] = true;
+      } else {
+        // 16x16 tile:
+        chr[addr+0x00] = true;
+        chr[addr+0x01] = true;
+        chr[addr+0x10] = true;
+        chr[addr+0x11] = true;
+      }
+    }
+
+    // add in remote sprites:
     for (uint i = 0; i < sprites.length(); i++) {
       auto sprite = sprites[i];
       //if (sprite is null) continue;
 
-      auto extra = ppu::extra[i];
-      extra.x = sprite.x + x;
-      extra.y = sprite.y + y;
-      // select OBJ1 or OBJ2 depending on palette
-      extra.source = sprite.palette < 4 ? 4 : 5;
-      extra.priority = sprite.priority;
-      extra.width = sprite.width;
-      extra.height = sprite.height;
-      extra.hflip = sprite.hflip;
-      extra.vflip = sprite.vflip;
-      extra.index = sprite.index;
-      extra.pixels_clear();
-      if (extra.height == 0) continue;
-      if (extra.width == 0) continue;
+      // determine which OAM sprite slot is free around the desired index:
+      int j;
+      for (j = sprite.index; j < 128; j++) {
+        if (!ppu::oam[j].is_enabled) break;
+      }
+      if (j == 128) {
+        for (j = sprite.index; j >= 0; j--) {
+          if (!ppu::oam[j].is_enabled) break;
+        }
+        // no more free slots?
+        if (j == -1) return;
+      }
 
-      extra.draw_sprite(0, 0, extra.width, extra.height, sprite.tiledata, palettes[sprite.palette & 7]);
+      // start building a new OAM sprite:
+      auto oam = ppu::oam[j];
+      oam.x = uint16(sprite.x + x);
+      oam.y = sprite.y + y;
+      oam.hflip = sprite.hflip;
+      oam.vflip = sprite.vflip;
+      oam.priority = sprite.priority;
+      oam.palette = sprite.palette;
+      oam.size = sprite.size;
+
+      // find free character(s) for replacement:
+      if (sprite.size == 0) {
+        // 8x8 sprite:
+        for (uint k = 0x20; k < 512; k++) {
+          // skip chr if in-use:
+          if (chr[k]) continue;
+
+          oam.character = k;
+          chr[k] = true;
+          ppu::vram.write_block(ppu::vram.chr_address(k), 0, 16, sprite.tiledata);
+          break;
+        }
+      } else {
+        // 16x16 sprite:
+        for (uint k = 0x20; k < 512; k += 2) {
+          // skip every odd row since 16x16 are aligned on even rows 0x00, 0x20, 0x40, etc:
+          if ((k & 0x10) != 0) continue;
+          // skip chr if in-use:
+          if (chr[k]) continue;
+
+          oam.character = k;
+          chr[k+0x00] = true;
+          chr[k+0x01] = true;
+          chr[k+0x10] = true;
+          chr[k+0x11] = true;
+          ppu::vram.write_block(ppu::vram.chr_address(k), 0, 32, sprite.tiledata);
+          ppu::vram.write_block(ppu::vram.chr_address(k+0x10), 32, 32, sprite.tiledata);
+          break;
+        }
+      }
+
+      // TODO: do this via NMI and DMA transfers in real hardware (aka not faking it via emulator hacks).
+      // update sprite in OAM memory:
+      @ppu::oam[j] = oam;
     }
-
-    ppu::extra.count = ppu::extra.count + sprites.length();
   }
 
   void updateTilemap() {
@@ -739,8 +841,10 @@ class GameState {
     //message("vram writes " + fmtInt(len));
     for (i = vramWritesIndex; i < len; i++) {
       message("  vram[0x" + fmtHex(vramWrites[i].vmaddr, 4) + "] <- ...data...");
-      ppu::write_data(
+      ppu::vram.write_block(
         vramWrites[i].vmaddr,
+        0,
+        vramWrites[i].data.length(),
         vramWrites[i].data
       );
     }
@@ -794,9 +898,6 @@ void pre_frame() {
   // receive network update from remote player:
   remote.receive();
 
-  // reset number of extra tiles to render to 0:
-  ppu::extra.count = 0;
-
   // only draw remote player if location (room, dungeon, light/dark world) is identical to local player's:
   if (local.can_see(remote.location)) {
     // synchronize room state from remote player:
@@ -817,6 +918,12 @@ void pre_frame() {
 
   // send updated state for our Link to player 2:
   local.sendto(settings.clientIP, 4590);
+
+  array<uint16> fgtiles(0x2000);
+  sprites.canvas.fill(0x0000);
+  ppu::vram.read_block(0x4000, 0, 0x2000, fgtiles);
+  sprites.canvas.draw_sprite_4bpp(0, 0, 0, 128, 256, fgtiles, local.palettes[7]);
+  sprites.update();
 }
 
 void post_frame() {
