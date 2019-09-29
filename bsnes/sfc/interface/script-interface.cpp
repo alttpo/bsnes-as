@@ -278,57 +278,6 @@ struct ScriptInterface {
       }
     }
 
-    static auto ppu_tile_address(bool nameselect) -> uint16 {
-      uint16 tiledataAddress;
-
-      if (system.fastPPU()) {
-        tiledataAddress = ppufast.io.obj.tiledataAddress;
-        if (nameselect) tiledataAddress += 1u + ppufast.io.obj.nameselect << 12u;
-      } else {
-        tiledataAddress = ppu.obj.io.tiledataAddress;
-        if (nameselect) tiledataAddress += 1u + ppu.obj.io.nameselect << 12u;
-      }
-
-      return tiledataAddress;
-    }
-
-    static auto ppu_write_data(uint16 vmaddr, CScriptArray *data) -> void {
-      //printf("ppu_write_data()\n");
-      if (data == nullptr) {
-        asGetActiveContext()->SetException("input array cannot be null", true);
-        return;
-      }
-      if (data->GetElementTypeId() != asTYPEID_UINT8 && data->GetElementTypeId() != asTYPEID_UINT16) {
-        asGetActiveContext()->SetException("input array must be of type uint8[] or uint16[]", true);
-        return;
-      }
-
-      auto vram = system.fastPPU() ? (uint16 *)ppufast.vram : (uint16 *)ppu.vram.data;
-      auto words = data->GetSize();
-
-      if (data->GetElementTypeId() == asTYPEID_UINT8) {
-        if (words & 1u) {
-          asGetActiveContext()->SetException("input uint8[] array must have even length", true);
-          return;
-        }
-        words = words / 2;
-
-        auto p = reinterpret_cast<const uint8 *>(data->At(0));
-        for (uint a = 0; a < words; a++) {
-          auto lo = *p++;
-          auto hi = *p++;
-          vram[(vmaddr + a) & 0x7fff] = (uint16(hi) << 8) | uint16(lo);
-        }
-      } else if (data->GetElementTypeId() == asTYPEID_UINT16) {
-        auto p = reinterpret_cast<const uint16 *>(data->At(0));
-        for (uint a = 0; a < words; a++) {
-          auto word = *p++;
-          vram[(vmaddr + a) & 0x7fff] = word;
-        }
-      }
-      //printf("ppu_write_data() end\n");
-    }
-
     auto cgram_read(uint8 palette) -> uint16 {
       if (system.fastPPU()) {
         return ppufast.cgram[palette];
@@ -343,7 +292,11 @@ struct ScriptInterface {
       return ppu.vram[addr];
     }
 
-    auto vram_read_block(uint16 addr, uint16 size, uint offs, CScriptArray *output) -> void {
+    auto vram_chr_address(uint16 chr) -> uint16 {
+      return 0x4000u + (chr << 4u);
+    }
+
+    auto vram_read_block(uint16 addr, uint offs, uint16 size, CScriptArray *output) -> void {
       if (output == nullptr) {
         asGetActiveContext()->SetException("output array cannot be null", true);
         return;
@@ -361,54 +314,41 @@ struct ScriptInterface {
       }
     }
 
-    // Read a sprite from VRAM into `output`
-    auto vram_read_sprite(uint16 tiledataAddress, uint8 chr, uint8 width, uint8 height, CScriptArray *output) -> uint {
-      if (output == nullptr) {
-        asGetActiveContext()->SetException("output array cannot be null", true);
-        return 0;
+    auto vram_write_block(uint16 addr, uint offs, uint16 size, CScriptArray *data) -> void {
+      if (data == nullptr) {
+        asGetActiveContext()->SetException("input array cannot be null", true);
+        return;
       }
-      if (output->GetElementTypeId() != asTYPEID_UINT32) {
-        asGetActiveContext()->SetException("output array must be of type uint32[]", true);
-        return 0;
+      if (data->GetElementTypeId() != asTYPEID_UINT16) {
+        asGetActiveContext()->SetException("input array must be of type uint16[]", true);
+        return;
       }
-      if ((width == 0u) || (width & 7u)) {
-        asGetActiveContext()->SetException("width must be a non-zero multiple of 8", true);
-        return 0;
-      }
-      if ((height == 0u) || (height & 7u)) {
-        asGetActiveContext()->SetException("height must be a non-zero multiple of 8", true);
-        return 0;
+      if (data->GetSize() < (offs + size)) {
+        asGetActiveContext()->SetException("input array size not big enough to contain requested block", true);
+        return;
       }
 
-      // Figure out the size of the sprite to read:
-      uint tileWidth = width >> 3u;
-
-      // Make sure output array has proper capacity:
-      output->Resize(tileWidth * height);
-
-      uint out = 0;
-      uint16 chrx = (chr >> 0u & 15u);
-      for (uint y = 0; y < height; y++) {
-        uint16 chry = ((chr >> 4u & 15u) + (y >> 3u) & 15u) << 4u;
-        for (uint tx = 0; tx < tileWidth; tx++) {
-          uint pos = tiledataAddress + ((chry + (chrx + tx & 15u)) << 4u);
-          uint16 addr = (pos & 0xfff0u) + (y & 7u);
-
-          uint32 data = (uint32) vram_read(addr + 0u) << 0u | (uint32) vram_read(addr + 8u) << 16u;
-
-          // Write to output array:
-          output->SetValue(out++, &data);
+      auto p = reinterpret_cast<const uint16 *>(data->At(offs));
+      if (system.fastPPU()) {
+        auto vram = (uint16 *)ppufast.vram;
+        for (uint a = 0; a < size; a++) {
+          auto word = *p++;
+          vram[(addr + a) & 0x7fff] = word;
+          ppufast.updateTiledata((addr + a));
+        }
+      } else {
+        auto vram = (uint16 *)ppu.vram.data;
+        for (uint a = 0; a < size; a++) {
+          auto word = *p++;
+          vram[(addr + a) & 0x7fff] = word;
         }
       }
-
-      return out;
     }
 
     struct OAMObject {
       uint9 x;
       uint8 y;
       uint8 character;
-      bool  nameselect;
       bool  vflip;
       bool  hflip;
       uint2 priority;
@@ -438,8 +378,7 @@ struct ScriptInterface {
         auto po = ppufast.objects[index];
         local->oam_objects[index].x = po.x;
         local->oam_objects[index].y = po.y;
-        local->oam_objects[index].character = po.character;
-        local->oam_objects[index].nameselect = po.nameselect;
+        local->oam_objects[index].character = uint16(po.character) | (uint16(po.nameselect) << 8u);
         local->oam_objects[index].vflip = po.vflip;
         local->oam_objects[index].hflip = po.hflip;
         local->oam_objects[index].priority = po.priority;
@@ -449,8 +388,7 @@ struct ScriptInterface {
         auto po = ppu.obj.oam.object[index];
         local->oam_objects[index].x = po.x;
         local->oam_objects[index].y = po.y;
-        local->oam_objects[index].character = po.character;
-        local->oam_objects[index].nameselect = po.nameselect;
+        local->oam_objects[index].character = uint16(po.character) | (uint16(po.nameselect) << 8u);
         local->oam_objects[index].vflip = po.vflip;
         local->oam_objects[index].hflip = po.hflip;
         local->oam_objects[index].priority = po.priority;
@@ -465,8 +403,8 @@ struct ScriptInterface {
         auto &po = ppufast.objects[index];
         po.x = obj->x;
         po.y = obj->y;
-        po.character = obj->character;
-        po.nameselect = obj->nameselect;
+        po.character = (obj->character & 0xFF);
+        po.nameselect = (obj->character >> 8) & 1;
         po.vflip = obj->vflip;
         po.hflip = obj->hflip;
         po.priority = obj->priority;
@@ -476,8 +414,8 @@ struct ScriptInterface {
         auto &po = ppu.obj.oam.object[index];
         po.x = obj->x;
         po.y = obj->y;
-        po.character = obj->character;
-        po.nameselect = obj->nameselect;
+        po.character = (obj->character & 0xFF);
+        po.nameselect = (obj->character >> 8) & 1;
         po.vflip = obj->vflip;
         po.hflip = obj->hflip;
         po.priority = obj->priority;
@@ -1706,14 +1644,13 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterGlobalFunction("uint8 sprite_width(uint8 baseSize, uint8 size)", asFUNCTION(ScriptInterface::PPUAccess::ppu_sprite_width), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint8 sprite_height(uint8 baseSize, uint8 size)", asFUNCTION(ScriptInterface::PPUAccess::ppu_sprite_height), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("uint8 sprite_base_size()", asFUNCTION(ScriptInterface::PPUAccess::ppu_sprite_base_size), asCALL_CDECL); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("uint16 tile_address(bool nameselect)", asFUNCTION(ScriptInterface::PPUAccess::ppu_tile_address), asCALL_CDECL); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("void write_data(uint16 vmaddr, const array<uint8> &in data)", asFUNCTION(ScriptInterface::PPUAccess::ppu_write_data), asCALL_CDECL); assert(r >= 0);
 
   // define ppu::VRAM object type for opIndex convenience:
   r = script.engine->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("VRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptInterface::PPUAccess, vram_read), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("VRAM", "void read_block(uint16 addr, uint16 size, uint offs, array<uint16> &inout output)", asMETHOD(ScriptInterface::PPUAccess, vram_read_block), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("VRAM", "uint read_sprite(uint16 tiledataAddress, uint8 chr, uint8 width, uint8 height, array<uint32> &inout output)", asMETHOD(ScriptInterface::PPUAccess, vram_read_sprite), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("VRAM", "uint16 chr_address(uint16 chr)", asMETHOD(ScriptInterface::PPUAccess, vram_chr_address), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("VRAM", "void read_block(uint16 addr, uint offs, uint16 size, array<uint16> &inout output)", asMETHOD(ScriptInterface::PPUAccess, vram_read_block), asCALL_THISCALL); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("VRAM", "void write_block(uint16 addr, uint offs, uint16 size, const array<uint16> &in data)", asMETHOD(ScriptInterface::PPUAccess, vram_write_block), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterGlobalProperty("VRAM vram", &scriptInterface.ppuAccess); assert(r >= 0);
 
   // define ppu::CGRAM object type for opIndex convenience:
@@ -1725,8 +1662,7 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod  ("OAMSprite", "bool   get_is_enabled()", asMETHOD(ScriptInterface::PPUAccess::OAMObject, get_is_enabled), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("OAMSprite", "uint16 x", asOFFSET(ScriptInterface::PPUAccess::OAMObject, x)); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("OAMSprite", "uint8  y", asOFFSET(ScriptInterface::PPUAccess::OAMObject, y)); assert(r >= 0);
-  r = script.engine->RegisterObjectProperty("OAMSprite", "uint8  character", asOFFSET(ScriptInterface::PPUAccess::OAMObject, character)); assert(r >= 0);
-  r = script.engine->RegisterObjectProperty("OAMSprite", "bool   nameselect", asOFFSET(ScriptInterface::PPUAccess::OAMObject, nameselect)); assert(r >= 0);
+  r = script.engine->RegisterObjectProperty("OAMSprite", "uint16 character", asOFFSET(ScriptInterface::PPUAccess::OAMObject, character)); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("OAMSprite", "bool   vflip", asOFFSET(ScriptInterface::PPUAccess::OAMObject, vflip)); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("OAMSprite", "bool   hflip", asOFFSET(ScriptInterface::PPUAccess::OAMObject, hflip)); assert(r >= 0);
   r = script.engine->RegisterObjectProperty("OAMSprite", "uint8  priority", asOFFSET(ScriptInterface::PPUAccess::OAMObject, priority)); assert(r >= 0);
