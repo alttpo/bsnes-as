@@ -889,10 +889,12 @@ class GameState {
   }
 
   void updateTilemap() {
-    // update tilemap in WRAM:
-    auto len = tileWrites.length();
-    //message("tilemap writes " + fmtInt(len));
     uint i;
+    uint len;
+
+    // update tilemap in WRAM:
+    len = tileWrites.length();
+    //message("tilemap writes " + fmtInt(len));
     for (i = tileWritesIndex; i < len; i++) {
       auto addr = tileWrites[i].addr;
       auto value = tileWrites[i].value;
@@ -906,7 +908,7 @@ class GameState {
     len = vramWrites.length();
     //message("vram writes " + fmtInt(len));
     for (i = vramWritesIndex; i < len; i++) {
-      message("  vram[0x" + fmtHex(vramWrites[i].vmaddr, 4) + "] <- ...data...");
+      message("  vram[0x" + fmtHex(vramWrites[i].vmaddr, 4) + "] <- 0x" + fmtHex(vramWrites[i].data.length(), 4) + " words");
       ppu::vram.write_block(
         vramWrites[i].vmaddr,
         0,
