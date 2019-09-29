@@ -126,6 +126,8 @@ int16 abs16(int16 n) {
 }
 
 class Sprite {
+  uint8 index;
+  uint16 chr;
   int16 x;
   int16 y;
   uint8 size;
@@ -133,12 +135,12 @@ class Sprite {
   uint8 priority;
   bool hflip;
   bool vflip;
-  uint8 index;
-  array<uint16> tiledata;
 
   // fetches all the OAM sprite data for OAM sprite at `index`
-  void fetchOAM(uint8 index, int16 rx, int16 ry) {
-    auto tile = ppu::oam[index];
+  void fetchOAM(uint8 j, int16 rx, int16 ry) {
+    auto tile = ppu::oam[j];
+
+    index = j;
 
     int16 ax = int16(tile.x);
     int16 ay = int16(tile.y);
@@ -150,30 +152,17 @@ class Sprite {
     x = ax - rx;
     y = ay - ry;
 
-    auto chr = tile.character;
-
+    chr      = tile.character;
     size     = tile.size;
     palette  = tile.palette;
     priority = tile.priority;
     hflip    = tile.hflip;
     vflip    = tile.vflip;
-
-    // load character from VRAM:
-    if (size == 0) {
-      // 8x8 sprite:
-      tiledata.resize(16);
-      ppu::vram.read_block(ppu::vram.chr_address(chr), 0, 16, tiledata);
-    } else {
-      // 16x16 sprite:
-      tiledata.resize(64);
-      ppu::vram.read_block(ppu::vram.chr_address(chr), 0, 32, tiledata);
-      ppu::vram.read_block(ppu::vram.chr_address(chr+0x10), 32, 32, tiledata);
-    }
-    //message("count = " + fmtInt(count) + " " + fmtInt(width) + "x" + fmtInt(height));
   }
 
   void serialize(array<uint8> &r) {
     r.insertLast(index);
+    r.insertLast(chr);
     r.insertLast(uint16(x));
     r.insertLast(uint16(y));
     r.insertLast(size);
@@ -181,11 +170,11 @@ class Sprite {
     r.insertLast(priority);
     r.insertLast(hflip ? uint8(1) : uint8(0));
     r.insertLast(vflip ? uint8(1) : uint8(0));
-    r.insertLast(tiledata);
   }
 
   int deserialize(array<uint8> &r, int c) {
     index = r[c++];
+    chr = uint16(r[c++]) | uint16(r[c++] << 8);
     x = int16(uint16(r[c++]) | uint16(r[c++] << 8));
     y = int16(uint16(r[c++]) | uint16(r[c++] << 8));
     size = r[c++];
@@ -193,20 +182,6 @@ class Sprite {
     priority = r[c++];
     hflip = (r[c++] != 0 ? true : false);
     vflip = (r[c++] != 0 ? true : false);
-
-    //message("de x=" + fmtInt(x) + " y=" + fmtInt(y) + " w=" + fmtInt(width) + " h=" + fmtInt(height) + " p=" + fmtInt(priority));
-
-    // compute total size of sprite:
-    auto count = size == 0 ? 16 : 64;
-    tiledata.resize(count);
-
-    // read in tiledata:
-    auto len = int(r.length());
-    for (int i = 0; i < count; i++) {
-      if (c + 2 > len) return c;
-      tiledata[i] = uint16(r[c++]) | (uint16(r[c++]) << 8);
-    }
-
     return c;
   }
 };
@@ -228,8 +203,8 @@ class VRAMWrite {
 
 class GameState {
   // graphics data for current frame:
-  array<array<uint16>> palettes(8, array<uint16>(16));
   array<Sprite@> sprites;
+  array<array<uint16>> chrs(512);
 
   // values copied from RAM:
   uint32 location;
@@ -473,19 +448,33 @@ class GameState {
       Sprite sprite;
       sprite.fetchOAM(i, rx, ry);
 
+      // load character(s) from VRAM:
+      if (sprite.size == 0) {
+        // 8x8 sprite:
+        if (chrs[sprite.chr].length() == 0) {
+          chrs[sprite.chr].resize(16);
+          ppu::vram.read_block(ppu::vram.chr_address(sprite.chr), 0, 16, chrs[sprite.chr]);
+        }
+      } else {
+        // 16x16 sprite:
+        if (chrs[sprite.chr].length() == 0) {
+          chrs[sprite.chr + 0x00].resize(16);
+          chrs[sprite.chr + 0x01].resize(16);
+          chrs[sprite.chr + 0x10].resize(16);
+          chrs[sprite.chr + 0x11].resize(16);
+          ppu::vram.read_block(ppu::vram.chr_address(sprite.chr + 0x00), 0, 16, chrs[sprite.chr + 0x00]);
+          ppu::vram.read_block(ppu::vram.chr_address(sprite.chr + 0x01), 0, 16, chrs[sprite.chr + 0x01]);
+          ppu::vram.read_block(ppu::vram.chr_address(sprite.chr + 0x10), 0, 16, chrs[sprite.chr + 0x10]);
+          ppu::vram.read_block(ppu::vram.chr_address(sprite.chr + 0x11), 0, 16, chrs[sprite.chr + 0x11]);
+        }
+      }
+
       // append the sprite to our array:
       sprites.resize(++numsprites);
       @sprites[numsprites-1] = sprite;
     }
 
     //message("fetch: numsprites = " + fmtInt(numsprites) + " len = " + fmtInt(sprites.length()));
-
-    // load 8 sprite palettes from CGRAM:
-    for (int i = 0; i < 8; i++) {
-      for (int c = 0; c < 16; c++) {
-        palettes[i][c] = ppu::cgram[128 + (i << 4) + c];
-      }
-    }
   }
 
   uint32 tilemap_addrl;
@@ -613,8 +602,26 @@ class GameState {
     for (uint i = 0; i < sprites.length(); i++) {
       sprites[i].serialize(r);
     }
-    for (uint i = 0; i < 8; i++) {
-      r.insertLast(palettes[i]);
+
+    // how many distinct characters:
+    uint16 chr_count = 0;
+    for (uint16 i = 0; i < 512; i++) {
+      if (chrs[i].length() == 0) continue;
+      ++chr_count;
+    }
+
+    // emit how many chrs:
+    r.insertLast(chr_count);
+    for (uint16 i = 0; i < 512; ++i) {
+      if (chrs[i].length() == 0) continue;
+
+      // which chr is it:
+      r.insertLast(i);
+      // emit the tile data:
+      r.insertLast(chrs[i]);
+
+      // clear the chr tile data for next frame:
+      chrs[i].resize(0);
     }
 
     {
@@ -673,19 +680,29 @@ class GameState {
       y = uint16(r[c++]) | (uint16(r[c++]) << 8);
       z = uint16(r[c++]) | (uint16(r[c++]) << 8);
 
+      // read in OAM sprites:
       auto numsprites = r[c++];
-
-      //message("recv(" + fmtInt(n) + "): numsprites = " + fmtInt(numsprites));
-
       sprites.resize(numsprites);
       for (uint i = 0; i < numsprites; i++) {
         @sprites[i] = Sprite();
         c = sprites[i].deserialize(r, c);
       }
 
-      for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 16; j++) {
-          palettes[i][j] = uint16(r[c++]) | (uint16(r[c++]) << 8);
+      // clear previous chr tile data:
+      for (uint i = 0; i < 512; i++) {
+        chrs[i].resize(0);
+      }
+
+      // read in chr data:
+      auto chr_count = uint16(r[c++]) | (uint16(r[c++]) << 8);
+      for (uint i = 0; i < chr_count; i++) {
+        // read chr number:
+        auto h = uint16(r[c++]) | (uint16(r[c++]) << 8);
+
+        // read chr tile data:
+        chrs[h].resize(16);
+        for (int k = 0; k < 16; k++) {
+          chrs[h][k] = uint16(r[c++]) | (uint16(r[c++]) << 8);
         }
       }
 
@@ -719,8 +736,10 @@ class GameState {
   }
 
   void render(int x, int y) {
-    // true/false map to determine which characters are free for replacement in current frame:
+    // true/false map to determine which local characters are free for replacement in current frame:
     array<bool> chr(512);
+    // lookup remote chr number to find local chr number mapped to:
+    array<uint16> reloc(512);
     // assume first 0x40 characters are in-use (Link body, sword, shield, weapons, rupees, etc):
     for (uint j = 0; j < 0x40; j++) {
       chr[j] = true;
@@ -791,31 +810,48 @@ class GameState {
       // find free character(s) for replacement:
       if (sprite.size == 0) {
         // 8x8 sprite:
-        for (uint k = 0x20; k < 512; k++) {
-          // skip chr if in-use:
-          if (chr[k]) continue;
+        if (reloc[sprite.chr] == 0) { // assumes use of chr=0 is invalid, which it is since it is for local Link.
+          for (uint k = 0x20; k < 512; k++) {
+            // skip chr if in-use:
+            if (chr[k]) continue;
 
-          oam.character = k;
-          chr[k] = true;
-          ppu::vram.write_block(ppu::vram.chr_address(k), 0, 16, sprite.tiledata);
-          break;
+            oam.character = k;
+            chr[k] = true;
+            reloc[sprite.chr] = k;
+            ppu::vram.write_block(ppu::vram.chr_address(k), 0, 16, chrs[sprite.chr]);
+            break;
+          }
+        } else {
+          // use existing chr:
+          oam.character = reloc[sprite.chr];
         }
       } else {
         // 16x16 sprite:
-        for (uint k = 0x20; k < 512; k += 2) {
-          // skip every odd row since 16x16 are aligned on even rows 0x00, 0x20, 0x40, etc:
-          if ((k & 0x10) != 0) continue;
-          // skip chr if in-use:
-          if (chr[k]) continue;
+        if (reloc[sprite.chr] == 0) { // assumes use of chr=0 is invalid, which it is since it is for local Link.
+          for (uint k = 0x20; k < 512; k += 2) {
+            // skip every odd row since 16x16 are aligned on even rows 0x00, 0x20, 0x40, etc:
+            if ((k & 0x10) != 0) continue;
+            // skip chr if in-use:
+            if (chr[k]) continue;
 
-          oam.character = k;
-          chr[k+0x00] = true;
-          chr[k+0x01] = true;
-          chr[k+0x10] = true;
-          chr[k+0x11] = true;
-          ppu::vram.write_block(ppu::vram.chr_address(k), 0, 32, sprite.tiledata);
-          ppu::vram.write_block(ppu::vram.chr_address(k+0x10), 32, 32, sprite.tiledata);
-          break;
+            oam.character = k;
+            chr[k + 0x00] = true;
+            chr[k + 0x01] = true;
+            chr[k + 0x10] = true;
+            chr[k + 0x11] = true;
+            reloc[sprite.chr + 0x00] = k + 0x00;
+            reloc[sprite.chr + 0x01] = k + 0x01;
+            reloc[sprite.chr + 0x10] = k + 0x10;
+            reloc[sprite.chr + 0x11] = k + 0x11;
+            ppu::vram.write_block(ppu::vram.chr_address(k + 0x00), 0, 16, chrs[sprite.chr + 0x00]);
+            ppu::vram.write_block(ppu::vram.chr_address(k + 0x01), 0, 16, chrs[sprite.chr + 0x01]);
+            ppu::vram.write_block(ppu::vram.chr_address(k + 0x10), 0, 16, chrs[sprite.chr + 0x10]);
+            ppu::vram.write_block(ppu::vram.chr_address(k + 0x11), 0, 16, chrs[sprite.chr + 0x11]);
+            break;
+          }
+        } else {
+          // use existing chrs:
+          oam.character = reloc[sprite.chr];
         }
       }
 
@@ -922,10 +958,18 @@ void pre_frame() {
   // send updated state for our Link to player 2:
   local.sendto(settings.clientIP, 4590);
 
+  // load 8 sprite palettes from CGRAM:
+  array<array<uint16>> palettes(8, array<uint16>(16));
+  for (int i = 0; i < 8; i++) {
+    for (int c = 0; c < 16; c++) {
+      palettes[i][c] = ppu::cgram[128 + (i << 4) + c];
+    }
+  }
+
   array<uint16> fgtiles(0x2000);
   sprites.canvas.fill(0x0000);
   ppu::vram.read_block(0x4000, 0, 0x2000, fgtiles);
-  sprites.canvas.draw_sprite_4bpp(0, 0, 0, 128, 256, fgtiles, local.palettes[7]);
+  sprites.canvas.draw_sprite_4bpp(0, 0, 0, 128, 256, fgtiles, palettes[7]);
   sprites.update();
 }
 
