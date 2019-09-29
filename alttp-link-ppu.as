@@ -201,10 +201,22 @@ class VRAMWrite {
   array<uint16> data;
 };
 
+class Tile {
+  uint16 addr;
+  array<uint16> tiledata;
+
+  Tile(uint16 addr, array<uint16> tiledata) {
+    this.addr = addr;
+    this.tiledata = tiledata;
+  }
+};
+
 class GameState {
   // graphics data for current frame:
   array<Sprite@> sprites;
   array<array<uint16>> chrs(512);
+  // backup of VRAM tiles overwritten:
+  array<Tile@> chr_backup;
 
   // values copied from RAM:
   uint32 location;
@@ -735,13 +747,25 @@ class GameState {
     }
   }
 
+  void overwrite_tile(uint16 addr, array<uint16> tiledata) {
+    // read previous VRAM tile:
+    array<uint16> backup(16);
+    ppu::vram.read_block(addr, 0, 16, backup);
+
+    // overwrite VRAM tile:
+    ppu::vram.write_block(addr, 0, 16, tiledata);
+
+    // store backup:
+    chr_backup.insertLast(Tile(addr, backup));
+  }
+
   void render(int x, int y) {
     // true/false map to determine which local characters are free for replacement in current frame:
     array<bool> chr(512);
     // lookup remote chr number to find local chr number mapped to:
     array<uint16> reloc(512);
-    // assume first 0x40 characters are in-use (Link body, sword, shield, weapons, rupees, etc):
-    for (uint j = 0; j < 0x40; j++) {
+    // assume first 0x100 characters are in-use (Link body, sword, shield, weapons, rupees, etc):
+    for (uint j = 0; j < 0x100; j++) {
       chr[j] = true;
     }
     // exclude follower sprite from default assumption of in-use:
@@ -774,6 +798,7 @@ class GameState {
     }
 
     // add in remote sprites:
+    chr_backup.resize(0);
     for (uint i = 0; i < sprites.length(); i++) {
       auto sprite = sprites[i];
       auto px = sprite.size == 0 ? 8 : 16;
@@ -818,7 +843,7 @@ class GameState {
             oam.character = k;
             chr[k] = true;
             reloc[sprite.chr] = k;
-            ppu::vram.write_block(ppu::vram.chr_address(k), 0, 16, chrs[sprite.chr]);
+            overwrite_tile(ppu::vram.chr_address(k), chrs[sprite.chr]);
             break;
           }
         } else {
@@ -843,10 +868,10 @@ class GameState {
             reloc[sprite.chr + 0x01] = k + 0x01;
             reloc[sprite.chr + 0x10] = k + 0x10;
             reloc[sprite.chr + 0x11] = k + 0x11;
-            ppu::vram.write_block(ppu::vram.chr_address(k + 0x00), 0, 16, chrs[sprite.chr + 0x00]);
-            ppu::vram.write_block(ppu::vram.chr_address(k + 0x01), 0, 16, chrs[sprite.chr + 0x01]);
-            ppu::vram.write_block(ppu::vram.chr_address(k + 0x10), 0, 16, chrs[sprite.chr + 0x10]);
-            ppu::vram.write_block(ppu::vram.chr_address(k + 0x11), 0, 16, chrs[sprite.chr + 0x11]);
+            overwrite_tile(ppu::vram.chr_address(k + 0x00), chrs[sprite.chr + 0x00]);
+            overwrite_tile(ppu::vram.chr_address(k + 0x01), chrs[sprite.chr + 0x01]);
+            overwrite_tile(ppu::vram.chr_address(k + 0x10), chrs[sprite.chr + 0x10]);
+            overwrite_tile(ppu::vram.chr_address(k + 0x11), chrs[sprite.chr + 0x11]);
             break;
           }
         } else {
@@ -907,12 +932,13 @@ class GameState {
 
 GameState local;
 GameState remote;
+uint8 isRunning;
 
 bool intercepting = false;
 
 void pre_frame() {
   // Wait until the game starts:
-  auto isRunning = bus::read_u8(0x7E0010);
+  isRunning = bus::read_u8(0x7E0010);
   if (isRunning < 0x06 || isRunning > 0x13) return;
 
   // Don't do anything until user fills out Settings window inputs:
@@ -937,15 +963,16 @@ void pre_frame() {
   // receive network update from remote player:
   remote.receive();
 
+  // send updated state for our Link to player 2:
+  local.sendto(settings.clientIP, 4590);
+
   // only draw remote player if location (room, dungeon, light/dark world) is identical to local player's:
-  if (local.can_see(remote.location)) {
+  if (local.can_see(remote.location) && local.safe_to_update_tilemap()) {
     // synchronize room state from remote player:
     local.syncFrom(remote);
 
     // update local tilemap according to remote player's writes:
-    if (local.safe_to_update_tilemap()) {
-      local.updateTilemap();
-    }
+    local.updateTilemap();
 
     // subtract BG2 offset from sprite x,y coords to get local screen coords:
     int16 rx = int16(remote.x) - local.xoffs;
@@ -954,9 +981,6 @@ void pre_frame() {
     // draw remote player relative to current BG offsets:
     remote.render(rx, ry);
   }
-
-  // send updated state for our Link to player 2:
-  local.sendto(settings.clientIP, 4590);
 
   // load 8 sprite palettes from CGRAM:
   array<array<uint16>> palettes(8, array<uint16>(16));
@@ -974,6 +998,22 @@ void pre_frame() {
 }
 
 void post_frame() {
+  if (isRunning < 0x06 || isRunning > 0x13) return;
+
+  // Don't do anything until user fills out Settings window inputs:
+  if (!settings.started) return;
+
+  // restore previous VRAM tiles:
+  auto len = remote.chr_backup.length();
+  for (uint i = 0; i < len; i++) {
+    ppu::vram.write_block(
+      remote.chr_backup[i].addr,
+      0,
+      16,
+      remote.chr_backup[i].tiledata
+    );
+  }
+
   ppu::frame.text_shadow = true;
 
   /*
@@ -984,11 +1024,13 @@ void post_frame() {
   }
   */
 
+  /*
   ppu::frame.text( 0, 0, fmtHex(local.ow_screen_transition, 2));
   ppu::frame.text(20, 0, fmtHex(local.module,               2));
   ppu::frame.text(40, 0, fmtHex(local.sub_module,           2));
   ppu::frame.text(60, 0, fmtHex(local.sub_sub_module,       2));
   ppu::frame.text(80, 0, fmtHex(local.to_dark_world,        2));
+  */
 
   /*
   ppu::frame.text( 0, 0, fmtHex(local.state,     2));
