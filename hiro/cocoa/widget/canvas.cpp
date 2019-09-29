@@ -105,6 +105,7 @@ namespace hiro {
 auto pCanvas::construct() -> void {
   @autoreleasepool {
     cocoaView = cocoaCanvas = [[CocoaCanvas alloc] initWith:self()];
+    [cocoaView setImageScaling:NSImageScaleProportionallyUpOrDown];
     pWidget::construct();
   }
 }

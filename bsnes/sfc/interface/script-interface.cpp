@@ -1526,25 +1526,32 @@ struct ScriptInterface {
       BindSizable(Canvas)
 
       Canvas()
+#if 0
         : img(0, 16, 0x8000u, 0x001Fu, 0x03E0u, 0x7C00u),
           scaled(0, 16, 0x8000u, 0x001Fu, 0x03E0u, 0x7C00u)
+#endif
       {
         self = new hiro::mCanvas();
         self->construct();
       }
 
+#if 0
       image img;
       image scaled;
       hiro::Geometry lastGeometry;
       int scalar = 1;
+#endif
 
       auto setSize(hiro::Size *size) -> void {
         // Set 15-bit BGR format for PPU-compatible images:
+        image img(0, 16, 0x8000u, 0x001Fu, 0x03E0u, 0x7C00u);
         img.allocate(size->width(), size->height());
         img.fill(0x0000u);
+        self->setIcon(img);
       }
 
       auto update() -> void {
+#if 0
         // scale img to fit container:
         auto geom = self->geometry();
         if (geom != lastGeometry) {
@@ -1556,15 +1563,18 @@ struct ScriptInterface {
 
         img.scaleIntegralTo(scaled, scalar);
         self->setIcon(scaled);
-        // update() is redundant after setIcon()
-        //self->update();
+#else
+        self->update();
+#endif
       }
 
       auto fill(uint16 color) -> void {
+        auto& img = self->iconRef();
         img.fill(color);
       }
 
       auto pixel(int x, int y, uint16 color) -> void {
+        auto& img = self->iconRef();
         // bounds check:
         if (x < 0 || y < 0 || x >= img.width() || y >= img.height()) return;
         // set pixel with full alpha (1-bit on/off):
