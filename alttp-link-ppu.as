@@ -536,10 +536,12 @@ class GameState {
       // record VRAM transfer for the room:
       auto write = VRAMWrite();
       write.vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
+
+      auto size = dma.transferSize >> 1;
+      write.data.resize(size);
       uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
-      array<uint8> block;
-      bus::read_block(addr, dma.transferSize, block);
-      write.data.insertLast(block);
+      bus::read_block_u16(addr, 0, size, write.data);
+
       vramWrites.insertLast(write);
       vramWritesIndex = vramWrites.length();
       message(
@@ -737,7 +739,7 @@ class GameState {
           auto data_len = uint16(r[c++]) | (uint16(r[c++]) << 8);
           write.data.resize(data_len);
           for (uint j = 0; j < data_len; j++) {
-            write.data[j] = r[c++];
+            write.data[j] = uint16(r[c++]) | (uint16(r[c++]) << 8);
           }
           @vramWrites[i] = write;
         }
@@ -963,9 +965,6 @@ void pre_frame() {
   // receive network update from remote player:
   remote.receive();
 
-  // send updated state for our Link to player 2:
-  local.sendto(settings.clientIP, 4590);
-
   // only draw remote player if location (room, dungeon, light/dark world) is identical to local player's:
   if (local.can_see(remote.location) && local.safe_to_update_tilemap()) {
     // synchronize room state from remote player:
@@ -981,6 +980,9 @@ void pre_frame() {
     // draw remote player relative to current BG offsets:
     remote.render(rx, ry);
   }
+
+  // send updated state for our Link to player 2:
+  local.sendto(settings.clientIP, 4590);
 
   // load 8 sprite palettes from CGRAM:
   array<array<uint16>> palettes(8, array<uint16>(16));
