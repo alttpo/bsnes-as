@@ -469,9 +469,6 @@ class GameState {
       // skip OAM sprites that are not related to Link:
       if (!(body || fx || weapons || bombs || follower)) continue;
 
-      //auto distx = int16(tile.x) - rx;
-      //auto disty = int16(tile.y) - ry;
-
       // fetch the sprite data from OAM and VRAM:
       Sprite sprite;
       sprite.fetchOAM(i, rx, ry);
@@ -760,7 +757,13 @@ class GameState {
     // add in remote sprites:
     for (uint i = 0; i < sprites.length(); i++) {
       auto sprite = sprites[i];
-      //if (sprite is null) continue;
+      auto px = sprite.size == 0 ? 8 : 16;
+
+      // bounds check for OAM sprites:
+      if (sprite.x + x < -px) continue;
+      if (sprite.x + x >= 256) continue;
+      if (sprite.y + y < -px) continue;
+      if (sprite.y + y >= 240) continue;
 
       // determine which OAM sprite slot is free around the desired index:
       int j;
