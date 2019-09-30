@@ -237,32 +237,22 @@ class GameState {
     sub_module = bus::read_u8(0x7E0011);
   }
 
-  bool safe_to_update_tilemap() {
+  bool can_sync() {
     if (module == 0x09) {
+      // in overworld:
       if (sub_module == 0x00 || sub_module == 0x06) {
         return true;
       }
       return false;
     } else if (module == 0x07) {
+      // in dungeon:
       if (sub_module == 0x00) {
         return true;
       }
       return false;
-    } else {
-      return false;
-    }
-  }
-  bool safe_to_fetch_tilemap() {
-    if (module == 0x09) {
-      if (sub_module == 0x00 || sub_module == 0x06) {
-        return true;
-      }
-      return false;
-    } else if (module == 0x07) {
-      if (sub_module == 0x00) {
-        return true;
-      }
-      return false;
+    } else if (module == 0x0e) {
+      // dialogue:
+      return (sub_module == 0x02);
     } else {
       return false;
     }
@@ -317,7 +307,7 @@ class GameState {
     //message(fmtHex(screen_transition, 2) + ", " + fmtHex(subsubmodule, 2));
 
     // Don't update location until screen transition is complete:
-    if (safe_to_update_tilemap()) {
+    if (can_sync()) {
       last_location = location;
 
       // fetch various room indices and flags about where exactly Link currently is:
@@ -681,6 +671,19 @@ class GameState {
       @ppu::oam[j] = oam;
     }
   }
+
+  void cleanup() {
+    auto len = chr_backup.length();
+    for (uint i = 0; i < len; i++) {
+      ppu::vram.write_block(
+        chr_backup[i].addr,
+        0,
+        16,
+        chr_backup[i].tiledata
+      );
+    }
+    chr_backup.resize(0);
+  }
 };
 
 GameState local;
@@ -717,7 +720,7 @@ void pre_frame() {
   remote.receive();
 
   // only draw remote player if location (room, dungeon, light/dark world) is identical to local player's:
-  if (local.can_see(remote.location) && local.safe_to_update_tilemap()) {
+  if (local.can_see(remote.location) && local.can_sync()) {
     // subtract BG2 offset from sprite x,y coords to get local screen coords:
     int16 rx = int16(remote.x) - local.xoffs;
     int16 ry = int16(remote.y) - local.yoffs;
@@ -757,13 +760,5 @@ void post_frame() {
   if (!settings.started) return;
 
   // restore previous VRAM tiles:
-  auto len = remote.chr_backup.length();
-  for (uint i = 0; i < len; i++) {
-    ppu::vram.write_block(
-      remote.chr_backup[i].addr,
-      0,
-      16,
-      remote.chr_backup[i].tiledata
-    );
-  }
+  remote.cleanup();
 }
