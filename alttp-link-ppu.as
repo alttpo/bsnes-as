@@ -2,10 +2,11 @@
 net::UDPSocket@ sock;
 SettingsWindow @settings;
 SpriteWindow @sprites;
+bool debug = false;
 
 void init() {
   @settings = SettingsWindow();
-  //@sprites = SpriteWindow();
+  @sprites = SpriteWindow();
 
   //array<uint16> junk = {0x19ac, 0x59ac};
   //ppu::vram.write_block(0x0574, 0, 2, junk);
@@ -408,7 +409,9 @@ class GameState {
     sprites.resize(0);
     sprites.reserve(8);
     int numsprites = 0;
-    for (int i = 0; i < 128; i++) {
+    // start from reserved region for Link at 0x64 and cycle back around to 0x63 (up to 0x7F and wrap to 0x00):
+    for (int j = 0x64; j < 0xE4; j++) {
+      auto i = j & 0x7F;
       // access current OAM sprite index:
       auto tile = ppu::oam[i];
 
@@ -631,7 +634,7 @@ class GameState {
     for (uint j = 0; j < 128; j++) {
       auto tile = ppu::oam[j];
       // NOTE: we could skip the is_enabled check which would make the OAM appear to be a LRU cache of characters
-      if (!tile.is_enabled) continue;
+      //if (!tile.is_enabled) continue;
 
       // mark chr as used in current frame:
       uint addr = tile.character;
@@ -814,24 +817,24 @@ void pre_frame() {
 }
 
 void post_frame() {
-  ppu::frame.text_shadow = true;
-  ppu::frame.color = 0x7fff;
-  ppu::frame.text( 0, 0, fmtHex(local.module,               2));
-  ppu::frame.text(20, 0, fmtHex(local.sub_module,           2));
-  ppu::frame.text(40, 0, fmtHex(local.sub_sub_module,       2));
+  if (debug) {
+    ppu::frame.text_shadow = true;
+    ppu::frame.color = 0x7fff;
+    ppu::frame.text(0, 0, fmtHex(local.module, 2));
+    ppu::frame.text(20, 0, fmtHex(local.sub_module, 2));
+    ppu::frame.text(40, 0, fmtHex(local.sub_sub_module, 2));
 
-//  /*
-  for (uint i = 0; i < 0x10; i++) {
-    // generate CGA 16-color palette, lol.
-    auto j = i+1;
-    ppu::frame.color = ppu::rgb(
-      ((j & 4) >> 2) * 0x12 + ((j & 8) >> 3) * 0x0d,
-      ((j & 2) >> 1) * 0x12 + ((j & 8) >> 3) * 0x0d,
-      ((j & 1)     ) * 0x12 + ((j & 8) >> 3) * 0x0d
-    );
-    ppu::frame.text(i*16, 224-8, fmtHex(bus::read_u8(0x7E012C+i), 2));
+    for (uint i = 0; i < 0x10; i++) {
+      // generate CGA 16-color palette, lol.
+      auto j = i + 1;
+      ppu::frame.color = ppu::rgb(
+        ((j & 4) >> 2) * 0x12 + ((j & 8) >> 3) * 0x0d,
+        ((j & 2) >> 1) * 0x12 + ((j & 8) >> 3) * 0x0d,
+        ((j & 1)) * 0x12 + ((j & 8) >> 3) * 0x0d
+      );
+      ppu::frame.text(i * 16, 224 - 8, fmtHex(bus::read_u8(0x7E012C + i), 2));
+    }
   }
-//  */
 
   // module check:
   if (isRunning < 0x06 || isRunning > 0x13) return;
