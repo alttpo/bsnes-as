@@ -234,8 +234,41 @@ class GameState {
   uint8 sub_sub_module;
 
   void update_module() {
+    // module     = 0x07 in dungeons
+    //            = 0x09 in overworld
     module = bus::read_u8(0x7E0010);
+
+    // when module = 0x07: dungeon
+    //    sub_module = 0x00 normal gameplay in dungeon
+    //               = 0x01 going through door
+    //               = 0x03 triggered a star tile to change floor hole configuration
+    //               = 0x05 initializing room? / locked doors?
+    //               = 0x07 falling down hole in floor
+    //               = 0x0e going up/down stairs
+    //               = 0x0f entering dungeon first time (or from mirror)
+    //               = 0x16 when orange/blue barrier blocks transition
+    //               = 0x19 when using mirror
+    // when module = 0x09: overworld
+    //    sub_module = 0x00 normal gameplay in overworld
+    //               = 0x0e
+    //      sub_sub_module = 0x01 in item menu
+    //                     = 0x02 in dialog with NPC
+    //               = 0x23 transitioning from light world to dark world or vice-versa
+    // when module = 0x12: Link is dying
+    //    sub_module = 0x00
+    //               = 0x02 bonk
+    //               = 0x03 black oval closing in
+    //               = 0x04 red screen and spinning animation
+    //               = 0x05 red screen and Link face down
+    //               = 0x06 fade to black
+    //               = 0x07 game over animation
+    //               = 0x08 game over screen done
+    //               = 0x09 save and continue menu
     sub_module = bus::read_u8(0x7E0011);
+
+    // sub-sub-module goes from 01 to 0f during special animations such as link walking up/down stairs and
+    // falling from ceiling and used as a counter for orange/blue barrier blocks transition going up/down
+    sub_sub_module = bus::read_u8(0x7E00B0);
   }
 
   bool can_sync() {
@@ -285,48 +318,10 @@ class GameState {
     x = bus::read_u16(0x7E0022, 0x7E0023);
     z = bus::read_u16(0x7E0024, 0x7E0025);
 
+    update_module();
+
     // $7E0410 = OW screen transitioning directional
     //ow_screen_transition = bus::read_u8(0x7E0410);
-
-    // module     = 0x07 in dungeons
-    //            = 0x09 in overworld
-    module = bus::read_u8(0x7E0010);
-
-    // when module = 0x07: dungeon
-    //    sub_module = 0x00 normal gameplay in dungeon
-    //               = 0x01 going through door
-    //               = 0x03 triggered a star tile to change floor hole configuration
-    //               = 0x05 initializing room? / locked doors?
-    //               = 0x07 falling down hole in floor
-    //               = 0x0e going up/down stairs
-    //               = 0x0f entering dungeon first time (or from mirror)
-    //               = 0x16 when orange/blue barrier blocks transition
-    //               = 0x19 when using mirror
-    // when module = 0x09: overworld
-    //    sub_module = 0x00 normal gameplay in overworld
-    //               = 0x0e
-    //      sub_sub_module = 0x01 in item menu
-    //                     = 0x02 in dialog with NPC
-    //               = 0x23 transitioning from light world to dark world or vice-versa
-    // when module = 0x12: Link is dying
-    //    sub_module = 0x00
-    //               = 0x02 bonk
-    //               = 0x03 black oval closing in
-    //               = 0x04 red screen and spinning animation
-    //               = 0x05 red screen and Link face down
-    //               = 0x06 fade to black
-    //               = 0x07 game over animation
-    //               = 0x08 game over screen done
-    //               = 0x09 save and continue menu
-    sub_module = bus::read_u8(0x7E0011);
-
-    // sub-sub-module goes from 01 to 0f during special animations such as link walking up/down stairs and
-    // falling from ceiling and used as a counter for orange/blue barrier blocks transition going up/down
-    sub_sub_module = bus::read_u8(0x7E00B0);
-
-    //auto transition_ctr = bus::read_u8(0x7E0126);
-
-    //message(fmtHex(screen_transition, 2) + ", " + fmtHex(subsubmodule, 2));
 
     // Don't update location until screen transition is complete:
     if (can_sample_location()) {
@@ -762,11 +757,13 @@ void pre_frame() {
     }
   }
 
-  array<uint16> fgtiles(0x2000);
-  sprites.canvas.fill(0x0000);
-  ppu::vram.read_block(0x4000, 0, 0x2000, fgtiles);
-  sprites.canvas.draw_sprite_4bpp(0, 0, 0, 128, 256, fgtiles, palettes[7]);
-  sprites.update();
+  if (sprites != null) {
+    array <uint16> fgtiles(0x2000);
+    sprites.canvas.fill(0x0000);
+    ppu::vram.read_block(0x4000, 0, 0x2000, fgtiles);
+    sprites.canvas.draw_sprite_4bpp(0, 0, 0, 128, 256, fgtiles, palettes[7]);
+    sprites.update();
+  }
 }
 
 void post_frame() {
