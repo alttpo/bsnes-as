@@ -240,8 +240,29 @@ class GameState {
 
   bool can_sync() {
     if (module == 0x09) {
-      // in overworld:
-      if (sub_module == 0x00 || sub_module == 0x06) {
+      // in overworld, in a room, and during screen transitions:
+      if (sub_module == 0x00 || sub_module <= 0x08) {
+        return true;
+      }
+      return false;
+    } else if (module == 0x07) {
+      // in dungeon:
+      if (sub_module == 0x00) {
+        return true;
+      }
+      return false;
+    } else if (module == 0x0e) {
+      // dialogue:
+      return (sub_module == 0x02);
+    } else {
+      return false;
+    }
+  }
+
+  bool can_sample_location() {
+    if (module == 0x09) {
+      // in overworld, in a room, and NOT during screen transitions:
+      if (sub_module == 0x00 || sub_module <= 0x08) {
         return true;
       }
       return false;
@@ -308,7 +329,7 @@ class GameState {
     //message(fmtHex(screen_transition, 2) + ", " + fmtHex(subsubmodule, 2));
 
     // Don't update location until screen transition is complete:
-    if (can_sync()) {
+    if (can_sample_location()) {
       last_location = location;
 
       // fetch various room indices and flags about where exactly Link currently is:
