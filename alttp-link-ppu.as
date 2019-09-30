@@ -815,21 +815,23 @@ void pre_frame() {
 
 void post_frame() {
   ppu::frame.text_shadow = true;
+  ppu::frame.color = 0x7fff;
   ppu::frame.text( 0, 0, fmtHex(local.module,               2));
   ppu::frame.text(20, 0, fmtHex(local.sub_module,           2));
   ppu::frame.text(40, 0, fmtHex(local.sub_sub_module,       2));
 
-  /*
+//  /*
   for (uint i = 0; i < 0x10; i++) {
     // generate CGA 16-color palette, lol.
+    auto j = i+1;
     ppu::frame.color = ppu::rgb(
-      ((i & 4) >> 2) * 0x13 + ((i & 8) >> 3) * 0x0c,
-      ((i & 2) >> 1) * 0x13 + ((i & 8) >> 3) * 0x0c,
-      ((i & 1)     ) * 0x13 + ((i & 8) >> 3) * 0x0c
+      ((j & 4) >> 2) * 0x12 + ((j & 8) >> 3) * 0x0d,
+      ((j & 2) >> 1) * 0x12 + ((j & 8) >> 3) * 0x0d,
+      ((j & 1)     ) * 0x12 + ((j & 8) >> 3) * 0x0d
     );
-    ppu::frame.text(i*16, 224-8, fmtHex(bus::read_u8(0x7E0400+i), 2));
+    ppu::frame.text(i*16, 224-8, fmtHex(bus::read_u8(0x7E012C+i), 2));
   }
-  */
+//  */
 
   // module check:
   if (isRunning < 0x06 || isRunning > 0x13) return;
