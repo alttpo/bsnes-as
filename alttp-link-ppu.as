@@ -226,26 +226,11 @@ class GameState {
   int16 xoffs;
   int16 yoffs;
 
-  uint8 ctr;
   uint16 x, y, z;
-  uint8 walking;
-  uint8 subframe;
-  uint8 frame;
-  uint8 facing;
-  uint8 pushing;
-  uint8 state_aux;
-  uint8 bunny;
-  int8  speed;
-  uint8 state;
-  uint8 dashing;
-  uint8 direction;
-  uint8 level;
 
-  uint8 ow_screen_transition;
   uint8 module;
   uint8 sub_module;
   uint8 sub_sub_module;
-  uint8 to_dark_world;
 
   void update_module() {
     module = bus::read_u8(0x7E0010);
@@ -283,34 +268,13 @@ class GameState {
     }
   }
 
-  // for intercepting writes to the tilemap:
-  array<TilemapWrite@> tileWrites;
-  uint tileWritesIndex;
-  array<VRAMWrite@> vramWrites;
-  uint vramWritesIndex;
-  uint8 vmaddrl, vmaddrh;
-  bool intercepting;
-
   void fetch() {
-    ctr = bus::read_u8(0x7E001A);
     y = bus::read_u16(0x7E0020, 0x7E0021);
     x = bus::read_u16(0x7E0022, 0x7E0023);
     z = bus::read_u16(0x7E0024, 0x7E0025);
-    walking = bus::read_u8(0x7E0026);
-    subframe = bus::read_u8(0x7E002D);
-    frame = bus::read_u8(0x7E002E);
-    facing = bus::read_u8(0x7E002F);
-    pushing = bus::read_u8(0x7E0048);
-    state_aux = bus::read_u8(0x7E004D);
-    bunny = bus::read_u8(0x7E0056);
-    speed = int8(bus::read_u8(0x7E0057));
-    state = bus::read_u8(0x7E005D);
-    dashing = bus::read_u8(0x7E005E);
-    direction = bus::read_u8(0x7E0067);
-    level = bus::read_u8(0x7E00EE);
 
     // $7E0410 = OW screen transitioning directional
-    ow_screen_transition = bus::read_u8(0x7E0410);
+    //ow_screen_transition = bus::read_u8(0x7E0410);
 
     // module     = 0x07 in dungeons
     //            = 0x09 in overworld
@@ -371,10 +335,6 @@ class GameState {
       // clear out list of room changes if location changed:
       if (last_location != location) {
         message("room from 0x" + fmtHex(last_location, 6) + " to 0x" + fmtHex(location, 6));
-        tileWrites.resize(0);
-        vramWrites.resize(0);
-        tileWritesIndex = 0;
-        vramWritesIndex = 0;
       }
     }
 
@@ -383,7 +343,6 @@ class GameState {
     yoffs = int16(bus::read_u16(0x7E00E8, 0x7E00E9));
 
     fetch_sprites();
-    fetch_room_updates();
   }
 
   void fetch_sprites() {
@@ -485,119 +444,6 @@ class GameState {
       sprites.resize(++numsprites);
       @sprites[numsprites-1] = sprite;
     }
-
-    //message("fetch: numsprites = " + fmtInt(numsprites) + " len = " + fmtInt(sprites.length()));
-  }
-
-  uint32 tilemap_addrl;
-  uint8 tilemap_valuel;
-
-  // called when tilemap data is updated:
-  void tilemap_written(uint32 addr, uint8 value) {
-    if (!safe_to_fetch_tilemap()) return;
-
-    // tilemap writes happen in lo-high byte order:
-    if ((addr & 1) == 0) {
-      tilemap_addrl = addr;
-      tilemap_valuel = value;
-    } else if ((tilemap_addrl | 1) == addr) {
-      // record the 16-bit tilemap write:
-      tileWrites.insertLast(TilemapWrite(tilemap_addrl, uint16(tilemap_valuel) | (uint16(value) << 8)));
-      tileWritesIndex = tileWrites.length();
-    }
-    message("sync tilemap [0x" + fmtHex(addr, 6) + "] = 0x" + fmtHex(value, 2));
-  }
-
-  // called when VMADDRL and VMADDRH registers are written to:
-  void ppu_vmaddr_written(uint32 addr, uint8 value) {
-    if (addr == 0x2116) vmaddrl = value;
-    else if (addr == 0x2117) vmaddrh = value;
-    else message("ppu[0x" + fmtHex(addr, 4) + "] = 0x" + fmtHex(value, 2));
-  }
-
-  void dma_interceptor(cpu::DMAIntercept @dma) {
-    if (!safe_to_fetch_tilemap()) return;
-
-    // Find DMA writes to tile memory in VRAM:
-    if (
-      (
-        // reading from 0x001006 temporary buffer (for bushes / stones picked up in OW):
-        (dma.sourceBank == 0x00 && dma.sourceAddress >= 0x1006 && dma.sourceAddress < 0x1100) ||
-        // reading from 0x001100 temporary buffer (for doors in dungeons opening/closing?):
-        (dma.sourceBank == 0x00 && dma.sourceAddress >= 0x1100 && dma.sourceAddress < 0x1980)
-      ) &&
-      // writing to 0x2118, 0x2119 VMDATAL & VMDATAH regs:
-      dma.targetAddress == 0x18 &&
-      // writing to tilemap VRAM for BG layers:
-      vmaddrh < 0x40 &&
-      // don't take the larger transfers:
-      dma.transferSize < 0x40
-    ) {
-      // record VRAM transfer for the room:
-      auto write = VRAMWrite();
-      write.vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
-
-      auto size = dma.transferSize >> 1;
-      write.data.resize(size);
-      uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
-      bus::read_block_u16(addr, 0, size, write.data);
-
-      vramWrites.insertLast(write);
-      vramWritesIndex = vramWrites.length();
-      message(
-        "sync DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
-        " to PPU 0x" + fmtHex(write.vmaddr, 4) + " size 0x" + fmtHex(dma.transferSize, 4)
-      );
-    } /* else if (
-      // writing to 0x2118, 0x2119 VMDATAL & VMDATAH regs:
-      dma.targetAddress == 0x18 &&
-      // writing to tilemap VRAM for BG layers:
-      vmaddrh < 0x3b
-    ) {
-      uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
-      auto vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
-      //message(
-      //  "DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
-      //  " to PPU 0x" + fmtHex(vmaddr, 4) + " size 0x" + fmtHex(dma.transferSize, 4)
-      //);
-    } */
-
-    // torch lights being animated in dungeons:
-    // DMA[0] from 0x7ea680 to PPU 0x3b00 size 0x0400
-    // DMA[0] from 0x7eaa80 to PPU 0x3b00 size 0x0400
-    // DMA[0] from 0x7eae80 to PPU 0x3b00 size 0x0400
-
-    /* else if (
-      // reading from 0x7EB340 temporary buffer for orange/blue tiles:
-      dma.sourceBank == 0x7E && dma.sourceAddress >= 0x9000 && dma.sourceAddress < 0xBFFF
-    ) {
-      uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
-      auto vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
-      message(
-        "DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
-        " to PPU 0x" + fmtHex(vmaddr, 4) + " size 0x" + fmtHex(dma.transferSize, 4)
-      );
-    } else {
-      uint32 addr = dma.sourceBank << 16 | dma.sourceAddress;
-      auto vmaddr = uint16(vmaddrl) | (uint16(vmaddrh) << 8);
-      message(
-        "DMA[" + fmtInt(dma.channel) + "] from 0x" + fmtHex(addr, 6) +
-        " to 0x21" + fmtHex(dma.targetAddress, 2) + " size 0x" + fmtHex(dma.transferSize, 4)
-      );
-    } */
-  }
-
-  void fetch_room_updates() {
-    if (!intercepting) {
-      // intercept writes to the tilemap:
-      bus::add_write_interceptor("7e:2000-3fff", 0, @bus::WriteInterceptCallback(local.tilemap_written));
-      bus::add_write_interceptor("7e:4000-5fff", 0, @bus::WriteInterceptCallback(local.tilemap_written));
-      bus::add_write_interceptor("00-3f,80-bf:2116-2117", 0, @bus::WriteInterceptCallback(local.ppu_vmaddr_written));
-      //bus::add_write_interceptor("00-3f,80-bf:2116-2119", 0, @bus::WriteInterceptCallback(local.ppu_vmaddr_written));
-      cpu::register_dma_interceptor(@cpu::DMAInterceptCallback(local.dma_interceptor));
-
-      intercepting = true;
-    }
   }
 
   bool can_see(uint32 other_location) {
@@ -636,31 +482,6 @@ class GameState {
 
       // clear the chr tile data for next frame:
       chrs[i].resize(0);
-    }
-
-    {
-      // Serialize current room tilemap writes:
-      auto mod_count = uint8(tileWrites.length());
-      r.insertLast(mod_count);
-      for (uint i = 0; i < mod_count; i++) {
-        r.insertLast(uint8(tileWrites[i].addr & 0xFF));
-        r.insertLast(uint8((tileWrites[i].addr >> 8) & 0xFF));
-        r.insertLast(uint8((tileWrites[i].addr >> 16) & 0xFF));
-        r.insertLast(uint8(tileWrites[i].value & 0xFF));
-        r.insertLast(uint8((tileWrites[i].value >> 8) & 0xFF));
-      }
-
-      // Serialize VRAM updates:
-      mod_count = uint8(vramWrites.length());
-      r.insertLast(mod_count);
-      for (uint i = 0; i < mod_count; i++) {
-        r.insertLast(uint8(vramWrites[i].vmaddr & 0xFF));
-        r.insertLast(uint8((vramWrites[i].vmaddr >> 8) & 0xFF));
-        auto data_len = uint16(vramWrites[i].data.length());
-        r.insertLast(uint8((data_len) & 0xFF));
-        r.insertLast(uint8((data_len >> 8) & 0xFF));
-        r.insertLast(vramWrites[i].data);
-      }
     }
   }
 
@@ -719,33 +540,6 @@ class GameState {
           chrs[h][k] = uint16(r[c++]) | (uint16(r[c++]) << 8);
         }
       }
-
-      {
-        // Read room tilemap writes:
-        auto mod_count = r[c++];
-        tileWrites.resize(mod_count);
-        for (uint i = 0; i < mod_count; i++) {
-          auto addr = uint32(r[c++]) | (uint32(r[c++]) << 8) | (uint32(r[c++]) << 16);
-          auto value = uint16(r[c++]) | (uint16(r[c++]) << 8);
-          @tileWrites[i] = TilemapWrite(addr, value);
-        }
-
-        // Read VRAM updates:
-        mod_count = r[c++];
-        vramWrites.resize(mod_count);
-        for (uint i = 0; i < mod_count; i++) {
-          auto write = VRAMWrite();
-          write.vmaddr = uint16(r[c++]) | (uint16(r[c++]) << 8);
-          auto data_len = uint16(r[c++]) | (uint16(r[c++]) << 8);
-          write.data.resize(data_len);
-          for (uint j = 0; j < data_len; j++) {
-            write.data[j] = uint16(r[c++]) | (uint16(r[c++]) << 8);
-          }
-          @vramWrites[i] = write;
-        }
-      }
-
-      //message("deser " + fmtInt(c) + " vs len " + fmtInt(n));
     }
   }
 
@@ -887,51 +681,6 @@ class GameState {
       @ppu::oam[j] = oam;
     }
   }
-
-  void updateTilemap() {
-    uint i;
-    uint len;
-
-    // update tilemap in WRAM:
-    len = tileWrites.length();
-    //message("tilemap writes " + fmtInt(len));
-    for (i = tileWritesIndex; i < len; i++) {
-      auto addr = tileWrites[i].addr;
-      auto value = tileWrites[i].value;
-      message("  wram[0x" + fmtHex(addr, 6) + "] <- 0x" + fmtHex(value, 4));
-      bus::write_u8(addr, value & 0xFF);
-      bus::write_u8(addr|1, (value >> 8) & 0xFF);
-    }
-    tileWritesIndex = i;
-
-    // make VRAM updates:
-    len = vramWrites.length();
-    //message("vram writes " + fmtInt(len));
-    for (i = vramWritesIndex; i < len; i++) {
-      message("  vram[0x" + fmtHex(vramWrites[i].vmaddr, 4) + "] <- 0x" + fmtHex(vramWrites[i].data.length(), 4) + " words");
-      ppu::vram.write_block(
-        vramWrites[i].vmaddr,
-        0,
-        vramWrites[i].data.length(),
-        vramWrites[i].data
-      );
-    }
-    vramWritesIndex = i;
-  }
-
-  void syncFrom(GameState @remote) {
-    // sync tilemap updates:
-    auto rlen = remote.tileWrites.length();
-    for (uint i = tileWritesIndex; i < rlen; i++) {
-      tileWrites.insertLast(remote.tileWrites[i]);
-    }
-
-    // sync VRAM updates:
-    rlen = remote.vramWrites.length();
-    for (uint i = vramWritesIndex; i < rlen; i++) {
-      vramWrites.insertLast(remote.vramWrites[i]);
-    }
-  }
 };
 
 GameState local;
@@ -969,12 +718,6 @@ void pre_frame() {
 
   // only draw remote player if location (room, dungeon, light/dark world) is identical to local player's:
   if (local.can_see(remote.location) && local.safe_to_update_tilemap()) {
-    // synchronize room state from remote player:
-    local.syncFrom(remote);
-
-    // update local tilemap according to remote player's writes:
-    local.updateTilemap();
-
     // subtract BG2 offset from sprite x,y coords to get local screen coords:
     int16 rx = int16(remote.x) - local.xoffs;
     int16 ry = int16(remote.y) - local.yoffs;
@@ -1002,6 +745,12 @@ void pre_frame() {
 }
 
 void post_frame() {
+  ppu::frame.text_shadow = true;
+  ppu::frame.text( 0, 0, fmtHex(local.module,               2));
+  ppu::frame.text(20, 0, fmtHex(local.sub_module,           2));
+  ppu::frame.text(40, 0, fmtHex(local.sub_sub_module,       2));
+
+  // module check:
   if (isRunning < 0x06 || isRunning > 0x13) return;
 
   // Don't do anything until user fills out Settings window inputs:
@@ -1017,35 +766,4 @@ void post_frame() {
       remote.chr_backup[i].tiledata
     );
   }
-
-  ppu::frame.text_shadow = true;
-
-  /*
-  // draw some debug info:
-  for (int i = 0; i < 16; i++) {
-    ppu::frame.text(i * 16, 224-16, fmtHex(bus::read_u8(0x7E0400 + i), 2));
-    ppu::frame.text(i * 16, 224- 8, fmtHex(bus::read_u8(0x7E0410 + i), 2));
-  }
-  */
-
-  /*
-  ppu::frame.text( 0, 0, fmtHex(local.ow_screen_transition, 2));
-  ppu::frame.text(20, 0, fmtHex(local.module,               2));
-  ppu::frame.text(40, 0, fmtHex(local.sub_module,           2));
-  ppu::frame.text(60, 0, fmtHex(local.sub_sub_module,       2));
-  ppu::frame.text(80, 0, fmtHex(local.to_dark_world,        2));
-  */
-
-  /*
-  ppu::frame.text( 0, 0, fmtHex(local.state,     2));
-  ppu::frame.text(20, 0, fmtHex(local.walking,   1));
-  ppu::frame.text(32, 0, fmtHex(local.facing,    1));
-  ppu::frame.text(44, 0, fmtHex(local.state_aux, 1));
-  ppu::frame.text(56, 0, fmtHex(local.frame,     1));
-  ppu::frame.text(68, 0, fmtHex(local.dashing,   1));
-  ppu::frame.text(80, 0, fmtHex(local.speed,     2));
-
-  ppu::frame.text(108, 0, fmtHex(bus::read_u8(0x7E00EE), 2));
-  ppu::frame.text(128, 0, fmtHex(bus::read_u8(0x7E00EF), 2));
-  */
 }
