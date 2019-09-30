@@ -147,6 +147,7 @@ class Sprite {
 
     // adjust x to allow for slightly off-screen sprites:
     if (ax >= 256) ax -= 512;
+    if (ay + tile.height >= 256) ay -= 256;
 
     // Make sprite x,y relative to incoming rx,ry coordinates (where Link is in screen coordinates):
     x = ax - rx;
