@@ -266,7 +266,7 @@ class GameState {
       if (sub_module == 0x00) {
         return true;
       }
-      return false;
+      return true;
     } else if (module == 0x0e) {
       // dialogue:
       return (sub_module == 0x02);
@@ -329,8 +329,8 @@ class GameState {
     }
 
     // get screen x,y offset by reading BG2 scroll registers:
-    xoffs = int16(bus::read_u16(0x7E00E2, 0x7E00E3));
-    yoffs = int16(bus::read_u16(0x7E00E8, 0x7E00E9));
+    xoffs = int16(bus::read_u16(0x7E00E2, 0x7E00E3)) - int16(bus::read_u16(0x7E011A, 0x7E011B));
+    yoffs = int16(bus::read_u16(0x7E00E8, 0x7E00E9)) - int16(bus::read_u16(0x7E011C, 0x7E011D));
 
 /*
     if (!intercepting) {
