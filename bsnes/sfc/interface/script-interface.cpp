@@ -181,8 +181,55 @@ struct ScriptInterface {
     }
 
     static auto write_u8(uint32 addr, uint8 data) -> void {
-      // prevent scripts from intercepting their own writes:
-      ::SuperFamicom::bus.write_no_intercept(addr, data);
+      Memory::GlobalWriteEnable = true;
+      {
+        // prevent scripts from intercepting their own writes:
+        ::SuperFamicom::bus.write_no_intercept(addr, data);
+      }
+      Memory::GlobalWriteEnable = false;
+    }
+
+    static auto write_block_u8(uint32 addr, uint offs, uint16 size, CScriptArray *input) -> void {
+      if (input == nullptr) {
+        asGetActiveContext()->SetException("input array cannot be null", true);
+        return;
+      }
+      if (input->GetElementTypeId() != asTYPEID_UINT8) {
+        asGetActiveContext()->SetException("input array must be of type uint8[]", true);
+        return;
+      }
+
+      Memory::GlobalWriteEnable = true;
+      {
+        for (uint32 a = 0; a < size; a++) {
+          auto value = *(uint8*)input->At(offs + a);
+          ::SuperFamicom::bus.write_no_intercept(addr + a, value);
+        }
+      }
+      Memory::GlobalWriteEnable = false;
+    }
+
+    static auto write_block_u16(uint32 addr, uint offs, uint16 size, CScriptArray *input) -> void {
+      if (input == nullptr) {
+        asGetActiveContext()->SetException("input array cannot be null", true);
+        return;
+      }
+      if (input->GetElementTypeId() != asTYPEID_UINT16) {
+        asGetActiveContext()->SetException("input array must be of type uint16[]", true);
+        return;
+      }
+
+      Memory::GlobalWriteEnable = true;
+      {
+        for (uint32 a = 0; a < size; a++) {
+          auto value = *(uint16*)input->At(offs + a);
+          auto lo = uint8(value & 0xFF);
+          auto hi = uint8((value >> 8) & 0xFF);
+          ::SuperFamicom::bus.write_no_intercept(addr + (a << 1u) + 0u, lo);
+          ::SuperFamicom::bus.write_no_intercept(addr + (a << 1u) + 1u, hi);
+        }
+      }
+      Memory::GlobalWriteEnable = false;
     }
 
     struct write_interceptor {
@@ -1371,6 +1418,8 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterGlobalFunction("void read_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)",  asFUNCTION(ScriptInterface::Bus::read_block_u8), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("void read_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)",  asFUNCTION(ScriptInterface::Bus::read_block_u16), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(ScriptInterface::Bus::write_u8), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("void write_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)", asFUNCTION(ScriptInterface::Bus::write_block_u8), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("void write_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)", asFUNCTION(ScriptInterface::Bus::write_block_u16), asCALL_CDECL); assert(r >= 0);
 
     r = script.engine->RegisterFuncdef("void WriteInterceptCallback(uint32 addr, uint8 value)"); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("void add_write_interceptor(const string &in addr, uint32 size, WriteInterceptCallback @cb)", asFUNCTION(ScriptInterface::Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
