@@ -1,5 +1,4 @@
 #include <sfc/sfc.hpp>
-#include <bsnes/sfc/sfc.hpp>
 
 namespace SuperFamicom {
 
