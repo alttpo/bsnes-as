@@ -4,3 +4,6 @@ angelscript/
 cmake-build-debug/
 bsnes/out/
 *.mov
+asm/*.smc
+asm/*.srm
+asm/*.bak
