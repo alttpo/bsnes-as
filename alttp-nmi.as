@@ -3,6 +3,8 @@ class Packet {
   uint32 addr;
 
   uint32 location;
+  uint16 x, y, z;
+  uint16 xoffs, yoffs;
 
   Packet(uint32 addr) {
     this.addr = addr;
@@ -10,7 +12,12 @@ class Packet {
 
   void readRAN() {
     auto a = addr;
-    location = uint32(bus::read_u16(a+0, a+1)) | (uint32(bus::read_u8(a+2)) << 16);
+    location = uint32(bus::read_u16(a+0, a+1)) | (uint32(bus::read_u8(a+2)) << 16); a += 3;
+    x = bus::read_u16(a+0, a+1); a += 2;
+    y = bus::read_u16(a+0, a+1); a += 2;
+    z = bus::read_u16(a+0, a+1); a += 2;
+    xoffs = bus::read_u16(a+0, a+1); a += 2;
+    yoffs = bus::read_u16(a+0, a+1); a += 2;
   }
 };
 
@@ -26,8 +33,15 @@ void post_frame() {
 
   // read local packet composed during NMI:
   ppu::frame.text(0, 0, fmtHex(local.location, 6));
+  ppu::frame.text(52, 0, fmtHex(local.x, 4));
+  ppu::frame.text(88, 0, fmtHex(local.y, 4));
+  ppu::frame.text(124, 0, fmtHex(local.z, 4));
+  ppu::frame.text(160, 0, fmtHex(local.xoffs, 4));
+  ppu::frame.text(196, 0, fmtHex(local.yoffs, 4));
 
-  {
+  ppu::frame.text(0, 8, fmtHex(local., 6));
+
+  if (false) {
     auto in_dark_world = bus::read_u8(0x7E0FFF);
     auto in_dungeon = bus::read_u8(0x7E001B);
     auto overworld_room = bus::read_u16(0x7E008A, 0x7E008B);
