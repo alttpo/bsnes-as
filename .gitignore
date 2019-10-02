@@ -7,3 +7,4 @@ bsnes/out/
 asm/*.smc
 asm/*.srm
 asm/*.bak
+asm/*.bsz
