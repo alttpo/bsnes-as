@@ -1,10 +1,30 @@
 // Communicate with ROM hack via memory at $7F7667[0x6719]
+
+class OAMSprite {
+  uint8 x;
+  uint8 y;
+  uint8 chr;
+  uint8 flags;
+
+  OAMSprite() {}
+
+  OAMSprite(uint8 x, uint8 y, uint8 chr, uint8 flags) {
+    this.x = x;
+    this.y = y;
+    this.chr = chr;
+    this.flags = flags;
+  }
+};
+
 class Packet {
   uint32 addr;
 
   uint32 location;
   uint16 x, y, z;
   uint16 xoffs, yoffs;
+
+  uint16 oam_size;
+  array<OAMSprite> oam_table;
 
   Packet(uint32 addr) {
     this.addr = addr;
@@ -18,6 +38,17 @@ class Packet {
     z = bus::read_u16(a+0, a+1); a += 2;
     xoffs = bus::read_u16(a+0, a+1); a += 2;
     yoffs = bus::read_u16(a+0, a+1); a += 2;
+
+    // read oam_table:
+    oam_size = bus::read_u16(a+0, a+1); a += 2;
+    auto len = oam_size >> 2;
+    oam_table.resize(len);
+    for (uint i = 0; i < len; i++) {
+      oam_table[i].x = bus::read_u8(a); a++;
+      oam_table[i].y = bus::read_u8(a); a++;
+      oam_table[i].chr = bus::read_u8(a); a++;
+      oam_table[i].flags = bus::read_u8(a); a++;
+    }
   }
 };
 
@@ -39,7 +70,7 @@ void post_frame() {
   ppu::frame.text(160, 0, fmtHex(local.xoffs, 4));
   ppu::frame.text(196, 0, fmtHex(local.yoffs, 4));
 
-  ppu::frame.text(0, 8, fmtHex(local., 6));
+  ppu::frame.text(0, 8, fmtHex(local.oam_size, 4));
 
   if (false) {
     auto in_dark_world = bus::read_u8(0x7E0FFF);
