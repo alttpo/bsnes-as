@@ -61,6 +61,7 @@ void pre_frame() {
 
 void post_frame() {
   ppu::frame.text_shadow = true;
+  ppu::frame.color = 0x7fff;
 
   // read local packet composed during NMI:
   ppu::frame.text(0, 0, fmtHex(local.location, 6));
@@ -71,6 +72,15 @@ void post_frame() {
   ppu::frame.text(196, 0, fmtHex(local.yoffs, 4));
 
   ppu::frame.text(0, 8, fmtHex(local.oam_size, 4));
+
+  auto len = local.oam_table.length();
+  if (len > 26) len = 26;
+  for (uint i = 0; i < len; i++) {
+    ppu::frame.text( 0, 16+i*8, fmtHex(local.oam_table[i].x, 2));
+    ppu::frame.text(20, 16+i*8, fmtHex(local.oam_table[i].y, 2));
+    ppu::frame.text(40, 16+i*8, fmtHex(local.oam_table[i].chr, 2));
+    ppu::frame.text(60, 16+i*8, fmtHex(local.oam_table[i].flags, 2));
+  }
 
   if (false) {
     auto in_dark_world = bus::read_u8(0x7E0FFF);
