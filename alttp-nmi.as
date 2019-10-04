@@ -29,6 +29,8 @@ class Packet {
   uint16 oam_size;
   array<OAMSprite> oam_table;
 
+  array<uint16> tiledata;
+
   Packet(uint32 addr) {
     this.addr = addr;
   }
@@ -52,6 +54,14 @@ class Packet {
       oam_table[i].b2 = bus::read_u8(a); a++;
       oam_table[i].b3 = bus::read_u8(a); a++;
       oam_table[i].b4 = bus::read_u8(a); a++;
+    }
+
+    // read tiledata:
+    a = addr + 0x298;
+    tiledata.resize(0x10);
+    for (uint i = 0; i < 0x10; i++) {
+      tiledata[i] = bus::read_u16(a+0, a+1);
+      a += 2;
     }
   }
 };
@@ -94,6 +104,10 @@ void post_frame() {
     ppu::frame.text(190, y, fmtHex(local.oam_table[i].priority, 1));
     ppu::frame.text(200, y, fmtBinary(local.oam_table[i].hflip, 1));
     ppu::frame.text(210, y, fmtBinary(local.oam_table[i].vflip, 1));
+  }
+
+  for (uint i = 0; i < 0x10; i++) {
+    ppu::frame.text(i*16, 16, fmtHex(local.tiledata[i], 4));
   }
 
   if (false) {
