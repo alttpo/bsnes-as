@@ -33,7 +33,7 @@ class Packet {
     this.addr = addr;
   }
 
-  void readRAN() {
+  void readRAM() {
     auto a = addr;
     location = uint32(bus::read_u16(a+0, a+1)) | (uint32(bus::read_u8(a+2)) << 16); a += 3;
     x = bus::read_u16(a+0, a+1); a += 2;
@@ -60,7 +60,7 @@ Packet local(0x7f7668);
 Packet remote(0x7f7668); // TODO: update me to where remote packet is stored in RAM
 
 void pre_frame() {
-  local.readRAN();
+  local.readRAM();
 }
 
 void post_frame() {
