@@ -79,7 +79,7 @@ class Packet {
 };
 
 Packet local(0x7F7700);
-Packet remote(0x7F8198);
+Packet remote(0x7F8200);
 
 uint8 scratcha, scratchb;
 
