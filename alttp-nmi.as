@@ -26,10 +26,10 @@ class Packet {
   uint16 x, y, z;
   uint16 xoffs, yoffs;
 
-  uint16 oam_size;
-  array <OAMSprite> oam_table;
+  uint8 oam_count;
+  array<OAMSprite> oam_table(12);
 
-  array <uint16> tiledata;
+  array<uint16> tiledata;
 
   Packet(uint32 addr) {
     this.addr = addr;
@@ -50,12 +50,11 @@ class Packet {
     yoffs = bus::read_u16(a + 0, a + 1);
     a += 2;
 
-    // read oam_table:
-    oam_size = bus::read_u16(a + 0, a + 1);
-    a += 2;
-    auto len = oam_size / 5;
-    oam_table.resize(len);
-    for (uint i = 0; i < len; i++) {
+    // number of used slots in oam_table:
+    oam_count = bus::read_u8(a);
+    a++;
+    // read oam_table (always 12 OAM sprites):
+    for (uint8 i = 0; i < 12; i++) {
       oam_table[i].b0 = bus::read_u8(a);
       a++;
       oam_table[i].b1 = bus::read_u8(a);
@@ -69,7 +68,6 @@ class Packet {
     }
 
     // read tiledata:
-    a = addr + 0x298;
     tiledata.resize(0x400);
     for (uint i = 0; i < 0x400; i++) {
       tiledata[i] = bus::read_u16(a + 0, a + 1);
@@ -101,8 +99,8 @@ void post_frame() {
   ppu::frame.text(160, 0, fmtHex(local.xoffs, 4));
   ppu::frame.text(196, 0, fmtHex(local.yoffs, 4));
 
-  auto len = local.oam_table.length();
-  if (len > 26) len = 26;
+  // limited to 12
+  auto len = local.oam_count;
 
   ppu::frame.text(0, 8, fmtHex(len, 2));
   for (uint i = 0; i < len; i++) {
