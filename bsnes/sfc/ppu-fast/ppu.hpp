@@ -39,9 +39,9 @@ struct PPU : PPUcounter {
   auto serialize(serializer&) -> void;
 
 public:
-  struct Source { enum : uint { BG1, BG2, BG3, BG4, OBJ1, OBJ2, COL }; };
-  struct TileMode { enum : uint { BPP2, BPP4, BPP8, Mode7, Inactive }; };
-  struct ScreenMode { enum : uint { Above, Below }; };
+  struct Source { enum : uint8 { BG1, BG2, BG3, BG4, OBJ1, OBJ2, COL }; };
+  struct TileMode { enum : uint8 { BPP2, BPP4, BPP8, Mode7, Inactive }; };
+  struct ScreenMode { enum : uint8 { Above, Below }; };
 
   struct Latch {
     //serialization.cpp
@@ -239,9 +239,9 @@ public:
   };
 
   struct Pixel {
-    uint source;
-    uint priority;
-    uint color;
+    uint8 source = 0;
+    uint8 priority = 0;
+    uint16 color = 0;
   };
 
   //io.cpp
@@ -290,22 +290,31 @@ public:
     auto pixel(uint x, Pixel above, Pixel below) const -> uint16;
     auto blend(uint x, uint y, bool halve) const -> uint16;
     alwaysinline auto directColor(uint paletteIndex, uint paletteColor) const -> uint16;
-    alwaysinline auto plotAbove(uint x, uint source, uint priority, uint color) -> void;
-    alwaysinline auto plotBelow(uint x, uint source, uint priority, uint color) -> void;
-    alwaysinline auto plotHD(Pixel*, uint x, uint source, uint priority, uint color, bool hires, bool subpixel) -> void;
+    alwaysinline auto plotAbove(uint x, uint8 source, uint8 priority, uint16 color) -> void;
+    alwaysinline auto plotBelow(uint x, uint8 source, uint8 priority, uint16 color) -> void;
+    alwaysinline auto plotHD(Pixel*, uint x, uint8 source, uint8 priority, uint16 color, bool hires, bool subpixel) -> void;
 
     //background.cpp
     auto cacheBackground(PPU::IO::Background&) -> void;
-    auto renderBackground(PPU::IO::Background&, uint source) -> void;
+    auto renderBackground(PPU::IO::Background&, uint8 source) -> void;
     auto getTile(PPU::IO::Background&, uint hoffset, uint voffset) -> uint;
 
     //mode7.cpp
-    auto renderMode7(PPU::IO::Background&, uint source) -> void;
+    auto renderMode7(PPU::IO::Background&, uint8 source) -> void;
 
     //mode7hd.cpp
     static auto cacheMode7HD() -> void;
-    auto renderMode7HD(PPU::IO::Background&, uint source) -> void;
+    auto renderMode7HD(PPU::IO::Background&, uint8 source) -> void;
     alwaysinline auto lerp(float pa, float va, float pb, float vb, float pr) -> float;
+
+    //mode7hd-avx2.cpp
+    auto renderMode7HD_AVX2(
+      PPU::IO::Background&, uint8 source,
+      Pixel* above, Pixel* below,
+      bool* windowAbove, bool* windowBelow,
+      float originX, float a,
+      float originY, float c
+    ) -> void;
 
     //object.cpp
     auto renderObject(PPU::IO::Object&) -> void;

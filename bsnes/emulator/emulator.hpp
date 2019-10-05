@@ -22,6 +22,14 @@ using namespace nall;
 
 #include <libco/libco.h>
 
+#ifdef __SSE2__
+  #include <emmintrin.h>
+#endif
+
+#ifdef __AVX2__
+  #include <immintrin.h>
+#endif
+
 #include <emulator/types.hpp>
 #include <emulator/memory/readable.hpp>
 #include <emulator/memory/writable.hpp>
@@ -33,7 +41,7 @@ using namespace nall;
 
 namespace Emulator {
   static const string Name    = "bsnes-angelscript";
-  static const string Version = "110.3";
+  static const string Version = "110.5";
   static const string Author  = "byuu";
   static const string License = "GPLv3";
   static const string Website = "https://byuu.org";

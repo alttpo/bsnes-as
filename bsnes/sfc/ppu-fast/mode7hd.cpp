@@ -1,3 +1,5 @@
+#define USE_AVX2 0
+
 //determine mode 7 line groups for perspective correction
 auto PPU::Line::cacheMode7HD() -> void {
   ppu.mode7LineGroups.count = 0;
@@ -95,7 +97,7 @@ auto PPU::Line::cacheMode7HD() -> void {
   }
 }
 
-auto PPU::Line::renderMode7HD(PPU::IO::Background& self, uint source) -> void {
+auto PPU::Line::renderMode7HD(PPU::IO::Background& self, uint8 source) -> void {
   const bool extbg = source == Source::BG2;
   const uint scale = ppu.hdScale();
 
@@ -170,6 +172,13 @@ auto PPU::Line::renderMode7HD(PPU::IO::Background& self, uint source) -> void {
     float originX = (a * ht) + (b * vty) + (hcenter << 8);
     float originY = (c * ht) + (d * vty) + (vcenter << 8);
 
+    if(USE_AVX2 == 1) {  //__builtin_cpu_supports("avx2")) {
+      renderMode7HD_AVX2(self, source, above + 1, below + 1, windowAbove, windowBelow, originX, a, originY, c);
+      above += 256 * scale;
+      below += 256 * scale;
+      continue;
+    }
+
     int pixelXp = INT_MIN;
     for(int x : range(256)) {
       bool doAbove = self.aboveEnable && !windowAbove[x];
@@ -190,7 +199,7 @@ auto PPU::Line::renderMode7HD(PPU::IO::Background& self, uint source) -> void {
           uint tile    = io.mode7.repeat == 3 && ((pixelX | pixelY) & ~1023) ? 0 : (ppu.vram[(pixelY >> 3 & 127) * 128 + (pixelX >> 3 & 127)] & 0xff);
           uint palette = io.mode7.repeat == 2 && ((pixelX | pixelY) & ~1023) ? 0 : (ppu.vram[(((pixelY & 7) << 3) + (pixelX & 7)) + (tile << 6)] >> 8);
 
-          uint priority;
+          uint8 priority;
           if(!extbg) {
             priority = self.priority[0];
           } else {
@@ -199,7 +208,7 @@ auto PPU::Line::renderMode7HD(PPU::IO::Background& self, uint source) -> void {
           }
           if(!palette) continue;
 
-          uint color;
+          uint16 color;
           if(io.col.directColor && !extbg) {
             color = directColor(0, palette);
           } else {
@@ -237,8 +246,8 @@ auto PPU::Line::renderMode7HD(PPU::IO::Background& self, uint source) -> void {
           br += b >> 10 & 31;
         }
       }
-      uint aboveColor = ab / divisor << 0 | ag / divisor << 5 | ar / divisor << 10;
-      uint belowColor = bb / divisor << 0 | bg / divisor << 5 | br / divisor << 10;
+      uint16 aboveColor = ab / divisor << 0 | ag / divisor << 5 | ar / divisor << 10;
+      uint16 belowColor = bb / divisor << 0 | bg / divisor << 5 | br / divisor << 10;
       this->above[p] = {source, this->above[p * scale].priority, aboveColor};
       this->below[p] = {source, this->below[p * scale].priority, belowColor};
     }
