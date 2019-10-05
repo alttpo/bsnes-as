@@ -9,14 +9,14 @@ class OAMSprite {
 
   OAMSprite() {}
 
-  int16 x { get const { return int16(b0) | (int16(b4 & 1) << 8); } };
-  uint8 y { get const { return b1; }};
-  uint16 chr { get const { return uint16(b2) | ((uint16(b3) & 1) << 8); } };
-  uint8 palette { get const { return (b3 >> 1) & 7; } };
-  uint8 priority { get const { return (b3 >> 4) & 3; } };
-  uint8 hflip { get const { return (b3 >> 6) & 1; } };
-  uint8 vflip { get const { return (b3 >> 7) & 1; } };
-  uint8 size { get const { return (b4 & 2) >> 1; } };
+  int16 x{get const { return int16(b0) | (int16(b4 & 1) << 8); }};
+  uint8 y{get const { return b1; }};
+  uint16 chr{get const { return uint16(b2) | ((uint16(b3) & 1) << 8); }};
+  uint8 palette{get const { return (b3 >> 1) & 7; }};
+  uint8 priority{get const { return (b3 >> 4) & 3; }};
+  uint8 hflip{get const { return (b3 >> 6) & 1; }};
+  uint8 vflip{get const { return (b3 >> 7) & 1; }};
+  uint8 size{get const { return (b4 & 2) >> 1; }};
 };
 
 class Packet {
@@ -27,9 +27,9 @@ class Packet {
   uint16 xoffs, yoffs;
 
   uint16 oam_size;
-  array<OAMSprite> oam_table;
+  array <OAMSprite> oam_table;
 
-  array<uint16> tiledata;
+  array <uint16> tiledata;
 
   Packet(uint32 addr) {
     this.addr = addr;
@@ -37,30 +37,42 @@ class Packet {
 
   void readRAM() {
     auto a = addr;
-    location = uint32(bus::read_u16(a+0, a+1)) | (uint32(bus::read_u8(a+2)) << 16); a += 3;
-    x = bus::read_u16(a+0, a+1); a += 2;
-    y = bus::read_u16(a+0, a+1); a += 2;
-    z = bus::read_u16(a+0, a+1); a += 2;
-    xoffs = bus::read_u16(a+0, a+1); a += 2;
-    yoffs = bus::read_u16(a+0, a+1); a += 2;
+    location = uint32(bus::read_u16(a + 0, a + 1)) | (uint32(bus::read_u8(a + 2)) << 16);
+    a += 3;
+    x = bus::read_u16(a + 0, a + 1);
+    a += 2;
+    y = bus::read_u16(a + 0, a + 1);
+    a += 2;
+    z = bus::read_u16(a + 0, a + 1);
+    a += 2;
+    xoffs = bus::read_u16(a + 0, a + 1);
+    a += 2;
+    yoffs = bus::read_u16(a + 0, a + 1);
+    a += 2;
 
     // read oam_table:
-    oam_size = bus::read_u16(a+0, a+1); a += 2;
+    oam_size = bus::read_u16(a + 0, a + 1);
+    a += 2;
     auto len = oam_size / 5;
     oam_table.resize(len);
     for (uint i = 0; i < len; i++) {
-      oam_table[i].b0 = bus::read_u8(a); a++;
-      oam_table[i].b1 = bus::read_u8(a); a++;
-      oam_table[i].b2 = bus::read_u8(a); a++;
-      oam_table[i].b3 = bus::read_u8(a); a++;
-      oam_table[i].b4 = bus::read_u8(a); a++;
+      oam_table[i].b0 = bus::read_u8(a);
+      a++;
+      oam_table[i].b1 = bus::read_u8(a);
+      a++;
+      oam_table[i].b2 = bus::read_u8(a);
+      a++;
+      oam_table[i].b3 = bus::read_u8(a);
+      a++;
+      oam_table[i].b4 = bus::read_u8(a);
+      a++;
     }
 
     // read tiledata:
     a = addr + 0x298;
     tiledata.resize(0x400);
     for (uint i = 0; i < 0x400; i++) {
-      tiledata[i] = bus::read_u16(a+0, a+1);
+      tiledata[i] = bus::read_u16(a + 0, a + 1);
       a += 2;
     }
   }
@@ -69,8 +81,12 @@ class Packet {
 Packet local(0x7F7700);
 Packet remote(0x7F8198);
 
+uint8 scratcha, scratchb;
+
 void pre_frame() {
   local.readRAM();
+  scratcha = bus::read_u8(0x7f7667);
+  scratchb = bus::read_u8(0x7f7668);
 }
 
 void post_frame() {
@@ -107,7 +123,7 @@ void post_frame() {
   }
 
   for (uint i = 0; i < 0x10; i++) {
-    ppu::frame.text(i*16, 16, fmtHex(local.tiledata[i], 4));
+    ppu::frame.text(i * 16, 16, fmtHex(local.tiledata[i], 4));
   }
 
   if (false) {
