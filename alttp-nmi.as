@@ -58,16 +58,16 @@ class Packet {
 
     // read tiledata:
     a = addr + 0x298;
-    tiledata.resize(0x10);
-    for (uint i = 0; i < 0x10; i++) {
+    tiledata.resize(0x400);
+    for (uint i = 0; i < 0x400; i++) {
       tiledata[i] = bus::read_u16(a+0, a+1);
       a += 2;
     }
   }
 };
 
-Packet local(0x7f7668);
-Packet remote(0x7f7668); // TODO: update me to where remote packet is stored in RAM
+Packet local(0x7F7700);
+Packet remote(0x7F8198);
 
 void pre_frame() {
   local.readRAM();
