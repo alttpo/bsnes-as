@@ -19,6 +19,9 @@ class OAMSprite {
   uint8 size{get const { return (b4 & 2) >> 1; }};
 };
 
+const uint16 tile_count = 0x40;
+const uint16 tiledata_size = tile_count * 0x10;
+
 class Packet {
   uint32 addr;
 
@@ -68,15 +71,15 @@ class Packet {
     }
 
     // read tiledata:
-    tiledata.resize(0x400);
-    for (uint i = 0; i < 0x400; i++) {
+    tiledata.resize(tiledata_size);
+    for (uint i = 0; i < tiledata_size; i++) {
       tiledata[i] = bus::read_u16(a + 0, a + 1);
       a += 2;
     }
   }
 };
 
-Packet local(0x7F7700);
+Packet  local(0x7F7700);
 Packet remote(0x7F8200);
 
 uint8 scratcha, scratchb;
@@ -120,9 +123,9 @@ void post_frame() {
     ppu::frame.text(210, y, fmtBinary(local.oam_table[i].vflip, 1));
   }
 
-  //for (uint i = 0; i < 0x10; i++) {
-  //  ppu::frame.text(i * 16, 16, fmtHex(local.tiledata[i], 4));
-  //}
+  for (uint i = 0; i < 0x10; i++) {
+    ppu::frame.text(i * 16, 16, fmtHex(local.tiledata[i], 4));
+  }
 
   if (false) {
     auto in_dark_world = bus::read_u8(0x7E0FFF);
