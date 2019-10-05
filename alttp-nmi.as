@@ -122,9 +122,9 @@ void post_frame() {
     ppu::frame.text(210, y, fmtBinary(local.oam_table[i].vflip, 1));
   }
 
-  for (uint i = 0; i < 0x10; i++) {
-    ppu::frame.text(i * 16, 16, fmtHex(local.tiledata[i], 4));
-  }
+  //for (uint i = 0; i < 0x10; i++) {
+  //  ppu::frame.text(i * 16, 16, fmtHex(local.tiledata[i], 4));
+  //}
 
   if (false) {
     auto in_dark_world = bus::read_u8(0x7E0FFF);
