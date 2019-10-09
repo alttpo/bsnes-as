@@ -16,7 +16,8 @@ linux-x86_64-binaries_task:
         - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
         - cp -a shaders bsnes-angelscript-nightly/Shaders
         - cp -a GPLv3.txt bsnes-angelscript-nightly
-        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
+        - cp -a *.as bsnes-angelscript-nightly
+        - cp -a asm bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
         path: "bsnes-angelscript-nightly/**"
@@ -38,7 +39,8 @@ linux-x86_64-binaries_task:
 #        - cp -a bsnes/out/bsnes bsnes-angelscript-nightly/bsnes
 #        - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
 #        - cp -a GPLv3.txt bsnes-angelscript-nightly
-#        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
+#        - cp -a *.as bsnes-angelscript-nightly
+#        - cp -a asm bsnes-angelscript-nightly
 #
 #    bsnes-angelscript-nightly_artifacts:
 #        path: "bsnes-angelscript-nightly/**"
@@ -58,7 +60,8 @@ windows-x86_64-binaries_task:
         - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
         - cp -a shaders bsnes-angelscript-nightly/Shaders
         - cp -a GPLv3.txt bsnes-angelscript-nightly
-        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
+        - cp -a *.as bsnes-angelscript-nightly
+        - cp -a asm bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
         path: "bsnes-angelscript-nightly/**"
@@ -78,7 +81,8 @@ windows-x86_32-binaries_task:
         - cp -a bsnes/Database/* bsnes-angelscript-nightly/Database
         - cp -a shaders bsnes-angelscript-nightly/Shaders
         - cp -a GPLv3.txt bsnes-angelscript-nightly
-        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
+        - cp -a *.as bsnes-angelscript-nightly
+        - cp -a asm bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
         path: "bsnes-angelscript-nightly/**"
@@ -94,7 +98,8 @@ macOS-x86_64-binaries_task:
         - mkdir bsnes-angelscript-nightly
         - cp -a bsnes/out/bsnes.app bsnes-angelscript-nightly
         - cp -a GPLv3.txt bsnes-angelscript-nightly
-        - cp -a alttp-link-oam.as bsnes-angelscript-nightly
+        - cp -a *.as bsnes-angelscript-nightly
+        - cp -a asm bsnes-angelscript-nightly
 
     bsnes-angelscript-nightly_artifacts:
         path: "bsnes-angelscript-nightly/**"
