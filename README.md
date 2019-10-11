@@ -6,52 +6,10 @@ some rudimentary script function bindings between the bsnes emulator and AngelSc
 Download nightly binary builds here:
 https://cirrus-ci.com/github/JamesDunne/bsnes-angelscript
 
-See a demo video: https://www.youtube.com/watch?v=ZKjiE2MBXSU
-
-Instructions to reproduce the demo:
-1. Run `sudo ifconfig lo0 alias 127.0.0.2 up` to create a loopback alias for `127.0.0.2`.
-2. Run `./test.sh` script in a Terminal tab to open instance 1
-3. Run `./test.sh` script in a new Terminal tab to open instance 2 (or in Finder, right-click the app bundle and
-shift-option-left-click on Open to open a new instance) 
-4. The IP address in instance 1 should work as-is so just click Start there.
-5. In instance 2 you'll want to swap the two values so the Server IP is `127.0.0.2` and the client IP is `127.0.0.1`.
-6. Click Start on both instances and load a saved state or play through the game on both emulators to see both Link
-avatars on both screens.
-
 Screenshots
 ---
 
 ![screenshot](screenshots/alttp-multiplayer-01.png)
-
-![screenshot](screenshots/alttp-multiplayer-02.png)
-
-![animation](screenshots/alttp-extra-sprite-01.gif)
-
-My Goals
---------
-I want to create an emulator add-on defined entirely via scripts that enables a real-time networked multiplayer
-experience for *Zelda 3: A Link To The Past*. This game has an active and vibrant community surrounding it with things
-like Randomizer, Crowd Control, and Tournaments.
-
-There appears to be interest in a multiplayer aspect to the game where players can see and interact with one another
-within the same game world. Some efforts have been made already in this space like with inventory sharing but as far as
-I'm aware, not to the extent of letting players visually see each other's characters.
-
-The lack of the visual aspect of players seeing each other could be explained by the difficulty in displaying more than
-one copy of Link on the screen at one time with differing animation frames. VRAM tile data is dynamically updated on
-every frame depending on the current game state, e.g. Link's current animation frame. If one were to simply draw
-multiple copies of Link on the screen, they would all appear synchronized in animation which is not ideal for a
-multiplayer simulation where you would want different players to be performing different actions and hence seeing
-different animations.
-
-My plan for the visual aspect is essentially to synchronize over the network each player's Link state (x,y coords,
-overworld room number, dungeon room number, light/dark world, etc.) as well as VRAM data for the current animation
-frame. This extra VRAM data could be used in a script-extended PPU renderer to essentially have more than one OBJ
-layer, possibly even one per player. The script-extended PPU rendering would source VRAM data from script variables
-instead of from the local game ROM. This would preserve custom sprites in each player's ROM.
-
-My near-term goals are to extend bsnes enough through scripts to allow for customization of the PPU rendering per
-scanline to get a proof of concept going.
 
 Why AngelScript?
 ----------------
@@ -137,4 +95,3 @@ Nightly Builds
   - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=windows-x86_32-binaries)
   - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=macOS-x86_64-binaries)
   - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=linux-x86_64-binaries)
-  - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=freebsd-x86_64-binaries)
