@@ -189,6 +189,16 @@ struct ScriptInterface {
       Memory::GlobalWriteEnable = false;
     }
 
+    static auto write_u16(uint32 addr0, uint32 addr1, uint16 data) -> void {
+      Memory::GlobalWriteEnable = true;
+      {
+        // prevent scripts from intercepting their own writes:
+        ::SuperFamicom::bus.write_no_intercept(addr0, data & 0x00FFu);
+        ::SuperFamicom::bus.write_no_intercept(addr1, (data >> 8u) & 0x00FFu);
+      }
+      Memory::GlobalWriteEnable = false;
+    }
+
     static auto write_block_u8(uint32 addr, uint offs, uint16 size, CScriptArray *input) -> void {
       if (input == nullptr) {
         asGetActiveContext()->SetException("input array cannot be null", true);
@@ -1413,11 +1423,16 @@ auto Interface::registerScriptDefs() -> void {
   // default bus memory functions:
   {
     r = script.engine->SetDefaultNamespace("bus"); assert(r >= 0);
+
+    // read functions:
     r = script.engine->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(ScriptInterface::Bus::read_u8), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("uint16 read_u16(uint32 addr0, uint32 addr1)", asFUNCTION(ScriptInterface::Bus::read_u16), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("void read_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)",  asFUNCTION(ScriptInterface::Bus::read_block_u8), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("void read_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)",  asFUNCTION(ScriptInterface::Bus::read_block_u16), asCALL_CDECL); assert(r >= 0);
+
+    // write functions:
     r = script.engine->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(ScriptInterface::Bus::write_u8), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("void write_u16(uint32 addr0, uint32 addr1, uint16 data)", asFUNCTION(ScriptInterface::Bus::write_u16), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("void write_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)", asFUNCTION(ScriptInterface::Bus::write_block_u8), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("void write_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)", asFUNCTION(ScriptInterface::Bus::write_block_u16), asCALL_CDECL); assert(r >= 0);
 
