@@ -10,8 +10,11 @@ returns.
 bsnes can bind to these optional functions defined by scripts:
 
   * `void init()` - called once immediately after script loaded or reloaded
-  * `void pre_frame()` - called at scanline 0 before rendering the current frame starts
+  * `void pre_frame()` - called immediately before scanline 0 rendering begins for the current frame
   * `void post_frame()` - called after a frame is rendered by the PPU but before it is swapped to the display
+
+NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp) for the latest definitions of
+script functions.
 
 Global Functions
 ----------------
@@ -24,51 +27,98 @@ Global Functions
   * `string &fmtInt(int64 value)` - formats a `int64` as a string
   * `string &fmtUint(uint64 value)` - formats a `uint64` as a string
 
+NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp) for the latest definitions of
+script functions.
+
 Memory
 ------
 
 All definitions in this section are defined in the `bus` namespace, e.g. `bus::read_u8`. 
 
-* `uint8 bus::read_u8(uint32 addr)` - reads a `uint8` value from the given bus address (24-bit)
-* `uint16 bus::read_u16(uint32 addr0, uint32 addr1)` - reads a `uint16` value from the given bus addresses, using
-`addr0` for the low byte and `addr1` for the high byte. `addr0` and `addr1` can be any address or even the same address.
-`addr0` is always read before `addr1` is read. no clock cycles are advanced between reads.
-* `void bus::write_u8(uint32 addr, uint8 data)` - writes a `uint8` value to the given bus address (24-bit)
+Memory read functions:
 
-Reads and writes are done on the main bus and clock cycles are not advanced during read or write.
+  * `uint8 bus::read_u8(uint32 addr)` - reads a `uint8` value from the given bus address (24-bit)
+  * `uint16 bus::read_u16(uint32 addr0, uint32 addr1)` - reads a `uint16` value from the given bus addresses (24-bit),
+    using `addr0` for the low byte and `addr1` for the high byte. `addr0` and `addr1` can be any address or even the
+    same address. `addr0` is always read before `addr1` is read.
+  * `void read_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)` - reads a block of
+    `uint8` data from address `addr` to a slice of an `array<uint8>` specified by `offs` and `size` (bytes).
+  * `void read_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)` - reads a block of
+    `uint16` data from address `addr` to a slice of an `array<uint16>` specified by `offs` and `size` (words).
+
+Memory write functions:
+
+  * `void bus::write_u8(uint32 addr, uint8 data)` - writes a `uint8` value to the given bus address (24-bit)
+  * `void bus::write_u16(uint32 addr0, uint32 addr1, uint16 data)` - writes a `uint16` value to the given bus addresses
+    (24-bit), using `addr0` for the low byte and `addr1` for the high byte. `addr0` and `addr1` can be any address or
+    even the same address. `addr0` is always written before `addr1` is written.
+  * `void bus::write_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)` - writes a block of
+    `uint8` data to address `addr` from a slice of an `array<uint8>` specified by `offs` and `size` (bytes).
+  * `void write_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)` - writes a block of
+    `uint16` data to address `addr` from a slice of an `array<uint16>` specified by `offs` and `size` (words).
+
+Reads and writes are done on the main bus and clock cycles are not advanced *unless* the addresses being read from
+or written to cross any special memory-mapped hardware registers like for the PPU. Reads and writes to WRAM-mapped
+addresses are always guaranteed to not advance clock cycles.
+
+Memory write interception:
+
+  * `void WriteInterceptCallback(uint32 addr, uint8 value)` - callback function definition for intercepting memory
+    writes.
+  * `void add_write_interceptor(const string &in addr, uint32 size, WriteInterceptCallback @cb)` - registers a script
+    function to be called when any address within a memory address range is written to. An example of the `addr` string
+    format is `00-10,20-40,7e-7f:2000-2fff,4000-4fff`. The string is split by `':'` to separate bank ranges from address
+    ranges. Multiple bank ranges and address ranges are split by `','`. Bank ranges are specified as hex values split
+    by `'-'` to define lower range inclusive and upper range inclusive; bank ranges only need to be at most 2 hex
+    characters because they are 8-bit values. Address ranges are specified as hex values split by `'-'` to define lower
+    range inclusive and upper range inclusive; address ranges only need to be at most 4 hex characters because they are
+    16-bit values. The combination of a bank and an address create a full 24-bit address. When `size` is `0`, the
+    mapping is non-contiguous, otherwise the mapping is treated as a contiguous range of size `size` bytes from lowest
+    address to highest address across all address ranges.
+
+NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp) for the latest definitions of
+script functions.
+
+DMA interception
+----------------
+
+All definitions in this section are defined in the `cpu` namespace. 
+
+`DMAIntercept` class:
+  * `uint8  channel`
+  * `uint8  transferMode`
+  * `uint8  fixedTransfer`
+  * `uint8  reverseTransfer`
+  * `uint8  unused`
+  * `uint8  indirect`
+  * `uint8  direction`
+  * `uint8  targetAddress`
+  * `uint16 sourceAddress`
+  * `uint8  sourceBank`
+  * `uint16 transferSize`
+  * `uint16 indirectAddress`
+  * `uint8  indirectBank`
+
+Functions:
+
+  * `void DMAInterceptCallback(DMAIntercept @dma)` - callback function definition for DMA interception
+  * `void register_dma_interceptor(DMAInterceptCallback @cb)` - registers the DMA interceptor callback function
+
+NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp) for the latest definitions of
+script functions.
 
 Graphics Integration
 ====================
 
-Currently there are two ways to render custom graphics into each game frame rendered by the SNES.
-
-Extra OAM Sprites
------------------
-
-One way to affect the rendered frame is for scripts to define "extra" OAM sprites that act almost exactly like
-hardware OAM sprites do. As such, these "extra" OAM sprites may layer on top of and underneath hardware OAM sprites
-generated normally by games. These extra sprites differ from OAM sprites in that they are stored in a direct-color
-format as opposed to an indexed color format with CGRAM lookups. Of course, extra sprites may be rendered using CGRAM
-lookups but this must be done explicitly by the script instead of implicitly by the PPU. This direct-color feature makes
-it ideal to transfer sprite data over a network so as to preserve the exact look of any customized sprite graphics or
-palettes without having to affect existing hardware sprites by changing CGRAM palettes or VRAM tile data.
-
-![Example of extra OAM sprites](screenshots/alttp-extra-sprite-01.gif)
-
-As you can see in the animation above, the extra sprites can alternate priorities with the hardware sprites and can
-appear on top of or behind one another. In this case it is achieved by coordinating the OAM sprite index and emulating
-that on the renderer. Link's sprites seem to always have a priority of `2` and the game uses the OAM index to give
-relative priorities amongst sprites.
-
 Post-Frame Rendering
 --------------------
 
-Another way to affect the rendering of a frame is to wait for the PPU to finish rendering a frame and then draw directly
-on top of the final frame. This mode is useful for making large-scale annotations on the frame for debugging purposes or
-for creating in-game mechanics that don't need tight integration with the PPU. This mode draws directly onto the
-rendered PPU frame and is destructive by nature. Supported features are drawing pixels directly, drawing horizontal and
-vertical lines, drawing rectangles, and drawing text using an 8x8 or 8x16 pixel font. Drawing operations can make use of
-alpha-blending and colors are represented with 15-bit BGR values.
+The best way to affect the rendering of a frame is to wait for the PPU to finish rendering a frame and then draw
+directly on top of the final frame. This mode is useful for making large-scale annotations on the frame for debugging
+purposes or for creating in-game mechanics that don't need tight integration with the PPU. This mode draws directly
+onto the rendered PPU frame and is destructive by nature. Supported features are drawing pixels directly, drawing
+horizontal and vertical lines, drawing rectangles, and drawing text using an 8x8 or 8x16 pixel font. Drawing operations
+can make use of alpha-blending and colors are represented with 15-bit BGR values.
 
 This post-frame mode may only be meaningfully used within the context of the emulator calling the `void post_frame()`
 function defined in the script. Do note that if reading SNES memory during `post_frame()`, most values will be relevant
@@ -116,29 +166,37 @@ General PPU Data Access Interface
 
 `ppu::VRAM` object for direct access to VRAM:
   * `uint16 opIndex(uint16 addr)` - reads a 16-bit value from VRAM at absolute address `addr`
-  * `uint   read_sprite(uint16 tiledataAddress, uint8 chr, uint8 width, uint8 height, array<uint32> &inout output)` -
-  reads 4bpp sprite data from the given VRAM base address, character number, desired width and height of the sprite (in
-  multiples of 8), and the output array to store the tile data in (which will be resized to fit the contents read).
+  * `uint16 chr_address(uint16 chr)` - computes the VRAM address for a given sprite CHR value (9-bit), valid return
+  values are from `0x4000` to `0x5fff`.
+  * `void read_block(uint16 addr, uint offs, uint16 size, array<uint16> &inout output)` - reads 16-bit VRAM data from
+  address `addr` into `output` array at offset `offs` for size `size` words. Does not advance clock cycles; reads
+  directly from emulator's representation of VRAM and not via the main bus.
+  * `"void write_block(uint16 addr, uint offs, uint16 size, const array<uint16> &in data)"` - writes 16-bit VRAM data to
+  address `addr` from `output` array at offset `offs` for size `size` words. Does not advance clock cycles; writes
+  directly into emulator's representation of VRAM and not via the main bus.
 
 `ppu::CGRAM` object for direct access to CGRAM:
   * `uint16 opIndex(uint16 addr)` - reads a 16-bit color value from CGRAM at absolute address `addr`
 
-`ppu::OAM` object for direct access to OAM:
+`ppu::OAMSprite` object represents a copy of an OAM sprite:
   * `uint8  index { get; set; }` - gets/sets the current OAM sprite index to read from
   * `bool   is_enabled { get; }` - determines if the OAM sprite is on screen
   * `uint16 x { get; }` - gets the X coordinate (9-bit) of the current OAM sprite
   * `uint8  y { get; }` - gets the Y coordinate (8-bit) of the current OAM sprite
-  * `uint8  character { get; }` - gets the character number of the current OAM sprite
-  * `bool   nameselect { get; }` - gets the nametable selection bit of the current OAM sprite
+  * `uint16 character { get; }` - gets the CHR value (9-bit) of the current OAM sprite
   * `bool   vflip { get; }` - gets the vertical flip flag of the current OAM sprite
   * `bool   hflip { get; }` - gets the horizontal flip flag of the current OAM sprite
-  * `uint8  priority { get; }` - gets the priority of the current OAM sprite
-  * `uint8  palette { get; }` - gets the palette of the current OAM sprite
-  * `uint8  size { get; }` - gets the size of the current OAM sprite (width, height can be calculated from this)
+  * `uint8  priority { get; }` - gets the priority (2-bit) of the current OAM sprite
+  * `uint8  palette { get; }` - gets the palette (3-bit) of the current OAM sprite
+  * `uint8  size { get; }` - gets the size (1-bit) of the current OAM sprite
   * `uint8  width { get; }` - gets the width in pixels of the current OAM sprite (convenience property calculated from
   `size`)
   * `uint8  height { get; }` - gets the height in pixels of the current OAM sprite (convenience property calculated from
   `size`)
+
+`ppu::OAM` object represents direct access to OAM memory:
+  * `OAMSprite @get_opIndex(uint8 chr)` - gets a copy of an OAM sprite given its index (7-bit)
+  * `void set_opIndex(uint8 chr, OAMSprite @sprite)` - writes an OAM sprite to the OAM table given its index (7-bit)
 
 NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp) for the latest definitions of
 script functions.
@@ -272,6 +330,8 @@ Globals:
   * `void draw_4bpp_8x8(int lx, int ty, uint32[] tile_data, uint16[] palette_data)` - draws an 8x8 tile in 4bpp color
   mode using the given `tile_data` from VRAM and `palette_data` from CGRAM. pixels are drawn using the current drawing
   operations; `color` is ignored; `luma` is used to luma-map the palette colors for display.
+  **WARNING:** this method is likely to be deprecated as it is not directly compatible with VRAM read_block/write_block
+  functions which return data as `uint16[]` and not `uint32[]`.
 
 NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp) for the latest definitions of
 script functions.
@@ -287,6 +347,10 @@ Network Access for Scripts
   * `int recv(const array<uint8> &in msg)` - attempts to receive a UDP packet into the `msg` array and returns `0` if no
   packet available, or returns the number of bytes received; non-blocking. (internally uses a `poll()` followed by
   `recvfrom()` if the poll indicates that data is available to be read)
+
+**WARNING:** this API is likely to be refactored to extract out IPAddress structures instead of specifying host as
+string and port as integer. This change will also make these functions more performant due to not having to call
+`getaddrinfo()` every time.
 
 NOTE: Always refer to [script-interface.cpp](bsnes/sfc/interface/script-interface.cpp)
 for the latest definitions of script functions.
