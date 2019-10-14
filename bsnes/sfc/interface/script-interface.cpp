@@ -9,12 +9,16 @@
   #define SEND_BUF_CAST(t) ((const void *)(t))
   #define RECV_BUF_CAST(t) ((void *)(t))
 
-char* sockerr() {
-  return strerror(errno);
+int sock_capture_error() {
+  return errno;
 }
 
-bool sockhaserr() {
-  return errno != 0;
+char* sock_error_string(int err) {
+  return strerror(err);
+}
+
+bool sock_has_error(int err) {
+  return err != 0;
 }
 #else
   #include <winsock2.h>
@@ -35,7 +39,7 @@ bool sockhaserr() {
 
 thread_local char errmsg[256];
 
-char* sockerr(int errcode) {
+char* sock_error_string(int errcode) {
   DWORD len = FormatMessageA(FORMAT_MESSAGE_ARGUMENT_ARRAY | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errcode, 0, errmsg, 255, NULL);
   if (len != 0)
     errmsg[len] = 0;
@@ -44,8 +48,12 @@ char* sockerr(int errcode) {
   return errmsg;
 }
 
-bool sockhaserr() {
-  return FAILED(WSAGetLastError());
+int sock_capture_error() {
+  return WSAGetLastError();
+}
+
+bool sock_has_error(int err) {
+  return FAILED(err);
 }
 #endif
 
@@ -768,6 +776,73 @@ struct ScriptInterface {
   } postFrame;
 
   struct Net {
+    struct Address {
+      addrinfo *info;
+      int rc;   // getaddrinfo return value
+      int err;  // platform-specific error code
+
+      // constructor:
+      Address(const string *host, int port) {
+        info = nullptr;
+        rc = -1;
+        err = 0;
+
+        addrinfo hints;
+        const char *addr;
+
+        memset(&hints, 0, sizeof(addrinfo));
+        hints.ai_family = AF_INET;
+
+        if (host == nullptr || (*host) == "") {
+          addr = (const char *)nullptr;
+          // AI_PASSIVE hint is ignored otherwise.
+          hints.ai_flags = AI_PASSIVE;
+        } else {
+          addr = (const char *)*host;
+        }
+
+        rc = ::getaddrinfo(addr, string(port), &hints, &info);
+        if (rc != 0) {
+          if (rc == EAI_SYSTEM) {
+            err = sock_capture_error();
+          } else {
+            err = 0;
+          }
+        }
+      }
+
+      ~Address() {
+        if (info) {
+          ::freeaddrinfo(info);
+        }
+        info = nullptr;
+      }
+
+      operator bool() {
+        return info && (rc == 0);
+      }
+
+      auto throw_if_invalid() -> bool {
+        if (rc == 0) return false;
+
+        // throw script exception:
+
+        // system error occurred so rely on errno functions here:
+        if (rc == EAI_SYSTEM) {
+          asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: errno=", err, "; ", sock_error_string(err)}, true);
+          return true;
+        }
+
+        // regular getaddrinfo error occurred, so use gai_strerror:
+        asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: ", gai_strerror(rc)}, true);
+        return true;
+      }
+    };
+
+    static auto resolve(const string *host, int port) -> Address* {
+      return new Address(host, port);
+    }
+
     struct UDPSocket {
       addrinfo *serverinfo;
 #if !defined(PLATFORM_WINDOWS)
@@ -832,7 +907,8 @@ struct ScriptInterface {
         addrinfo *targetaddr;
         int status = getaddrinfo(server, string(port), &hints, &targetaddr);
         if (status != 0) {
-          asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: ", sockerr()}, true);
+          int err = sock_capture_error();
+          asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: ", sock_error_string(err)}, true);
           return 0;
         }
 
@@ -845,7 +921,8 @@ struct ScriptInterface {
           targetaddr->ai_addrlen
         );
         if (num == -1) {
-          asGetActiveContext()->SetException(string{LOCATION " sendto: ", sockerr()}, true);
+          int err = sock_capture_error();
+          asGetActiveContext()->SetException(string{LOCATION " sendto: ", sock_error_string(err)}, true);
           return 0;
         }
 
@@ -856,8 +933,8 @@ struct ScriptInterface {
         addrinfo *targetaddr;
         int status = getaddrinfo(server, string(port), &hints, &targetaddr);
         if (status != 0) {
-          int le = WSAGetLastError();
-          asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: le=", le, "; ", sockerr(le)}, true);
+          int err = sock_capture_error();
+          asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: err=", err, "; ", sock_error_string(err)}, true);
           return 0;
         }
 
@@ -884,10 +961,10 @@ struct ScriptInterface {
           nullptr
         );
         if (rc == SOCKET_ERROR) {
-          int le = WSAGetLastError();
-          switch (le) {
+          int err = sock_capture_error();
+          switch (err) {
             default:
-              asGetActiveContext()->SetException(string{LOCATION " WSASendTo: le=", le, "; ", sockerr(le)}, true);
+              asGetActiveContext()->SetException(string{LOCATION " WSASendTo: err=", err, "; ", sock_error_string(err)}, true);
               return 0;
           }
         }
@@ -907,7 +984,8 @@ struct ScriptInterface {
 
         int rv = ::poll(&pfd, 1, 0);
         if (rv == -1) {
-          asGetActiveContext()->SetException(string{LOCATION " poll: ", sockerr()}, true);
+          int err = sock_capture_error();
+          asGetActiveContext()->SetException(string{LOCATION " poll: ", sock_error_string(err)}, true);
           return 0;
         }
         if (rv == 0) {
@@ -921,8 +999,9 @@ struct ScriptInterface {
 
         ssize_t num = ::recvfrom(sockfd, RECV_BUF_CAST(msg->At(0)), msg->GetSize(), 0, &addr, &addrlen);
         if (num == -1) {
-          if (sockhaserr()) {
-            asGetActiveContext()->SetException(string{LOCATION " recvfrom: ", sockerr()}, true);
+          int err = sock_capture_error();
+          if (sock_has_error(err)) {
+            asGetActiveContext()->SetException(string{LOCATION " recvfrom: ", sock_error_string(err)}, true);
             return 0;
           }
         }
@@ -935,10 +1014,10 @@ struct ScriptInterface {
 
         int rc = ::WSAPoll(&pfd, 1, 0);
         if (rc == SOCKET_ERROR) {
-            int le = WSAGetLastError();
-            switch (le) {
+            int err = sock_capture_error();
+            switch (err) {
                 default:
-                    asGetActiveContext()->SetException(string{LOCATION " WSAPoll: le=", le, "; ", sockerr(le)}, true);
+                    asGetActiveContext()->SetException(string{LOCATION " WSAPoll: err=", err, "; ", sock_error_string(err)}, true);
                     return 0;
             }
         }
@@ -973,13 +1052,13 @@ struct ScriptInterface {
           nullptr
         );
         if (rc == SOCKET_ERROR) {
-          int le = WSAGetLastError();
-          switch (le) {
+          int err = sock_capture_error();
+          switch (err) {
             case WSAEMSGSIZE:
               return -1;
 
             default:
-              asGetActiveContext()->SetException(string{LOCATION " WSARecvFrom: le=", le, "; ", sockerr(le)}, true);
+              asGetActiveContext()->SetException(string{LOCATION " WSARecvFrom: err=", err, "; ", sock_error_string(err)}, true);
               return 0;
           }
         }
@@ -1008,26 +1087,30 @@ struct ScriptInterface {
       addrinfo *serverinfo;
       int status = getaddrinfo(server, string(port), &hints, &serverinfo);
       if (status != 0) {
-        asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: ", sockerr()}, true);
+        int err = sock_capture_error();
+        asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: ", sock_error_string(err)}, true);
         return nullptr;
       }
 
       int sockfd = socket(serverinfo->ai_family, serverinfo->ai_socktype, serverinfo->ai_protocol);
       if (sockfd == -1) {
-        asGetActiveContext()->SetException(string{LOCATION " socket: ", sockerr()}, true);
+        int err = sock_capture_error();
+        asGetActiveContext()->SetException(string{LOCATION " socket: ", sock_error_string(err)}, true);
         return nullptr;
       }
 
       int yes = 1;
       if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-        asGetActiveContext()->SetException(string{LOCATION " setsockopt: ", sockerr()}, true);
+        int err = sock_capture_error();
+        asGetActiveContext()->SetException(string{LOCATION " setsockopt: ", sock_error_string(err)}, true);
         return nullptr;
       }
 
       if (server) {
         if (bind(sockfd, serverinfo->ai_addr, serverinfo->ai_addrlen) == -1) {
+          int err = sock_capture_error();
           close(sockfd);
-          asGetActiveContext()->SetException(string{LOCATION " bind: ", sockerr()}, true);
+          asGetActiveContext()->SetException(string{LOCATION " bind: ", sock_error_string(err)}, true);
           return nullptr;
         }
       }
@@ -1036,39 +1119,46 @@ struct ScriptInterface {
 #else
       SOCKET sock = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
       if (sock == INVALID_SOCKET) {
-        int le = WSAGetLastError();
-        asGetActiveContext()->SetException(string{LOCATION " WSASocket: le=", le, "; ", sockerr(le)}, true);
+        int err = sock_capture_error();
+        asGetActiveContext()->SetException(string{LOCATION " WSASocket: err=", err, "; ", sock_error_string(err)}, true);
         return nullptr;
       }
 
       int yes = 1;
       int rc = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
       if (rc == SOCKET_ERROR) {
-        int le = WSAGetLastError();
-        asGetActiveContext()->SetException(string{LOCATION " setsockopt: le=", le, "; ", sockerr(le)}, true);
+        int err = sock_capture_error();
+        asGetActiveContext()->SetException(string{LOCATION " setsockopt: err=", err, "; ", sock_error_string(err)}, true);
         return nullptr;
       }
 
       addrinfo *serverinfo;
       int status = getaddrinfo(server, string(port), &hints, &serverinfo);
       if (status != 0) {
-        int le = WSAGetLastError();
-        asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: le=", le, "; ", sockerr(le)}, true);
+        int err = sock_capture_error();
+        asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: err=", err, "; ", sock_error_string(err)}, true);
         return nullptr;
       }
 
       if (server) {
         rc = bind(sock, serverinfo->ai_addr, serverinfo->ai_addrlen);
         if (rc == SOCKET_ERROR) {
-          int le = WSAGetLastError();
+          int err = sock_capture_error();
           closesocket(sock);
-          asGetActiveContext()->SetException(string{LOCATION " bind: le=", le, "; ", sockerr(le)}, true);
+          asGetActiveContext()->SetException(string{LOCATION " bind: err=", err, "; ", sock_error_string(err)}, true);
           return nullptr;
         }
       }
 
       return new UDPSocket(sock, serverinfo);
 #endif
+    }
+
+    struct WebSocketServer {
+    };
+
+    static WebSocketServer *create_web_socket_server(const string *host, int port) {
+      return new WebSocketServer();
     }
   };
 
@@ -1567,12 +1657,24 @@ auto Interface::registerScriptDefs() -> void {
 
   {
     r = script.engine->SetDefaultNamespace("net"); assert(r >= 0);
+
+    // Address type:
+    r = script.engine->RegisterObjectType("Address", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Address", asBEHAVE_FACTORY, "Address@ f(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::resolve), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Address", "bool get_is_valid()", asMETHOD(ScriptInterface::Net::Address, operator bool), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Address", "bool throw_if_invalid()", asMETHOD(ScriptInterface::Net::Address, throw_if_invalid), asCALL_THISCALL); assert( r >= 0 );
+
     r = script.engine->RegisterObjectType("UDPSocket", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_FACTORY, "UDPSocket@ f(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::create_udp_socket), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::UDPSocket, addRef), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::UDPSocket, release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("UDPSocket", "int sendto(const array<uint8> &in msg, const string &in host, const int port)", asMETHOD(ScriptInterface::Net::UDPSocket, sendto), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("UDPSocket", "int recv(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, recv), asCALL_THISCALL); assert( r >= 0 );
+
+    //r = script.engine->RegisterObjectType("WebSocketServer", 0, asOBJ_REF); assert(r >= 0);
+    //r = script.engine->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_FACTORY, "WebSocketServer@ f(const string &in listen_address, const int port)", asFUNCTION(ScriptInterface::Net::create_web_socket_server), asCALL_CDECL); assert(r >= 0);
+    //r = script.engine->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::WebSocketServer, addRef), asCALL_THISCALL); assert( r >= 0 );
+    //r = script.engine->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::WebSocketServer, release), asCALL_THISCALL); assert( r >= 0 );
   }
 
   // UI
