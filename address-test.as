@@ -20,9 +20,14 @@ void pre_frame() {
   }
 
   auto len = clients.length();
-  for (uint c = 0; c < len; c++) {
+  for (int c = len-1; c >= 0; c--) {
     array<uint8> buf(128);
     auto r = clients[c].recv(0, 128, buf);
+    if (r == 0) {
+      // client closed connection:
+      clients.removeAt(c);
+      continue;
+    }
     if (r != -1) {
       message(fmtInt(r));
     }
