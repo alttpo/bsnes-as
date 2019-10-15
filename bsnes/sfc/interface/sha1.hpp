@@ -12,9 +12,14 @@ namespace nall::Hash {
     }
 
     auto reset() -> void override {
-      for(auto& n : queue) n = 0;
-      for(auto& n : w) n = 0;
-      for(auto  n : range(8)) h[n] = square(n);
+      for(auto& n : block) n = 0;
+
+      digest[0] = 0x67452301;
+      digest[1] = 0xefcdab89;
+      digest[2] = 0x98badcfe;
+      digest[3] = 0x10325476;
+      digest[4] = 0xc3d2e1f0;
+
       queued = length = 0;
     }
 
@@ -27,45 +32,160 @@ namespace nall::Hash {
       SHA1 self(*this);
       self.finish();
       vector<uint8_t> result;
-      for(auto h : self.h) {
+      for(auto h : self.digest) {
         for(auto n : reverse(range(4))) result.append(h >> n * 8);
       }
       return result;
     }
 
-    auto value() const -> uint256_t {
-      uint256_t value = 0;
-      for(auto byte : output()) value = value << 8 | byte;
-      return value;
-    }
-
   private:
     auto byte(uint8_t value) -> void {
       uint32_t shift = (3 - (queued & 3)) * 8;
-      queue[queued >> 2] &= ~(0xff << shift);
-      queue[queued >> 2] |= (value << shift);
-      if(++queued == 64) block(), queued = 0;
+      block[queued >> 2] &= ~(0xff << shift);
+      block[queued >> 2] |= (value << shift);
+      if(++queued == 64) transform(), queued = 0;
     }
 
-    auto block() -> void {
-      for(auto n : range(16)) w[n] = queue[n];
-      for(auto n : range(16, 64)) {
-        uint32_t a = ror(w[n - 15],  7) ^ ror(w[n - 15], 18) ^ (w[n - 15] >>  3);
-        uint32_t b = ror(w[n -  2], 17) ^ ror(w[n -  2], 19) ^ (w[n -  2] >> 10);
-        w[n] = w[n - 16] + w[n - 7] + a + b;
-      }
-      uint32_t t[8];
-      for(auto n : range(8)) t[n] = h[n];
-      for(auto n : range(64)) {
-        uint32_t a = ror(t[0], 2) ^ ror(t[0], 13) ^ ror(t[0], 22);
-        uint32_t b = ror(t[4], 6) ^ ror(t[4], 11) ^ ror(t[4], 25);
-        uint32_t c = (t[0] & t[1]) ^ (t[0] & t[2]) ^ (t[1] & t[2]);
-        uint32_t d = (t[4] & t[5]) ^ (~t[4] & t[6]);
-        uint32_t e = t[7] + w[n] + cube(n) + b + d;
-        t[7] = t[6]; t[6] = t[5]; t[5] = t[4]; t[4] = t[3] + e;
-        t[3] = t[2]; t[2] = t[1]; t[1] = t[0]; t[0] = a + c + e;
-      }
-      for(auto n : range(8)) h[n] += t[n];
+    static const int BLOCK_INTS = 16;
+
+    static uint32_t blk(const uint32_t block[BLOCK_INTS], const size_t i)
+    {
+      return rol(block[(i+13)&15] ^ block[(i+8)&15] ^ block[(i+2)&15] ^ block[i], 1);
+    }
+
+    /*
+     * (R0+R1), R2, R3, R4 are the different operations used in SHA1
+     */
+    static void R0(const uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t &w, const uint32_t x, const uint32_t y, uint32_t &z, const size_t i)
+    {
+      z += ((w&(x^y))^y) + block[i] + 0x5a827999 + rol(v, 5);
+      w = rol(w, 30);
+    }
+
+    static void R1(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t &w, const uint32_t x, const uint32_t y, uint32_t &z, const size_t i)
+    {
+      block[i] = blk(block, i);
+      z += ((w&(x^y))^y) + block[i] + 0x5a827999 + rol(v, 5);
+      w = rol(w, 30);
+    }
+
+    static void R2(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t &w, const uint32_t x, const uint32_t y, uint32_t &z, const size_t i)
+    {
+      block[i] = blk(block, i);
+      z += (w^x^y) + block[i] + 0x6ed9eba1 + rol(v, 5);
+      w = rol(w, 30);
+    }
+
+    static void R3(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t &w, const uint32_t x, const uint32_t y, uint32_t &z, const size_t i)
+    {
+      block[i] = blk(block, i);
+      z += (((w|x)&y)|(w&x)) + block[i] + 0x8f1bbcdc + rol(v, 5);
+      w = rol(w, 30);
+    }
+
+    static void R4(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t &w, const uint32_t x, const uint32_t y, uint32_t &z, const size_t i)
+    {
+      block[i] = blk(block, i);
+      z += (w^x^y) + block[i] + 0xca62c1d6 + rol(v, 5);
+      w = rol(w, 30);
+    }
+
+    auto transform() -> void {
+      /* Copy digest[] to working vars */
+      uint32_t a = digest[0];
+      uint32_t b = digest[1];
+      uint32_t c = digest[2];
+      uint32_t d = digest[3];
+      uint32_t e = digest[4];
+
+      /* 4 rounds of 20 operations each. Loop unrolled. */
+      R0(block, a, b, c, d, e,  0);
+      R0(block, e, a, b, c, d,  1);
+      R0(block, d, e, a, b, c,  2);
+      R0(block, c, d, e, a, b,  3);
+      R0(block, b, c, d, e, a,  4);
+      R0(block, a, b, c, d, e,  5);
+      R0(block, e, a, b, c, d,  6);
+      R0(block, d, e, a, b, c,  7);
+      R0(block, c, d, e, a, b,  8);
+      R0(block, b, c, d, e, a,  9);
+      R0(block, a, b, c, d, e, 10);
+      R0(block, e, a, b, c, d, 11);
+      R0(block, d, e, a, b, c, 12);
+      R0(block, c, d, e, a, b, 13);
+      R0(block, b, c, d, e, a, 14);
+      R0(block, a, b, c, d, e, 15);
+      R1(block, e, a, b, c, d,  0);
+      R1(block, d, e, a, b, c,  1);
+      R1(block, c, d, e, a, b,  2);
+      R1(block, b, c, d, e, a,  3);
+      R2(block, a, b, c, d, e,  4);
+      R2(block, e, a, b, c, d,  5);
+      R2(block, d, e, a, b, c,  6);
+      R2(block, c, d, e, a, b,  7);
+      R2(block, b, c, d, e, a,  8);
+      R2(block, a, b, c, d, e,  9);
+      R2(block, e, a, b, c, d, 10);
+      R2(block, d, e, a, b, c, 11);
+      R2(block, c, d, e, a, b, 12);
+      R2(block, b, c, d, e, a, 13);
+      R2(block, a, b, c, d, e, 14);
+      R2(block, e, a, b, c, d, 15);
+      R2(block, d, e, a, b, c,  0);
+      R2(block, c, d, e, a, b,  1);
+      R2(block, b, c, d, e, a,  2);
+      R2(block, a, b, c, d, e,  3);
+      R2(block, e, a, b, c, d,  4);
+      R2(block, d, e, a, b, c,  5);
+      R2(block, c, d, e, a, b,  6);
+      R2(block, b, c, d, e, a,  7);
+      R3(block, a, b, c, d, e,  8);
+      R3(block, e, a, b, c, d,  9);
+      R3(block, d, e, a, b, c, 10);
+      R3(block, c, d, e, a, b, 11);
+      R3(block, b, c, d, e, a, 12);
+      R3(block, a, b, c, d, e, 13);
+      R3(block, e, a, b, c, d, 14);
+      R3(block, d, e, a, b, c, 15);
+      R3(block, c, d, e, a, b,  0);
+      R3(block, b, c, d, e, a,  1);
+      R3(block, a, b, c, d, e,  2);
+      R3(block, e, a, b, c, d,  3);
+      R3(block, d, e, a, b, c,  4);
+      R3(block, c, d, e, a, b,  5);
+      R3(block, b, c, d, e, a,  6);
+      R3(block, a, b, c, d, e,  7);
+      R3(block, e, a, b, c, d,  8);
+      R3(block, d, e, a, b, c,  9);
+      R3(block, c, d, e, a, b, 10);
+      R3(block, b, c, d, e, a, 11);
+      R4(block, a, b, c, d, e, 12);
+      R4(block, e, a, b, c, d, 13);
+      R4(block, d, e, a, b, c, 14);
+      R4(block, c, d, e, a, b, 15);
+      R4(block, b, c, d, e, a,  0);
+      R4(block, a, b, c, d, e,  1);
+      R4(block, e, a, b, c, d,  2);
+      R4(block, d, e, a, b, c,  3);
+      R4(block, c, d, e, a, b,  4);
+      R4(block, b, c, d, e, a,  5);
+      R4(block, a, b, c, d, e,  6);
+      R4(block, e, a, b, c, d,  7);
+      R4(block, d, e, a, b, c,  8);
+      R4(block, c, d, e, a, b,  9);
+      R4(block, b, c, d, e, a, 10);
+      R4(block, a, b, c, d, e, 11);
+      R4(block, e, a, b, c, d, 12);
+      R4(block, d, e, a, b, c, 13);
+      R4(block, c, d, e, a, b, 14);
+      R4(block, b, c, d, e, a, 15);
+
+      /* Add the working vars back into digest[] */
+      digest[0] += a;
+      digest[1] += b;
+      digest[2] += c;
+      digest[3] += d;
+      digest[4] += e;
     }
 
     auto finish() -> void {
@@ -74,30 +194,8 @@ namespace nall::Hash {
       for(auto n : range(8)) byte(length * 8 >> (7 - n) * 8);
     }
 
-    auto square(uint n) -> uint32_t {
-      static const uint32_t value[8] = {
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
-      };
-      return value[n];
-    }
-
-    auto cube(uint n) -> uint32_t {
-      static const uint32_t value[64] = {
-        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
-      };
-      return value[n];
-    }
-
-    uint32_t queue[16] = {0};
-    uint32_t w[64] = {0};
-    uint32_t h[8] = {0};
+    uint32_t block[16] = {0};
+    uint32_t digest[5] = {0};
     uint32_t queued = 0;
     uint64_t length = 0;
   };
