@@ -11,8 +11,11 @@ net::Socket@ server;
 void init() {
   auto@ addr = net::Address("", 4590);
   @server = net::Socket(addr);
+  server.throw_if_invalid();
   server.bind(addr);
+  server.throw_if_invalid();
   server.listen();
+  server.throw_if_invalid();
   @pollfds[0] = server;
 }
 

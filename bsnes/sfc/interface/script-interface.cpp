@@ -783,7 +783,7 @@ struct ScriptInterface {
       int err;  // platform-specific error code
 
       // constructor:
-      Address(const string *host, int port) {
+      Address(const string *host, int port, int family = AF_UNSPEC, int socktype = SOCK_STREAM) {
         info = nullptr;
         rc = -1;
         err = 0;
@@ -792,7 +792,8 @@ struct ScriptInterface {
         const char *addr;
 
         memset(&hints, 0, sizeof(addrinfo));
-        hints.ai_family = AF_INET;
+        hints.ai_family = family;
+        hints.ai_socktype = socktype;
 
         if (host == nullptr || (*host) == "") {
           addr = (const char *)nullptr;
@@ -854,10 +855,12 @@ struct ScriptInterface {
 
       // already-created socket:
       Socket(int fd) : fd(fd) {
+        printf("Socket(fd=%d)\n", fd);
       }
 
       // create a new socket:
       Socket(int family, int type, int protocol) {
+        printf("Socket(family=%d, type=%d, protocol=%d)\n", family, type, protocol);
         // create the socket:
 #if !defined(PLATFORM_WINDOWS)
         fd = ::socket(family, type, protocol); err_location = LOCATION " socket";
@@ -897,6 +900,7 @@ struct ScriptInterface {
       }
 
       ~Socket() {
+        printf("~Socket()\n");
         if (operator bool()) {
           close(); close_location = LOCATION " ~Socket";
         }
