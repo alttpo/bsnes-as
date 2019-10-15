@@ -3,7 +3,8 @@
 
 // [jsd] for scripts
 #include <hiro/hiro.hpp>
-#include <nall/hash/hash.hpp>
+#include <nall/encode/base64.hpp>
+#include "sha1.hpp"
 
 namespace SuperFamicom {
 

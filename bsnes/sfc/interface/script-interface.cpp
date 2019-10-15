@@ -1618,7 +1618,10 @@ namespace ScriptInterface {
               ws_key = value;
               auto decoded = base64_decode(ws_key);
               if (decoded.size() != 16) {
-                printf("sec-websocket-key header must base64 decode to 16 bytes; '%.*s' decoded to %d bytes\n", b64nopad.size(), b64nopad.data(), decoded.size());
+                printf("sec-websocket-key header must base64 decode to 16 bytes; '%.*s' decoded to %d bytes\n",
+                  ws_key.size(), ws_key.data(),
+                  decoded.size()
+                );
                 goto bad_request;
               }
               req_ws_key = true;
@@ -1657,6 +1660,8 @@ namespace ScriptInterface {
           auto concat = string{ws_key, string("258EAFA5-E914-47DA-95CA-C5AB0DC85B11")};
           // sha1
           // base64_encode
+          auto sha1 = nall::Hash::SHA1(concat).output();
+          auto enc = nall::Encode::Base64(sha1);
 
           auto buf = string{
             string(
@@ -1665,6 +1670,7 @@ namespace ScriptInterface {
               "Connection: Upgrade\r\n"
               "Sec-WebSocket-Accept: "
             ),
+            enc,
             // base64 encoded sha1 hash here
             string("\r\n\r\n")
           };
