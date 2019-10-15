@@ -1018,6 +1018,20 @@ namespace ScriptInterface {
 
         return new Socket(afd);
       }
+
+      // attempt to receive data:
+      auto recv(int offs, int size, CScriptArray* buffer) -> int {
+        int rc = ::recv(fd, buffer->At(offs), size, 0); last_error_location = LOCATION " recv";
+        last_error = sock_capture_error();
+        return rc;
+      }
+
+      // attempt to send data:
+      auto send(int offs, int size, CScriptArray* buffer) -> int {
+        int rc = ::send(fd, buffer->At(offs), size, 0); last_error_location = LOCATION " send";
+        last_error = sock_capture_error();
+        return rc;
+      }
     };
 
     static auto create_socket(Address *addr) -> Socket* {
@@ -1902,7 +1916,8 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Socket", "void bind(Address@ addr)", asMETHOD(ScriptInterface::Net::Socket, bind), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Socket", "void listen(int backlog)", asMETHOD(ScriptInterface::Net::Socket, listen), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Socket", "Socket@ accept()", asMETHOD(ScriptInterface::Net::Socket, accept), asCALL_THISCALL); assert( r >= 0 );
-    //r = script.engine->RegisterObjectMethod("Socket", "int recv(int offs, int size, array<uint8> &inout buffer)", asMETHOD(ScriptInterface::Net::Socket, recv), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Socket", "int recv(int offs, int size, array<uint8> &inout buffer)", asMETHOD(ScriptInterface::Net::Socket, recv), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Socket", "int send(int offs, int size, array<uint8> &inout buffer)", asMETHOD(ScriptInterface::Net::Socket, send), asCALL_THISCALL); assert( r >= 0 );
 
 #if 0
     // we don't need poll() for non-blocking sockets:
