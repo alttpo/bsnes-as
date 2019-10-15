@@ -1032,6 +1032,24 @@ namespace ScriptInterface {
         last_error = sock_capture_error();
         return rc;
       }
+
+      // TODO: expose this to scripts somehow.
+      struct sockaddr_storage recvaddr;
+      socklen_t recvaddrlen;
+
+      // attempt to receive data and record address of sender (e.g. for UDP):
+      auto recvfrom(int offs, int size, CScriptArray* buffer) -> int {
+        int rc = ::recvfrom(fd, buffer->At(offs), size, 0, (struct sockaddr *)&recvaddr, &recvaddrlen); last_error_location = LOCATION " recvfrom";
+        last_error = sock_capture_error();
+        return rc;
+      }
+
+      // attempt to send data to specific address (e.g. for UDP):
+      auto sendto(int offs, int size, CScriptArray* buffer, const Address* addr) -> int {
+        int rc = ::sendto(fd, buffer->At(offs), size, 0, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " sendto";
+        last_error = sock_capture_error();
+        return rc;
+      }
     };
 
     static auto create_socket(Address *addr) -> Socket* {
@@ -1918,6 +1936,8 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Socket", "Socket@ accept()", asMETHOD(ScriptInterface::Net::Socket, accept), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Socket", "int recv(int offs, int size, array<uint8> &inout buffer)", asMETHOD(ScriptInterface::Net::Socket, recv), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Socket", "int send(int offs, int size, array<uint8> &inout buffer)", asMETHOD(ScriptInterface::Net::Socket, send), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Socket", "int recvfrom(int offs, int size, array<uint8> &inout buffer)", asMETHOD(ScriptInterface::Net::Socket, recvfrom), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Socket", "int sendto(int offs, int size, array<uint8> &inout buffer, const Address@ addr)", asMETHOD(ScriptInterface::Net::Socket, sendto), asCALL_THISCALL); assert( r >= 0 );
 
 #if 0
     // we don't need poll() for non-blocking sockets:
