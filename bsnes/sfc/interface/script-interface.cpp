@@ -1050,6 +1050,27 @@ namespace ScriptInterface {
         last_error = sock_capture_error();
         return rc;
       }
+
+      auto recv_append(string &s) -> int {
+        uint8_t rawbuf[4096];
+
+        for (;;) {
+          int rc = ::recv(fd, rawbuf, 4096, 0); last_error_location = LOCATION " recv";
+          last_error = sock_capture_error();
+          if (rc <= 0) return rc;
+
+          // append to string:
+          uint64_t to = s.size();
+          s.resize(s.size() + rc);
+          memory::copy(s.get() + to, rawbuf, rc);
+        }
+      }
+
+      auto send_buffer(array_view<uint8_t> buffer) -> int {
+        int rc = ::send(fd, buffer.data(), buffer.size(), 0); last_error_location = LOCATION " send";
+        last_error = sock_capture_error();
+        return rc;
+      }
     };
 
     static auto create_socket(Address *addr) -> Socket* {
