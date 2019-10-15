@@ -992,6 +992,10 @@ struct ScriptInterface {
       }
     };
 
+    static auto create_socket(Address *addr) -> Socket* {
+      return new Socket(addr->info->ai_family, addr->info->ai_socktype, addr->info->ai_protocol);
+    }
+
     static auto poll_in(CScriptArray *sockets) -> bool {
       const char *err_location;
       struct pollfd fds[200];
@@ -1846,6 +1850,17 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Address", "bool get_is_valid()", asMETHOD(ScriptInterface::Net::Address, operator bool), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Address", "bool throw_if_invalid()", asMETHOD(ScriptInterface::Net::Address, throw_if_invalid), asCALL_THISCALL); assert( r >= 0 );
 
+    r = script.engine->RegisterObjectType("Socket", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Socket", asBEHAVE_FACTORY, "Socket@ f(Address @addr)", asFUNCTION(ScriptInterface::Net::create_socket), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Socket", "bool get_is_valid()", asMETHOD(ScriptInterface::Net::Socket, operator bool), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Socket", "bool throw_if_invalid()", asMETHOD(ScriptInterface::Net::Socket, throw_if_invalid), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Socket", "void bind(Address@ addr)", asMETHOD(ScriptInterface::Net::Socket, bind), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Socket", "void listen()", asMETHOD(ScriptInterface::Net::Socket, listen), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Socket", "Socket@ accept()", asMETHOD(ScriptInterface::Net::Socket, accept), asCALL_THISCALL); assert( r >= 0 );
+
+    r = script.engine->RegisterGlobalFunction("bool poll_in(array<Socket@> &inout sockets)", asFUNCTION(ScriptInterface::Net::poll_in), asCALL_CDECL);
+
+    // to be deprecated:
     r = script.engine->RegisterObjectType("UDPSocket", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_FACTORY, "UDPSocket@ f(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::create_udp_socket), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("UDPSocket", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::UDPSocket, addRef), asCALL_THISCALL); assert( r >= 0 );
