@@ -1615,18 +1615,18 @@ namespace ScriptInterface {
               }
               req_connection = true;
             } else if (header == "sec-websocket-key") {
-              auto b64nopad = value;
-              auto decoded = base64_decode(b64nopad);
+              ws_key = value;
+              auto decoded = base64_decode(ws_key);
               if (decoded.size() != 16) {
                 printf("sec-websocket-key header must base64 decode to 16 bytes; '%.*s' decoded to %d bytes\n", b64nopad.size(), b64nopad.data(), decoded.size());
                 goto bad_request;
               }
-              ws_key = value;
               req_ws_key = true;
             } else if (header == "sec-websocket-version") {
               if (value != "13") {
                 printf("sec-websocket-version header must be 13\n");
-                goto bad_request;
+                socket->send_buffer(string("HTTP/1.1 426 Upgrade Required\r\nSec-WebSocket-Version: 13\r\n\r\n"));
+                goto response_sent;
               }
               req_ws_version = true;
             }
@@ -1644,6 +1644,7 @@ namespace ScriptInterface {
         bad_request:
           printf("bad_request\n");
           socket->send_buffer(string("HTTP/1.1 400 Bad Request\r\n\r\n"));
+        response_sent:
           reset();
           return false;
 
@@ -1653,6 +1654,21 @@ namespace ScriptInterface {
 
         if (state == SEND_HANDSHAKE) {
           printf("SEND_HANDSHAKE\n");
+          auto concat = string{ws_key, string("258EAFA5-E914-47DA-95CA-C5AB0DC85B11")};
+          // sha1
+          // base64_encode
+
+          auto buf = string{
+            string(
+              "HTTP/1.1 101 Switching Protocols\r\n"
+              "Upgrade: websocket\r\n"
+              "Connection: Upgrade\r\n"
+              "Sec-WebSocket-Accept: "
+            ),
+            // base64 encoded sha1 hash here
+            string("\r\n\r\n")
+          };
+          socket->send_buffer(buf);
           return true;
         }
 
