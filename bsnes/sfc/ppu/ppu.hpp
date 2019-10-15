@@ -173,7 +173,7 @@ private:
   friend class PPU::Screen;
   friend class System;
   friend class PPUfast;
-  friend class ScriptInterface;
+  friend class ScriptInterface::PPUAccess;
 };
 
 extern PPU ppu;

@@ -102,7 +102,10 @@ namespace SuperFamicom {
   };
   extern PPUFrame ppuFrame;
 
-  struct ScriptInterface;
+  namespace ScriptInterface {
+    struct PPUAccess;
+    struct PostFrame;
+  }
 
   #include <sfc/system/system.hpp>
   #include <sfc/memory/memory.hpp>

@@ -70,29 +70,28 @@ typedef uint16 r5g5b5;
 // B5G5R5 is used by the SNES system
 typedef uint16 b5g5r5;
 
-struct ScriptInterface;
-extern ScriptInterface scriptInterface;
+namespace ScriptInterface {
+  struct ExceptionHandler {
+    void exceptionCallback(asIScriptContext *ctx) {
+      asIScriptEngine *engine = ctx->GetEngine();
 
-struct ScriptInterface {
-  void exceptionCallback(asIScriptContext *ctx) {
-    asIScriptEngine *engine = ctx->GetEngine();
+      // Determine the exception that occurred
+      const asIScriptFunction *function = ctx->GetExceptionFunction();
+      printf(
+        "EXCEPTION `%s` occurred in `%s` (line %d)\n",
+        ctx->GetExceptionString(),
+        function->GetDeclaration(),
+        ctx->GetExceptionLineNumber()
+      );
 
-    // Determine the exception that occurred
-    const asIScriptFunction *function = ctx->GetExceptionFunction();
-    printf(
-      "EXCEPTION `%s` occurred in `%s` (line %d)\n",
-      ctx->GetExceptionString(),
-      function->GetDeclaration(),
-      ctx->GetExceptionLineNumber()
-    );
-
-    // Determine the function where the exception occurred
-    //printf("func: %s\n", function->GetDeclaration());
-    //printf("modl: %s\n", function->GetModuleName());
-    //printf("sect: %s\n", function->GetScriptSectionName());
-    // Determine the line number where the exception occurred
-    //printf("line: %d\n", ctx->GetExceptionLineNumber());
-  }
+      // Determine the function where the exception occurred
+      //printf("func: %s\n", function->GetDeclaration());
+      //printf("modl: %s\n", function->GetModuleName());
+      //printf("sect: %s\n", function->GetScriptSectionName());
+      // Determine the line number where the exception occurred
+      //printf("line: %d\n", ctx->GetExceptionLineNumber());
+    }
+  } exceptionHandler;
 
   static auto message(const string *msg) -> void {
     platform->scriptMessage(msg);
@@ -320,6 +319,10 @@ struct ScriptInterface {
   } bus;
 
   struct PPUAccess {
+    const uint16 *lightTable_lookup(uint8 luma) {
+      return ppu.lightTable[luma];
+    }
+
     // Global functions related to PPU:
     static auto ppu_rgb(uint8 r, uint8 g, uint8 b) -> b5g5r5 {
       return ((b5g5r5) (uclamp<5>(b)) << 10u) | ((b5g5r5) (uclamp<5>(g)) << 5u) | (b5g5r5) (uclamp<5>(r));
@@ -561,7 +564,7 @@ struct ScriptInterface {
     }
 
     auto inline draw(r5g5b5 *p) {
-      auto lumaLookup = ppu.lightTable[/*io.displayBrightness*/ luma];
+      auto lumaLookup = ppuAccess.lightTable_lookup(/*io.displayBrightness*/ luma);
       r5g5b5 real_color = lumaLookup[color];
 
       switch (draw_op) {
@@ -776,17 +779,82 @@ struct ScriptInterface {
     }
   } postFrame;
 
-  struct Net {
+  namespace Net {
+    int last_error = 0;
+    int last_error_gai = 0;
+    const char *last_error_location = nullptr;
+
+    // socket error codes:
+    const string *strEWOULDBLOCK = new string("EWOULDBLOCK");
+    const string *strUnknown     = new string("EUNKNOWN");
+
+    // getaddrinfo error codes:
+    const string *strEAI_ADDRFAMILY = new string("EAI_ADDRFAMILY");
+    const string *strEAI_AGAIN      = new string("EAI_AGAIN");
+    const string *strEAI_BADFLAGS   = new string("EAI_BADFLAGS");
+    const string *strEAI_FAIL       = new string("EAI_FAIL");
+    const string *strEAI_FAMILY     = new string("EAI_FAMILY");
+    const string *strEAI_MEMORY     = new string("EAI_MEMORY");
+    const string *strEAI_NODATA     = new string("EAI_NODATA");
+    const string *strEAI_NONAME     = new string("EAI_NONAME");
+    const string *strEAI_SERVICE    = new string("EAI_SERVICE");
+    const string *strEAI_SOCKTYPE   = new string("EAI_SOCKTYPE");
+    const string *strEAI_SYSTEM     = new string("EAI_SYSTEM");
+    const string *strEAI_BADHINTS   = new string("EAI_BADHINTS");
+    const string *strEAI_PROTOCOL   = new string("EAI_PROTOCOL");
+    const string *strEAI_OVERFLOW   = new string("EAI_OVERFLOW");
+
+    static auto get_is_error() -> bool {
+      return last_error != 0;
+    }
+
+    // get last error as a standardized code string:
+    static auto get_error_code() -> const string* {
+      if (last_error_gai != 0) {
+        switch (last_error_gai) {
+          case EAI_ADDRFAMILY: return strEAI_ADDRFAMILY;
+          case EAI_AGAIN: return strEAI_AGAIN;
+          case EAI_BADFLAGS: return strEAI_BADFLAGS;
+          case EAI_FAIL: return strEAI_FAIL;
+          case EAI_FAMILY: return strEAI_FAMILY;
+          case EAI_MEMORY: return strEAI_MEMORY;
+          case EAI_NODATA: return strEAI_NODATA;
+          case EAI_NONAME: return strEAI_NONAME;
+          case EAI_SERVICE: return strEAI_SERVICE;
+          case EAI_SOCKTYPE: return strEAI_SOCKTYPE;
+          case EAI_SYSTEM: return strEAI_SYSTEM;
+          case EAI_BADHINTS: return strEAI_BADHINTS;
+          case EAI_PROTOCOL: return strEAI_PROTOCOL;
+          case EAI_OVERFLOW: return strEAI_OVERFLOW;
+        }
+      }
+
+#if !defined(PLATFORM_WINDOWS)
+      if (last_error == EWOULDBLOCK || last_error == EAGAIN) return strEWOULDBLOCK;
+      //switch (last_error) {
+      //}
+#else
+      switch (last_error) {
+        case WSAEWOULDBLOCK: return strEWOULDBLOCK;
+      }
+#endif
+      return strUnknown;
+    }
+
+    static auto get_error_text() -> const string* {
+      return new string(sock_error_string(last_error));
+    }
+
+    static auto throw_if_error() -> bool {
+      return false;
+    }
+
     struct Address {
       addrinfo *info;
-      int rc;   // getaddrinfo return value
-      int err;  // platform-specific error code
 
       // constructor:
       Address(const string *host, int port, int family = AF_UNSPEC, int socktype = SOCK_STREAM) {
         info = nullptr;
-        rc = -1;
-        err = 0;
 
         addrinfo hints;
         const char *addr;
@@ -803,12 +871,14 @@ struct ScriptInterface {
           addr = (const char *)*host;
         }
 
-        rc = ::getaddrinfo(addr, string(port), &hints, &info);
+        last_error_gai = 0;
+        last_error = 0;
+        int rc = ::getaddrinfo(addr, string(port), &hints, &info); last_error_location = LOCATION " getaddrinfo";
         if (rc != 0) {
           if (rc == EAI_SYSTEM) {
-            err = sock_capture_error();
+            last_error = sock_capture_error();
           } else {
-            err = 0;
+            last_error_gai = rc;
           }
         }
       }
@@ -820,25 +890,7 @@ struct ScriptInterface {
         info = nullptr;
       }
 
-      operator bool() {
-        return info && (rc == 0);
-      }
-
-      auto throw_if_invalid() -> bool {
-        if (rc == 0) return false;
-
-        // throw script exception:
-
-        // system error occurred so rely on errno functions here:
-        if (rc == EAI_SYSTEM) {
-          asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: errno=", err, "; ", sock_error_string(err)}, true);
-          return true;
-        }
-
-        // regular getaddrinfo error occurred, so use gai_strerror:
-        asGetActiveContext()->SetException(string{LOCATION " getaddrinfo: ", gai_strerror(rc)}, true);
-        return true;
-      }
+      operator bool() { return info; }
     };
 
     static auto resolve_tcp(const string *host, int port) -> Address* {
@@ -851,11 +903,6 @@ struct ScriptInterface {
 
     struct Socket {
       int fd = -1;
-      int err = 0;
-      const char *err_location = nullptr;
-
-      int err_close = 0;
-      const char *close_location = nullptr;
 
       // already-created socket:
       Socket(int fd) : fd(fd) {
@@ -867,12 +914,12 @@ struct ScriptInterface {
         printf("Socket(family=%d, type=%d, protocol=%d)\n", family, type, protocol);
         // create the socket:
 #if !defined(PLATFORM_WINDOWS)
-        fd = ::socket(family, type, protocol); err_location = LOCATION " socket";
+        fd = ::socket(family, type, protocol); last_error_location = LOCATION " socket";
 #else
-        fd = ::WSASocket(family, type, protocol, nullptr, 0, 0); err_location = LOCATION " WSASocket";
+        fd = ::WSASocket(family, type, protocol, nullptr, 0, 0); last_error_location = LOCATION " WSASocket";
 #endif
+        last_error = sock_capture_error();
         if (fd < 0) {
-          err = sock_capture_error();
           return;
         }
 
@@ -880,25 +927,25 @@ struct ScriptInterface {
         int rc = 0;
         int yes = 1;
 #if !defined(PLATFORM_WINDOWS)
-        rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)); err_location = LOCATION " setsockopt";
+        rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
 #else
-        rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)); err_location = LOCATION " setsockopt";
+        rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
 #endif
+        last_error = sock_capture_error();
         if (rc == -1) {
-          err = sock_capture_error();
-          close(); close_location = LOCATION " ioctlsocket";
+          close(false);
           return;
         }
 
         // set non-blocking:
 #if !defined(PLATFORM_WINDOWS)
-        rc = ioctl(fd, FIONBIO, &yes); err_location = LOCATION " ioctl";
+        rc = ioctl(fd, FIONBIO, &yes); last_error_location = LOCATION " ioctl";
 #else
-        rc = ioctlsocket(fd, FIONBIO, &yes); err_location = LOCATION " ioctlsocket";
+        rc = ioctlsocket(fd, FIONBIO, &yes); last_error_location = LOCATION " ioctlsocket";
 #endif
+        last_error = sock_capture_error();
         if (rc == -1) {
-          err = sock_capture_error();
-          close(); close_location = LOCATION " ioctl";
+          close(false);
           return;
         }
       }
@@ -906,42 +953,28 @@ struct ScriptInterface {
       ~Socket() {
         printf("~Socket()\n");
         if (operator bool()) {
-          close(); close_location = LOCATION " ~Socket";
+          close();
         }
 
         fd = -1;
       }
 
-      auto close() -> void {
+      auto close(bool set_last_error = true) -> void {
         int rc;
-        printf("close()\n");
+        //printf("close()\n");
 #if !defined(PLATFORM_WINDOWS)
-        rc = ::close(fd);
+        rc = ::close(fd); set_last_error && (last_error_location = LOCATION " close");
 #else
-        rc = ::closesocket(fd);
+        rc = ::closesocket(fd); set_last_error && (last_error_location = LOCATION " closesocket");
 #endif
-        if (rc != 0) {
-          err_close = sock_capture_error();
+        if (set_last_error) {
+          last_error = sock_capture_error();
         }
 
         fd = -1;
       }
 
       operator bool() { return fd >= 0; }
-
-      auto throw_if_invalid() -> bool {
-        if (err) {
-          // throw script exception:
-          asGetActiveContext()->SetException(string{err_location, ": ", sock_error_string(err)}, true);
-          return true;
-        }
-        if (err_close) {
-          // throw script exception:
-          asGetActiveContext()->SetException(string{err_location, " (close): ", sock_error_string(err_close)}, true);
-          return true;
-        }
-        return false;
-      }
 
       // indicates data is ready to be read:
       bool ready_in = false;
@@ -956,25 +989,17 @@ struct ScriptInterface {
       }
 
       // bind to an address:
-      auto bind(const Address *addr) -> void {
-        int rc = ::bind(fd, addr->info->ai_addr, addr->info->ai_addrlen); err_location = LOCATION " bind";
-        if (rc < 0) {
-          // throw script exception:
-          int err = sock_capture_error();
-          asGetActiveContext()->SetException(string{err_location, ": ", sock_error_string(err)}, true);
-          return;
-        }
+      auto bind(const Address *addr) -> int {
+        int rc = ::bind(fd, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " bind";
+        last_error = sock_capture_error();
+        return rc;
       }
 
       // start listening for connections:
-      auto listen() -> void {
-        int rc = ::listen(fd, 32); err_location = LOCATION " listen";
-        if (rc < 0) {
-          // throw script exception:
-          int err = sock_capture_error();
-          asGetActiveContext()->SetException(string{err_location, ": ", sock_error_string(err)}, true);
-          return;
-        }
+      auto listen(int backlog = 32) -> int {
+        int rc = ::listen(fd, backlog); last_error_location = LOCATION " listen";
+        last_error = sock_capture_error();
+        return rc;
       }
 
       // accept a connection:
@@ -982,18 +1007,13 @@ struct ScriptInterface {
         // non-blocking sockets don't require a poll() because accept() handles non-blocking scenario itself.
 
         // accept incoming connection, discard client address:
-        int afd = ::accept(fd, nullptr, nullptr); err_location = LOCATION " accept";
+        int afd = ::accept(fd, nullptr, nullptr); last_error_location = LOCATION " accept";
         //printf("accept(%d) -> %d\n", fd, afd);
+        last_error = sock_capture_error();
         if (afd < 0) {
-          int err = sock_capture_error();
-          if (err == EWOULDBLOCK || err == EAGAIN) {
-            // expected condition; no connections to accept:
-            return nullptr;
-          } else {
-            // throw script exception:
-            asGetActiveContext()->SetException(string{err_location, ": ", sock_error_string(err)}, true);
-            return nullptr;
-          }
+          // expected condition; no connections to accept:
+          // if (last_error == EWOULDBLOCK || last_error == EAGAIN) return nullptr;
+          return nullptr;
         }
 
         return new Socket(afd);
@@ -1004,7 +1024,9 @@ struct ScriptInterface {
       return new Socket(addr->info->ai_family, addr->info->ai_socktype, addr->info->ai_protocol);
     }
 
-    static auto poll_in(CScriptArray *sockets) -> bool {
+#if 0
+    // we don't need poll() for non-blocking sockets:
+    static auto poll_in(CScriptArray *sockets) -> int {
       const char *err_location;
       struct pollfd fds[200];
       int    nfds = 0;
@@ -1020,16 +1042,10 @@ struct ScriptInterface {
       }
 
       // poll for read availability on all sockets:
-      int rc = ::poll(fds, nfds, 0); err_location = LOCATION " poll";
+      int rc = ::poll(fds, nfds, 0); last_error_location = LOCATION " poll";
+      last_error = sock_capture_error();
       //printf("poll(fds, nfds=%d, 0) result=%d\n", nfds, rc);
-      if (rc < 0) {
-        // throw script exception:
-        int err = sock_capture_error();
-        asGetActiveContext()->SetException(string{err_location, ": ", sock_error_string(err)}, true);
-        return false;
-      }
-
-      if (rc == 0) {
+      if (rc <= 0) {
         return false;
       }
 
@@ -1040,18 +1056,19 @@ struct ScriptInterface {
         }
 
         printf("fds[%d].revents = %d\n", i, fds[i].revents);
-        if (fds[i].revents == POLLIN) {
+        if (fds[i].revents & POLLIN) {
           socket->set_ready_in(true);
           //printf("fds[%d].ready_in = true\n", i);
         }
-        if (fds[i].revents == POLLOUT) {
+        if (fds[i].revents & POLLOUT) {
           socket->set_ready_out(true);
           //printf("fds[%d].ready_out = true\n", i);
         }
       }
 
-      return true;
+      return rc;
     }
+#endif
 
     struct UDPSocket {
       addrinfo *serverinfo;
@@ -1370,7 +1387,7 @@ struct ScriptInterface {
     static WebSocketServer *create_web_socket_server(const string *host, int port) {
       return new WebSocketServer();
     }
-  };
+  }
 
   struct GUI {
     struct Object {
@@ -1697,8 +1714,6 @@ struct ScriptInterface {
   };
 };
 
-ScriptInterface scriptInterface;
-
 auto Interface::registerScriptDefs() -> void {
   int r;
 
@@ -1775,12 +1790,12 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("VRAM", "uint16 chr_address(uint16 chr)", asMETHOD(ScriptInterface::PPUAccess, vram_chr_address), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("VRAM", "void read_block(uint16 addr, uint offs, uint16 size, array<uint16> &inout output)", asMETHOD(ScriptInterface::PPUAccess, vram_read_block), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("VRAM", "void write_block(uint16 addr, uint offs, uint16 size, const array<uint16> &in data)", asMETHOD(ScriptInterface::PPUAccess, vram_write_block), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterGlobalProperty("VRAM vram", &scriptInterface.ppuAccess); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("VRAM vram", &ScriptInterface::ppuAccess); assert(r >= 0);
 
   // define ppu::CGRAM object type for opIndex convenience:
   r = script.engine->RegisterObjectType("CGRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("CGRAM", "uint16 opIndex(uint16 addr)", asMETHOD(ScriptInterface::PPUAccess, cgram_read), asCALL_THISCALL); assert(r >= 0);
-  r = script.engine->RegisterGlobalProperty("CGRAM cgram", &scriptInterface.ppuAccess); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("CGRAM cgram", &ScriptInterface::ppuAccess); assert(r >= 0);
 
   r = script.engine->RegisterObjectType    ("OAMSprite", sizeof(ScriptInterface::PPUAccess::OAMObject), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
   r = script.engine->RegisterObjectMethod  ("OAMSprite", "bool   get_is_enabled()", asMETHOD(ScriptInterface::PPUAccess::OAMObject, get_is_enabled), asCALL_THISCALL); assert(r >= 0);
@@ -1799,7 +1814,7 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("OAM", "OAMSprite @get_opIndex(uint8 chr)", asFUNCTION(ScriptInterface::PPUAccess::oam_get_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("OAM", "void set_opIndex(uint8 chr, OAMSprite @sprite)", asFUNCTION(ScriptInterface::PPUAccess::oam_set_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-  r = script.engine->RegisterGlobalProperty("OAM oam", &scriptInterface.ppuAccess); assert(r >= 0);
+  r = script.engine->RegisterGlobalProperty("OAM oam", &ScriptInterface::ppuAccess); assert(r >= 0);
 
   {
     // define ppu::Frame object type:
@@ -1862,28 +1877,37 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Frame", "int draw_4bpp_8x8(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asMETHOD(ScriptInterface::PostFrame, draw_4bpp_8x8), asCALL_THISCALL); assert(r >= 0);
 
     // global property to access current frame:
-    r = script.engine->RegisterGlobalProperty("Frame frame", &scriptInterface.postFrame); assert(r >= 0);
+    r = script.engine->RegisterGlobalProperty("Frame frame", &ScriptInterface::postFrame); assert(r >= 0);
   }
 
   {
     r = script.engine->SetDefaultNamespace("net"); assert(r >= 0);
 
+    // error reporting functions:
+    r = script.engine->RegisterGlobalFunction("string get_is_error()", asFUNCTION(ScriptInterface::Net::get_is_error), asCALL_CDECL); assert( r >= 0 );
+    r = script.engine->RegisterGlobalFunction("string get_error_code()", asFUNCTION(ScriptInterface::Net::get_error_code), asCALL_CDECL); assert( r >= 0 );
+    r = script.engine->RegisterGlobalFunction("string get_error_text()", asFUNCTION(ScriptInterface::Net::get_error_text), asCALL_CDECL); assert( r >= 0 );
+    r = script.engine->RegisterGlobalFunction("bool throw_if_error()", asFUNCTION(ScriptInterface::Net::throw_if_error), asCALL_CDECL); assert( r >= 0 );
+
     // Address type:
     r = script.engine->RegisterObjectType("Address", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("Address@ resolve_tcp(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::resolve_tcp), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterGlobalFunction("Address@ resolve_udp(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::resolve_udp), asCALL_CDECL); assert(r >= 0);
+    // TODO: try opImplCast
     r = script.engine->RegisterObjectMethod("Address", "bool get_is_valid()", asMETHOD(ScriptInterface::Net::Address, operator bool), asCALL_THISCALL); assert( r >= 0 );
-    r = script.engine->RegisterObjectMethod("Address", "bool throw_if_invalid()", asMETHOD(ScriptInterface::Net::Address, throw_if_invalid), asCALL_THISCALL); assert( r >= 0 );
 
     r = script.engine->RegisterObjectType("Socket", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Socket", asBEHAVE_FACTORY, "Socket@ f(Address @addr)", asFUNCTION(ScriptInterface::Net::create_socket), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("Socket", "bool get_is_valid()", asMETHOD(ScriptInterface::Net::Socket, operator bool), asCALL_THISCALL); assert( r >= 0 );
-    r = script.engine->RegisterObjectMethod("Socket", "bool throw_if_invalid()", asMETHOD(ScriptInterface::Net::Socket, throw_if_invalid), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Socket", "void bind(Address@ addr)", asMETHOD(ScriptInterface::Net::Socket, bind), asCALL_THISCALL); assert( r >= 0 );
-    r = script.engine->RegisterObjectMethod("Socket", "void listen()", asMETHOD(ScriptInterface::Net::Socket, listen), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Socket", "void listen(int backlog)", asMETHOD(ScriptInterface::Net::Socket, listen), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Socket", "Socket@ accept()", asMETHOD(ScriptInterface::Net::Socket, accept), asCALL_THISCALL); assert( r >= 0 );
+    //r = script.engine->RegisterObjectMethod("Socket", "int recv(int offs, int size, array<uint8> &inout buffer)", asMETHOD(ScriptInterface::Net::Socket, recv), asCALL_THISCALL); assert( r >= 0 );
 
+#if 0
+    // we don't need poll() for non-blocking sockets:
     r = script.engine->RegisterGlobalFunction("bool poll_in(const array<Socket@> &in sockets)", asFUNCTION(ScriptInterface::Net::poll_in), asCALL_CDECL);
+#endif
 
     // to be deprecated:
     r = script.engine->RegisterObjectType("UDPSocket", 0, asOBJ_REF); assert(r >= 0);
@@ -2010,7 +2034,7 @@ auto Interface::registerScriptDefs() -> void {
   // create context:
   script.context = script.engine->CreateContext();
 
-  script.context->SetExceptionCallback(asMETHOD(ScriptInterface, exceptionCallback), &scriptInterface, asCALL_THISCALL);
+  script.context->SetExceptionCallback(asMETHOD(ScriptInterface::ExceptionHandler, exceptionCallback), &ScriptInterface::exceptionHandler, asCALL_THISCALL);
 }
 
 auto Interface::loadScript(string location) -> void {
