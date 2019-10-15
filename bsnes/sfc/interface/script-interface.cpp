@@ -1434,11 +1434,159 @@ namespace ScriptInterface {
 #endif
     }
 
-    struct WebSocketServer {
+    struct WebSocketHandshaker {
+      Socket* socket = nullptr;
+
+      string request;
+      vector<string> request_lines;
+
+      string ws_key;
+
+      enum {
+        EXPECT_GET_REQUEST = 0,
+        PARSE_GET_REQUEST,
+        SEND_HANDSHAKE,
+        EXPECT_RESPONSE,
+        CLOSED
+      } state;
+
+      WebSocketHandshaker(Socket* socket) : socket(socket) {
+        state = EXPECT_GET_REQUEST;
+      }
+
+      auto reset() -> void {
+        request.reset();
+        request_lines.reset();
+        ws_key.reset();
+        state = EXPECT_GET_REQUEST;
+      }
+
+      auto advance() -> bool {
+        if (state == EXPECT_GET_REQUEST) {
+          // build up GET request from client:
+          if (socket->recv_append(request) == 0) {
+            state = CLOSED;
+            socket->close(false);
+            return false;
+          }
+
+          auto s = request.size();
+          if (s >= 65536) {
+            // too big, toss out.
+            reset();
+            return false;
+          }
+
+          // Find the end of the request headers:
+          auto found = request.find("\r\n\r\n");
+          if (found) {
+            auto length = found.get();
+            request_lines = slice(request, 0, length).split("\r\n");
+            state = PARSE_GET_REQUEST;
+          }
+        }
+
+        if (state == PARSE_GET_REQUEST) {
+          // parse HTTP request:
+          vector<string> headers;
+          vector<string> line;
+          int len;
+
+          bool req_host = false;
+          bool req_connection = false;
+          bool req_upgrade = false;
+          bool req_ws_key = false;
+          bool req_ws_version = false;
+
+          // if no lines in request, bail:
+          if (request_lines.size() == 0) {
+            printf("missing request line\n");
+            goto bad_request;
+          }
+
+          // check first line is like `GET ... HTTP/1.1`:
+          line = request_lines[0].split(" ");
+          if (line.size() != 3) {
+            printf("invalid request line\n");
+            goto bad_request;
+          }
+          // really want to check if version >= 1.1
+          if (line[2] != "HTTP/1.1") {
+            printf("must be HTTP/1.1 request\n");
+            goto bad_request;
+          }
+          if (line[0] != "GET") {
+            printf("must be GET method\n");
+            goto bad_request;
+          }
+
+          // check all headers for websocket upgrade requirements:
+          len = request_lines.size();
+          for (int i = 1; i < len; i++) {
+            auto split = request_lines[i].split(":", 1);
+            auto header = split[0].downcase();
+            auto value = split[1];
+            if (header == "host") {
+              req_host = true;
+            } else if (header == "upgrade") {
+              if (!value.contains("websocket")) {
+                printf("upgrade header must be websocket\n");
+                goto bad_request;
+              }
+              req_upgrade = true;
+            } else if (header == "connection") {
+              if (!value.contains("Upgrade")) {
+                printf("connection header must be Upgrade\n");
+                goto bad_request;
+              }
+              req_connection = true;
+            } else if (header == "sec-websocket-key") {
+              auto decoded = nall::Decode::Base64(value);
+              if (decoded.size() != 16) {
+                printf("sec-websocket-key header must base64 decode to 16 bytes\n");
+                goto bad_request;
+              }
+              ws_key = value;
+              req_ws_key = true;
+            } else if (header == "sec-websocket-version") {
+              if (value != "13") {
+                printf("sec-websocket-version header must be 13\n");
+                goto bad_request;
+              }
+              req_ws_version = true;
+            }
+          }
+
+          // make sure we have the minimal set of HTTP headers for upgrading to websocket:
+          if (!req_host || !req_upgrade || !req_connection || !req_ws_key || !req_ws_version) {
+            printf("missing one or more required websocket upgrade header(s)\n");
+            goto bad_request;
+          }
+
+          // we have all the required headers and they are valid:
+          goto next_state;
+
+        bad_request:
+          printf("bad_request\n");
+          socket->send_buffer(string("HTTP/1.1 400 Bad Request\r\n\r\n"));
+          reset();
+          return false;
+
+        next_state:
+          state = SEND_HANDSHAKE;
+        }
+
+        if (state == SEND_HANDSHAKE) {
+          printf("SEND_HANDSHAKE\n");
+          return true;
+        }
+
+        return false;
+      }
     };
 
-    static WebSocketServer *create_web_socket_server(const string *host, int port) {
-      return new WebSocketServer();
+    static WebSocketHandshaker *create_web_socket_server(Socket* socket) {
+      return new WebSocketHandshaker(socket);
     }
   }
 

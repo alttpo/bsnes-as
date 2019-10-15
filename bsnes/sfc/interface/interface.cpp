@@ -3,6 +3,7 @@
 
 // [jsd] for scripts
 #include <hiro/hiro.hpp>
+#include <nall/decode/base64.hpp>
 
 namespace SuperFamicom {
 
