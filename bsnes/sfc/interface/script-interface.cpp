@@ -80,7 +80,7 @@ struct ScriptInterface {
     // Determine the exception that occurred
     const asIScriptFunction *function = ctx->GetExceptionFunction();
     printf(
-      "EXCEPTION \"%s\" occurred in `%s` (line %d)\n",
+      "EXCEPTION `%s` occurred in `%s` (line %d)\n",
       ctx->GetExceptionString(),
       function->GetDeclaration(),
       ctx->GetExceptionLineNumber()
@@ -914,6 +914,7 @@ struct ScriptInterface {
 
       auto close() -> void {
         int rc;
+        printf("close()\n");
 #if !defined(PLATFORM_WINDOWS)
         rc = ::close(fd);
 #else
@@ -982,6 +983,7 @@ struct ScriptInterface {
 
         // accept incoming connection, discard client address:
         int afd = ::accept(fd, nullptr, nullptr); err_location = LOCATION " accept";
+        //printf("accept(%d) -> %d\n", fd, afd);
         if (afd < 0) {
           int err = sock_capture_error();
           if (err == EWOULDBLOCK || err == EAGAIN) {
@@ -1019,7 +1021,7 @@ struct ScriptInterface {
 
       // poll for read availability on all sockets:
       int rc = ::poll(fds, nfds, 0); err_location = LOCATION " poll";
-      printf("poll(fds, nfds=%d, 0) result=%d\n", nfds, rc);
+      //printf("poll(fds, nfds=%d, 0) result=%d\n", nfds, rc);
       if (rc < 0) {
         // throw script exception:
         int err = sock_capture_error();
@@ -1037,13 +1039,14 @@ struct ScriptInterface {
           continue;
         }
 
+        printf("fds[%d].revents = %d\n", i, fds[i].revents);
         if (fds[i].revents == POLLIN) {
           socket->set_ready_in(true);
-          printf("fds[%d].ready_in = true\n", i);
+          //printf("fds[%d].ready_in = true\n", i);
         }
         if (fds[i].revents == POLLOUT) {
           socket->set_ready_out(true);
-          printf("fds[%d].ready_out = true\n", i);
+          //printf("fds[%d].ready_out = true\n", i);
         }
       }
 
