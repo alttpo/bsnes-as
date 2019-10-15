@@ -4,6 +4,7 @@
 #if !defined(PLATFORM_WINDOWS)
   #include <sys/types.h>
   #include <sys/socket.h>
+  #include <sys/ioctl.h>
   #include <netinet/in.h>
   #include <netdb.h>
   #define SEND_BUF_CAST(t) ((const void *)(t))
@@ -841,6 +842,187 @@ struct ScriptInterface {
 
     static auto resolve(const string *host, int port) -> Address* {
       return new Address(host, port);
+    }
+
+    struct Socket {
+      int fd = -1;
+      int err = 0;
+      const char *err_location = nullptr;
+
+      int err_close = 0;
+      const char *close_location = nullptr;
+
+      // already-created socket:
+      Socket(int fd) : fd(fd) {
+      }
+
+      // create a new socket:
+      Socket(int family, int type, int protocol) {
+        // create the socket:
+#if !defined(PLATFORM_WINDOWS)
+        fd = ::socket(family, type, protocol); err_location = LOCATION " socket";
+#else
+        fd = ::WSASocket(family, type, protocol, nullptr, 0, 0); err_location = LOCATION " WSASocket";
+#endif
+        if (fd < 0) {
+          err = sock_capture_error();
+          return;
+        }
+
+        // enable reuse address:
+        int rc = 0;
+        int yes = 1;
+#if !defined(PLATFORM_WINDOWS)
+        rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)); err_location = LOCATION " setsockopt";
+#else
+        rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)); err_location = LOCATION " setsockopt";
+#endif
+        if (rc == -1) {
+          err = sock_capture_error();
+          close(); close_location = LOCATION " ioctlsocket";
+          return;
+        }
+
+        // set non-blocking:
+#if !defined(PLATFORM_WINDOWS)
+        rc = ioctl(fd, FIONBIO, &yes); err_location = LOCATION " ioctl";
+#else
+        rc = ioctlsocket(fd, FIONBIO, &yes); err_location = LOCATION " ioctlsocket";
+#endif
+        if (rc == -1) {
+          err = sock_capture_error();
+          close(); close_location = LOCATION " ioctl";
+          return;
+        }
+      }
+
+      ~Socket() {
+        if (operator bool()) {
+          close(); close_location = LOCATION " ~Socket";
+        }
+
+        fd = -1;
+      }
+
+      auto close() -> void {
+        int rc;
+#if !defined(PLATFORM_WINDOWS)
+        rc = ::close(fd);
+#else
+        rc = ::closesocket(fd);
+#endif
+        if (rc != 0) {
+          err_close = sock_capture_error();
+        }
+
+        fd = -1;
+      }
+
+      operator bool() { return fd >= 0; }
+
+      auto throw_if_invalid() -> bool {
+        if (err) {
+          // throw script exception:
+          asGetActiveContext()->SetException(string{err_location, ": ", sock_error_string(err)}, true);
+          return true;
+        }
+        if (err_close) {
+          // throw script exception:
+          asGetActiveContext()->SetException(string{err_location, " (close): ", sock_error_string(err_close)}, true);
+          return true;
+        }
+        return false;
+      }
+
+      // indicates data is ready to be read:
+      bool ready_in = false;
+      auto set_ready_in(bool value) -> void {
+        ready_in = value;
+      }
+
+      // indicates data is ready to be written:
+      bool ready_out = false;
+      auto set_ready_out(bool value) -> void {
+        ready_out = value;
+      }
+
+      // bind to an address:
+      auto bind(const Address *addr) -> void {
+        int rc = ::bind(fd, addr->info->ai_addr, addr->info->ai_addrlen); err_location = LOCATION " bind";
+        if (rc < 0) {
+          // throw script exception:
+          int err = sock_capture_error();
+          asGetActiveContext()->SetException(string{err_location, ": ", sock_error_string(err)}, true);
+          return;
+        }
+      }
+
+      // start listening for connections:
+      auto listen() -> void {
+        int rc = ::listen(fd, 32); err_location = LOCATION " listen";
+        if (rc < 0) {
+          // throw script exception:
+          int err = sock_capture_error();
+          asGetActiveContext()->SetException(string{err_location, ": ", sock_error_string(err)}, true);
+          return;
+        }
+      }
+
+      // accept a connection:
+      auto accept() -> Socket* {
+        // don't bother with the syscall if a previous poll() didn't happen:
+        if (!ready_in) return nullptr;
+        ready_in = false;
+
+        // accept incoming connection, discard client address:
+        int afd = ::accept(fd, nullptr, nullptr); err_location = LOCATION " accept";
+        if (afd < 0) {
+          int err = sock_capture_error();
+          if (err == EWOULDBLOCK || err == EAGAIN) {
+            // expected condition; no connections to accept:
+            return nullptr;
+          } else {
+            // throw script exception:
+            asGetActiveContext()->SetException(string{err_location, ": ", sock_error_string(err)}, true);
+            return nullptr;
+          }
+        }
+
+        return new Socket(afd);
+      }
+    };
+
+    static auto poll_in(CScriptArray *sockets) -> bool {
+      const char *err_location;
+      struct pollfd fds[200];
+      int    nfds = 0;
+
+      // transform array<Socket@> from script into pollfd[] for poll() call:
+      memset(fds, 0, sizeof(fds));
+      auto len = sockets->GetSize();
+      for (int i = 0; i < 200 && i < len; i++) {
+        auto socket = static_cast<const Socket*>(sockets->At(i));
+        fds[nfds].fd = socket->fd;
+        fds[nfds].events = POLLIN;
+        nfds++;
+      }
+
+      // poll for read availability on all sockets:
+      int rc = ::poll(fds, nfds, 0); err_location = LOCATION " poll";
+      if (rc < 0) {
+        // throw script exception:
+        int err = sock_capture_error();
+        asGetActiveContext()->SetException(string{err_location, ": ", sock_error_string(err)}, true);
+        return false;
+      }
+
+      for (int i = 0; i < 200 && i < len; i++) {
+        auto socket = static_cast<Socket *>(sockets->At(i));
+        socket->set_ready_in(fds[nfds].revents & POLLIN);
+        socket->set_ready_out(fds[nfds].revents & POLLOUT);
+      }
+
+      return rc;
     }
 
     struct UDPSocket {
