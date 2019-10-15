@@ -841,8 +841,12 @@ struct ScriptInterface {
       }
     };
 
-    static auto resolve(const string *host, int port) -> Address* {
-      return new Address(host, port);
+    static auto resolve_tcp(const string *host, int port) -> Address* {
+      return new Address(host, port, AF_INET, SOCK_STREAM);
+    }
+
+    static auto resolve_udp(const string *host, int port) -> Address* {
+      return new Address(host, port, AF_INET, SOCK_DGRAM);
     }
 
     struct Socket {
@@ -974,9 +978,7 @@ struct ScriptInterface {
 
       // accept a connection:
       auto accept() -> Socket* {
-        // don't bother with the syscall if a previous poll() didn't happen:
-        if (!ready_in) return nullptr;
-        ready_in = false;
+        // non-blocking sockets don't require a poll() because accept() handles non-blocking scenario itself.
 
         // accept incoming connection, discard client address:
         int afd = ::accept(fd, nullptr, nullptr); err_location = LOCATION " accept";
@@ -1017,6 +1019,7 @@ struct ScriptInterface {
 
       // poll for read availability on all sockets:
       int rc = ::poll(fds, nfds, 0); err_location = LOCATION " poll";
+      printf("poll(fds, nfds=%d, 0) result=%d\n", nfds, rc);
       if (rc < 0) {
         // throw script exception:
         int err = sock_capture_error();
@@ -1024,13 +1027,27 @@ struct ScriptInterface {
         return false;
       }
 
-      for (int i = 0; i < 200 && i < len; i++) {
-        auto socket = static_cast<Socket *>(sockets->At(i));
-        socket->set_ready_in(fds[nfds].revents & POLLIN);
-        socket->set_ready_out(fds[nfds].revents & POLLOUT);
+      if (rc == 0) {
+        return false;
       }
 
-      return rc;
+      for (int i = 0; i < 200 && i < len; i++) {
+        auto socket = static_cast<Socket *>(sockets->At(i));
+        if (socket == nullptr) {
+          continue;
+        }
+
+        if (fds[i].revents == POLLIN) {
+          socket->set_ready_in(true);
+          printf("fds[%d].ready_in = true\n", i);
+        }
+        if (fds[i].revents == POLLOUT) {
+          socket->set_ready_out(true);
+          printf("fds[%d].ready_out = true\n", i);
+        }
+      }
+
+      return true;
     }
 
     struct UDPSocket {
@@ -1850,7 +1867,8 @@ auto Interface::registerScriptDefs() -> void {
 
     // Address type:
     r = script.engine->RegisterObjectType("Address", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
-    r = script.engine->RegisterObjectBehaviour("Address", asBEHAVE_FACTORY, "Address@ f(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::resolve), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("Address@ resolve_tcp(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::resolve_tcp), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("Address@ resolve_udp(const string &in host, const int port)", asFUNCTION(ScriptInterface::Net::resolve_udp), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("Address", "bool get_is_valid()", asMETHOD(ScriptInterface::Net::Address, operator bool), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Address", "bool throw_if_invalid()", asMETHOD(ScriptInterface::Net::Address, throw_if_invalid), asCALL_THISCALL); assert( r >= 0 );
 
@@ -1862,7 +1880,7 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("Socket", "void listen()", asMETHOD(ScriptInterface::Net::Socket, listen), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Socket", "Socket@ accept()", asMETHOD(ScriptInterface::Net::Socket, accept), asCALL_THISCALL); assert( r >= 0 );
 
-    r = script.engine->RegisterGlobalFunction("bool poll_in(array<Socket@> &inout sockets)", asFUNCTION(ScriptInterface::Net::poll_in), asCALL_CDECL);
+    r = script.engine->RegisterGlobalFunction("bool poll_in(const array<Socket@> &in sockets)", asFUNCTION(ScriptInterface::Net::poll_in), asCALL_CDECL);
 
     // to be deprecated:
     r = script.engine->RegisterObjectType("UDPSocket", 0, asOBJ_REF); assert(r >= 0);
