@@ -1,5 +1,5 @@
 // Simple test for net namespace
-array<net::Socket@> clients;
+array<net::WebSocketHandshaker@> clients;
 net::Socket@ server;
 
 void init() {
@@ -16,11 +16,12 @@ void init() {
 void pre_frame() {
   auto@ accepted = server.accept();
   if (@accepted != null) {
-    clients.insertLast(accepted);
+    clients.insertLast(net::WebSocketHandshaker(accepted));
   }
 
   auto len = clients.length();
   for (int c = len-1; c >= 0; c--) {
+/*
     array<uint8> buf(128);
     auto r = clients[c].recv(0, 128, buf);
     if (r == 0) {
@@ -30,6 +31,10 @@ void pre_frame() {
     }
     if (r != -1) {
       message(fmtInt(r));
+    }
+*/
+    if (clients[c].advance()) {
+      message("advanced!");
     }
   }
 }

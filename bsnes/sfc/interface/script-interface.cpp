@@ -1454,11 +1454,84 @@ namespace ScriptInterface {
         state = EXPECT_GET_REQUEST;
       }
 
+      auto get_socket() -> Socket* {
+        return socket;
+      }
+
       auto reset() -> void {
         request.reset();
         request_lines.reset();
         ws_key.reset();
         state = EXPECT_GET_REQUEST;
+      }
+
+
+      auto base64_decode(const string& text) -> vector<uint8_t> {
+        static const unsigned char base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        static bool initialized = false;
+        static unsigned char dtable[256];
+
+        vector<uint8_t> out;
+        unsigned char block[4], tmp;
+        size_t i, count, olen, pos;
+        int pad = 0;
+
+        if (!initialized) {
+          memory::fill(dtable, 0x80, 256);
+          for (i = 0; i < sizeof(base64_table) - 1; i++) {
+            dtable[base64_table[i]] = (unsigned char) i;
+          }
+          dtable['='] = 0;
+          initialized = true;
+        }
+
+        count = 0;
+        for (i = 0; i < text.size(); i++) {
+          if (dtable[text[i]] != 0x80)
+            count++;
+        }
+
+        if (count == 0 || count % 4)
+          return out;
+
+        olen = count / 4 * 3;
+        out.resize(olen, 0);
+        pos = 0;
+
+        count = 0;
+        for (i = 0; i < text.size(); i++) {
+          tmp = dtable[text[i]];
+          if (tmp == 0x80)
+            continue;
+
+          if (text[i] == '=') {
+            pad++;
+          }
+
+          block[count] = tmp;
+          count++;
+          if (count == 4) {
+            out[pos++] = ((block[0] << 2) | (block[1] >> 4));
+            out[pos++] = ((block[1] << 4) | (block[2] >> 2));
+            out[pos++] = ((block[2] << 6) | block[3]);
+            count = 0;
+            if (pad) {
+              if (pad == 1) {
+                pos--;
+              } else if (pad == 2) {
+                pos -= 2;
+              } else {
+                // Invalid padding
+                out.reset();
+                return out;
+              }
+              break;
+            }
+          }
+        }
+
+        out.resize(pos);
+        return out;
       }
 
       auto advance() -> bool {
@@ -1524,8 +1597,9 @@ namespace ScriptInterface {
           len = request_lines.size();
           for (int i = 1; i < len; i++) {
             auto split = request_lines[i].split(":", 1);
-            auto header = split[0].downcase();
-            auto value = split[1];
+            auto header = split[0].downcase().strip();
+            auto value = split[1].strip();
+
             if (header == "host") {
               req_host = true;
             } else if (header == "upgrade") {
@@ -1541,9 +1615,10 @@ namespace ScriptInterface {
               }
               req_connection = true;
             } else if (header == "sec-websocket-key") {
-              auto decoded = nall::Decode::Base64(value);
+              auto b64nopad = value;
+              auto decoded = base64_decode(b64nopad);
               if (decoded.size() != 16) {
-                printf("sec-websocket-key header must base64 decode to 16 bytes\n");
+                printf("sec-websocket-key header must base64 decode to 16 bytes; '%.*s' decoded to %d bytes\n", b64nopad.size(), b64nopad.data(), decoded.size());
                 goto bad_request;
               }
               ws_key = value;
@@ -1585,7 +1660,7 @@ namespace ScriptInterface {
       }
     };
 
-    static WebSocketHandshaker *create_web_socket_server(Socket* socket) {
+    static WebSocketHandshaker *create_web_socket_handshaker(Socket* socket) {
       return new WebSocketHandshaker(socket);
     }
   }
@@ -2121,10 +2196,10 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("UDPSocket", "int sendto(const array<uint8> &in msg, const string &in host, const int port)", asMETHOD(ScriptInterface::Net::UDPSocket, sendto), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("UDPSocket", "int recv(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, recv), asCALL_THISCALL); assert( r >= 0 );
 
-    //r = script.engine->RegisterObjectType("WebSocketServer", 0, asOBJ_REF); assert(r >= 0);
-    //r = script.engine->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_FACTORY, "WebSocketServer@ f(const string &in listen_address, const int port)", asFUNCTION(ScriptInterface::Net::create_web_socket_server), asCALL_CDECL); assert(r >= 0);
-    //r = script.engine->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::WebSocketServer, addRef), asCALL_THISCALL); assert( r >= 0 );
-    //r = script.engine->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::WebSocketServer, release), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_FACTORY, "WebSocketHandshaker@ f(Socket@ socket)", asFUNCTION(ScriptInterface::Net::create_web_socket_handshaker), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("WebSocketHandshaker", "Socket@ get_socket()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, get_socket), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocketHandshaker", "bool advance()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, advance), asCALL_THISCALL); assert( r >= 0 );
   }
 
   // UI
