@@ -1555,7 +1555,6 @@ namespace ScriptInterface {
         request.reset();
         request_lines.reset();
         ws_key.reset();
-        state = EXPECT_GET_REQUEST;
       }
 
       auto base64_decode(const string& text) -> vector<uint8_t> {
@@ -1569,7 +1568,7 @@ namespace ScriptInterface {
         int pad = 0;
 
         if (!initialized) {
-          memory::fill(dtable, 0x80, 256);
+          memory::fill(dtable, 256, 0x80);
           for (i = 0; i < sizeof(base64_table) - 1; i++) {
             dtable[base64_table[i]] = (unsigned char) i;
           }
@@ -1646,6 +1645,7 @@ namespace ScriptInterface {
             // too big, toss out.
             printf("request too big!\n");
             reset();
+            state = EXPECT_GET_REQUEST;
             return nullptr;
           }
 
@@ -1748,6 +1748,7 @@ namespace ScriptInterface {
           socket->send_buffer(string("HTTP/1.1 400 Bad Request\r\n\r\n"));
         response_sent:
           reset();
+          state = EXPECT_GET_REQUEST;
           return nullptr;
 
         next_state:
