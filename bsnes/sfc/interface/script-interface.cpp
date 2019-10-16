@@ -1545,8 +1545,11 @@ namespace ScriptInterface {
         asIScriptEngine* engine = ctx->GetEngine();
         asITypeInfo* t = engine->GetTypeInfoByDecl("array<uint8>");
 
-        auto a = CScriptArray::Create(t, bytes.size());
-        memory::copy(a->At(0), bytes.data(), bytes.size());
+        uint64_t size = bytes.size();
+        auto a = CScriptArray::Create(t, size);
+        if (size > 0) {
+          memory::copy(a->At(0), bytes.data(), size);
+        }
         return a;
       }
     };
