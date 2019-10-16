@@ -1558,12 +1558,10 @@ namespace ScriptInterface {
       Socket* socket;
 
       WebSocket(Socket* socket) : socket(socket) {
-        printf("WebSocket()\n");
         socket->addRef();
         ref = 1;
       }
       ~WebSocket() {
-        printf("~WebSocket()\n");
         socket->release();
       }
 

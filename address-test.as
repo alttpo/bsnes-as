@@ -46,10 +46,10 @@ void pre_frame() {
 
     if (msg.opcode == 1) {
       auto s = msg.as_string();
-      message(s);
+      message("text: " + s);
     } else {
       auto a = msg.as_array();
-      message(fmtInt(a.length()));
+      message("opcode=" + fmtHex(msg.opcode) + " length=" + fmtInt(a.length()));
     }
   }
 }
