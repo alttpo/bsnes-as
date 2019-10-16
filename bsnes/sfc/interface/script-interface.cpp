@@ -826,6 +826,7 @@ namespace ScriptInterface {
           case EAI_BADHINTS: return strEAI_BADHINTS;
           case EAI_PROTOCOL: return strEAI_PROTOCOL;
           case EAI_OVERFLOW: return strEAI_OVERFLOW;
+          default: return strUnknown;
         }
       }
 
@@ -846,7 +847,19 @@ namespace ScriptInterface {
     }
 
     static auto throw_if_error() -> bool {
-      return false;
+      if (last_error_gai) {
+        // throw script exception:
+        asGetActiveContext()->SetException(string{last_error_location, ": ", gai_strerror(last_error_gai)}, true);
+        last_error_gai = 0;
+        return true;
+      }
+      if (last_error == 0) return false;
+
+      // throw script exception:
+      asGetActiveContext()->SetException(string{last_error_location, ": ", sock_error_string(last_error)}, true);
+      last_error = 0;
+      last_error_location = "((FIXME: no location!))";
+      return true;
     }
 
     struct Address {
@@ -906,20 +919,21 @@ namespace ScriptInterface {
 
       // already-created socket:
       Socket(int fd) : fd(fd) {
-        printf("Socket(fd=%d)\n", fd);
+        //printf("Socket(fd=%d)\n", fd);
       }
 
       // create a new socket:
       Socket(int family, int type, int protocol) {
-        printf("Socket(family=%d, type=%d, protocol=%d)\n", family, type, protocol);
+        //printf("Socket(family=%d, type=%d, protocol=%d)\n", family, type, protocol);
         // create the socket:
 #if !defined(PLATFORM_WINDOWS)
         fd = ::socket(family, type, protocol); last_error_location = LOCATION " socket";
 #else
         fd = ::WSASocket(family, type, protocol, nullptr, 0, 0); last_error_location = LOCATION " WSASocket";
 #endif
-        last_error = sock_capture_error();
+        last_error = 0;
         if (fd < 0) {
+          last_error = sock_capture_error();
           return;
         }
 
@@ -931,8 +945,9 @@ namespace ScriptInterface {
 #else
         rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
 #endif
-        last_error = sock_capture_error();
+        last_error = 0;
         if (rc == -1) {
+          last_error = sock_capture_error();
           close(false);
           return;
         }
@@ -943,8 +958,9 @@ namespace ScriptInterface {
 #else
         rc = ioctlsocket(fd, FIONBIO, &yes); last_error_location = LOCATION " ioctlsocket";
 #endif
-        last_error = sock_capture_error();
+        last_error = 0;
         if (rc == -1) {
+          last_error = sock_capture_error();
           close(false);
           return;
         }
@@ -968,7 +984,10 @@ namespace ScriptInterface {
         rc = ::closesocket(fd); set_last_error && (last_error_location = LOCATION " closesocket");
 #endif
         if (set_last_error) {
-          last_error = sock_capture_error();
+          last_error = 0;
+          if (rc == -1) {
+            last_error = sock_capture_error();
+          }
         }
 
         fd = -1;
@@ -991,14 +1010,20 @@ namespace ScriptInterface {
       // bind to an address:
       auto bind(const Address *addr) -> int {
         int rc = ::bind(fd, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " bind";
-        last_error = sock_capture_error();
+        last_error = 0;
+        if (rc == -1) {
+          last_error = sock_capture_error();
+        }
         return rc;
       }
 
       // start listening for connections:
       auto listen(int backlog = 32) -> int {
         int rc = ::listen(fd, backlog); last_error_location = LOCATION " listen";
-        last_error = sock_capture_error();
+        last_error = 0;
+        if (rc == -1) {
+          last_error = sock_capture_error();
+        }
         return rc;
       }
 
@@ -1009,8 +1034,9 @@ namespace ScriptInterface {
         // accept incoming connection, discard client address:
         int afd = ::accept(fd, nullptr, nullptr); last_error_location = LOCATION " accept";
         //printf("accept(%d) -> %d\n", fd, afd);
-        last_error = sock_capture_error();
+        last_error = 0;
         if (afd < 0) {
+          last_error = sock_capture_error();
           // expected condition; no connections to accept:
           // if (last_error == EWOULDBLOCK || last_error == EAGAIN) return nullptr;
           return nullptr;
@@ -1022,14 +1048,20 @@ namespace ScriptInterface {
       // attempt to receive data:
       auto recv(int offs, int size, CScriptArray* buffer) -> int {
         int rc = ::recv(fd, buffer->At(offs), size, 0); last_error_location = LOCATION " recv";
-        last_error = sock_capture_error();
+        last_error = 0;
+        if (rc == -1) {
+          last_error = sock_capture_error();
+        }
         return rc;
       }
 
       // attempt to send data:
       auto send(int offs, int size, CScriptArray* buffer) -> int {
         int rc = ::send(fd, buffer->At(offs), size, 0); last_error_location = LOCATION " send";
-        last_error = sock_capture_error();
+        last_error = 0;
+        if (rc == -1) {
+          last_error = sock_capture_error();
+        }
         return rc;
       }
 
@@ -1040,14 +1072,20 @@ namespace ScriptInterface {
       // attempt to receive data and record address of sender (e.g. for UDP):
       auto recvfrom(int offs, int size, CScriptArray* buffer) -> int {
         int rc = ::recvfrom(fd, buffer->At(offs), size, 0, (struct sockaddr *)&recvaddr, &recvaddrlen); last_error_location = LOCATION " recvfrom";
-        last_error = sock_capture_error();
+        last_error = 0;
+        if (rc == -1) {
+          last_error = sock_capture_error();
+        }
         return rc;
       }
 
       // attempt to send data to specific address (e.g. for UDP):
       auto sendto(int offs, int size, CScriptArray* buffer, const Address* addr) -> int {
         int rc = ::sendto(fd, buffer->At(offs), size, 0, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " sendto";
-        last_error = sock_capture_error();
+        last_error = 0;
+        if (rc == -1) {
+          last_error = sock_capture_error();
+        }
         return rc;
       }
 
@@ -1056,7 +1094,10 @@ namespace ScriptInterface {
 
         for (;;) {
           int rc = ::recv(fd, rawbuf, 4096, 0); last_error_location = LOCATION " recv";
-          last_error = sock_capture_error();
+          last_error = 0;
+          if (rc == -1) {
+            last_error = sock_capture_error();
+          }
           if (rc <= 0) return rc;
 
           // append to string:
@@ -1068,7 +1109,10 @@ namespace ScriptInterface {
 
       auto send_buffer(array_view<uint8_t> buffer) -> int {
         int rc = ::send(fd, buffer.data(), buffer.size(), 0); last_error_location = LOCATION " send";
-        last_error = sock_capture_error();
+        last_error = 0;
+        if (rc == -1) {
+          last_error = sock_capture_error();
+        }
         return rc;
       }
     };
@@ -1543,6 +1587,10 @@ namespace ScriptInterface {
       }
 
       auto handshake() -> WebSocket* {
+        if (state == CLOSED) {
+          return nullptr;
+        }
+
         if (state == EXPECT_GET_REQUEST) {
           // build up GET request from client:
           if (socket->recv_append(request) == 0) {
