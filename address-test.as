@@ -14,7 +14,11 @@ void init() {
   net::throw_if_error();
 }
 
+int frame_counter = 0;
+
 void pre_frame() {
+  frame_counter++;
+
   auto@ accepted = server.accept();
   if (@accepted != null) {
     handshakes.insertLast(net::WebSocketHandshaker(accepted));
@@ -32,6 +36,13 @@ void pre_frame() {
 
   len = clients.length();
   for (int c = len-1; c >= 0; c--) {
+    if (frame_counter == 60 * 15) {
+      // ping every 15 seconds:
+      auto@ ping = net::WebSocketMessage(9);
+      clients[c].send(ping);
+      frame_counter = 0;
+    }
+
     auto@ msg = clients[c].process();
     net::throw_if_error();
     if (!clients[c].is_valid) {

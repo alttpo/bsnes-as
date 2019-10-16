@@ -1552,7 +1552,21 @@ namespace ScriptInterface {
         }
         return a;
       }
+
+      auto set_payload_as_string(string *s) -> void {
+        bytes.resize(s->size());
+        memory::copy(bytes.data(), s->data(), s->size());
+      }
+
+      auto set_payload_as_array(CScriptArray *a) -> void {
+        bytes.resize(a->GetSize());
+        memory::copy(bytes.data(), a->At(0), a->GetSize());
+      }
     };
+
+    auto create_web_socket_message(uint8 opcode) -> WebSocketMessage* {
+      return new WebSocketMessage(opcode);
+    }
 
     struct WebSocket {
       Socket* socket;
@@ -1700,9 +1714,57 @@ namespace ScriptInterface {
         return tmp;
       }
 
-      // attempt to send data:
-      auto send(int offs, int size, CScriptArray* buffer) -> int {
-        return socket->send(offs, size, buffer);
+      // send a message:
+      auto send(WebSocketMessage* msg) -> void {
+        vector<uint8_t> outframe;
+
+        uint64_t len = msg->bytes.size();
+        bool fin = true;
+
+        outframe.append((fin << 7) | (msg->opcode & 0x0F));
+
+        bool masked = false;
+        if (len > 65536) {
+          outframe.append((masked << 7) | 127);
+          // send big-endian 64-bit payload length:
+          for (int j = 0; j < 8; j++) {
+            outframe.append((len >> (7-j)*8) & 0xFF);
+          }
+        } else if (len > 125) {
+          outframe.append((masked << 7) | 126);
+          // send big-endian 16-bit payload length:
+          for (int j = 0; j < 2; j++) {
+            outframe.append((len >> (1-j)*8) & 0xFF);
+          }
+        } else {
+          // 7-bit (ish) length:
+          outframe.append((masked << 7) | (len & 0x7F));
+        }
+
+        uint8_t mask_key[4] = {0};
+        if (masked) {
+          // TODO: build and send mask_key
+        }
+
+        // append payload to frame:
+        outframe.appends(msg->bytes);
+
+        // try to send frame:
+        int rc = socket->send_buffer(outframe);
+        if (rc == 0) {
+          // remote peer closed the connection:
+          socket->close();
+          return;
+        }
+        if (rc < 0) {
+          // TODO: maintain sending state machine
+          printf("send() error!\n");
+          return;
+        }
+        if (rc < outframe.size()) {
+          printf("send() failed to send entire frame!\n");
+          return;
+        }
       }
     };
 
@@ -2510,17 +2572,21 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("UDPSocket", "int recv(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, recv), asCALL_THISCALL); assert( r >= 0 );
 
     r = script.engine->RegisterObjectType("WebSocketMessage", 0, asOBJ_REF); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_FACTORY, "WebSocketMessage@ f(uint8 opcode)", asFUNCTION(ScriptInterface::Net::create_web_socket_message), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::WebSocketMessage, addRef), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::WebSocketMessage, release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("WebSocketMessage", "uint8 get_opcode()", asMETHOD(ScriptInterface::Net::WebSocketMessage, get_opcode), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("WebSocketMessage", "void set_opcode(uint8 value)", asMETHOD(ScriptInterface::Net::WebSocketMessage, set_opcode), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("WebSocketMessage", "string &as_string()", asMETHOD(ScriptInterface::Net::WebSocketMessage, as_string), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("WebSocketMessage", "array<uint8> &as_array()", asMETHOD(ScriptInterface::Net::WebSocketMessage, as_array), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocketMessage", "void set_payload_as_string(string &in value)", asMETHOD(ScriptInterface::Net::WebSocketMessage, set_payload_as_string), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocketMessage", "void set_payload_as_array(array<uint8> &in value)", asMETHOD(ScriptInterface::Net::WebSocketMessage, set_payload_as_array), asCALL_THISCALL); assert( r >= 0 );
 
     r = script.engine->RegisterObjectType("WebSocket", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("WebSocket", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::WebSocket, addRef), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("WebSocket", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::WebSocket, release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("WebSocket", "WebSocketMessage@ process()", asMETHOD(ScriptInterface::Net::WebSocket, process), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocket", "void send(WebSocketMessage@ msg)", asMETHOD(ScriptInterface::Net::WebSocket, send), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("WebSocket", "bool get_is_valid()", asMETHOD(ScriptInterface::Net::WebSocket, operator bool), asCALL_THISCALL); assert( r >= 0 );
 
     r = script.engine->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF); assert(r >= 0);
