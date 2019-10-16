@@ -23,11 +23,12 @@ void pre_frame() {
   auto len = handshakes.length();
   for (int c = len-1; c >= 0; c--) {
     auto@ ws = handshakes[c].handshake();
+    net::throw_if_error();
     if (@ws != null) {
       message("hands shaken! ");
-      handshakes.removeAt(c);
+      //handshakes.removeAt(c);
       message("pass?");
-      clients.insertLast(ws);
+      //clients.insertLast(ws);
       message("pass!");
     }
   }

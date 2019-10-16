@@ -855,6 +855,13 @@ namespace ScriptInterface {
       }
       if (last_error == 0) return false;
 
+      // Don't throw exception for EWOULDBLOCK:
+      if (last_error == EWOULDBLOCK || last_error == EAGAIN) {
+        last_error = 0;
+        last_error_location = "((FIXME: no location!))";
+        return false;
+      }
+
       // throw script exception:
       asGetActiveContext()->SetException(string{last_error_location, ": ", sock_error_string(last_error)}, true);
       last_error = 0;
@@ -925,6 +932,8 @@ namespace ScriptInterface {
 
       // create a new socket:
       Socket(int family, int type, int protocol) {
+        ref = 1;
+
         //printf("Socket(family=%d, type=%d, protocol=%d)\n", family, type, protocol);
         // create the socket:
 #if !defined(PLATFORM_WINDOWS)
@@ -974,6 +983,15 @@ namespace ScriptInterface {
         }
 
         fd = -1;
+      }
+
+      int ref;
+      void addRef() {
+        ref++;
+      }
+      void release() {
+        if (--ref == 0)
+          delete this;
       }
 
       auto close(bool set_last_error = true) -> void {
@@ -1484,9 +1502,11 @@ namespace ScriptInterface {
 
       WebSocket(Socket* socket) : socket(socket) {
         printf("WebSocket()\n");
+        socket->addRef();
       }
       ~WebSocket() {
         printf("~WebSocket()\n");
+        socket->release();
       }
     };
 
@@ -1509,10 +1529,22 @@ namespace ScriptInterface {
       WebSocketHandshaker(Socket* socket) : socket(socket) {
         printf("WebSocketHandshaker()\n");
         state = EXPECT_GET_REQUEST;
+        ref = 1;
+        socket->addRef();
       }
       ~WebSocketHandshaker() {
         printf("~WebSocketHandshaker()\n");
         reset();
+        socket->release();
+      }
+
+      int ref;
+      void addRef() {
+        ref++;
+      }
+      void release() {
+        if (--ref == 0)
+          delete this;
       }
 
       auto get_socket() -> Socket* {
@@ -2260,8 +2292,10 @@ auto Interface::registerScriptDefs() -> void {
     // TODO: try opImplCast
     r = script.engine->RegisterObjectMethod("Address", "bool get_is_valid()", asMETHOD(ScriptInterface::Net::Address, operator bool), asCALL_THISCALL); assert( r >= 0 );
 
-    r = script.engine->RegisterObjectType("Socket", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+    r = script.engine->RegisterObjectType("Socket", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("Socket", asBEHAVE_FACTORY, "Socket@ f(Address @addr)", asFUNCTION(ScriptInterface::Net::create_socket), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("Socket", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::Socket, addRef), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectBehaviour("Socket", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::Socket, release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Socket", "bool get_is_valid()", asMETHOD(ScriptInterface::Net::Socket, operator bool), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Socket", "void bind(Address@ addr)", asMETHOD(ScriptInterface::Net::Socket, bind), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Socket", "void listen(int backlog)", asMETHOD(ScriptInterface::Net::Socket, listen), asCALL_THISCALL); assert( r >= 0 );
@@ -2286,8 +2320,10 @@ auto Interface::registerScriptDefs() -> void {
 
     r = script.engine->RegisterObjectType("WebSocket", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
 
-    r = script.engine->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+    r = script.engine->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_FACTORY, "WebSocketHandshaker@ f(Socket@ socket)", asFUNCTION(ScriptInterface::Net::create_web_socket_handshaker), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, addRef), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("WebSocketHandshaker", "Socket@ get_socket()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, get_socket), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("WebSocketHandshaker", "WebSocket@ handshake()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, handshake), asCALL_THISCALL); assert( r >= 0 );
   }
