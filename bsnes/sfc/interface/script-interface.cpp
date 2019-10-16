@@ -1434,6 +1434,12 @@ namespace ScriptInterface {
 #endif
     }
 
+    struct WebSocket {
+      Socket* socket;
+
+      WebSocket(Socket* socket) : socket(socket) {}
+    };
+
     struct WebSocketHandshaker {
       Socket* socket = nullptr;
 
@@ -1446,12 +1452,15 @@ namespace ScriptInterface {
         EXPECT_GET_REQUEST = 0,
         PARSE_GET_REQUEST,
         SEND_HANDSHAKE,
-        EXPECT_RESPONSE,
+        OPEN,
         CLOSED
       } state;
 
       WebSocketHandshaker(Socket* socket) : socket(socket) {
         state = EXPECT_GET_REQUEST;
+      }
+      ~WebSocketHandshaker() {
+        printf("~WebSocketHandshaker()\n");
       }
 
       auto get_socket() -> Socket* {
@@ -1464,7 +1473,6 @@ namespace ScriptInterface {
         ws_key.reset();
         state = EXPECT_GET_REQUEST;
       }
-
 
       auto base64_decode(const string& text) -> vector<uint8_t> {
         static const unsigned char base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -1534,20 +1542,20 @@ namespace ScriptInterface {
         return out;
       }
 
-      auto advance() -> bool {
+      auto handshake() -> WebSocket* {
         if (state == EXPECT_GET_REQUEST) {
           // build up GET request from client:
           if (socket->recv_append(request) == 0) {
             state = CLOSED;
             socket->close(false);
-            return false;
+            return nullptr;
           }
 
           auto s = request.size();
           if (s >= 65536) {
             // too big, toss out.
             reset();
-            return false;
+            return nullptr;
           }
 
           // Find the end of the request headers:
@@ -1649,17 +1657,14 @@ namespace ScriptInterface {
           socket->send_buffer(string("HTTP/1.1 400 Bad Request\r\n\r\n"));
         response_sent:
           reset();
-          return false;
+          return nullptr;
 
         next_state:
           state = SEND_HANDSHAKE;
         }
 
         if (state == SEND_HANDSHAKE) {
-          printf("SEND_HANDSHAKE\n");
           auto concat = string{ws_key, string("258EAFA5-E914-47DA-95CA-C5AB0DC85B11")};
-          // sha1
-          // base64_encode
           auto sha1 = nall::Hash::SHA1(concat).output();
           auto enc = nall::Encode::Base64(sha1);
 
@@ -1670,15 +1675,16 @@ namespace ScriptInterface {
               "Connection: Upgrade\r\n"
               "Sec-WebSocket-Accept: "
             ),
-            enc,
             // base64 encoded sha1 hash here
+            enc,
             string("\r\n\r\n")
           };
           socket->send_buffer(buf);
-          return true;
+          state = OPEN;
+          return new WebSocket(socket);
         }
 
-        return false;
+        return nullptr;
       }
     };
 
@@ -2218,10 +2224,12 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("UDPSocket", "int sendto(const array<uint8> &in msg, const string &in host, const int port)", asMETHOD(ScriptInterface::Net::UDPSocket, sendto), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("UDPSocket", "int recv(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, recv), asCALL_THISCALL); assert( r >= 0 );
 
+    r = script.engine->RegisterObjectType("WebSocket", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+
     r = script.engine->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_FACTORY, "WebSocketHandshaker@ f(Socket@ socket)", asFUNCTION(ScriptInterface::Net::create_web_socket_handshaker), asCALL_CDECL); assert(r >= 0);
     r = script.engine->RegisterObjectMethod("WebSocketHandshaker", "Socket@ get_socket()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, get_socket), asCALL_THISCALL); assert( r >= 0 );
-    r = script.engine->RegisterObjectMethod("WebSocketHandshaker", "bool advance()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, advance), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocketHandshaker", "WebSocket@ handshake()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, handshake), asCALL_THISCALL); assert( r >= 0 );
   }
 
   // UI

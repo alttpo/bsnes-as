@@ -1,5 +1,6 @@
 // Simple test for net namespace
-array<net::WebSocketHandshaker@> clients;
+array<net::WebSocketHandshaker@> handshakes;
+array<net::WebSocket@> clients;
 net::Socket@ server;
 
 void init() {
@@ -16,10 +17,20 @@ void init() {
 void pre_frame() {
   auto@ accepted = server.accept();
   if (@accepted != null) {
-    clients.insertLast(net::WebSocketHandshaker(accepted));
+    handshakes.insertLast(net::WebSocketHandshaker(accepted));
   }
 
-  auto len = clients.length();
+  auto len = handshakes.length();
+  for (int c = len-1; c >= 0; c--) {
+    auto@ ws = handshakes[c].handshake();
+    if (@ws != null) {
+      message("hands shaken! ");
+      handshakes.removeAt(c);
+      clients.insertLast(ws);
+    }
+  }
+
+  len = clients.length();
   for (int c = len-1; c >= 0; c--) {
 /*
     array<uint8> buf(128);
@@ -33,8 +44,5 @@ void pre_frame() {
       message(fmtInt(r));
     }
 */
-    if (clients[c].advance()) {
-      message("advanced!");
-    }
   }
 }
