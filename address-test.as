@@ -26,7 +26,9 @@ void pre_frame() {
     if (@ws != null) {
       message("hands shaken! ");
       handshakes.removeAt(c);
+      message("pass?");
       clients.insertLast(ws);
+      message("pass!");
     }
   }
 

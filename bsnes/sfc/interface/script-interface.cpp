@@ -897,6 +897,7 @@ namespace ScriptInterface {
       }
 
       ~Address() {
+        printf("~Address()\n");
         if (info) {
           ::freeaddrinfo(info);
         }
@@ -1481,7 +1482,12 @@ namespace ScriptInterface {
     struct WebSocket {
       Socket* socket;
 
-      WebSocket(Socket* socket) : socket(socket) {}
+      WebSocket(Socket* socket) : socket(socket) {
+        printf("WebSocket()\n");
+      }
+      ~WebSocket() {
+        printf("~WebSocket()\n");
+      }
     };
 
     struct WebSocketHandshaker {
@@ -1501,10 +1507,12 @@ namespace ScriptInterface {
       } state;
 
       WebSocketHandshaker(Socket* socket) : socket(socket) {
+        printf("WebSocketHandshaker()\n");
         state = EXPECT_GET_REQUEST;
       }
       ~WebSocketHandshaker() {
         printf("~WebSocketHandshaker()\n");
+        reset();
       }
 
       auto get_socket() -> Socket* {
@@ -1594,6 +1602,8 @@ namespace ScriptInterface {
         if (state == EXPECT_GET_REQUEST) {
           // build up GET request from client:
           if (socket->recv_append(request) == 0) {
+            printf("socket closed!\n");
+            reset();
             state = CLOSED;
             socket->close(false);
             return nullptr;
@@ -1602,6 +1612,7 @@ namespace ScriptInterface {
           auto s = request.size();
           if (s >= 65536) {
             // too big, toss out.
+            printf("request too big!\n");
             reset();
             return nullptr;
           }
@@ -1728,6 +1739,7 @@ namespace ScriptInterface {
             string("\r\n\r\n")
           };
           socket->send_buffer(buf);
+
           state = OPEN;
           return new WebSocket(socket);
         }
