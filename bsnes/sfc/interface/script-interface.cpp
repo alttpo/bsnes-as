@@ -1558,70 +1558,62 @@ namespace ScriptInterface {
       }
 
       auto base64_decode(const string& text) -> vector<uint8_t> {
-        static const unsigned char base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        static bool initialized = false;
-        static unsigned char dtable[256];
+        static const unsigned char pr2six[256] =
+          {
+            /* ASCII table */
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 62, 64, 64, 64, 63,
+            52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 64, 64, 64, 64, 64, 64,
+            64,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+            15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 64, 64, 64, 64, 64,
+            64, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+            41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64
+          };
 
         vector<uint8_t> out;
-        unsigned char block[4], tmp;
-        size_t i, count, olen, pos;
-        int pad = 0;
 
-        if (!initialized) {
-          memory::fill(dtable, 256, 0x80);
-          for (i = 0; i < sizeof(base64_table) - 1; i++) {
-            dtable[base64_table[i]] = (unsigned char) i;
-          }
-          dtable['='] = 0;
-          initialized = true;
+        int nbytesdecoded;
+        const unsigned char *bufin;
+        int nprbytes;
+
+        bufin = (const unsigned char *) text.data();
+        while (pr2six[*(bufin++)] <= 63);
+        nprbytes = (bufin - (const unsigned char *) text.data()) - 1;
+        nbytesdecoded = ((nprbytes + 3) / 4) * 3;
+
+        bufin = (const unsigned char *) text.data();
+
+        while (nprbytes > 4) {
+          out.append((unsigned char) (pr2six[*bufin] << 2 | pr2six[bufin[1]] >> 4));
+          out.append((unsigned char) (pr2six[bufin[1]] << 4 | pr2six[bufin[2]] >> 2));
+          out.append((unsigned char) (pr2six[bufin[2]] << 6 | pr2six[bufin[3]]));
+          bufin += 4;
+          nprbytes -= 4;
         }
 
-        count = 0;
-        for (i = 0; i < text.size(); i++) {
-          if (dtable[text[i]] != 0x80)
-            count++;
+        /* Note: (nprbytes == 1) would be an error, so just ingore that case */
+        if (nprbytes > 1) {
+          out.append((unsigned char) (pr2six[*bufin] << 2 | pr2six[bufin[1]] >> 4));
+        }
+        if (nprbytes > 2) {
+          out.append((unsigned char) (pr2six[bufin[1]] << 4 | pr2six[bufin[2]] >> 2));
+        }
+        if (nprbytes > 3) {
+          out.append((unsigned char) (pr2six[bufin[2]] << 6 | pr2six[bufin[3]]));
         }
 
-        if (count == 0 || count % 4)
-          return out;
+        nbytesdecoded -= (4 - nprbytes) & 3;
+        out.resize(nbytesdecoded);
 
-        olen = count / 4 * 3;
-        out.resize(olen, 0);
-        pos = 0;
-
-        count = 0;
-        for (i = 0; i < text.size(); i++) {
-          tmp = dtable[text[i]];
-          if (tmp == 0x80)
-            continue;
-
-          if (text[i] == '=') {
-            pad++;
-          }
-
-          block[count] = tmp;
-          count++;
-          if (count == 4) {
-            out[pos++] = ((block[0] << 2) | (block[1] >> 4));
-            out[pos++] = ((block[1] << 4) | (block[2] >> 2));
-            out[pos++] = ((block[2] << 6) | block[3]);
-            count = 0;
-            if (pad) {
-              if (pad == 1) {
-                pos--;
-              } else if (pad == 2) {
-                pos -= 2;
-              } else {
-                // Invalid padding
-                out.reset();
-                return out;
-              }
-              break;
-            }
-          }
-        }
-
-        out.resize(pos);
         return out;
       }
 
@@ -1715,6 +1707,7 @@ namespace ScriptInterface {
               req_connection = true;
             } else if (header == "sec-websocket-key") {
               ws_key = value;
+#if 1
               auto decoded = base64_decode(ws_key);
               if (decoded.size() != 16) {
                 printf("sec-websocket-key header must base64 decode to 16 bytes; '%.*s' decoded to %d bytes\n",
@@ -1723,6 +1716,7 @@ namespace ScriptInterface {
                 );
                 goto bad_request;
               }
+#endif
               req_ws_key = true;
             } else if (header == "sec-websocket-version") {
               if (value != "13") {
@@ -1756,15 +1750,15 @@ namespace ScriptInterface {
         }
 
         if (state == SEND_HANDSHAKE) {
+#if 1
           auto concat = string{ws_key, string("258EAFA5-E914-47DA-95CA-C5AB0DC85B11")};
           auto sha1 = nall::Hash::SHA1(concat).output();
           auto enc = nall::Encode::Base64(sha1);
-
           auto buf = string{
             string(
               "HTTP/1.1 101 Switching Protocols\r\n"
-              "Upgrade: websocket\r\n"
               "Connection: Upgrade\r\n"
+              "Upgrade: websocket\r\n"
               "Sec-WebSocket-Accept: "
             ),
             // base64 encoded sha1 hash here
@@ -1772,9 +1766,15 @@ namespace ScriptInterface {
             string("\r\n\r\n")
           };
           socket->send_buffer(buf);
+          buf.reset();
 
           state = OPEN;
           return new WebSocket(socket);
+#else
+          socket->send_buffer(string("HTTP/1.1 400 Bad Request\r\n\r\n"));
+          state = OPEN;
+          return nullptr;
+#endif
         }
 
         return nullptr;
