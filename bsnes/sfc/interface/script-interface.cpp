@@ -1503,13 +1503,35 @@ namespace ScriptInterface {
       WebSocket(Socket* socket) : socket(socket) {
         printf("WebSocket()\n");
         socket->addRef();
+        ref = 1;
       }
       ~WebSocket() {
         printf("~WebSocket()\n");
         socket->release();
       }
+
+      int ref;
+      void addRef() {
+        ref++;
+      }
+      void release() {
+        if (--ref == 0)
+          delete this;
+      }
+
+      // attempt to receive data:
+      auto recv(int offs, int size, CScriptArray* buffer) -> int {
+        return socket->recv(offs, size, buffer);
+      }
+
+      // attempt to send data:
+      auto send(int offs, int size, CScriptArray* buffer) -> int {
+        return socket->send(offs, size, buffer);
+      }
     };
 
+    // accepts incoming GET requests with websocket upgrade headers and completes the handshake, finally
+    // passing the socket over to WebSocket which handles regular websocket data framing protocol.
     struct WebSocketHandshaker {
       Socket* socket = nullptr;
 
@@ -2311,7 +2333,11 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("UDPSocket", "int sendto(const array<uint8> &in msg, const string &in host, const int port)", asMETHOD(ScriptInterface::Net::UDPSocket, sendto), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("UDPSocket", "int recv(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, recv), asCALL_THISCALL); assert( r >= 0 );
 
-    r = script.engine->RegisterObjectType("WebSocket", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+    r = script.engine->RegisterObjectType("WebSocket", 0, asOBJ_REF); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("WebSocket", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::WebSocket, addRef), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectBehaviour("WebSocket", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::WebSocket, release), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocket", "int recv(int offs, int size, array<uint8> &inout buffer)", asMETHOD(ScriptInterface::Net::WebSocket, recv), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocket", "int send(int offs, int size, array<uint8> &inout buffer)", asMETHOD(ScriptInterface::Net::WebSocket, send), asCALL_THISCALL); assert( r >= 0 );
 
     r = script.engine->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_FACTORY, "WebSocketHandshaker@ f(Socket@ socket)", asFUNCTION(ScriptInterface::Net::create_web_socket_handshaker), asCALL_CDECL); assert(r >= 0);

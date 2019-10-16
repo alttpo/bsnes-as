@@ -25,17 +25,16 @@ void pre_frame() {
     auto@ ws = handshakes[c].handshake();
     net::throw_if_error();
     if (@ws != null) {
-      message("hands shaken! ");
-      //handshakes.removeAt(c);
+      message("hands shaken!");
+      handshakes.removeAt(c);
       message("pass?");
-      //clients.insertLast(ws);
+      clients.insertLast(ws);
       message("pass!");
     }
   }
 
   len = clients.length();
   for (int c = len-1; c >= 0; c--) {
-/*
     array<uint8> buf(128);
     auto r = clients[c].recv(0, 128, buf);
     if (r == 0) {
@@ -46,6 +45,5 @@ void pre_frame() {
     if (r != -1) {
       message(fmtInt(r));
     }
-*/
   }
 }
