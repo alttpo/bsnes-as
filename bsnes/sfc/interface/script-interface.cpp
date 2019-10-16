@@ -1707,7 +1707,7 @@ namespace ScriptInterface {
               req_connection = true;
             } else if (header == "sec-websocket-key") {
               ws_key = value;
-#if 1
+              // We don't _need_ to do this but it's nice to check:
               auto decoded = base64_decode(ws_key);
               if (decoded.size() != 16) {
                 printf("sec-websocket-key header must base64 decode to 16 bytes; '%.*s' decoded to %d bytes\n",
@@ -1716,7 +1716,6 @@ namespace ScriptInterface {
                 );
                 goto bad_request;
               }
-#endif
               req_ws_key = true;
             } else if (header == "sec-websocket-version") {
               if (value != "13") {
@@ -1750,7 +1749,6 @@ namespace ScriptInterface {
         }
 
         if (state == SEND_HANDSHAKE) {
-#if 1
           auto concat = string{ws_key, string("258EAFA5-E914-47DA-95CA-C5AB0DC85B11")};
           auto sha1 = nall::Hash::SHA1(concat).output();
           auto enc = nall::Encode::Base64(sha1);
@@ -1766,15 +1764,9 @@ namespace ScriptInterface {
             string("\r\n\r\n")
           };
           socket->send_buffer(buf);
-          buf.reset();
 
           state = OPEN;
           return new WebSocket(socket);
-#else
-          socket->send_buffer(string("HTTP/1.1 400 Bad Request\r\n\r\n"));
-          state = OPEN;
-          return nullptr;
-#endif
         }
 
         return nullptr;
