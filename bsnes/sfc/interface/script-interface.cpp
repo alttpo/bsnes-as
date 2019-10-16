@@ -804,20 +804,25 @@ namespace ScriptInterface {
     static auto get_error_code() -> const string* {
       if (last_error_gai != 0) {
         switch (last_error_gai) {
-          case EAI_ADDRFAMILY: return strEAI_ADDRFAMILY;
           case EAI_AGAIN: return strEAI_AGAIN;
           case EAI_BADFLAGS: return strEAI_BADFLAGS;
           case EAI_FAIL: return strEAI_FAIL;
           case EAI_FAMILY: return strEAI_FAMILY;
           case EAI_MEMORY: return strEAI_MEMORY;
-          case EAI_NODATA: return strEAI_NODATA;
+
           case EAI_NONAME: return strEAI_NONAME;
           case EAI_SERVICE: return strEAI_SERVICE;
           case EAI_SOCKTYPE: return strEAI_SOCKTYPE;
+#if !defined(PLATFORM_WINDOWS)
           case EAI_SYSTEM: return strEAI_SYSTEM;
+          case EAI_OVERFLOW: return strEAI_OVERFLOW;
+#endif
+#if !defined(_POSIX_C_SOURCE)
+          case EAI_ADDRFAMILY: return strEAI_ADDRFAMILY;
+          case EAI_NODATA: return strEAI_NODATA;
           case EAI_BADHINTS: return strEAI_BADHINTS;
           case EAI_PROTOCOL: return strEAI_PROTOCOL;
-          case EAI_OVERFLOW: return strEAI_OVERFLOW;
+#endif
           default: return strUnknown;
         }
       }
@@ -887,9 +892,12 @@ namespace ScriptInterface {
         last_error = 0;
         int rc = ::getaddrinfo(addr, string(port), &hints, &info); last_error_location = LOCATION " getaddrinfo";
         if (rc != 0) {
+#if !defined(PLATFORM_WINDOWS)
           if (rc == EAI_SYSTEM) {
             last_error = sock_capture_error();
-          } else {
+          } else
+#endif
+          {
             last_error_gai = rc;
           }
         }
@@ -942,7 +950,7 @@ namespace ScriptInterface {
 #if !defined(PLATFORM_WINDOWS)
         rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
 #else
-        rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
+        rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
 #endif
         last_error = 0;
         if (rc == -1) {
@@ -955,7 +963,7 @@ namespace ScriptInterface {
 #if !defined(PLATFORM_WINDOWS)
         rc = ioctl(fd, FIONBIO, &yes); last_error_location = LOCATION " ioctl";
 #else
-        rc = ioctlsocket(fd, FIONBIO, &yes); last_error_location = LOCATION " ioctlsocket";
+        rc = ioctlsocket(fd, FIONBIO, (u_long *)&yes); last_error_location = LOCATION " ioctlsocket";
 #endif
         last_error = 0;
         if (rc == -1) {
@@ -1052,7 +1060,11 @@ namespace ScriptInterface {
 
       // attempt to receive data:
       auto recv(int offs, int size, CScriptArray* buffer) -> int {
+#if !defined(PLATFORM_WINDOWS)
         int rc = ::recv(fd, buffer->At(offs), size, 0); last_error_location = LOCATION " recv";
+#else
+        int rc = ::recv(fd, (char *)buffer->At(offs), size, 0); last_error_location = LOCATION " recv";
+#endif
         last_error = 0;
         if (rc == -1) {
           last_error = sock_capture_error();
@@ -1062,7 +1074,11 @@ namespace ScriptInterface {
 
       // attempt to send data:
       auto send(int offs, int size, CScriptArray* buffer) -> int {
+#if !defined(PLATFORM_WINDOWS)
         int rc = ::send(fd, buffer->At(offs), size, 0); last_error_location = LOCATION " send";
+#else
+        int rc = ::send(fd, (const char*)buffer->At(offs), size, 0); last_error_location = LOCATION " send";
+#endif
         last_error = 0;
         if (rc == -1) {
           last_error = sock_capture_error();
@@ -1076,7 +1092,11 @@ namespace ScriptInterface {
 
       // attempt to receive data and record address of sender (e.g. for UDP):
       auto recvfrom(int offs, int size, CScriptArray* buffer) -> int {
+#if !defined(PLATFORM_WINDOWS)
         int rc = ::recvfrom(fd, buffer->At(offs), size, 0, (struct sockaddr *)&recvaddr, &recvaddrlen); last_error_location = LOCATION " recvfrom";
+#else
+        int rc = ::recvfrom(fd, (char *)buffer->At(offs), size, 0, (struct sockaddr *)&recvaddr, &recvaddrlen); last_error_location = LOCATION " recvfrom";
+#endif
         last_error = 0;
         if (rc == -1) {
           last_error = sock_capture_error();
@@ -1086,7 +1106,11 @@ namespace ScriptInterface {
 
       // attempt to send data to specific address (e.g. for UDP):
       auto sendto(int offs, int size, CScriptArray* buffer, const Address* addr) -> int {
+#if !defined(PLATFORM_WINDOWS)
         int rc = ::sendto(fd, buffer->At(offs), size, 0, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " sendto";
+#else
+        int rc = ::sendto(fd, (const char *)buffer->At(offs), size, 0, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " sendto";
+#endif
         last_error = 0;
         if (rc == -1) {
           last_error = sock_capture_error();
@@ -1098,7 +1122,11 @@ namespace ScriptInterface {
         uint8_t rawbuf[4096];
 
         for (;;) {
+#if !defined(PLATFORM_WINDOWS)
           int rc = ::recv(fd, rawbuf, 4096, 0); last_error_location = LOCATION " recv";
+#else
+          int rc = ::recv(fd, (char *)rawbuf, 4096, 0); last_error_location = LOCATION " recv";
+#endif
           last_error = 0;
           if (rc == -1) {
             last_error = sock_capture_error();
@@ -1117,7 +1145,11 @@ namespace ScriptInterface {
         int total = 0;
 
         for (;;) {
+#if !defined(PLATFORM_WINDOWS)
           int rc = ::recv(fd, rawbuf, 4096, 0); last_error_location = LOCATION " recv";
+#else
+          int rc = ::recv(fd, (char *)rawbuf, 4096, 0); last_error_location = LOCATION " recv";
+#endif
           last_error = 0;
           if (rc < 0) {
             last_error = sock_capture_error();
@@ -1139,7 +1171,11 @@ namespace ScriptInterface {
       }
 
       auto send_buffer(array_view<uint8_t> buffer) -> int {
+#if !defined(PLATFORM_WINDOWS)
         int rc = ::send(fd, buffer.data(), buffer.size(), 0); last_error_location = LOCATION " send";
+#else
+        int rc = ::send(fd, (const char *)buffer.data(), buffer.size(), 0); last_error_location = LOCATION " send";
+#endif
         last_error = 0;
         if (rc == -1) {
           last_error = sock_capture_error();
