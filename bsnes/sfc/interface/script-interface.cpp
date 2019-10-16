@@ -255,18 +255,14 @@ namespace ScriptInterface {
       asIScriptContext  *ctx;
 
       write_interceptor(asIScriptFunction *cb, asIScriptContext *ctx) : cb(cb), ctx(ctx) {
-        //printf("(%p) [%p]->AddRef()\n", this, cb);
         cb->AddRef();
       }
       write_interceptor(const write_interceptor& other) : cb(other.cb), ctx(other.ctx) {
-        //printf("(%p) [%p]->AddRef()\n", this, cb);
         cb->AddRef();
       }
       write_interceptor(const write_interceptor&& other) : cb(other.cb), ctx(other.ctx) {
-        //printf("(%p) moved in [%p]\n", this, cb);
       }
       ~write_interceptor() {
-        //printf("(%p) [%p]->Release()\n", this, cb);
         cb->Release();
       }
 
@@ -289,18 +285,14 @@ namespace ScriptInterface {
       asIScriptContext  *ctx;
 
       dma_interceptor(asIScriptFunction *cb, asIScriptContext *ctx) : cb(cb), ctx(ctx) {
-        //printf("(%p) [%p]->AddRef()\n", this, cb);
         cb->AddRef();
       }
       dma_interceptor(const dma_interceptor& other) : cb(other.cb), ctx(other.ctx) {
-        //printf("(%p) [%p]->AddRef()\n", this, cb);
         cb->AddRef();
       }
       dma_interceptor(const dma_interceptor&& other) : cb(other.cb), ctx(other.ctx) {
-        //printf("(%p) moved in [%p]\n", this, cb);
       }
       ~dma_interceptor() {
-        //printf("(%p) [%p]->Release()\n", this, cb);
         cb->Release();
       }
 
@@ -904,7 +896,6 @@ namespace ScriptInterface {
       }
 
       ~Address() {
-        printf("~Address()\n");
         if (info) {
           ::freeaddrinfo(info);
         }
@@ -927,14 +918,12 @@ namespace ScriptInterface {
 
       // already-created socket:
       Socket(int fd) : fd(fd) {
-        //printf("Socket(fd=%d)\n", fd);
       }
 
       // create a new socket:
       Socket(int family, int type, int protocol) {
         ref = 1;
 
-        //printf("Socket(family=%d, type=%d, protocol=%d)\n", family, type, protocol);
         // create the socket:
 #if !defined(PLATFORM_WINDOWS)
         fd = ::socket(family, type, protocol); last_error_location = LOCATION " socket";
@@ -977,7 +966,6 @@ namespace ScriptInterface {
       }
 
       ~Socket() {
-        printf("~Socket()\n");
         if (operator bool()) {
           close();
         }
@@ -996,7 +984,6 @@ namespace ScriptInterface {
 
       auto close(bool set_last_error = true) -> void {
         int rc;
-        //printf("close()\n");
 #if !defined(PLATFORM_WINDOWS)
         rc = ::close(fd); set_last_error && (last_error_location = LOCATION " close");
 #else
@@ -1012,7 +999,7 @@ namespace ScriptInterface {
         fd = -1;
       }
 
-      operator bool() { return fd >= 0; }
+      explicit operator bool() { return fd >= 0; }
 
       // indicates data is ready to be read:
       bool ready_in = false;
@@ -1052,7 +1039,6 @@ namespace ScriptInterface {
 
         // accept incoming connection, discard client address:
         int afd = ::accept(fd, nullptr, nullptr); last_error_location = LOCATION " accept";
-        //printf("accept(%d) -> %d\n", fd, afd);
         last_error = 0;
         if (afd < 0) {
           last_error = sock_capture_error();
@@ -1123,6 +1109,32 @@ namespace ScriptInterface {
           uint64_t to = s.size();
           s.resize(s.size() + rc);
           memory::copy(s.get() + to, rawbuf, rc);
+        }
+      }
+
+      auto recv_buffer(vector<uint8_t>& buffer) -> int {
+        uint8_t rawbuf[4096];
+        int total = 0;
+
+        for (;;) {
+          int rc = ::recv(fd, rawbuf, 4096, 0); last_error_location = LOCATION " recv";
+          last_error = 0;
+          if (rc < 0) {
+            last_error = sock_capture_error();
+            if (last_error == EWOULDBLOCK || last_error == EAGAIN) {
+              last_error = 0;
+              return total;
+            }
+            return rc;
+          }
+          if (rc == 0) {
+            close();
+            return total;
+          }
+
+          // append to buffer:
+          buffer.appends({rawbuf, (uint)rc});
+          total += rc;
         }
       }
 
@@ -1497,6 +1509,48 @@ namespace ScriptInterface {
 #endif
     }
 
+    struct WebSocketMessage {
+      uint8           opcode;
+      vector<uint8_t> bytes;
+
+      WebSocketMessage(uint8 opcode) : opcode(opcode)
+      {
+        ref = 1;
+      }
+      ~WebSocketMessage() = default;
+
+      int ref;
+      void addRef() {
+        ref++;
+      }
+      void release() {
+        if (--ref == 0)
+          delete this;
+      }
+
+      auto get_opcode() -> uint8 { return opcode; }
+      auto set_opcode(uint8 value) -> void { opcode = value; }
+
+      auto as_string() -> string* {
+        auto s = new string();
+        s->resize(bytes.size());
+        memory::copy(s->get(), bytes.data(), bytes.size());
+        return s;
+      }
+
+      auto as_array() -> CScriptArray* {
+        asIScriptContext *ctx = asGetActiveContext();
+        if (!ctx) return nullptr;
+
+        asIScriptEngine* engine = ctx->GetEngine();
+        asITypeInfo* t = engine->GetTypeInfoByDecl("array<uint8>");
+
+        auto a = CScriptArray::Create(t, bytes.size());
+        memory::copy(a->At(0), bytes.data(), bytes.size());
+        return a;
+      }
+    };
+
     struct WebSocket {
       Socket* socket;
 
@@ -1519,9 +1573,130 @@ namespace ScriptInterface {
           delete this;
       }
 
+      operator bool() { return (bool)*socket; }
+
+      vector<uint8_t> frame;
+      WebSocketMessage *message = nullptr;
+
       // attempt to receive data:
-      auto recv(int offs, int size, CScriptArray* buffer) -> int {
-        return socket->recv(offs, size, buffer);
+      auto process() -> WebSocketMessage* {
+        if (!(bool)*socket) {
+          // TODO: throw exception if socket closed?
+          //printf("invalid socket!\n");
+          return nullptr;
+        }
+
+        // Receive data and append to current frame:
+        int rc = socket->recv_buffer(frame);
+        // No data ready to recv:
+        if (rc <= 0) {
+          return nullptr;
+        }
+
+        // check start of frame:
+        uint minsize = 2;
+        if (frame.size() < minsize) {
+          //printf("frame too small (%d) to read opcode and payload length bytes (%d)\n", frame.size(), minsize);
+          return nullptr;
+        }
+
+        uint i = 0;
+
+        bool fin = frame[i] & 0x80;
+        // 3 other reserved bits here
+        uint8_t opcode = frame[i] & 0x0F;
+        i++;
+
+        bool mask = frame[i] & 0x80;
+        uint64_t len = frame[i] & 0x7F;
+        i++;
+
+        // determine minimum size of frame to parse:
+        if (len == 126) minsize += 2;
+        else if (len == 127) minsize += 8;
+
+        // need more data?
+        if (frame.size() < minsize) {
+          //printf("frame too small (%d) to read additional payload length bytes (%d)\n", frame.size(), minsize);
+          return nullptr;
+        }
+
+        if (len == 126) {
+          // len is 16-bit
+          len = 0;
+          for (int j = 0; j < 2; j++) {
+            len <<= 8u;
+            len |= frame[i++];
+          }
+        } else if (len == 127) {
+          // len is 64-bit
+          len = 0;
+          for (int j = 0; j < 8; j++) {
+            len <<= 8u;
+            len |= frame[i++];
+          }
+        }
+
+        uint8_t mask_key[4] = {0};
+
+        if (mask) {
+          minsize += 4;
+          if (frame.size() < minsize) {
+            //printf("frame too small (%d) to read mask key bytes (%d)\n", frame.size(), minsize);
+            return nullptr;
+          }
+
+          // read mask key:
+          for (unsigned char &mask_byte : mask_key) {
+            mask_byte = frame[i++];
+          }
+          //printf("mask_key is %02x%02x%02x%02x\n", mask_key[0], mask_key[1], mask_key[2], mask_key[3]);
+        } else {
+          printf("frame is not masked!\n");
+        }
+
+        // not enough data in frame yet?
+        if (frame.size() - i < len) {
+          //printf("frame too small (%d) to read full payload (%d)\n", frame.size(), i + len);
+          return nullptr;
+        }
+
+        // For any opcode but 0 (continuation), start a new message:
+        if (opcode != 0) {
+          //printf("new message with opcode = %d\n", opcode);
+          message = new WebSocketMessage(opcode);
+        }
+
+        // append payload data to message buffer:
+        auto payload = frame.view(i, len);
+        if (mask) {
+          // Unmask the payload with the mask_key and append to message:
+          //printf("append masked payload of size %d\n", payload.size());
+          uint k = 0;
+          for (uint8_t byte : payload) {
+            message->bytes.append(byte ^ mask_key[k]);
+            k = (k + 1) & 3;
+          }
+        } else {
+          // Append unmasked payload:
+          //printf("append unmasked payload of size %d\n", payload.size());
+          message->bytes.appends(payload);
+        }
+
+        // clear out already-read data:
+        frame.removeLeft(i + len);
+
+        // if no FIN flag set, wait for more frames:
+        if (!fin) {
+          //printf("FIN not set\n");
+          return nullptr;
+        }
+
+        // return final message:
+        //printf("FIN set\n");
+        auto tmp = message;
+        message = nullptr;
+        return tmp;
       }
 
       // attempt to send data:
@@ -1549,13 +1724,11 @@ namespace ScriptInterface {
       } state;
 
       WebSocketHandshaker(Socket* socket) : socket(socket) {
-        printf("WebSocketHandshaker()\n");
         state = EXPECT_GET_REQUEST;
         ref = 1;
         socket->addRef();
       }
       ~WebSocketHandshaker() {
-        printf("~WebSocketHandshaker()\n");
         reset();
         socket->release();
       }
@@ -1647,7 +1820,7 @@ namespace ScriptInterface {
         if (state == EXPECT_GET_REQUEST) {
           // build up GET request from client:
           if (socket->recv_append(request) == 0) {
-            printf("socket closed!\n");
+            //printf("socket closed!\n");
             reset();
             state = CLOSED;
             socket->close(false);
@@ -1657,7 +1830,7 @@ namespace ScriptInterface {
           auto s = request.size();
           if (s >= 65536) {
             // too big, toss out.
-            printf("request too big!\n");
+            //printf("request too big!\n");
             reset();
             state = EXPECT_GET_REQUEST;
             return nullptr;
@@ -1686,23 +1859,23 @@ namespace ScriptInterface {
 
           // if no lines in request, bail:
           if (request_lines.size() == 0) {
-            printf("missing request line\n");
+            //printf("missing request line\n");
             goto bad_request;
           }
 
           // check first line is like `GET ... HTTP/1.1`:
           line = request_lines[0].split(" ");
           if (line.size() != 3) {
-            printf("invalid request line\n");
+            //printf("invalid request line\n");
             goto bad_request;
           }
           // really want to check if version >= 1.1
           if (line[2] != "HTTP/1.1") {
-            printf("must be HTTP/1.1 request\n");
+            //printf("must be HTTP/1.1 request\n");
             goto bad_request;
           }
           if (line[0] != "GET") {
-            printf("must be GET method\n");
+            //printf("must be GET method\n");
             goto bad_request;
           }
 
@@ -1717,13 +1890,13 @@ namespace ScriptInterface {
               req_host = true;
             } else if (header == "upgrade") {
               if (!value.contains("websocket")) {
-                printf("upgrade header must be websocket\n");
+                //printf("upgrade header must be websocket\n");
                 goto bad_request;
               }
               req_upgrade = true;
             } else if (header == "connection") {
               if (!value.contains("Upgrade")) {
-                printf("connection header must be Upgrade\n");
+                //printf("connection header must be Upgrade\n");
                 goto bad_request;
               }
               req_connection = true;
@@ -1732,16 +1905,18 @@ namespace ScriptInterface {
               // We don't _need_ to do this but it's nice to check:
               auto decoded = base64_decode(ws_key);
               if (decoded.size() != 16) {
+                /*
                 printf("sec-websocket-key header must base64 decode to 16 bytes; '%.*s' decoded to %d bytes\n",
                   ws_key.size(), ws_key.data(),
                   decoded.size()
                 );
+                */
                 goto bad_request;
               }
               req_ws_key = true;
             } else if (header == "sec-websocket-version") {
               if (value != "13") {
-                printf("sec-websocket-version header must be 13\n");
+                //printf("sec-websocket-version header must be 13\n");
                 socket->send_buffer(string("HTTP/1.1 426 Upgrade Required\r\nSec-WebSocket-Version: 13\r\n\r\n"));
                 goto response_sent;
               }
@@ -1751,7 +1926,7 @@ namespace ScriptInterface {
 
           // make sure we have the minimal set of HTTP headers for upgrading to websocket:
           if (!req_host || !req_upgrade || !req_connection || !req_ws_key || !req_ws_version) {
-            printf("missing one or more required websocket upgrade header(s)\n");
+            //printf("missing one or more required websocket upgrade header(s)\n");
             goto bad_request;
           }
 
@@ -1759,7 +1934,7 @@ namespace ScriptInterface {
           goto next_state;
 
         bad_request:
-          printf("bad_request\n");
+          //printf("bad_request\n");
           socket->send_buffer(string("HTTP/1.1 400 Bad Request\r\n\r\n"));
         response_sent:
           reset();
@@ -2333,11 +2508,19 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectMethod("UDPSocket", "int sendto(const array<uint8> &in msg, const string &in host, const int port)", asMETHOD(ScriptInterface::Net::UDPSocket, sendto), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("UDPSocket", "int recv(const array<uint8> &in msg)", asMETHOD(ScriptInterface::Net::UDPSocket, recv), asCALL_THISCALL); assert( r >= 0 );
 
+    r = script.engine->RegisterObjectType("WebSocketMessage", 0, asOBJ_REF); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::WebSocketMessage, addRef), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::WebSocketMessage, release), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocketMessage", "uint8 get_opcode()", asMETHOD(ScriptInterface::Net::WebSocketMessage, get_opcode), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocketMessage", "void set_opcode(uint8 value)", asMETHOD(ScriptInterface::Net::WebSocketMessage, set_opcode), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocketMessage", "string &as_string()", asMETHOD(ScriptInterface::Net::WebSocketMessage, as_string), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocketMessage", "array<uint8> &as_array()", asMETHOD(ScriptInterface::Net::WebSocketMessage, as_array), asCALL_THISCALL); assert( r >= 0 );
+
     r = script.engine->RegisterObjectType("WebSocket", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("WebSocket", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::WebSocket, addRef), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("WebSocket", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::WebSocket, release), asCALL_THISCALL); assert( r >= 0 );
-    r = script.engine->RegisterObjectMethod("WebSocket", "int recv(int offs, int size, array<uint8> &inout buffer)", asMETHOD(ScriptInterface::Net::WebSocket, recv), asCALL_THISCALL); assert( r >= 0 );
-    r = script.engine->RegisterObjectMethod("WebSocket", "int send(int offs, int size, array<uint8> &inout buffer)", asMETHOD(ScriptInterface::Net::WebSocket, send), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocket", "WebSocketMessage@ process()", asMETHOD(ScriptInterface::Net::WebSocket, process), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocket", "bool get_is_valid()", asMETHOD(ScriptInterface::Net::WebSocket, operator bool), asCALL_THISCALL); assert( r >= 0 );
 
     r = script.engine->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF); assert(r >= 0);
     r = script.engine->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_FACTORY, "WebSocketHandshaker@ f(Socket@ socket)", asFUNCTION(ScriptInterface::Net::create_web_socket_handshaker), asCALL_CDECL); assert(r >= 0);
