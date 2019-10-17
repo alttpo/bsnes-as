@@ -817,7 +817,7 @@ namespace ScriptInterface {
           case EAI_SYSTEM: return strEAI_SYSTEM;
           case EAI_OVERFLOW: return strEAI_OVERFLOW;
 #endif
-#if !defined(PLATFORM_WINDOWS)
+#if !defined(PLATFORM_WINDOWS) || !defined(_POSIX_C_SOURCE)
           case EAI_ADDRFAMILY: return strEAI_ADDRFAMILY;
           case EAI_NODATA: return strEAI_NODATA;
           case EAI_BADHINTS: return strEAI_BADHINTS;
