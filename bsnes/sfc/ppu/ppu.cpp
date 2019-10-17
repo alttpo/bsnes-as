@@ -41,7 +41,7 @@ PPU::~PPU() {
 }
 
 auto PPU::synchronizeCPU() -> void {
-  if(clock >= 0 && scheduler.mode != Scheduler::Mode::SynchronizeAll) co_switch(cpu.thread);
+  if(clock >= 0) scheduler.resume(cpu.thread);
 }
 
 auto PPU::step() -> void {
@@ -190,6 +190,8 @@ auto PPU::refresh() -> void {
   if(system.fastPPU()) {
     return ppufast.refresh();
   }
+
+  if(system.runAhead) return;
 
   auto output = this->output;
   auto pitch  = 512;

@@ -246,9 +246,8 @@ auto Interface::synchronize(uint64 timestamp) -> void {
   if(cartridge.has.SharpRTC) sharprtc.synchronize(timestamp);
 }
 
-auto Interface::serialize() -> serializer {
-  system.runToSave();
-  return system.serialize();
+auto Interface::serialize(bool synchronize) -> serializer {
+  return system.serialize(synchronize);
 }
 
 auto Interface::unserialize(serializer& s) -> bool {
@@ -338,7 +337,15 @@ auto Interface::frameSkip() -> uint {
 
 auto Interface::setFrameSkip(uint frameSkip) -> void {
   system.frameSkip = frameSkip;
-  system.frameCounter = 0;
+  system.frameCounter = frameSkip;
+}
+
+auto Interface::runAhead() -> bool {
+  return system.runAhead;
+}
+
+auto Interface::setRunAhead(bool runAhead) -> void {
+  system.runAhead = runAhead;
 }
 
 }

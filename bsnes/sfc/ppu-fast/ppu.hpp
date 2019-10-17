@@ -235,7 +235,7 @@ public:
     uint8 priority = 0;
     uint8 palette = 0;
     bool hflip = 0;
-    uint16 number = 0;
+    uint32 data = 0;
   };
 
   struct Pixel {
@@ -250,7 +250,6 @@ public:
   alwaysinline auto vramAddress() const -> uint;
   alwaysinline auto readVRAM() -> uint16;
   template<bool Byte> alwaysinline auto writeVRAM(uint8 data) -> void;
-  auto updateTiledata(uint address) -> void;
   alwaysinline auto readOAM(uint10 address) -> uint8;
   alwaysinline auto writeOAM(uint10 address, uint8 data) -> void;
   template<bool Byte> alwaysinline auto readCGRAM(uint8 address) -> uint8;
@@ -276,7 +275,6 @@ public:
   //[unserialized]
   uint16* output = {};
   uint16* lightTable[16] = {};
-  uint8* tilecache[3] = {};  //bitplane -> bitmap tiledata
 
   uint ItemLimit = 0;
   uint TileLimit = 0;

@@ -96,6 +96,12 @@ struct Settings : Markup::Node {
     } autoSaveMemory;
     bool autoSaveStateOnUnload = false;
     bool autoLoadStateOnLoad = false;
+    struct Serialization {
+      string method = "Fast";
+    } serialization;
+    struct RunAhead {
+      uint frames = 0;
+    } runAhead;
     struct Hack {
       bool hotfixes = true;
       string entropy = "Low";
@@ -328,6 +334,16 @@ struct EnhancementSettings : VerticalLayout {
   auto create() -> void;
 
 public:
+  Label runAheadLabel{this, Size{~0, 0}, 2};
+  HorizontalLayout runAheadLayout{this, Size{~0, 0}};
+    RadioLabel runAhead0{&runAheadLayout, Size{0, 0}};
+    RadioLabel runAhead1{&runAheadLayout, Size{0, 0}};
+    RadioLabel runAhead2{&runAheadLayout, Size{0, 0}};
+    RadioLabel runAhead3{&runAheadLayout, Size{0, 0}};
+    RadioLabel runAhead4{&runAheadLayout, Size{0, 0}};
+    Group runAheadGroup{&runAhead0, &runAhead1, &runAhead2, &runAhead3, &runAhead4};
+  Canvas runAheadSpacer{this, Size{~0, 1}};
+  //
   Label overclockingLabel{this, Size{~0, 0}, 2};
   TableLayout overclockingLayout{this, Size{~0, 0}};
     Label cpuLabel{&overclockingLayout, Size{0, 0}};
@@ -464,6 +480,14 @@ public:
       ComboButton inputDriverOption{&inputDriverLayout, Size{0, 0}};
       Button inputDriverUpdate{&inputDriverLayout, Size{0, 0}};
       Label inputDriverActive{&inputDriverLayout, Size{0, 0}};
+  Canvas inputSpacer{this, Size{~0, 1}};
+  //
+  Widget spacer{this, Size{~0, ~0}, 0};
+  Label syncModeLabel{this, Size{~0, 0}, 0};
+  Label syncModeRequirements{this, Size{~0, 0}};
+  HorizontalLayout modeLayout{this, Size{~0, 0}};
+    Button adaptiveSyncMode{&modeLayout, Size{0, 0}};
+    Button dynamicRateControlMode{&modeLayout, Size{0, 0}};
 };
 
 struct SettingsWindow : Window, Lock {

@@ -11,24 +11,22 @@ CPU cpu;
 #include "serialization.cpp"
 
 auto CPU::synchronizeSMP() -> void {
-  if(smp.clock < 0) co_switch(smp.thread);
+  if(smp.clock < 0) scheduler.resume(smp.thread);
 }
 
 auto CPU::synchronizePPU() -> void {
-  if(ppu.clock < 0) co_switch(ppu.thread);
+  if(ppu.clock < 0) scheduler.resume(ppu.thread);
 }
 
 auto CPU::synchronizeCoprocessors() -> void {
   for(auto coprocessor : coprocessors) {
-    if(coprocessor->clock < 0) co_switch(coprocessor->thread);
+    if(coprocessor->clock < 0) scheduler.resume(coprocessor->thread);
   }
 }
 
 auto CPU::Enter() -> void {
   while(true) {
-    if(scheduler.mode == Scheduler::Mode::SynchronizeCPU) {
-      scheduler.leave(Scheduler::Event::Synchronize);
-    }
+    scheduler.synchronize();
     cpu.main();
   }
 }
@@ -73,7 +71,7 @@ auto CPU::load() -> bool {
 
 auto CPU::power(bool reset) -> void {
   WDC65816::power();
-  create(Enter, system.cpuFrequency());
+  Thread::create(Enter, system.cpuFrequency());
   coprocessors.reset();
   PPUcounter::reset();
   PPUcounter::scanline = {&CPU::scanline, this};

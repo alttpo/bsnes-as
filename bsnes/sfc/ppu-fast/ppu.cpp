@@ -13,7 +13,6 @@ PPU ppu;
 #include "background.cpp"
 #include "mode7.cpp"
 #include "mode7hd.cpp"
-#include "mode7hd-avx2.cpp"
 #include "object.cpp"
 #include "window.cpp"
 #include "serialization.cpp"
@@ -52,10 +51,6 @@ PPU::PPU() {
     }
   }
 
-  tilecache[TileMode::BPP2] = new uint8_t[4096 * 8 * 8]();
-  tilecache[TileMode::BPP4] = new uint8_t[2048 * 8 * 8]();
-  tilecache[TileMode::BPP8] = new uint8_t[1024 * 8 * 8]();
-
   for(uint y : range(240)) {
     lines[y].y = y;
   }
@@ -64,13 +59,10 @@ PPU::PPU() {
 PPU::~PPU() {
   delete[] output;
   for(uint l : range(16)) delete[] lightTable[l];
-  delete[] tilecache[TileMode::BPP2];
-  delete[] tilecache[TileMode::BPP4];
-  delete[] tilecache[TileMode::BPP8];
 }
 
 auto PPU::synchronizeCPU() -> void {
-  if(ppubase.clock >= 0 && scheduler.mode != Scheduler::Mode::SynchronizeAll) co_switch(cpu.thread);
+  if(ppubase.clock >= 0) scheduler.resume(cpu.thread);
 }
 
 auto PPU::Enter() -> void {
@@ -89,7 +81,7 @@ auto PPU::step(uint clocks) -> void {
 auto PPU::main() -> void {
   scanline();
 
-  if(system.frameCounter == 0) {
+  if(system.frameCounter == 0 && !system.runAhead) {
     uint y = vcounter();
     if(y >= 1 && y <= 239) {
       step(renderCycle());
@@ -120,7 +112,6 @@ auto PPU::scanline() -> void {
   }
 
   if(vcounter() == vdisp()) {
-    if(auto device = controllerPort2.device) device->latch();  //light guns
     if(!io.displayDisable) oamAddressReset();
   }
 
@@ -131,7 +122,7 @@ auto PPU::scanline() -> void {
 }
 
 auto PPU::refresh() -> void {
-  if(system.frameCounter == 0) {
+  if(system.frameCounter == 0 && !system.runAhead) {
     auto output = this->output;
     uint pitch, width, height;
     if(!hd()) {
@@ -168,7 +159,6 @@ auto PPU::refresh() -> void {
     }
 
     if(auto device = controllerPort2.device) device->draw(output, pitch * sizeof(uint16), width, height);
-
     platform->videoFrame(output, pitch * sizeof(uint16), width, height, hd() ? hdScale() : 1);
 
     frame.pitch  = pitch;
@@ -191,10 +181,7 @@ auto PPU::power(bool reset) -> void {
   bus.map(reader, writer, "00-3f,80-bf:2100-213f");
 
   if(!reset) {
-    for(uint address : range(32768)) {
-      vram[address] = 0x0000;
-      updateTiledata(address);
-    }
+    for(auto& word : vram) word = 0x0000;
     for(auto& color : cgram) color = 0x0000;
     for(auto& object : objects) object = {};
   }

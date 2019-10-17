@@ -54,6 +54,23 @@ auto CPU::step() -> void {
     status.dramRefresh = 1; step<6,0>(); status.dramRefresh = 2; step<2,0>(); aluEdge();
   }
 
+  if(!status.hdmaSetupTriggered && hcounter() >= status.hdmaSetupPosition) {
+    status.hdmaSetupTriggered = true;
+    hdmaReset();
+    if(hdmaEnable()) {
+      status.hdmaPending = true;
+      status.hdmaMode = 0;
+    }
+  }
+
+  if(!status.hdmaTriggered && hcounter() >= status.hdmaPosition) {
+    status.hdmaTriggered = true;
+    if(hdmaActive()) {
+      status.hdmaPending = true;
+      status.hdmaMode = 1;
+    }
+  }
+
   if constexpr(Synchronize) {
     if(configuration.hacks.coprocessor.delayedSync) return;
     synchronizeCoprocessors();
@@ -84,6 +101,7 @@ auto CPU::scanline() -> void {
     status.hdmaSetupTriggered = false;
 
     status.autoJoypadCounter = 0;
+    scheduler.leave(Scheduler::Event::StartFrame);
   }
 
   //DRAM refresh occurs once every scanline
@@ -105,6 +123,15 @@ auto CPU::scanline() -> void {
       int clocks = (Region::NTSC() ? 262 : 312) * 1364;
       overclocking.target = clocks * overclock - clocks;
     }
+  }
+
+  //handle video frame events from the CPU core to prevent a race condition between
+  //games polling inputs during NMI and the PPU thread not being 100% synchronized.
+  if(vcounter() == ppu.vdisp()) {
+    if(auto device = controllerPort2.device) device->latch();  //light guns
+    synchronizePPU();
+    if(system.fastPPU()) PPUfast::Line::flush();
+    scheduler.leave(Scheduler::Event::EndFrame);
   }
 }
 
@@ -159,23 +186,6 @@ auto CPU::dmaEdge() -> void {
         step(status.clockCount - counter.dma % status.clockCount);
         status.dmaActive = false;
       }
-    }
-  }
-
-  if(!status.hdmaSetupTriggered && hcounter() >= status.hdmaSetupPosition) {
-    status.hdmaSetupTriggered = true;
-    hdmaReset();
-    if(hdmaEnable()) {
-      status.hdmaPending = true;
-      status.hdmaMode = 0;
-    }
-  }
-
-  if(!status.hdmaTriggered && hcounter() >= status.hdmaPosition) {
-    status.hdmaTriggered = true;
-    if(hdmaActive()) {
-      status.hdmaPending = true;
-      status.hdmaMode = 1;
     }
   }
 

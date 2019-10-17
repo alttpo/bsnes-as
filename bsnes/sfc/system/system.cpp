@@ -12,43 +12,112 @@ Script script;
 auto System::run() -> void {
   scheduler.mode = Scheduler::Mode::Run;
   scheduler.enter();
-  if(scheduler.event == Scheduler::Event::StartFrame) {
-    // [jsd] run AngelScript pre_frame() function if available:
-    if (script.funcs.pre_frame) {
-      script.context->Prepare(script.funcs.pre_frame);
-      script.context->Execute();
-    }
-  } else if(scheduler.event == Scheduler::Event::EndFrame) {
-    ppu.refresh();
-
-    //refresh all cheat codes once per frame
-    Memory::GlobalWriteEnable = true;
-    for(auto& code : cheat.codes) {
-      if(code.enable) {
-        bus.write(code.address, code.data);
-      }
-    }
-    Memory::GlobalWriteEnable = false;
-  }
+  if(scheduler.event == Scheduler::Event::StartFrame) frameStartEvent();
+  if(scheduler.event == Scheduler::Event::EndFrame) frameEvent();
 }
 
 auto System::runToSave() -> void {
-  scheduler.mode = Scheduler::Mode::SynchronizeCPU;
-  while(true) { scheduler.enter(); if(scheduler.event == Scheduler::Event::Synchronize) break; }
+  auto method = configuration.system.serialization.method;
 
-  scheduler.mode = Scheduler::Mode::SynchronizeAll;
-  scheduler.active = smp.thread;
-  while(true) { scheduler.enter(); if(scheduler.event == Scheduler::Event::Synchronize) break; }
+  //these games will periodically deadlock when using "Fast" synchronization
+  if(cartridge.headerTitle() == "Star Ocean") method = "Strict";
+  if(cartridge.headerTitle() == "TALES OF PHANTASIA") method = "Strict";
 
-  scheduler.mode = Scheduler::Mode::SynchronizeAll;
-  scheduler.active = ppu.thread;
-  while(true) { scheduler.enter(); if(scheduler.event == Scheduler::Event::Synchronize) break; }
+  //fallback in case of unrecognized method specified
+  if(method != "Fast" && method != "Strict") method = "Fast";
 
-  for(auto coprocessor : cpu.coprocessors) {
-    scheduler.mode = Scheduler::Mode::SynchronizeAll;
-    scheduler.active = coprocessor->thread;
-    while(true) { scheduler.enter(); if(scheduler.event == Scheduler::Event::Synchronize) break; }
+  scheduler.mode = Scheduler::Mode::Synchronize;
+  if(method == "Fast") runToSaveFast();
+  if(method == "Strict") runToSaveStrict();
+
+  scheduler.mode = Scheduler::Mode::Run;
+  scheduler.active = cpu.thread;
+}
+
+auto System::runToSaveFast() -> void {
+  //run the emulator normally until the CPU thread naturally hits a synchronization point
+  while(true) {
+    scheduler.enter();
+    if(scheduler.event == Scheduler::Event::StartFrame) frameStartEvent();
+    if(scheduler.event == Scheduler::Event::EndFrame) frameEvent();
+    if(scheduler.event == Scheduler::Event::Synchronized) {
+      if(scheduler.active != cpu.thread) continue;
+      break;
+    }
+    if(scheduler.event == Scheduler::Event::Desynchronized) continue;
   }
+
+  //ignore any desynchronization events to force all other threads to their synchronization points
+  auto synchronize = [&](cothread_t thread) -> void {
+    scheduler.active = thread;
+    while(true) {
+      scheduler.enter();
+      if(scheduler.event == Scheduler::Event::StartFrame) frameStartEvent();
+      if(scheduler.event == Scheduler::Event::EndFrame) frameEvent();
+      if(scheduler.event == Scheduler::Event::Synchronized) break;
+      if(scheduler.event == Scheduler::Event::Desynchronized) continue;
+    }
+  };
+
+  synchronize(smp.thread);
+  synchronize(ppu.thread);
+  for(auto coprocessor : cpu.coprocessors) {
+    synchronize(coprocessor->thread);
+  }
+}
+
+auto System::runToSaveStrict() -> void {
+  //run every thread until it cleanly hits a synchronization point
+  //if it fails, start resynchronizing every thread again
+  auto synchronize = [&](cothread_t thread) -> bool {
+    scheduler.active = thread;
+    while(true) {
+      scheduler.enter();
+      if(scheduler.event == Scheduler::Event::StartFrame) frameStartEvent();
+      if(scheduler.event == Scheduler::Event::EndFrame) frameEvent();
+      if(scheduler.event == Scheduler::Event::Synchronized) break;
+      if(scheduler.event == Scheduler::Event::Desynchronized) return false;
+    }
+    return true;
+  };
+
+  while(true) {
+    //SMP thread is synchronized twice to ensure the CPU and SMP are closely aligned:
+    //this is extremely critical for Tales of Phantasia and Star Ocean.
+    if(!synchronize(smp.thread)) continue;
+    if(!synchronize(cpu.thread)) continue;
+    if(!synchronize(smp.thread)) continue;
+    if(!synchronize(ppu.thread)) continue;
+
+    bool synchronized = true;
+    for(auto coprocessor : cpu.coprocessors) {
+      if(!synchronize(coprocessor->thread)) { synchronized = false; break; }
+    }
+    if(!synchronized) continue;
+
+    break;
+  }
+}
+
+auto System::frameStartEvent() -> void {
+  // [jsd] run AngelScript pre_frame() function if available:
+  if (script.funcs.pre_frame) {
+    script.context->Prepare(script.funcs.pre_frame);
+    script.context->Execute();
+  }
+}
+
+auto System::frameEvent() -> void {
+  ppu.refresh();
+
+  //refresh all cheat codes once per frame
+  Memory::GlobalWriteEnable = true;
+  for (auto &code : cheat.codes) {
+    if (code.enable) {
+      bus.write(code.address, code.data);
+    }
+  }
+  Memory::GlobalWriteEnable = false;
 }
 
 auto System::load(Emulator::Interface* interface) -> bool {
@@ -75,7 +144,6 @@ auto System::load(Emulator::Interface* interface) -> bool {
   }
   if(cartridge.has.BSMemorySlot) bsmemory.load();
 
-  serializeInit();
   this->interface = interface;
   return information.loaded = true;
 }
@@ -172,6 +240,9 @@ auto System::power(bool reset) -> void {
   controllerPort1.connect(settings.controllerPort1);
   controllerPort2.connect(settings.controllerPort2);
   expansionPort.connect(settings.expansionPort);
+
+  information.serializeSize[0] = serializeInit(0);
+  information.serializeSize[1] = serializeInit(1);
 }
 
 }

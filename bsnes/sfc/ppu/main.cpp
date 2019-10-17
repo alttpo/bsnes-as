@@ -7,9 +7,6 @@ auto PPU::main() -> void {
     bg3.frame();
     bg4.frame();
     obj.frame();
-
-    // mark the start of a frame:
-    scheduler.leave(Scheduler::Event::StartFrame);
   }
 
   bg1.scanline();
@@ -19,14 +16,6 @@ auto PPU::main() -> void {
   obj.scanline();
   window.scanline();
   screen.scanline();
-
-  if(vcounter() == vdisp()) {
-    if(auto device = controllerPort2.device) device->latch();  //light guns
-  }
-
-  if(vcounter() == 240) {
-    scheduler.leave(Scheduler::Event::EndFrame);
-  }
 
   if(vcounter() > 240) {
     step(hperiod());
@@ -187,7 +176,7 @@ auto PPU::cycleRenderPixel() -> void {
 
 template<uint Cycle>
 auto PPU::cycle() -> void {
-  if constexpr(Cycle >=  0 && Cycle <= 1022 && (Cycle -  0) % 8 == 0) cycleObjectEvaluate();
+  if constexpr(Cycle >=  0 && Cycle <= 1016 && (Cycle -  0) % 8 == 0) cycleObjectEvaluate();
   if constexpr(Cycle >=  0 && Cycle <= 1054 && (Cycle -  0) % 4 == 0) cycleBackgroundFetch<(Cycle - 0) / 4 & 7>();
   if constexpr(Cycle == 56                                          ) cycleBackgroundBegin();
   if constexpr(Cycle >= 56 && Cycle <= 1078 && (Cycle - 56) % 4 == 0) cycleBackgroundBelow();

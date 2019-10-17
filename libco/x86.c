@@ -69,6 +69,10 @@ static void crash() {
   assert(0);  /* called only if cothread_t entrypoint returns */
 }
 
+const char* co_method() {
+  return "x86";
+}
+
 cothread_t co_active() {
   if(!co_active_handle) co_active_handle = &co_active_buffer;
   return co_active_handle;
@@ -83,33 +87,20 @@ cothread_t co_derive(void* memory, unsigned int size, void (*entrypoint)(void)) 
   if(!co_active_handle) co_active_handle = &co_active_buffer;
 
   if(handle = (cothread_t)memory) {
-    long *p = (long*)((char*)handle + size);  /* seek to top of stack */
-    *--p = (long)crash;                       /* crash if entrypoint returns */
-    *--p = (long)entrypoint;                  /* start of function */
-    *(long*)handle = (long)p;                 /* stack pointer */
+    unsigned int offset = (size & ~15) - 32;
+    long *p = (long*)((char*)handle + offset);  /* seek to top of stack */
+    *--p = (long)crash;                         /* crash if entrypoint returns */
+    *--p = (long)entrypoint;                    /* start of function */
+    *(long*)handle = (long)p;                   /* stack pointer */
   }
 
   return handle;
 }
 
 cothread_t co_create(unsigned int size, void (*entrypoint)(void)) {
-  cothread_t handle;
-  if(!co_swap) {
-    co_init();
-    co_swap = (void (fastcall*)(cothread_t, cothread_t))co_swap_function;
-  }
-  if(!co_active_handle) co_active_handle = &co_active_buffer;
-  size += 256;  /* allocate additional space for storage */
-  size &= ~15;  /* align stack to 16-byte boundary */
-
-  if(handle = (cothread_t)malloc(size)) {
-    long *p = (long*)((char*)handle + size);  /* seek to top of stack */
-    *--p = (long)crash;                       /* crash if entrypoint returns */
-    *--p = (long)entrypoint;                  /* start of function */
-    *(long*)handle = (long)p;                 /* stack pointer */
-  }
-
-  return handle;
+  void* memory = malloc(size);
+  if(!memory) return (cothread_t)0;
+  return co_derive(memory, size, entrypoint);
 }
 
 void co_delete(cothread_t handle) {

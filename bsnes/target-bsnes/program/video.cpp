@@ -124,15 +124,30 @@ auto Program::updateVideoEffects() -> void {
 
 auto Program::toggleVideoFullScreen() -> void {
   if(!video.hasFullScreen()) return;
+  if(presentation.fullScreen()) return;
 
   video.clear();
 
   if(!video.fullScreen()) {
     video.setFullScreen(true);
-    if(!input.acquired() && video.exclusive()) input.acquire();
+    if(!input.acquired() && (video.exclusive() || video.hasMonitors().size() == 1)) input.acquire();
   } else {
     if(input.acquired()) input.release();
     video.setFullScreen(false);
     presentation.viewport.setFocused();
+  }
+}
+
+auto Program::toggleVideoPseudoFullScreen() -> void {
+  if(video.fullScreen()) return;
+
+  if(!presentation.fullScreen()) {
+    presentation.setFullScreen(true);
+    presentation.menuBar.setVisible(false);
+    if(!input.acquired() && video.hasMonitors().size() == 1) input.acquire();
+  } else {
+    if(input.acquired()) input.release();
+    presentation.menuBar.setVisible(true);
+    presentation.setFullScreen(false);
   }
 }

@@ -58,7 +58,7 @@ struct Interface : Emulator::Interface {
   auto rtc() -> bool override;
   auto synchronize(uint64 timestamp) -> void override;
 
-  auto serialize() -> serializer override;
+  auto serialize(bool synchronize = true) -> serializer override;
   auto unserialize(serializer&) -> bool override;
 
   auto read(uint24 address) -> uint8 override;
@@ -71,6 +71,9 @@ struct Interface : Emulator::Interface {
 
   auto frameSkip() -> uint override;
   auto setFrameSkip(uint frameSkip) -> void override;
+
+  auto runAhead() -> bool override;
+  auto setRunAhead(bool runAhead) -> void override;
 
   // script-interface.cpp
   auto registerScriptDefs() -> void override;

@@ -98,6 +98,7 @@ struct Program : Lock, Emulator::Platform {
   auto updateVideoPalette() -> void;
   auto updateVideoEffects() -> void;
   auto toggleVideoFullScreen() -> void;
+  auto toggleVideoPseudoFullScreen() -> void;
 
   //audio.cpp
   auto updateAudioDriver(Window parent) -> void;
@@ -208,6 +209,9 @@ public:
     Rewind      = 1 << 4,
   };};
   uint mute = 0;
+
+  bool fastForwarding = false;
+  bool rewinding = false;
 
   // [jsd] add support for AngelScript
   struct Script {

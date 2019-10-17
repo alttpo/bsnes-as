@@ -9,11 +9,14 @@ namespace SuperFamicom {
 HitachiDSP hitachidsp;
 
 auto HitachiDSP::synchronizeCPU() -> void {
-  if(clock >= 0 && scheduler.mode != Scheduler::Mode::SynchronizeAll) co_switch(cpu.thread);
+  if(clock >= 0) scheduler.resume(cpu.thread);
 }
 
 auto HitachiDSP::Enter() -> void {
-  while(true) scheduler.synchronize(), hitachidsp.main();
+  while(true) {
+    scheduler.synchronize();
+    hitachidsp.main();
+  }
 }
 
 auto HitachiDSP::step(uint clocks) -> void {

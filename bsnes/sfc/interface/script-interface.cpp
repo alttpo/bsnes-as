@@ -411,7 +411,7 @@ namespace ScriptInterface {
         for (uint a = 0; a < size; a++) {
           auto word = *p++;
           vram[(addr + a) & 0x7fff] = word;
-          ppufast.updateTiledata((addr + a));
+          // TODO: update cache for ppufast?
         }
       } else {
         auto vram = (uint16 *)ppu.vram.data;

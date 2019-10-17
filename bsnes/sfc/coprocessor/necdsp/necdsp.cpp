@@ -7,11 +7,14 @@ namespace SuperFamicom {
 NECDSP necdsp;
 
 auto NECDSP::synchronizeCPU() -> void {
-  if(clock >= 0 && scheduler.mode != Scheduler::Mode::SynchronizeAll) co_switch(cpu.thread);
+  if(clock >= 0) scheduler.resume(cpu.thread);
 }
 
 auto NECDSP::Enter() -> void {
-  while(true) scheduler.synchronize(), necdsp.main();
+  while(true) {
+    scheduler.synchronize();
+    necdsp.main();
+  }
 }
 
 auto NECDSP::main() -> void {
