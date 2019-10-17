@@ -36,11 +36,19 @@ void pre_frame() {
 
   len = clients.length();
   for (int c = len-1; c >= 0; c--) {
+    // ping each client every 15 seconds:
     if (frame_counter == 60 * 15) {
-      // ping every 15 seconds:
+      frame_counter = 0;
       auto@ ping = net::WebSocketMessage(9);
       clients[c].send(ping);
-      frame_counter = 0;
+      net::throw_if_error();
+    }
+    if ((frame_counter & 255) == 0) {
+      auto@ msg = net::WebSocketMessage(1);
+      msg.payload_as_string = "test from server!";
+      clients[c].send(msg);
+      net::throw_if_error();
+      message("sent test message");
     }
 
     auto@ msg = clients[c].process();
