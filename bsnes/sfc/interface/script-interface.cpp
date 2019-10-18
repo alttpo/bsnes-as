@@ -900,12 +900,14 @@ namespace ScriptInterface {
           {
             last_error_gai = rc;
           }
+          throw_if_error();
         }
       }
 
       ~Address() {
         if (info) {
           ::freeaddrinfo(info);
+          // TODO: error checking?
         }
         info = nullptr;
       }
@@ -941,6 +943,7 @@ namespace ScriptInterface {
         last_error = 0;
         if (fd < 0) {
           last_error = sock_capture_error();
+          throw_if_error();
           return;
         }
 
@@ -953,9 +956,10 @@ namespace ScriptInterface {
         rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
 #endif
         last_error = 0;
-        if (rc == -1) {
+        if (rc < 0) {
           last_error = sock_capture_error();
           close(false);
+          throw_if_error();
           return;
         }
 
@@ -966,9 +970,10 @@ namespace ScriptInterface {
         rc = ioctlsocket(fd, FIONBIO, (u_long *)&yes); last_error_location = LOCATION " ioctlsocket";
 #endif
         last_error = 0;
-        if (rc == -1) {
+        if (rc < 0) {
           last_error = sock_capture_error();
           close(false);
+          throw_if_error();
           return;
         }
       }
@@ -999,8 +1004,9 @@ namespace ScriptInterface {
 #endif
         if (set_last_error) {
           last_error = 0;
-          if (rc == -1) {
+          if (rc < 0) {
             last_error = sock_capture_error();
+            throw_if_error();
           }
         }
 
@@ -1025,8 +1031,9 @@ namespace ScriptInterface {
       auto bind(const Address *addr) -> int {
         int rc = ::bind(fd, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " bind";
         last_error = 0;
-        if (rc == -1) {
+        if (rc < 0) {
           last_error = sock_capture_error();
+          throw_if_error();
         }
         return rc;
       }
@@ -1035,8 +1042,9 @@ namespace ScriptInterface {
       auto listen(int backlog = 32) -> int {
         int rc = ::listen(fd, backlog); last_error_location = LOCATION " listen";
         last_error = 0;
-        if (rc == -1) {
+        if (rc < 0) {
           last_error = sock_capture_error();
+          throw_if_error();
         }
         return rc;
       }
@@ -1050,8 +1058,7 @@ namespace ScriptInterface {
         last_error = 0;
         if (afd < 0) {
           last_error = sock_capture_error();
-          // expected condition; no connections to accept:
-          // if (last_error == EWOULDBLOCK || last_error == EAGAIN) return nullptr;
+          throw_if_error();
           return nullptr;
         }
 
@@ -1068,6 +1075,7 @@ namespace ScriptInterface {
         last_error = 0;
         if (rc == -1) {
           last_error = sock_capture_error();
+          throw_if_error();
         }
         return rc;
       }
@@ -1082,6 +1090,7 @@ namespace ScriptInterface {
         last_error = 0;
         if (rc == -1) {
           last_error = sock_capture_error();
+          throw_if_error();
         }
         return rc;
       }
@@ -1100,6 +1109,7 @@ namespace ScriptInterface {
         last_error = 0;
         if (rc == -1) {
           last_error = sock_capture_error();
+          throw_if_error();
         }
         return rc;
       }
@@ -1114,35 +1124,14 @@ namespace ScriptInterface {
         last_error = 0;
         if (rc == -1) {
           last_error = sock_capture_error();
+          throw_if_error();
         }
         return rc;
       }
 
-      auto recv_append(string &s) -> int {
+      auto recv_append(string &s) -> uint64_t {
         uint8_t rawbuf[4096];
-
-        for (;;) {
-#if !defined(PLATFORM_WINDOWS)
-          int rc = ::recv(fd, rawbuf, 4096, 0); last_error_location = LOCATION " recv";
-#else
-          int rc = ::recv(fd, (char *)rawbuf, 4096, 0); last_error_location = LOCATION " recv";
-#endif
-          last_error = 0;
-          if (rc == -1) {
-            last_error = sock_capture_error();
-          }
-          if (rc <= 0) return rc;
-
-          // append to string:
-          uint64_t to = s.size();
-          s.resize(s.size() + rc);
-          memory::copy(s.get() + to, rawbuf, rc);
-        }
-      }
-
-      auto recv_buffer(vector<uint8_t>& buffer) -> int {
-        uint8_t rawbuf[4096];
-        int total = 0;
+        uint64_t total = 0;
 
         for (;;) {
 #if !defined(PLATFORM_WINDOWS)
@@ -1157,7 +1146,42 @@ namespace ScriptInterface {
               last_error = 0;
               return total;
             }
-            return rc;
+            throw_if_error();
+            return total;
+          }
+          if (rc == 0) {
+            // remote peer closed the connection
+            close();
+            return total;
+          }
+
+          // append to string:
+          uint64_t to = s.size();
+          s.resize(s.size() + rc);
+          memory::copy(s.get() + to, rawbuf, rc);
+          total += rc;
+        }
+      }
+
+      auto recv_buffer(vector<uint8_t>& buffer) -> uint64_t {
+        uint8_t rawbuf[4096];
+        uint64_t total = 0;
+
+        for (;;) {
+#if !defined(PLATFORM_WINDOWS)
+          int rc = ::recv(fd, rawbuf, 4096, 0); last_error_location = LOCATION " recv";
+#else
+          int rc = ::recv(fd, (char *)rawbuf, 4096, 0); last_error_location = LOCATION " recv";
+#endif
+          last_error = 0;
+          if (rc < 0) {
+            last_error = sock_capture_error();
+            if (last_error == EWOULDBLOCK || last_error == EAGAIN) {
+              last_error = 0;
+              return total;
+            }
+            throw_if_error();
+            return total;
           }
           if (rc == 0) {
             close();
@@ -1177,8 +1201,13 @@ namespace ScriptInterface {
         int rc = ::send(fd, (const char *)buffer.data(), buffer.size(), 0); last_error_location = LOCATION " send";
 #endif
         last_error = 0;
-        if (rc == -1) {
+        if (rc == 0) {
+          close();
+          return rc;
+        }
+        if (rc < 0) {
           last_error = sock_capture_error();
+          throw_if_error();
         }
         return rc;
       }
@@ -1638,9 +1667,9 @@ namespace ScriptInterface {
         }
 
         // Receive data and append to current frame:
-        int rc = socket->recv_buffer(frame);
+        auto rc = socket->recv_buffer(frame);
         // No data ready to recv:
-        if (rc <= 0) {
+        if (rc == 0) {
           return nullptr;
         }
 
@@ -1703,7 +1732,9 @@ namespace ScriptInterface {
           }
           //printf("mask_key is %02x%02x%02x%02x\n", mask_key[0], mask_key[1], mask_key[2], mask_key[3]);
         } else {
-          printf("frame is not masked!\n");
+          //printf("frame is not masked!\n");
+          asGetActiveContext()->SetException("WebSocket frame received from client must be masked", true);
+          return nullptr;
         }
 
         // not enough data in frame yet?
@@ -1789,7 +1820,6 @@ namespace ScriptInterface {
         int rc = socket->send_buffer(outframe);
         if (rc == 0) {
           // remote peer closed the connection:
-          socket->close();
           return;
         }
         if (rc < 0) {
@@ -1945,6 +1975,8 @@ namespace ScriptInterface {
         }
 
         if (state == PARSE_GET_REQUEST) {
+          string response = "HTTP/1.1 400 Bad Request\r\n\r\n";
+
           // parse HTTP request:
           vector<string> headers;
           vector<string> line;
@@ -1958,23 +1990,23 @@ namespace ScriptInterface {
 
           // if no lines in request, bail:
           if (request_lines.size() == 0) {
-            //printf("missing request line\n");
+            response = "HTTP/1.1 400 Bad Request\r\n\r\nMissing HTTP request line";
             goto bad_request;
           }
 
           // check first line is like `GET ... HTTP/1.1`:
           line = request_lines[0].split(" ");
           if (line.size() != 3) {
-            //printf("invalid request line\n");
+            response = "HTTP/1.1 400 Bad Request\r\n\r\nInvalid HTTP request line; must be `[method] [resource] HTTP/1.1`";
             goto bad_request;
           }
           // really want to check if version >= 1.1
           if (line[2] != "HTTP/1.1") {
-            //printf("must be HTTP/1.1 request\n");
+            response = "HTTP/1.1 400 Bad Request\r\n\r\nInvalid HTTP request line; must be HTTP/1.1 version";
             goto bad_request;
           }
           if (line[0] != "GET") {
-            //printf("must be GET method\n");
+            response = "HTTP/1.1 405 Method Not Allowed\r\nAllow: GET\r\n\r\n";
             goto bad_request;
           }
 
@@ -1989,13 +2021,13 @@ namespace ScriptInterface {
               req_host = true;
             } else if (header == "upgrade") {
               if (!value.contains("websocket")) {
-                //printf("upgrade header must be websocket\n");
+                response = "HTTP/1.1 400 Bad Request\r\n\r\nUpgrade header must be 'websocket'";
                 goto bad_request;
               }
               req_upgrade = true;
             } else if (header == "connection") {
               if (!value.contains("Upgrade")) {
-                //printf("connection header must be Upgrade\n");
+                response = "HTTP/1.1 400 Bad Request\r\n\r\nConnection header must be 'Upgrade'";
                 goto bad_request;
               }
               req_connection = true;
@@ -2004,19 +2036,13 @@ namespace ScriptInterface {
               // We don't _need_ to do this but it's nice to check:
               auto decoded = base64_decode(ws_key);
               if (decoded.size() != 16) {
-                /*
-                printf("sec-websocket-key header must base64 decode to 16 bytes; '%.*s' decoded to %d bytes\n",
-                  ws_key.size(), ws_key.data(),
-                  decoded.size()
-                );
-                */
+                response = "HTTP/1.1 400 Bad Request\r\n\r\nSec-WebSocket-Key header must base64 decode to 16 bytes";
                 goto bad_request;
               }
               req_ws_key = true;
             } else if (header == "sec-websocket-version") {
               if (value != "13") {
-                //printf("sec-websocket-version header must be 13\n");
-                socket->send_buffer(string("HTTP/1.1 426 Upgrade Required\r\nSec-WebSocket-Version: 13\r\n\r\n"));
+                response = "HTTP/1.1 426 Upgrade Required\r\nSec-WebSocket-Version: 13\r\n\r\nSec-WebSocket-Version header must be '13'";
                 goto response_sent;
               }
               req_ws_version = true;
@@ -2025,7 +2051,18 @@ namespace ScriptInterface {
 
           // make sure we have the minimal set of HTTP headers for upgrading to websocket:
           if (!req_host || !req_upgrade || !req_connection || !req_ws_key || !req_ws_version) {
-            //printf("missing one or more required websocket upgrade header(s)\n");
+            vector<string> missing;
+            if (!req_host) missing.append("Host");
+            if (!req_upgrade) missing.append("Upgrade");
+            if (!req_connection) missing.append("Connection");
+            if (!req_ws_key) missing.append("Sec-WebSocket-Key");
+            if (!req_ws_version) missing.append("Sec-WebSocket-Version");
+            response = string{
+              string("HTTP/1.1 426 Upgrade Required\r\n"
+                     "Sec-WebSocket-Version: 13\r\n\r\n"
+                     "Missing one or more required HTTP headers for WebSocket upgrade: "),
+              missing.merge(", ")
+            };
             goto bad_request;
           }
 
@@ -2033,8 +2070,7 @@ namespace ScriptInterface {
           goto next_state;
 
         bad_request:
-          //printf("bad_request\n");
-          socket->send_buffer(string("HTTP/1.1 400 Bad Request\r\n\r\n"));
+          socket->send_buffer(response);
         response_sent:
           reset();
           state = EXPECT_GET_REQUEST;

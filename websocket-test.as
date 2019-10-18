@@ -5,13 +5,9 @@ net::Socket@ server;
 
 void init() {
   auto@ addr = net::resolve_tcp("", 4590);
-  net::throw_if_error();
   @server = net::Socket(addr);
-  net::throw_if_error();
   server.bind(addr);
-  net::throw_if_error();
   server.listen(32);
-  net::throw_if_error();
 }
 
 int frame_counter = 0;
@@ -27,7 +23,6 @@ void pre_frame() {
   auto len = handshakes.length();
   for (int c = len-1; c >= 0; c--) {
     auto@ ws = handshakes[c].handshake();
-    net::throw_if_error();
     if (@ws != null) {
       handshakes.removeAt(c);
       clients.insertLast(ws);
@@ -41,18 +36,15 @@ void pre_frame() {
       frame_counter = 0;
       auto@ ping = net::WebSocketMessage(9);
       clients[c].send(ping);
-      net::throw_if_error();
     }
     if ((frame_counter & 255) == 0) {
       auto@ msg = net::WebSocketMessage(1);
       msg.payload_as_string = "test from server!";
       clients[c].send(msg);
-      net::throw_if_error();
       message("sent test message");
     }
 
     auto@ msg = clients[c].process();
-    net::throw_if_error();
     if (!clients[c].is_valid) {
       // socket closed:
       message("socket closed by remote peer");
