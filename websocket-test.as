@@ -1,13 +1,9 @@
 // Simple test for net namespace
 array<net::WebSocketHandshaker@> handshakes;
-array<net::WebSocket@> clients;
-net::Socket@ server;
+net::WebSocketServer@ wsServer;
 
 void init() {
-  auto@ addr = net::resolve_tcp("", 4590);
-  @server = net::Socket(addr);
-  server.bind(addr);
-  server.listen(32);
+  @wsServer = net::WebSocketServer("ws://localhost:4590/alttp");
 }
 
 int frame_counter = 0;
@@ -15,21 +11,10 @@ int frame_counter = 0;
 void pre_frame() {
   frame_counter++;
 
-  auto@ accepted = server.accept();
-  if (@accepted != null) {
-    handshakes.insertLast(net::WebSocketHandshaker(accepted));
-  }
+  wsServer.process();
 
-  auto len = handshakes.length();
-  for (int c = len-1; c >= 0; c--) {
-    auto@ ws = handshakes[c].handshake();
-    if (@ws != null) {
-      handshakes.removeAt(c);
-      clients.insertLast(ws);
-    }
-  }
-
-  len = clients.length();
+  auto clients = wsServer.clients;
+  auto len = clients.length();
   for (int c = len-1; c >= 0; c--) {
     // ping each client every 15 seconds:
     if (frame_counter == 60 * 15) {

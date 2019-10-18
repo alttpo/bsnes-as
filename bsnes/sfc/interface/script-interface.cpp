@@ -2192,6 +2192,16 @@ namespace ScriptInterface {
         // create `array<WebSocket@>` for clients:
         clients = CScriptArray::Create(typeInfo);
         valid = true;
+        ref = 1;
+      }
+
+      int ref;
+      void addRef() {
+        ref++;
+      }
+      void release() {
+        if (--ref == 0)
+          delete this;
       }
 
       operator bool() { return valid; }
@@ -2211,13 +2221,15 @@ namespace ScriptInterface {
         // handle requests for each open connection:
         for (auto it = handshakers.rbegin(); it != handshakers.rend(); ++it) {
           // if socket closed, remove it:
-          if (*(*it)) {
+          if (!*(*it)) {
             handshakers.removeByIndex(it.offset());
             continue;
           }
 
           // advance the websocket handshake / upgrade process from HTTP requests to WebSockets:
           WebSocket* ws = nullptr;
+          // TODO: accept only resource path
+          // TODO: if allowing multiple resources, need a shared instance per host:port
           if ((ws = (*it)->handshake()) != nullptr) {
             clients->InsertLast(&ws);
             handshakers.removeByIndex(it.offset());
@@ -2230,6 +2242,10 @@ namespace ScriptInterface {
 
       auto get_clients() -> CScriptArray* { return clients; }
     };
+
+    auto create_web_socket_server(string *uri) -> WebSocketServer* {
+      return new WebSocketServer(*uri);
+    }
   }
 
   struct GUI {
@@ -2788,7 +2804,14 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, addRef), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("WebSocketHandshaker", "Socket@ get_socket()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, get_socket), asCALL_THISCALL); assert( r >= 0 );
-    r = script.engine->RegisterObjectMethod("WebSocketHandshaker", "WebSocket@ handshake()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, handshake), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocketHandshaker", "WebSocket@ handshake()", asMETHOD(ScriptInterface::Net::WebSocketHandshaker, handshake), asCALL_THISCALL); assert( r >= 0 );    r = script.engine->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF); assert(r >= 0);
+
+    r = script.engine->RegisterObjectType("WebSocketServer", 0, asOBJ_REF); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_FACTORY, "WebSocketServer@ f(string &in uri)", asFUNCTION(ScriptInterface::Net::create_web_socket_server), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_ADDREF, "void f()", asMETHOD(ScriptInterface::Net::WebSocketServer, addRef), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::Net::WebSocketServer, release), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocketServer", "array<WebSocket@> &get_clients()", asMETHOD(ScriptInterface::Net::WebSocketServer, get_clients), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("WebSocketServer", "int process()", asMETHOD(ScriptInterface::Net::WebSocketServer, process), asCALL_THISCALL); assert( r >= 0 );
   }
 
   // UI
