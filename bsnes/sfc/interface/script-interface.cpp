@@ -1013,7 +1013,7 @@ namespace ScriptInterface {
         fd = -1;
       }
 
-      explicit operator bool() { return fd >= 0; }
+      operator bool() { return fd >= 0; }
 
       // indicates data is ready to be read:
       bool ready_in = false;
@@ -1653,14 +1653,14 @@ namespace ScriptInterface {
           delete this;
       }
 
-      operator bool() { return (bool)*socket; }
+      operator bool() { return *socket; }
 
       vector<uint8_t> frame;
       WebSocketMessage *message = nullptr;
 
       // attempt to receive data:
       auto process() -> WebSocketMessage* {
-        if (!(bool)*socket) {
+        if (!*socket) {
           // TODO: throw exception if socket closed?
           //printf("invalid socket!\n");
           return nullptr;
@@ -1870,6 +1870,8 @@ namespace ScriptInterface {
         if (--ref == 0)
           delete this;
       }
+
+      operator bool() { return *socket; }
 
       auto get_socket() -> Socket* {
         return socket;
@@ -2108,6 +2110,126 @@ namespace ScriptInterface {
     static WebSocketHandshaker *create_web_socket_handshaker(Socket* socket) {
       return new WebSocketHandshaker(socket);
     }
+
+    struct WebSocketServer {
+      Socket* socket;
+      string host;
+      int port;
+      string resource;
+
+      bool valid;
+
+      WebSocketServer(string uri) {
+        valid = false;
+
+        // make sure we have a script context:
+        asIScriptContext *ctx = asGetActiveContext();
+        if (!ctx) {
+          printf("WebSocketServer requires a current script context\n");
+          return;
+        }
+        asIScriptEngine* engine = ctx->GetEngine();
+        if (!engine) {
+          printf("WebSocketServer requires a current script engine instance\n");
+          return;
+        }
+        asITypeInfo* typeInfo = engine->GetTypeInfoByDecl("array<net::WebSocket@>");
+        if (!typeInfo) {
+          printf("WebSocketServer could not find script TypeInfo for `array<net::WebSocket@>`\n");
+          return;
+        }
+
+        // use a default uri:
+        if (!uri) uri = "ws://localhost:8080";
+
+        // Split the absolute URI `ws://host:port/path.../path...` into `ws:` and `host:port/path.../path...`
+        auto scheme_rest = uri.split("//", 1);
+        if (scheme_rest.size() == 0) {
+          asGetActiveContext()->SetException("uri must be an absolute URI");
+          return;
+        }
+        string scheme = scheme_rest[0];
+        if (scheme != "ws:") {
+          asGetActiveContext()->SetException("uri scheme must be `ws:`");
+          return;
+        }
+
+        // Split the remaining `host:port/path.../path...` by the first '/':
+        auto rest = scheme_rest[1];
+        auto host_port_path = rest.split("/", 1);
+        if (host_port_path.size() == 0) host_port_path.append(rest);
+
+        // TODO: accommodate IPv6 addresses (e.g. `[::1]`)
+        host = host_port_path[0];
+        auto host_port = host_port_path[0].split(":");
+        if (host_port.size() == 2) {
+          host = host_port[0];
+          port = host_port[1].integer();
+        } else {
+          port = 80;
+        }
+
+        resource = "/";
+        if (host_port_path.size() == 2) {
+          resource = string{"/", host_port_path[1]};
+        }
+
+        // resolve listening address:
+        auto addr = resolve_tcp(&host, port);
+        if (!*addr) {
+          delete addr;
+          return;
+        }
+
+        // create listening socket to accept TCP connections on:
+        socket = create_socket(addr);
+        if (!*socket) return;
+
+        // start listening for connections:
+        if (socket->bind(addr) < 0) return;
+        if (socket->listen(32) < 0) return;
+
+        // create `array<WebSocket@>` for clients:
+        clients = CScriptArray::Create(typeInfo);
+        valid = true;
+      }
+
+      operator bool() { return valid; }
+
+      vector<WebSocketHandshaker*> handshakers;
+      CScriptArray* clients;
+
+      auto process() -> int {
+        int count = 0;
+
+        // accept new connections:
+        Socket* accepted = nullptr;
+        while ((accepted = socket->accept()) != nullptr) {
+          handshakers.append(new WebSocketHandshaker(accepted));
+        }
+
+        // handle requests for each open connection:
+        for (auto it = handshakers.rbegin(); it != handshakers.rend(); ++it) {
+          // if socket closed, remove it:
+          if (*(*it)) {
+            handshakers.removeByIndex(it.offset());
+            continue;
+          }
+
+          // advance the websocket handshake / upgrade process from HTTP requests to WebSockets:
+          WebSocket* ws = nullptr;
+          if ((ws = (*it)->handshake()) != nullptr) {
+            clients->InsertLast(&ws);
+            handshakers.removeByIndex(it.offset());
+            count++;
+          }
+        }
+
+        return count;
+      }
+
+      auto get_clients() -> CScriptArray* { return clients; }
+    };
   }
 
   struct GUI {
