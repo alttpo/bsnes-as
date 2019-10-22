@@ -1,5 +1,4 @@
 // Simple test for net namespace
-array<net::WebSocketHandshaker@> handshakes;
 net::WebSocketServer@ wsServer;
 
 void init() {
