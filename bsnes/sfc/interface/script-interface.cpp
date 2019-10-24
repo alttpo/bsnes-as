@@ -1677,7 +1677,7 @@ namespace ScriptInterface {
       auto process() -> WebSocketMessage* {
         if (!*socket) {
           // TODO: throw exception if socket closed?
-          //printf("invalid socket!\n");
+          printf("[%d] invalid socket!\n", socket->fd);
           return nullptr;
         }
 
@@ -1685,13 +1685,14 @@ namespace ScriptInterface {
         auto rc = socket->recv_buffer(frame);
         // No data ready to recv:
         if (rc == 0) {
+          printf("[%d] no data\n", socket->fd);
           return nullptr;
         }
 
         // check start of frame:
         uint minsize = 2;
         if (frame.size() < minsize) {
-          //printf("frame too small (%d) to read opcode and payload length bytes (%d)\n", frame.size(), minsize);
+          printf("[%d] frame too small (%d) to read opcode and payload length bytes (%d)\n", socket->fd, frame.size(), minsize);
           return nullptr;
         }
 
@@ -1712,7 +1713,7 @@ namespace ScriptInterface {
 
         // need more data?
         if (frame.size() < minsize) {
-          //printf("frame too small (%d) to read additional payload length bytes (%d)\n", frame.size(), minsize);
+          printf("[%d] frame too small (%d) to read additional payload length bytes (%d)\n", socket->fd, frame.size(), minsize);
           return nullptr;
         }
 
@@ -1737,7 +1738,7 @@ namespace ScriptInterface {
         if (mask) {
           minsize += 4;
           if (frame.size() < minsize) {
-            //printf("frame too small (%d) to read mask key bytes (%d)\n", frame.size(), minsize);
+            printf("[%d] frame too small (%d) to read mask key bytes (%d)\n", socket->fd, frame.size(), minsize);
             return nullptr;
           }
 
@@ -1754,7 +1755,7 @@ namespace ScriptInterface {
 
         // not enough data in frame yet?
         if (frame.size() - i < len) {
-          //printf("frame too small (%d) to read full payload (%d)\n", frame.size(), i + len);
+          printf("[%d] frame too small (%d) to read full payload (%d)\n", socket->fd, frame.size(), i + len);
           return nullptr;
         }
 
@@ -1785,12 +1786,12 @@ namespace ScriptInterface {
 
         // if no FIN flag set, wait for more frames:
         if (!fin) {
-          //printf("FIN not set\n");
+          printf("[%d] FIN not set\n", socket->fd);
           return nullptr;
         }
 
         // return final message:
-        //printf("FIN set\n");
+        printf("[%d] FIN set; returning message\n", socket->fd);
         auto tmp = message;
         message = nullptr;
         return tmp;
@@ -1839,11 +1840,11 @@ namespace ScriptInterface {
         }
         if (rc < 0) {
           // TODO: maintain sending state machine
-          printf("send() error!\n");
+          printf("[%d] send() error!\n", socket->fd);
           return;
         }
         if (rc < outframe.size()) {
-          printf("send() failed to send entire frame!\n");
+          printf("[%d] send() failed to send entire frame!\n", socket->fd);
           return;
         }
       }
