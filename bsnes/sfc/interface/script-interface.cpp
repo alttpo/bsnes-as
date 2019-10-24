@@ -2127,7 +2127,7 @@ namespace ScriptInterface {
     }
 
     struct WebSocketServer {
-      Socket* socket;
+      Socket* socket = nullptr;
       string host;
       int port;
       string resource;
@@ -2135,6 +2135,7 @@ namespace ScriptInterface {
       bool valid;
 
       WebSocketServer(string uri) {
+        ref = 1;
         valid = false;
 
         // make sure we have a script context:
@@ -2207,7 +2208,9 @@ namespace ScriptInterface {
         // create `array<WebSocket@>` for clients:
         clients = CScriptArray::Create(typeInfo);
         valid = true;
-        ref = 1;
+      }
+      ~WebSocketServer() {
+        if (socket) delete socket;
       }
 
       int ref;
