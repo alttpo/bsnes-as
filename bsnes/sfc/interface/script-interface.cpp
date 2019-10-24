@@ -6,6 +6,7 @@
   #include <sys/socket.h>
   #include <sys/ioctl.h>
   #include <netinet/in.h>
+  #include <netinet/tcp.h>
   #include <netdb.h>
   #define SEND_BUF_CAST(t) ((const void *)(t))
   #define RECV_BUF_CAST(t) ((void *)(t))
@@ -954,6 +955,20 @@ namespace ScriptInterface {
         rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
 #else
         rc = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
+#endif
+        last_error = 0;
+        if (rc < 0) {
+          last_error = sock_capture_error();
+          close(false);
+          throw_if_error();
+          return;
+        }
+
+        // enable TCP_NODELAY:
+#if !defined(PLATFORM_WINDOWS)
+        rc = ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
+#else
+        rc = ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
 #endif
         last_error = 0;
         if (rc < 0) {
