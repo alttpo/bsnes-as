@@ -964,18 +964,21 @@ namespace ScriptInterface {
           return;
         }
 
-        // enable TCP_NODELAY:
+        // enable TCP_NODELAY for SOCK_STREAM type sockets:
+        if (type == SOCK_STREAM) {
+        //if (true) {
 #if !defined(PLATFORM_WINDOWS)
-        rc = ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
+          rc = ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
 #else
-        rc = ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
+          rc = ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&yes, sizeof(int)); last_error_location = LOCATION " setsockopt";
 #endif
-        last_error = 0;
-        if (rc < 0) {
-          last_error = sock_capture_error();
-          close(false);
-          throw_if_error();
-          return;
+          last_error = 0;
+          if (rc < 0) {
+            last_error = sock_capture_error();
+            close(false);
+            throw_if_error();
+            return;
+          }
         }
 
         // set non-blocking:
