@@ -944,11 +944,21 @@ namespace ScriptInterface {
     };
 
     static auto resolve_tcp(const string *host, int port) -> Address* {
-      return new Address(host, port, AF_INET, SOCK_STREAM);
+      auto addr = new Address(host, port, AF_INET, SOCK_STREAM);
+      if (!*addr) {
+        delete addr;
+        return nullptr;
+      }
+      return addr;
     }
 
     static auto resolve_udp(const string *host, int port) -> Address* {
-      return new Address(host, port, AF_INET, SOCK_DGRAM);
+      auto addr = new Address(host, port, AF_INET, SOCK_DGRAM);
+      if (!*addr) {
+        delete addr;
+        return nullptr;
+      }
+      return addr;
     }
 
     struct Socket {
@@ -1107,7 +1117,13 @@ namespace ScriptInterface {
           return nullptr;
         }
 
-        return new Socket(afd);
+        auto conn = new Socket(afd);
+        if (!*conn) {
+          delete conn;
+          return nullptr;
+        }
+
+        return conn;
       }
 
       // attempt to receive data:
@@ -1259,7 +1275,12 @@ namespace ScriptInterface {
     };
 
     static auto create_socket(Address *addr) -> Socket* {
-      return new Socket(addr->info->ai_family, addr->info->ai_socktype, addr->info->ai_protocol);
+      auto socket = new Socket(addr->info->ai_family, addr->info->ai_socktype, addr->info->ai_protocol);
+      if (!*socket) {
+        delete socket;
+        return nullptr;
+      }
+      return socket;
     }
 
 #if 0
@@ -2241,7 +2262,11 @@ namespace ScriptInterface {
         valid = true;
       }
       ~WebSocketServer() {
-        if (socket) delete socket;
+        if (socket) {
+          delete socket;
+          socket = nullptr;
+        }
+        valid = false;
       }
 
       int ref;
@@ -2293,7 +2318,12 @@ namespace ScriptInterface {
     };
 
     auto create_web_socket_server(string *uri) -> WebSocketServer* {
-      return new WebSocketServer(*uri);
+      auto server = new WebSocketServer(*uri);
+      if (!*server) {
+        delete server;
+        return nullptr;
+      }
+      return server;
     }
   }
 
