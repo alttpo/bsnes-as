@@ -103,9 +103,9 @@ auto Interface::registerScriptString() -> void {
   r = script.engine->RegisterStringFactory("string", stringFactorySingleton());
 
   // Register the object operator overloads
-  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f()",                    asFUNCTION(stringConstruct), asCALL_CDECL_OBJLAST); assert(r >= 0);
-  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f(const string &in)",    asFUNCTION(stringCopyConstruct), asCALL_CDECL_OBJLAST); assert(r >= 0);
-  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_DESTRUCT,   "void f()",                    asFUNCTION(stringDestruct),  asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f()",                       asFUNCTION(stringConstruct), asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f(const string &in)",       asFUNCTION(stringCopyConstruct), asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_DESTRUCT,   "void f()",                       asFUNCTION(stringDestruct),  asCALL_CDECL_OBJLAST); assert(r >= 0);
 
   r = script.engine->RegisterObjectMethod("string", "string &opAssign(const string &in)", asMETHODPR(string, operator =, (const string&), string&), asCALL_THISCALL); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("string", "string &opAddAssign(const string &in)", asFUNCTION(stringAddAssign), asCALL_CDECL_OBJLAST); assert( r >= 0 );

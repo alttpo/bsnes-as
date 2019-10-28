@@ -98,6 +98,20 @@ namespace ScriptInterface {
     platform->scriptMessage(msg);
   }
 
+  static auto array_to_string(CScriptArray *array, uint offs, uint size) -> string* {
+    // avoid index out of range exception:
+    if (array->GetSize() <= offs) return new string();
+    if (array->GetSize() < offs + size) return new string();
+
+    // append bytes from array:
+    auto appended = new string();
+    appended->resize(size);
+    for (auto i : range(size)) {
+      appended->get()[i] = *(const char *)(array->At(offs + i));
+    }
+    return appended;
+  }
+
   static void uint8_array_append_uint16(CScriptArray *array, const uint16 *value) {
     if (array->GetElementTypeId() != asTYPEID_UINT8) {
       array->InsertLast((void *)value);
@@ -2627,6 +2641,8 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint32), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const string &in other)", asFUNCTION(ScriptInterface::uint8_array_append_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const ? &in other)", asFUNCTION(ScriptInterface::uint8_array_append_array), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+  r = script.engine->RegisterObjectMethod("array<T>", "string &toString(uint offs, uint size) const", asFUNCTION(ScriptInterface::array_to_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   // global function to write debug messages:
   r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(ScriptInterface::message), asCALL_CDECL); assert(r >= 0);
