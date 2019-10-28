@@ -120,6 +120,19 @@ namespace ScriptInterface {
     array->InsertLast((void *)&((const uint8 *)value)[3]);
   }
 
+  static void uint8_array_append_string(CScriptArray *array, string *other) {
+    if (array->GetElementTypeId() != asTYPEID_UINT8) {
+      return;
+    }
+    if (other == nullptr) {
+      return;
+    }
+
+    for (auto& c : *other) {
+      array->InsertLast((void *)&c);
+    }
+  }
+
   static void uint8_array_append_array(CScriptArray *array, CScriptArray *other) {
     if (array->GetElementTypeId() != asTYPEID_UINT8) {
       array->InsertAt(array->GetSize(), *other);
@@ -2603,15 +2616,17 @@ auto Interface::registerScriptDefs() -> void {
   // register global functions for the script to use:
   auto defaultNamespace = script.engine->GetDefaultNamespace();
 
-  // Register script-array extension:
+  // register array type:
   RegisterScriptArray(script.engine, true /* bool defaultArrayType */);
-
-  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const uint16 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint16), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint32), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const ? &in other)", asFUNCTION(ScriptInterface::uint8_array_append_array), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   // register string type:
   registerScriptString();
+
+  // additional array functions for serialization purposes:
+  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const uint16 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint16), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint32), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const string &in other)", asFUNCTION(ScriptInterface::uint8_array_append_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const ? &in other)", asFUNCTION(ScriptInterface::uint8_array_append_array), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   // global function to write debug messages:
   r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(ScriptInterface::message), asCALL_CDECL); assert(r >= 0);
