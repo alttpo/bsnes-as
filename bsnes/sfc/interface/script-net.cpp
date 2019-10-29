@@ -61,17 +61,19 @@ namespace Net {
     //}
 #else
     switch (last_error) {
-        case WSAEWOULDBLOCK: return strEWOULDBLOCK;
-      }
+      case WSAEWOULDBLOCK: return strEWOULDBLOCK;
+    }
 #endif
     return strUnknown;
   }
 
   static auto get_error_text() -> const string* {
-    return new string(sock_error_string(last_error));
+    auto s = new string(sock_error_string(last_error));
+    s->trimRight("\r\n ");
+    return s;
   }
 
-  static auto throw_if_error() -> bool {
+  static auto exception_thrown() -> bool {
     if (last_error_gai) {
       // throw script exception:
       asGetActiveContext()->SetException(string{last_error_location, ": ", gai_strerror(last_error_gai)}, true);
@@ -80,15 +82,20 @@ namespace Net {
     }
     if (last_error == 0) return false;
 
+#if !defined(PLATFORM_WINDOWS)
     // Don't throw exception for EWOULDBLOCK:
     if (last_error == EWOULDBLOCK || last_error == EAGAIN) {
+#else
+      // Don't throw exception for WSAEWOULDBLOCK:
+    if (last_error == WSAEWOULDBLOCK) {
+#endif
       last_error = 0;
       last_error_location = "((FIXME: no location!))";
       return false;
     }
 
     // throw script exception:
-    asGetActiveContext()->SetException(string{last_error_location, ": ", sock_error_string(last_error)}, true);
+    asGetActiveContext()->SetException(string{last_error_location, "; err=", last_error, ", code=", get_error_code(), ": ", *get_error_text()}, true);
     last_error = 0;
     last_error_location = "((FIXME: no location!))";
     return true;
@@ -128,7 +135,7 @@ namespace Net {
         {
           last_error_gai = rc;
         }
-        throw_if_error();
+        exception_thrown();
       }
     }
 
@@ -181,7 +188,7 @@ namespace Net {
       last_error = 0;
       if (fd < 0) {
         last_error = sock_capture_error();
-        throw_if_error();
+        exception_thrown();
         return;
       }
 
@@ -197,7 +204,7 @@ namespace Net {
       if (rc < 0) {
         last_error = sock_capture_error();
         close(false);
-        throw_if_error();
+        exception_thrown();
         return;
       }
 
@@ -213,7 +220,7 @@ namespace Net {
         if (rc < 0) {
           last_error = sock_capture_error();
           close(false);
-          throw_if_error();
+          exception_thrown();
           return;
         }
       }
@@ -228,7 +235,7 @@ namespace Net {
       if (rc < 0) {
         last_error = sock_capture_error();
         close(false);
-        throw_if_error();
+        exception_thrown();
         return;
       }
     }
@@ -261,7 +268,7 @@ namespace Net {
         last_error = 0;
         if (rc < 0) {
           last_error = sock_capture_error();
-          throw_if_error();
+          exception_thrown();
         }
       }
 
@@ -288,7 +295,7 @@ namespace Net {
       last_error = 0;
       if (rc < 0) {
         last_error = sock_capture_error();
-        throw_if_error();
+        exception_thrown();
       }
       return rc;
     }
@@ -299,7 +306,7 @@ namespace Net {
       last_error = 0;
       if (rc < 0) {
         last_error = sock_capture_error();
-        throw_if_error();
+        exception_thrown();
       }
       return rc;
     }
@@ -310,7 +317,7 @@ namespace Net {
       last_error = 0;
       if (rc < 0) {
         last_error = sock_capture_error();
-        throw_if_error();
+        exception_thrown();
       }
       return rc;
     }
@@ -324,7 +331,7 @@ namespace Net {
       last_error = 0;
       if (afd < 0) {
         last_error = sock_capture_error();
-        throw_if_error();
+        exception_thrown();
         return nullptr;
       }
 
@@ -347,7 +354,7 @@ namespace Net {
       last_error = 0;
       if (rc == -1) {
         last_error = sock_capture_error();
-        throw_if_error();
+        exception_thrown();
       }
       return rc;
     }
@@ -362,7 +369,7 @@ namespace Net {
       last_error = 0;
       if (rc == -1) {
         last_error = sock_capture_error();
-        throw_if_error();
+        exception_thrown();
       }
       return rc;
     }
@@ -381,7 +388,7 @@ namespace Net {
       last_error = 0;
       if (rc == -1) {
         last_error = sock_capture_error();
-        throw_if_error();
+        exception_thrown();
       }
       return rc;
     }
@@ -396,7 +403,7 @@ namespace Net {
       last_error = 0;
       if (rc == -1) {
         last_error = sock_capture_error();
-        throw_if_error();
+        exception_thrown();
       }
       return rc;
     }
@@ -414,11 +421,7 @@ namespace Net {
         last_error = 0;
         if (rc < 0) {
           last_error = sock_capture_error();
-          if (last_error == EWOULDBLOCK || last_error == EAGAIN) {
-            last_error = 0;
-            return total;
-          }
-          throw_if_error();
+          exception_thrown();
           return total;
         }
         if (rc == 0) {
@@ -448,11 +451,7 @@ namespace Net {
         last_error = 0;
         if (rc < 0) {
           last_error = sock_capture_error();
-          if (last_error == EWOULDBLOCK || last_error == EAGAIN) {
-            last_error = 0;
-            return total;
-          }
-          throw_if_error();
+          exception_thrown();
           return total;
         }
         if (rc == 0) {
@@ -479,7 +478,7 @@ namespace Net {
       }
       if (rc < 0) {
         last_error = sock_capture_error();
-        throw_if_error();
+        exception_thrown();
       }
       return rc;
     }

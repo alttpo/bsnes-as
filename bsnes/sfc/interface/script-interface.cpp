@@ -359,7 +359,8 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterGlobalFunction("string get_is_error()", asFUNCTION(ScriptInterface::Net::get_is_error), asCALL_CDECL); assert( r >= 0 );
     r = script.engine->RegisterGlobalFunction("string get_error_code()", asFUNCTION(ScriptInterface::Net::get_error_code), asCALL_CDECL); assert( r >= 0 );
     r = script.engine->RegisterGlobalFunction("string get_error_text()", asFUNCTION(ScriptInterface::Net::get_error_text), asCALL_CDECL); assert( r >= 0 );
-    r = script.engine->RegisterGlobalFunction("bool throw_if_error()", asFUNCTION(ScriptInterface::Net::throw_if_error), asCALL_CDECL); assert( r >= 0 );
+    r = script.engine->RegisterGlobalFunction("bool throw_if_error()",
+                                              asFUNCTION(ScriptInterface::Net::exception_thrown), asCALL_CDECL); assert(r >= 0 );
 
     // Address type:
     r = script.engine->RegisterObjectType("Address", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
