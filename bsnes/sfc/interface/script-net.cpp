@@ -293,6 +293,17 @@ namespace Net {
       return rc;
     }
 
+    // connect to an address:
+    auto connect(const Address *addr) -> int {
+      int rc = ::connect(fd, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " connect";
+      last_error = 0;
+      if (rc < 0) {
+        last_error = sock_capture_error();
+        throw_if_error();
+      }
+      return rc;
+    }
+
     // start listening for connections:
     auto listen(int backlog = 32) -> int {
       int rc = ::listen(fd, backlog); last_error_location = LOCATION " listen";
