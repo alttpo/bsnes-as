@@ -5,15 +5,19 @@ auto Program::scriptEngine() -> asIScriptEngine * {
   return script.engine;
 }
 
-auto Program::scriptMessage(const string *msg) -> void {
-#if 1
-  script.console.append(*msg);
+auto Program::scriptMessage(const string& msg, bool alert) -> void {
+  // append to stdout:
+  printf("%.*s\n", msg.size(), msg.data());
+
+  // append to script console:
+  script.console.append(msg);
   script.console.append("\n");
   scriptConsole.update();
-#else
-  printf("script: %.*s\n", msg->size(), msg->data());
-  showMessage({"script: ", *msg});
-#endif
+
+  // alert in status bar:
+  if (alert) {
+    showMessage({"[scr] ", msg});
+  }
 }
 
 auto Program::presentationWindow() -> hiro::Window {
@@ -28,7 +32,8 @@ void MessageCallback(const asSMessageInfo *msg, void *param) {
   else if (msg->type == asMSGTYPE_INFORMATION)
     type = "INFO";
   // [jsd] todo: hook this up to better systems available in bsnes
-  printf("%s (%d, %d) : %s : %s\n", msg->section, msg->row, msg->col, type, msg->message);
+  //printf("%s (%d, %d) : %s : %s\n", msg->section, msg->row, msg->col, type, msg->message);
+  program.scriptMessage(string("{0} ({1}, {2}) : {3} : {4}").format({msg->section, msg->row, msg->col, type, msg->message}), true);
 }
 
 auto Program::scriptInit() -> void {
@@ -53,7 +58,7 @@ auto Program::scriptLoad() -> void {
 
   auto location = dialog.openObject();
   if (!inode::exists(location)) {
-    showMessage({"Script file '", (script.location), "' not found"});
+    scriptMessage({"Script file '", (script.location), "' not found"}, true);
     return;
   }
 
@@ -61,20 +66,20 @@ auto Program::scriptLoad() -> void {
   settings.path.recent.script = Location::dir(script.location);
 
   emulator->loadScript(script.location);
-  showMessage({"Script file '", (script.location), "' loaded"});
+  scriptMessage({"Script file '", (script.location), "' loaded"}, true);
 }
 
 auto Program::scriptReload() -> void {
   if (!inode::exists(script.location)) {
-    showMessage({"Script file '", (script.location), "' not found"});
+    scriptMessage({"Script file '", (script.location), "' not found"}, true);
     return;
   }
 
   emulator->loadScript(script.location);
-  showMessage({"Script file '", (script.location), "' loaded"});
+  scriptMessage({"Script file '", (script.location), "' loaded"}, true);
 }
 
 auto Program::scriptUnload() -> void {
   emulator->unloadScript();
-  showMessage("All scripts unloaded");
+  scriptMessage("All scripts unloaded", true);
 }

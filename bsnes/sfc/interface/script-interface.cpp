@@ -95,7 +95,7 @@ namespace ScriptInterface {
   } exceptionHandler;
 
   static auto message(const string *msg) -> void {
-    platform->scriptMessage(msg);
+    platform->scriptMessage(*msg);
   }
 
   static auto array_to_string(CScriptArray *array, uint offs, uint size) -> string* {

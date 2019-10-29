@@ -27,7 +27,7 @@ struct Platform {
 
   virtual auto presentationWindow() -> hiro::Window { return {}; };
   virtual auto scriptEngine() -> asIScriptEngine* { return nullptr; };
-  virtual auto scriptMessage(const string *msg) -> void { printf("script: %.*s\n", msg->size(), msg->data()); };
+  virtual auto scriptMessage(const string& msg, bool alert = false) -> void { printf("script: %.*s\n", msg.size(), msg.data()); };
 };
 
 extern Platform* platform;
