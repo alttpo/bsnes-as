@@ -31,8 +31,6 @@ void MessageCallback(const asSMessageInfo *msg, void *param) {
     type = "WARN";
   else if (msg->type == asMSGTYPE_INFORMATION)
     type = "INFO";
-  // [jsd] todo: hook this up to better systems available in bsnes
-  //printf("%s (%d, %d) : %s : %s\n", msg->section, msg->row, msg->col, type, msg->message);
   program.scriptMessage(string("{0} ({1}, {2}) : {3} : {4}").format({msg->section, msg->row, msg->col, type, msg->message}), true);
 }
 

@@ -120,6 +120,7 @@ struct Presentation : Window {
       MenuItem scriptLoad{&toolsMenu};
       MenuItem scriptReload{&toolsMenu};
       MenuItem scriptUnload{&toolsMenu};
+      MenuItem scriptConsole{&toolsMenu};
     Menu helpMenu{&menuBar};
       MenuItem documentation{&helpMenu};
       MenuSeparator helpSeparator{&helpMenu};

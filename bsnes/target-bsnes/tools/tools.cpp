@@ -99,7 +99,7 @@ auto ToolsWindow::show(int index) -> void {
   if(index == 1) cheatEditor.setVisible(true);
   if(index == 2) stateManager.setVisible(true);
   if(index == 3) manifestViewer.setVisible(true);
-  if(index == 4) scriptConsole.setVisible(true);
+  if(index == 4) scriptConsole.update(), scriptConsole.setVisible(true);
   if(index != 1) cheatDatabase.setVisible(false), cheatWindow.setVisible(false);
   if(index != 2) stateWindow.setVisible(false);
   panelContainer.resize();

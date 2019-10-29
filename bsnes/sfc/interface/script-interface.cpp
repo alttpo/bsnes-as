@@ -78,11 +78,13 @@ namespace ScriptInterface {
 
       // Determine the exception that occurred
       const asIScriptFunction *function = ctx->GetExceptionFunction();
-      printf(
-        "EXCEPTION `%s` occurred in `%s` (line %d)\n",
-        ctx->GetExceptionString(),
-        function->GetDeclaration(),
-        ctx->GetExceptionLineNumber()
+      platform->scriptMessage(
+        string("EXCEPTION `{0}` occurred in `{1}` (line {2})").format({
+          ctx->GetExceptionString(),
+          function->GetDeclaration(),
+          ctx->GetExceptionLineNumber()
+        }),
+        true
       );
 
       // Determine the function where the exception occurred

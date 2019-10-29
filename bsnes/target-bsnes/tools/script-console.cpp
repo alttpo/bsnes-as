@@ -8,10 +8,11 @@ auto ScriptConsole::create() -> void {
   consoleView.setFont(Font().setFamily(Font::Mono));
   #endif
   consoleView.setEditable(false);
-  consoleView.setWordWrap(true);
+  consoleView.setWordWrap(false);
+
   nameLabel.setText("no script loaded");
   loadButton.setText("Clear").onActivate([&] {
-    program.script.console.resize(0);
+    program.script.console = "";
     update();
   });
 }
@@ -19,4 +20,5 @@ auto ScriptConsole::create() -> void {
 auto ScriptConsole::update() -> void {
   nameLabel.setText(program.script.location);
   consoleView.setText(program.script.console);
+  consoleView.setTextCursor(program.script.console.size());
 }

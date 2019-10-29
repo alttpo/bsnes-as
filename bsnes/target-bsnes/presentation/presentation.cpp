@@ -179,6 +179,7 @@ auto Presentation::create() -> void {
   scriptLoad.setIcon(Icon::Emblem::Script).setText("Load Script ...").onActivate([&] { program.scriptLoad(); });
   scriptReload.setIcon(Icon::Emblem::Script).setText("Reload Script").onActivate([&] { program.scriptReload(); });
   scriptUnload.setIcon(Icon::Emblem::Script).setText("Unload Script").onActivate([&] { program.scriptUnload(); });
+  scriptConsole.setIcon(Icon::Emblem::Script).setText("Script Console ...").onActivate([&] { toolsWindow.show(4); });
 
   helpMenu.setText(tr("Help"));
   documentation.setIcon(Icon::Application::Browser).setText({tr("Documentation"), " ..."}).onActivate([&] {
