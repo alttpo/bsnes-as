@@ -382,6 +382,11 @@ add_executable(bsnes
         bsnes/sfc/interface/interface.hpp
         bsnes/sfc/interface/script-interface.cpp
         bsnes/sfc/interface/script-string.cpp
+        bsnes/sfc/interface/script-bus.cpp
+        bsnes/sfc/interface/script-ppu.cpp
+        bsnes/sfc/interface/script-frame.cpp
+        bsnes/sfc/interface/script-net.cpp
+        bsnes/sfc/interface/script-gui.cpp
         bsnes/sfc/interface/sha1.hpp
         bsnes/sfc/interface/vga-charset.cpp
         bsnes/sfc/memory/memory-inline.hpp
