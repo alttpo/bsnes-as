@@ -218,6 +218,7 @@ public:
     asIScriptEngine *engine;
 
     string location;
+    string console;
   } script;
 };
 

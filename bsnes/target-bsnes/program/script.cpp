@@ -6,8 +6,14 @@ auto Program::scriptEngine() -> asIScriptEngine * {
 }
 
 auto Program::scriptMessage(const string *msg) -> void {
+#if 1
+  script.console.append(*msg);
+  script.console.append("\n");
+  scriptConsole.update();
+#else
   printf("script: %.*s\n", msg->size(), msg->data());
   showMessage({"script: ", *msg});
+#endif
 }
 
 auto Program::presentationWindow() -> hiro::Window {
@@ -47,7 +53,7 @@ auto Program::scriptLoad() -> void {
 
   auto location = dialog.openObject();
   if (!inode::exists(location)) {
-    showMessage({"Script file '", Location::file(script.location), "' not found"});
+    showMessage({"Script file '", (script.location), "' not found"});
     return;
   }
 
@@ -55,17 +61,17 @@ auto Program::scriptLoad() -> void {
   settings.path.recent.script = Location::dir(script.location);
 
   emulator->loadScript(script.location);
-  //showMessage({"Script file '", Location::file(script.location), "' loaded"});
+  showMessage({"Script file '", (script.location), "' loaded"});
 }
 
 auto Program::scriptReload() -> void {
   if (!inode::exists(script.location)) {
-    showMessage({"Script file '", Location::file(script.location), "' not found"});
+    showMessage({"Script file '", (script.location), "' not found"});
     return;
   }
 
   emulator->loadScript(script.location);
-  //showMessage({"Script file '", Location::file(script.location), "' loaded"});
+  showMessage({"Script file '", (script.location), "' loaded"});
 }
 
 auto Program::scriptUnload() -> void {

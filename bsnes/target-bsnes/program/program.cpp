@@ -46,6 +46,7 @@ auto Program::create() -> void {
   stateWindow.create();
   stateManager.create();
   manifestViewer.create();
+  scriptConsole.create();
 
   //seems to be misfiring on Windows, so disable for now
   if(0 && settings.general.crashed) {

@@ -180,6 +180,21 @@ public:
   #endif
 };
 
+struct ScriptConsole : VerticalLayout {
+  auto create() -> void;
+  auto update() -> void;
+
+public:
+  HorizontalLayout informationLayout{this, Size{~0, 0}};
+    Label nameLabel{&informationLayout, Size{~0, 0}};
+    Button loadButton{&informationLayout, Size{80_sx, 0}};
+#if 0 && defined(Hiro_SourceEdit)
+  SourceEdit consoleView{this, Size{~0, ~0}};
+#else
+  TextEdit consoleView{this, Size{~0, ~0}};
+#endif
+};
+
 struct ToolsWindow : Window {
   auto create() -> void;
   auto setVisible(bool visible = true) -> ToolsWindow&;
@@ -202,5 +217,6 @@ namespace Instances { extern Instance<StateWindow> stateWindow; }
 extern StateWindow& stateWindow;
 extern StateManager stateManager;
 extern ManifestViewer manifestViewer;
+extern ScriptConsole scriptConsole;
 namespace Instances { extern Instance<ToolsWindow> toolsWindow; }
 extern ToolsWindow& toolsWindow;

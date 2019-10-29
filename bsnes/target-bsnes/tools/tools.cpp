@@ -3,6 +3,7 @@
 #include "cheat-editor.cpp"
 #include "state-manager.cpp"
 #include "manifest-viewer.cpp"
+#include "script-console.cpp"
 namespace Instances { Instance<CheatDatabase> cheatDatabase; }
 CheatFinder cheatFinder;
 CheatDatabase& cheatDatabase = Instances::cheatDatabase();
@@ -13,6 +14,7 @@ namespace Instances { Instance<StateWindow> stateWindow; }
 StateWindow& stateWindow = Instances::stateWindow();
 StateManager stateManager;
 ManifestViewer manifestViewer;
+ScriptConsole scriptConsole;
 namespace Instances { Instance<ToolsWindow> toolsWindow; }
 ToolsWindow& toolsWindow = Instances::toolsWindow();
 
@@ -47,6 +49,7 @@ auto ToolsWindow::create() -> void {
   panelList.append(ListViewItem().setText("Cheat Editor").setIcon(Icon::Edit::Replace));
   panelList.append(ListViewItem().setText("State Manager").setIcon(Icon::Application::FileManager));
   panelList.append(ListViewItem().setText("Manifest Viewer").setIcon(Icon::Emblem::Text));
+  panelList.append(ListViewItem().setText("Script Console").setIcon(Icon::Emblem::Script));
   panelList.onChange([&] {
     if(auto item = panelList.selected()) {
       show(item.offset());
@@ -59,6 +62,7 @@ auto ToolsWindow::create() -> void {
   panelContainer.append(cheatEditor, Size{~0, ~0});
   panelContainer.append(stateManager, Size{~0, ~0});
   panelContainer.append(manifestViewer, Size{~0, ~0});
+  panelContainer.append(scriptConsole, Size{~0, ~0});
 
   setTitle("Tools");
   setSize({720_sx, 400_sy});
@@ -88,12 +92,14 @@ auto ToolsWindow::show(int index) -> void {
   cheatEditor.setVisible(false);
   stateManager.setVisible(false);
   manifestViewer.setVisible(false);
+  scriptConsole.setVisible(false);
   panelList.item(index).setSelected();
   if(index ==-1) toolsHome.setVisible(true);
   if(index == 0) cheatFinder.setVisible(true);
   if(index == 1) cheatEditor.setVisible(true);
   if(index == 2) stateManager.setVisible(true);
   if(index == 3) manifestViewer.setVisible(true);
+  if(index == 4) scriptConsole.setVisible(true);
   if(index != 1) cheatDatabase.setVisible(false), cheatWindow.setVisible(false);
   if(index != 2) stateWindow.setVisible(false);
   panelContainer.resize();

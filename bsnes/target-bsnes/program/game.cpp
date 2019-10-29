@@ -66,6 +66,7 @@ auto Program::load() -> void {
   cheatEditor.loadCheats();
   stateManager.loadStates();
   manifestViewer.loadManifest();
+  scriptConsole.update();
 
   string games;
   if(auto& game = superFamicom) games.append(game.option, ";", game.location, "|");

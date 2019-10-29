@@ -479,6 +479,7 @@ add_executable(bsnes
         bsnes/target-bsnes/tools/cheat-finder.cpp
         bsnes/target-bsnes/tools/manifest-viewer.cpp
         bsnes/target-bsnes/tools/state-manager.cpp
+        bsnes/target-bsnes/tools/script-console.cpp
         bsnes/target-bsnes/tools/tools.cpp
         bsnes/target-bsnes/tools/tools.hpp
         bsnes/target-bsnes/bsnes.cpp
