@@ -95,7 +95,7 @@ namespace Net {
     }
 
     // throw script exception:
-    asGetActiveContext()->SetException(string{last_error_location, "; err=", last_error, ", code=", get_error_code(), ": ", *get_error_text()}, true);
+    asGetActiveContext()->SetException(string{last_error_location, "; err=", last_error, ", code=", *get_error_code(), ": ", *get_error_text()}, true);
     last_error = 0;
     last_error_location = "((FIXME: no location!))";
     return true;
