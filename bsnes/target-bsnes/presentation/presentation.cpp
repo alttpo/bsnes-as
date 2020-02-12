@@ -183,7 +183,7 @@ auto Presentation::create() -> void {
 
   helpMenu.setText(tr("Help"));
   documentation.setIcon(Icon::Application::Browser).setText({tr("Documentation"), " ..."}).onActivate([&] {
-    invoke("https://doc.byuu.org/bsnes");
+    invoke("https://byuu.org/doc/bsnes");
   });
   aboutSameBoy.setIcon(Icon::Prompt::Question).setText({tr("About SameBoy"), " ..."}).onActivate([&] {
     AboutDialog()
@@ -211,19 +211,19 @@ auto Presentation::create() -> void {
   });
 
   viewport.setFocusable(false);  //true would also capture Alt, which breaks keyboard menu navigation
-  viewport.setDroppable(true);
-  viewport.onDrop([&](vector<string> locations) {
-    if(!locations) return;
-    program.gameQueue = {};
-    program.gameQueue.append({"Auto;", locations.first()});
-    program.load();
-    setFocused();
-  });
+  viewport.setDroppable();
+  viewport.onDrop([&](auto locations) { onDrop(locations); });
+
+  iconSpacer.setColor({0, 0, 0});
+  iconSpacer.setDroppable();
+  iconSpacer.onDrop([&](auto locations) { onDrop(locations); });
 
   iconLayout.setAlignment(0.0).setCollapsible();
   image icon{Resource::Icon};
   icon.alphaBlend(0x000000);
   iconCanvas.setIcon(icon);
+  iconCanvas.setDroppable();
+  iconCanvas.onDrop([&](auto locations) { onDrop(locations); });
 
   if(!settings.general.statusBar) layout.remove(statusLayout);
 
@@ -267,6 +267,14 @@ auto Presentation::create() -> void {
   Application::Cocoa::onPreferences([&] { settingsWindow.show(2); });
   Application::Cocoa::onQuit([&] { doClose(); });
   #endif
+}
+
+auto Presentation::onDrop(vector<string> locations) -> void {
+  if(!locations) return;
+  program.gameQueue = {};
+  program.gameQueue.append({"Auto;", locations.first()});
+  program.load();
+  setFocused();
 }
 
 auto Presentation::updateProgramIcon() -> void {

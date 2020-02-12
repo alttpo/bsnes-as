@@ -1,3 +1,4 @@
+#include <cassert>
 #include "libretro.h"
 
 static retro_environment_t environ_cb;
@@ -14,6 +15,8 @@ static int16_t audio_buffer[AUDIOBUFSIZE];
 static uint16_t audio_buffer_index = 0;
 static uint16_t audio_buffer_max = AUDIOBUFSIZE;
 
+static int run_ahead_frames = 0;
+
 static void audio_queue(int16_t left, int16_t right)
 {
 	audio_buffer[audio_buffer_index++] = left;
@@ -29,15 +32,54 @@ static void audio_queue(int16_t left, int16_t right)
 #include "program.cpp"
 
 static string sgb_bios;
+static vector<string> cheatList;
+static int aspect_ratio_mode = 0;
 
 #define RETRO_DEVICE_JOYPAD_MULTITAP       RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 0)
 #define RETRO_DEVICE_LIGHTGUN_SUPER_SCOPE  RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_LIGHTGUN, 0)
 #define RETRO_DEVICE_LIGHTGUN_JUSTIFIER    RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_LIGHTGUN, 1)
 #define RETRO_DEVICE_LIGHTGUN_JUSTIFIERS   RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_LIGHTGUN, 2)
 
+#define RETRO_GAME_TYPE_SGB             0x101 | 0x1000
+#define RETRO_MEMORY_SGB_SRAM ((1 << 8) | RETRO_MEMORY_SAVE_RAM)
+#define RETRO_MEMORY_GB_SRAM ((2 << 8) | RETRO_MEMORY_SAVE_RAM)
+
+static double get_aspect_ratio()
+{
+	if (aspect_ratio_mode == 0 && program->superFamicom.region == "NTSC")
+		return 1.306122;
+	else if (aspect_ratio_mode == 0 && program->superFamicom.region == "PAL")
+		return 1.584216;
+	else if (aspect_ratio_mode == 1) // 8:7
+		return 8.0/7.0;
+	else if (aspect_ratio_mode == 2) // 4:3
+		return 4.0/3.0;
+	else if (aspect_ratio_mode == 3) // NTSC
+		return 1.306122;
+	else if (aspect_ratio_mode == 4) // PAL
+		return 1.584216;
+	else
+		return 8.0/7.0; // Default
+}
+
 static void flush_variables()
 {
-	retro_variable variable = { "bsnes_blur_emulation", nullptr };
+	retro_variable variable = { "bsnes_aspect_ratio", nullptr };
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &variable) && variable.value)
+	{
+		if (strcmp(variable.value, "8:7") == 0)
+			aspect_ratio_mode = 1;
+		else if (strcmp(variable.value, "4:3") == 0)
+			aspect_ratio_mode = 2;
+		else if (strcmp(variable.value, "NTSC") == 0)
+			aspect_ratio_mode = 3;
+		else if (strcmp(variable.value, "PAL") == 0)
+			aspect_ratio_mode = 4;
+		else
+			aspect_ratio_mode = 0;
+	}
+
+	variable = { "bsnes_blur_emulation", nullptr };
 	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &variable) && variable.value)
 	{
 		if (strcmp(variable.value, "ON") == 0)
@@ -227,6 +269,21 @@ static void flush_variables()
 	{
 		sgb_bios = variable.value;
 	}
+
+	variable = { "bsnes_run_ahead_frames", nullptr };
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &variable) && variable.value)
+	{
+		if (strcmp(variable.value, "OFF") == 0)
+			run_ahead_frames = 0;
+		else
+			run_ahead_frames = atoi(variable.value);
+	}
+	
+	// Refresh Geometry
+	struct retro_system_av_info avinfo;
+	retro_get_system_av_info(&avinfo);
+	avinfo.geometry.aspect_ratio = get_aspect_ratio();
+	environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &avinfo);
 }
 
 static void check_variables()
@@ -268,9 +325,26 @@ static void set_controller_ports(unsigned port, unsigned device)
 
 static void set_environment_info(retro_environment_t cb)
 {
-	// TODO: Hook up RETRO_ENVIRONMENT_SET_SUBSYSTEM_INFO for Sufami/BSX/SGB?
-	// IIRC, no known frontend actually hooks it up properly, so doubt there is any
-	// real need for now.
+
+    static const struct retro_subsystem_memory_info sgb_memory[] = {
+        { "srm", RETRO_MEMORY_SGB_SRAM },
+    };
+
+    static const struct retro_subsystem_memory_info gb_memory[] = {
+        { "srm", RETRO_MEMORY_GB_SRAM },
+    };
+
+    static const struct retro_subsystem_rom_info sgb_roms[] = {
+        { "Game Boy ROM", "gb|gbc", true, false, true, gb_memory, 1 },
+        { "Super Game Boy ROM", "smc|sfc|swc|fig|bs", true, false, true, sgb_memory, 1 },
+    };
+
+    static const struct retro_subsystem_info subsystems[] = {
+        { "Super Game Boy", "sgb", sgb_roms, 2, RETRO_GAME_TYPE_SGB },
+        {}
+    };
+
+	cb(RETRO_ENVIRONMENT_SET_SUBSYSTEM_INFO,  (void*)subsystems);
 
 	static const retro_controller_description port_1[] = {
 		{ "SNES Joypad", RETRO_DEVICE_JOYPAD },
@@ -366,6 +440,7 @@ static void set_environment_info(retro_environment_t cb)
 	cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, const_cast<retro_input_descriptor *>(desc));
 
 	static const retro_variable vars[] = {
+		{ "bsnes_aspect_ratio", "Aspect Ratio; Auto|8:7|4:3|NTSC|PAL" },
 		{ "bsnes_blur_emulation", "Blur emulation; OFF|ON" },
 		{ "bsnes_entropy", "Entropy (randomization); Low|High|None" },
 		{ "bsnes_hotfixes", "Hotfixes; OFF|ON" },
@@ -388,6 +463,7 @@ static void set_environment_info(retro_environment_t cb)
 		{ "bsnes_coprocessor_delayed_sync", "Coprocessor Delayed Sync; ON|OFF" },
 		{ "bsnes_coprocessor_prefer_hle", "Coprocessor Prefer HLE; ON|OFF" },
 		{ "bsnes_sgb_bios", "Preferred Super GameBoy BIOS (restart); SGB1.sfc|SGB2.sfc" },
+		{ "bsnes_run_ahead_frames", "Amount of frames for run-ahead; OFF|1|2|3|4" },
 		{ nullptr },
 	};
 	cb(RETRO_ENVIRONMENT_SET_VARIABLES, const_cast<retro_variable *>(vars));
@@ -449,7 +525,7 @@ RETRO_API void retro_get_system_info(retro_system_info *info)
 {
 	info->library_name     = "bsnes";
 	info->library_version  = Emulator::Version;
-	info->need_fullpath    = false;
+	info->need_fullpath    = true;
 	info->valid_extensions = "smc|sfc";
 	info->block_extract = false;
 }
@@ -460,7 +536,9 @@ RETRO_API void retro_get_system_av_info(struct retro_system_av_info *info)
 	info->geometry.base_height = program->overscan ? 480 : 448; // accurate ppu
 	info->geometry.max_width   = 2048;  // 8x 256 for hd mode 7
 	info->geometry.max_height  = 1920;  // 8x 240
+	info->geometry.aspect_ratio = get_aspect_ratio();
 	info->timing.sample_rate   = SAMPLERATE;
+	
 	if (retro_get_region() == RETRO_REGION_NTSC) {
 		info->timing.fps = 21477272.0 / 357366.0;
 		audio_buffer_max = (SAMPLERATE/60) * 2;
@@ -481,11 +559,33 @@ RETRO_API void retro_reset()
 	emulator->reset();
 }
 
+static void run_with_runahead(const int frames)
+{
+	assert(frames > 0);
+
+	emulator->setRunAhead(true);
+	emulator->run();
+	auto state = emulator->serialize(0);
+	for (int i = 0; i < frames - 1; ++i) {
+		emulator->run();
+	}
+	emulator->setRunAhead(false);
+	emulator->run();
+	state.setMode(serializer::Mode::Load);
+	emulator->unserialize(state);
+}
+
 RETRO_API void retro_run()
 {
 	check_variables();
 	input_poll();
-	emulator->run();
+
+	bool is_fast_forwarding = false;
+	environ_cb(RETRO_ENVIRONMENT_GET_FASTFORWARDING, &is_fast_forwarding);
+	if (is_fast_forwarding || run_ahead_frames == 0)
+		emulator->run();
+	else
+		run_with_runahead(run_ahead_frames);
 }
 
 RETRO_API size_t retro_serialize_size()
@@ -507,10 +607,29 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 
 RETRO_API void retro_cheat_reset()
 {
+	cheatList.reset();
+	emulator->cheats(cheatList);
 }
 
 RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
+	string cheat = string(code);
+	bool decoded = false;
+
+	if (program->gameBoy.program)
+	{
+		decoded = decodeGB(cheat);
+	}
+	else
+	{
+		decoded = decodeSNES(cheat);
+	}
+
+	if (enabled && decoded)
+	{
+		cheatList.append(cheat);
+		emulator->cheats(cheatList);
+	}
 }
 
 RETRO_API bool retro_load_game(const retro_game_info *game)
@@ -531,7 +650,6 @@ RETRO_API bool retro_load_game(const retro_game_info *game)
 		environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &system_dir);
 		string sgb_full_path = string(system_dir, "/", sgb_bios).transform("\\", "/");
 		if (!file::exists(sgb_full_path)) {
-			libretro_print(RETRO_LOG_ERROR, "GameBoy games require SGB BIOS in system directory: %s\n", sgb_bios);
 			return false;
 		}
 
@@ -554,7 +672,29 @@ RETRO_API bool retro_load_game(const retro_game_info *game)
 RETRO_API bool retro_load_game_special(unsigned game_type,
 		const struct retro_game_info *info, size_t num_info)
 {
-	return false;
+	emulator->configure("Audio/Frequency", SAMPLERATE);
+
+	flush_variables();
+
+	switch(game_type)
+	{
+		case RETRO_GAME_TYPE_SGB:
+		{
+			libretro_print(RETRO_LOG_INFO, "GB ROM: %s\n", info[0].path);
+			libretro_print(RETRO_LOG_INFO, "SGB ROM: %s\n", info[1].path);
+			program->gameBoy.location = info[0].path;
+			program->superFamicom.location = info[1].path;
+		}
+		break;
+		default:
+			return false;
+	}
+
+	program->load();
+
+	emulator->connect(SuperFamicom::ID::Port::Controller1, SuperFamicom::ID::Device::Gamepad);
+	emulator->connect(SuperFamicom::ID::Port::Controller2, SuperFamicom::ID::Device::Gamepad);
+	return true;
 }
 
 RETRO_API void retro_unload_game()

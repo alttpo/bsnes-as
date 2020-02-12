@@ -40,7 +40,6 @@ namespace SameBoy {
     float left  = sample->left  / 32768.0f;
     float right = sample->right / 32768.0f;
     icd.apuWrite(left, right);
-  //print(dsp.stream->pending(), " ", icd.stream->pending(), "\n");
   }
 
   static auto vblank(GB_gameboy_t*) -> void {
@@ -73,6 +72,12 @@ auto ICD::step(uint clocks) -> void {
   clock += clocks * (uint64_t)cpu.frequency;
 }
 
+//SGB1 uses the CPU oscillator (~2.4% faster than a real Game Boy)
+//SGB2 uses a dedicated oscillator (same speed as a real Game Boy)
+auto ICD::clockFrequency() const -> uint {
+  return Frequency ? Frequency : system.cpuFrequency();
+}
+
 auto ICD::load() -> bool {
   information = {};
 
@@ -80,12 +85,11 @@ auto ICD::load() -> bool {
   if(Frequency == 0) {
     GB_init(&sameboy, GB_MODEL_SGB_NO_SFC);
     GB_load_boot_rom_from_buffer(&sameboy, (const unsigned char*)&SGB1BootROM[0], 256);
-    GB_set_sample_rate(&sameboy, 32768);
   } else {
     GB_init(&sameboy, GB_MODEL_SGB2_NO_SFC);
     GB_load_boot_rom_from_buffer(&sameboy, (const unsigned char*)&SGB2BootROM[0], 256);
-    GB_set_sample_rate(&sameboy, 32000);
   }
+  GB_set_sample_rate_by_clocks(&sameboy, 256);
   GB_set_highpass_filter_mode(&sameboy, GB_HIGHPASS_ACCURATE);
   GB_set_icd_hreset_callback(&sameboy, &SameBoy::hreset);
   GB_set_icd_vreset_callback(&sameboy, &SameBoy::vreset);
@@ -138,12 +142,9 @@ auto ICD::unload() -> void {
 }
 
 auto ICD::power(bool reset) -> void {
-  uint frequency = (Frequency ? Frequency : system.cpuFrequency()) / 5.0;
-  //SGB1 uses CPU oscillator; SGB2 uses dedicated oscillator
+  auto frequency = clockFrequency() / 5;
   create(ICD::Enter, frequency);
   if(!reset) stream = Emulator::audio.createStream(2, frequency / 128);
-  dsp.stream->reset();
-  icd.stream->reset();
 
   for(auto& packet : this->packet) packet = {};
   packetSize = 0;

@@ -1,5 +1,6 @@
 auto Program::hackCompatibility() -> void {
   string entropy = settings.emulator.hack.entropy;
+  bool fastJoypadPolling = false;
   bool fastPPU = settings.emulator.hack.ppu.fast;
   bool fastPPUNoSpriteLimit = settings.emulator.hack.ppu.noSpriteLimit;
   bool fastDSP = settings.emulator.hack.dsp.fast;
@@ -9,11 +10,30 @@ auto Program::hackCompatibility() -> void {
   auto title = superFamicom.title;
   auto region = superFamicom.region;
 
+  //sometimes menu options are skipped over in the main menu with cycle-based joypad polling
+  if(title == "Arcades Greatest Hits") fastJoypadPolling = true;
+
+  //the start button doesn't work in this game with cycle-based joypad polling
+  if(title == "TAIKYOKU-IGO Goliath") fastJoypadPolling = true;
+
+  //holding up or down on the menu quickly cycles through options instead of stopping after each button press
+  if(title == "WORLD MASTERS GOLF") fastJoypadPolling = true;
+
   //relies on mid-scanline rendering techniques
   if(title == "AIR STRIKE PATROL" || title == "DESERT FIGHTER") fastPPU = false;
 
+  //the dialogue text is blurry due to an issue in the scanline-based renderer's color math support
+  if(title == "マーヴェラス") fastPPU = false;
+
   //stage 2 uses pseudo-hires in a way that's not compatible with the scanline-based renderer
   if(title == "SFC クレヨンシンチャン") fastPPU = false;
+
+  //title screen game select (after choosing a game) changes OAM tiledata address mid-frame
+  //this is only supported by the cycle-based PPU renderer
+  if(title == "Winter olympics") fastPPU = false;
+
+  //title screen shows remnants of the flag after choosing a language with the scanline-based renderer
+  if(title == "WORLD CUP STRIKER") fastPPU = false;
 
   //relies on cycle-accurate writes to the echo buffer
   if(title == "KOUSHIEN_2") fastDSP = false;
@@ -28,19 +48,26 @@ auto Program::hackCompatibility() -> void {
   if(title == "ADVENTURES OF FRANKEN" && region == "PAL") renderCycle = 32;
 
   //fixes an errant scanline on the title screen due to writing to PPU registers too late
-  if(title == "FIREPOWER 2000") renderCycle = 32;
+  if(title == "FIREPOWER 2000" || title == "SUPER SWIV") renderCycle = 32;
 
   //fixes an errant scanline on the title screen due to writing to PPU registers too late
   if(title == "NHL '94" || title == "NHL PROHOCKEY'94") renderCycle = 32;
+
+  //fixes an errant scanline on the title screen due to writing to PPU registers too late
+  if(title == "Sugoro Quest++") renderCycle = 128;
 
   if(settings.emulator.hack.hotfixes) {
     //this game transfers uninitialized memory into video RAM: this can cause a row of invalid tiles
     //to appear in the background of stage 12. this one is a bug in the original game, so only enable
     //it if the hotfixes option has been enabled.
     if(title == "The Hurricanes") entropy = "None";
+
+    //Frisky Tom attract sequence sometimes hangs when WRAM is initialized to pseudo-random patterns
+    if(title == "ニチブツ・アーケード・クラシックス") entropy = "None";
   }
 
   emulator->configure("Hacks/Entropy", entropy);
+  emulator->configure("Hacks/CPU/FastJoypadPolling", fastJoypadPolling);
   emulator->configure("Hacks/PPU/Fast", fastPPU);
   emulator->configure("Hacks/PPU/NoSpriteLimit", fastPPUNoSpriteLimit);
   emulator->configure("Hacks/PPU/RenderCycle", renderCycle);

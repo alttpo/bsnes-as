@@ -26,11 +26,6 @@ auto PPU::Line::flush() -> void {
 }
 
 auto PPU::Line::cache() -> void {
-  cacheBackground(ppu.io.bg1);
-  cacheBackground(ppu.io.bg2);
-  cacheBackground(ppu.io.bg3);
-  cacheBackground(ppu.io.bg4);
-
   uint y = ppu.vcounter();
   if(ppu.io.displayDisable || y >= ppu.vdisp()) {
     io.displayDisable = true;

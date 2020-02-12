@@ -11,7 +11,7 @@ auto CPU::joypadCounter() const -> uint {
 auto CPU::stepOnce() -> void {
   counter.cpu += 2;
   tick();
-  if(hcounter() & 2) pollInterrupts();
+  if(hcounter() & 2) nmiPoll(), irqPoll();
   if(joypadCounter() == 0) joypadEdge();
 }
 
@@ -203,34 +203,73 @@ auto CPU::dmaEdge() -> void {
 
 //called every 256 clocks; see CPU::step()
 auto CPU::joypadEdge() -> void {
-  if(vcounter() >= ppu.vdisp()) {
-    //cache enable state at first iteration
-    if(status.autoJoypadCounter == 0) status.autoJoypadLatch = io.autoJoypadPoll;
-    status.autoJoypadActive = status.autoJoypadCounter <= 15;
+  //fast joypad polling is a hack to work around edge cases not currently emulated in auto-joypad polling.
+  //below is a list of games that have had input issues over the years.
+  //Nuke (PD): inputs do not work
+  //Super Conflict: sends random inputs even with no buttons pressed
+  //Super Star Wars: Start button auto-unpauses
+  //Taikyoku Igo - Goliath: start button not acknowledged
+  //Tatakae Genshijin 2: attract sequence ends early
+  //Williams Arcade's Greatest Hits: inputs fire on their own; or menu items sometimes skipped
+  //World Masters Golf: inputs fail to register; or holding D-pad should only move the cursor once, not continuously
 
-    if(status.autoJoypadActive && status.autoJoypadLatch) {
-      if(status.autoJoypadCounter == 0) {
-        controllerPort1.device->latch(1);
-        controllerPort2.device->latch(1);
-        controllerPort1.device->latch(0);
-        controllerPort2.device->latch(0);
+  if(configuration.hacks.cpu.fastJoypadPolling) {
+    //Taikyoku Igo - Goliath
+    //Williams Arcade's Greatest Hits
+    //World Masters Golf
+    if(!status.autoJoypadCounter && vcounter() >= ppu.vdisp()) {
+      controllerPort1.device->latch(1);
+      controllerPort2.device->latch(1);
+      controllerPort1.device->latch(0);
+      controllerPort2.device->latch(0);
 
-        //shift registers are cleared at start of auto joypad polling
-        io.joy1 = 0;
-        io.joy2 = 0;
-        io.joy3 = 0;
-        io.joy4 = 0;
+      io.joy1 = 0;
+      io.joy2 = 0;
+      io.joy3 = 0;
+      io.joy4 = 0;
+
+      for(uint index : range(16)) {
+        uint2 port0 = controllerPort1.device->data();
+        uint2 port1 = controllerPort2.device->data();
+
+        io.joy1 = io.joy1 << 1 | port0.bit(0);
+        io.joy2 = io.joy2 << 1 | port1.bit(0);
+        io.joy3 = io.joy3 << 1 | port0.bit(1);
+        io.joy4 = io.joy4 << 1 | port1.bit(1);
       }
 
-      uint2 port0 = controllerPort1.device->data();
-      uint2 port1 = controllerPort2.device->data();
-
-      io.joy1 = io.joy1 << 1 | port0.bit(0);
-      io.joy2 = io.joy2 << 1 | port1.bit(0);
-      io.joy3 = io.joy3 << 1 | port0.bit(1);
-      io.joy4 = io.joy4 << 1 | port1.bit(1);
+      status.autoJoypadCounter = 16;
     }
+  } else {
+    if(vcounter() >= ppu.vdisp()) {
+      //cache enable state at first iteration
+      if(status.autoJoypadCounter == 0) status.autoJoypadLatch = io.autoJoypadPoll;
+      status.autoJoypadActive = status.autoJoypadCounter <= 15;
 
-    status.autoJoypadCounter++;
+      if(status.autoJoypadActive && status.autoJoypadLatch) {
+        if(status.autoJoypadCounter == 0) {
+          controllerPort1.device->latch(1);
+          controllerPort2.device->latch(1);
+          controllerPort1.device->latch(0);
+          controllerPort2.device->latch(0);
+
+          //shift registers are cleared at start of auto joypad polling
+          io.joy1 = 0;
+          io.joy2 = 0;
+          io.joy3 = 0;
+          io.joy4 = 0;
+        }
+
+        uint2 port0 = controllerPort1.device->data();
+        uint2 port1 = controllerPort2.device->data();
+
+        io.joy1 = io.joy1 << 1 | port0.bit(0);
+        io.joy2 = io.joy2 << 1 | port1.bit(0);
+        io.joy3 = io.joy3 << 1 | port0.bit(1);
+        io.joy4 = io.joy4 << 1 | port1.bit(1);
+      }
+
+      status.autoJoypadCounter++;
+    }
   }
 }
