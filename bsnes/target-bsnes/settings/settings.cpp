@@ -24,7 +24,7 @@ SettingsWindow& settingsWindow = Instances::settingsWindow();
 auto Settings::load() -> void {
   Markup::Node::operator=(BML::unserialize(string::read(location), " "));
   process(true);
-  file::write(locate("settings.bml"), BML::serialize(*this, " "));
+  save();
 }
 
 auto Settings::save() -> void {
@@ -139,11 +139,11 @@ auto Settings::process(bool load) -> void {
   bind(natural, "Emulator/Hack/SuperFX/Overclock",       emulator.hack.superfx.overclock);
   bind(boolean, "Emulator/Cheats/Enable",                emulator.cheats.enable);
 
-  bind(boolean, "General/StatusBar",   general.statusBar);
-  bind(boolean, "General/ScreenSaver", general.screenSaver);
-  bind(boolean, "General/ToolTips",    general.toolTips);
-  bind(boolean, "General/Crashed",     general.crashed);
-  bind(boolean, "General/BetaWarning", general.betaWarning);
+  bind(boolean, "General/StatusBar",         general.statusBar);
+  bind(boolean, "General/ScreenSaver",       general.screenSaver);
+  bind(boolean, "General/ToolTips",          general.toolTips);
+  bind(boolean, "General/Crashed",           general.crashed);
+  bind(boolean, "General/NativeFileDialogs", general.nativeFileDialogs);
 
   #undef bind
 }
