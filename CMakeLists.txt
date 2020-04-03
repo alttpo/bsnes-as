@@ -384,6 +384,7 @@ add_executable(bsnes
         bsnes/sfc/interface/script-string.cpp
         bsnes/sfc/interface/script-bus.cpp
         bsnes/sfc/interface/script-ppu.cpp
+        bsnes/sfc/interface/script-extra.cpp
         bsnes/sfc/interface/script-frame.cpp
         bsnes/sfc/interface/script-net.cpp
         bsnes/sfc/interface/script-gui.cpp

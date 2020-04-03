@@ -178,8 +178,10 @@ namespace ScriptInterface {
   #include "script-bus.cpp"
   #include "script-ppu.cpp"
   #include "script-frame.cpp"
+  #include "script-extra.cpp"
   #include "script-net.cpp"
   #include "script-gui.cpp"
+
 };
 
 auto Interface::registerScriptDefs() -> void {
@@ -350,6 +352,53 @@ auto Interface::registerScriptDefs() -> void {
 
     // global property to access current frame:
     r = script.engine->RegisterGlobalProperty("Frame frame", &ScriptInterface::postFrame); assert(r >= 0);
+  }
+
+  {
+    // extra-tiles access:
+    r = script.engine->RegisterObjectType("Extra", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+
+    r = script.engine->RegisterObjectType("ExtraTile", sizeof(PPUfast::ExtraTile), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+
+    r = script.engine->RegisterObjectProperty("ExtraTile", "int x", asOFFSET(PPUfast::ExtraTile, x)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "int y", asOFFSET(PPUfast::ExtraTile, y)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint source", asOFFSET(PPUfast::ExtraTile, source)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "bool hflip", asOFFSET(PPUfast::ExtraTile, hflip)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "bool vflip", asOFFSET(PPUfast::ExtraTile, vflip)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint priority", asOFFSET(PPUfast::ExtraTile, priority)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint width", asOFFSET(PPUfast::ExtraTile, width)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint height", asOFFSET(PPUfast::ExtraTile, height)); assert(r >= 0);
+    r = script.engine->RegisterObjectProperty("ExtraTile", "uint index", asOFFSET(PPUfast::ExtraTile, index)); assert(r >= 0);
+
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void reset()", asFUNCTION(ScriptInterface::ExtraLayer::tile_reset), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void pixels_clear()", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixels_clear), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_set(int x, int y, uint16 color)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_set), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_off(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_off), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel_on(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_on), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void pixel(int x, int y)", asFUNCTION(ScriptInterface::ExtraLayer::tile_pixel_set), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void draw_sprite(int x, int y, int width, int height, const array<uint32> &in tiledata, const array<uint16> &in palette)", asFUNCTION(ScriptInterface::ExtraLayer::tile_draw_sprite), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+    // primitive drawing functions:
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void hline(int lx, int ty, int w)", asFUNCTION(ScriptInterface::ExtraLayer::tile_hline), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void vline(int lx, int ty, int h)", asFUNCTION(ScriptInterface::ExtraLayer::tile_vline), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void rect(int x, int y, int w, int h)", asFUNCTION(ScriptInterface::ExtraLayer::tile_rect), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("ExtraTile", "void fill(int x, int y, int w, int h)", asFUNCTION(ScriptInterface::ExtraLayer::tile_fill), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+    // text drawing function:
+    r = script.engine->RegisterObjectMethod("ExtraTile", "int text(int x, int y, const string &in text)", asFUNCTION(ScriptInterface::ExtraLayer::tile_text), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+    r = script.engine->RegisterObjectMethod("Extra", "uint16 get_color()", asMETHOD(ScriptInterface::ExtraLayer, get_color), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "void set_color(uint16 color)", asMETHOD(ScriptInterface::ExtraLayer, set_color), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "bool get_text_shadow()", asMETHOD(ScriptInterface::ExtraLayer, get_text_shadow), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "void set_text_shadow(bool color)", asMETHOD(ScriptInterface::ExtraLayer, set_text_shadow), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "int measure_text(const string &in text)", asMETHOD(ScriptInterface::ExtraLayer, measure_text), asCALL_THISCALL); assert(r >= 0);
+
+    r = script.engine->RegisterObjectMethod("Extra", "void reset()", asMETHOD(ScriptInterface::ExtraLayer, reset), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "uint get_count()", asMETHOD(ScriptInterface::ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "void set_count(uint count)", asMETHOD(ScriptInterface::ExtraLayer, set_tile_count), asCALL_THISCALL); assert(r >= 0);
+    r = script.engine->RegisterObjectMethod("Extra", "ExtraTile @get_opIndex(uint i)", asFUNCTION(ScriptInterface::ExtraLayer::get_tile), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = script.engine->RegisterGlobalProperty("Extra extra", &ScriptInterface::extraLayer); assert(r >= 0);
   }
 
   {
@@ -576,4 +625,7 @@ auto Interface::unloadScript() -> void {
   script.funcs.init = nullptr;
   script.funcs.pre_frame = nullptr;
   script.funcs.post_frame = nullptr;
+
+  // reset extra-tile data:
+  ScriptInterface::extraLayer.reset();
 }
