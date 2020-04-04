@@ -38,6 +38,7 @@ auto CPU::main() -> void {
 
   if(status.nmiPending) {
     status.nmiPending = 0;
+    scheduler.leave(Scheduler::Event::PreNMI);
     r.vector = r.e ? 0xfffa : 0xffea;
     return interrupt();
   }

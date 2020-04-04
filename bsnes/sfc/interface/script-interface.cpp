@@ -602,6 +602,7 @@ auto Interface::loadScript(string location) -> void {
 
   // bind to functions in the script:
   script.funcs.init = script.module->GetFunctionByDecl("void init()");
+  script.funcs.pre_nmi = script.module->GetFunctionByDecl("void pre_nmi()");
   script.funcs.pre_frame = script.module->GetFunctionByDecl("void pre_frame()");
   script.funcs.post_frame = script.module->GetFunctionByDecl("void post_frame()");
 

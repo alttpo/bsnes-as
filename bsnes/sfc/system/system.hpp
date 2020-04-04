@@ -14,6 +14,7 @@ struct System {
   auto runToSaveStrict() -> void;
   auto frameEvent() -> void;
   auto frameStartEvent() -> void;
+  auto framePreNMIEvent() -> void;
 
   auto load(Emulator::Interface*) -> bool;
   auto save() -> void;

@@ -12,6 +12,7 @@ Script script;
 auto System::run() -> void {
   scheduler.mode = Scheduler::Mode::Run;
   scheduler.enter();
+  if(scheduler.event == Scheduler::Event::PreNMI) framePreNMIEvent();
   if(scheduler.event == Scheduler::Event::StartFrame) frameStartEvent();
   if(scheduler.event == Scheduler::Event::EndFrame) frameEvent();
 }
@@ -38,6 +39,7 @@ auto System::runToSaveFast() -> void {
   //run the emulator normally until the CPU thread naturally hits a synchronization point
   while(true) {
     scheduler.enter();
+    if(scheduler.event == Scheduler::Event::PreNMI) framePreNMIEvent();
     if(scheduler.event == Scheduler::Event::StartFrame) frameStartEvent();
     if(scheduler.event == Scheduler::Event::EndFrame) frameEvent();
     if(scheduler.event == Scheduler::Event::Synchronized) {
@@ -52,6 +54,7 @@ auto System::runToSaveFast() -> void {
     scheduler.active = thread;
     while(true) {
       scheduler.enter();
+      if(scheduler.event == Scheduler::Event::PreNMI) framePreNMIEvent();
       if(scheduler.event == Scheduler::Event::StartFrame) frameStartEvent();
       if(scheduler.event == Scheduler::Event::EndFrame) frameEvent();
       if(scheduler.event == Scheduler::Event::Synchronized) break;
@@ -73,6 +76,7 @@ auto System::runToSaveStrict() -> void {
     scheduler.active = thread;
     while(true) {
       scheduler.enter();
+      if(scheduler.event == Scheduler::Event::PreNMI) framePreNMIEvent();
       if(scheduler.event == Scheduler::Event::StartFrame) frameStartEvent();
       if(scheduler.event == Scheduler::Event::EndFrame) frameEvent();
       if(scheduler.event == Scheduler::Event::Synchronized) break;
@@ -103,6 +107,14 @@ auto System::frameStartEvent() -> void {
   // [jsd] run AngelScript pre_frame() function if available:
   if (script.funcs.pre_frame) {
     script.context->Prepare(script.funcs.pre_frame);
+    script.context->Execute();
+  }
+}
+
+auto System::framePreNMIEvent() -> void {
+  // [jsd] run AngelScript pre_nmi() function if available:
+  if (script.funcs.pre_nmi) {
+    script.context->Prepare(script.funcs.pre_nmi);
     script.context->Execute();
   }
 }

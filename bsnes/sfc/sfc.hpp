@@ -29,7 +29,7 @@ namespace SuperFamicom {
 
   struct Scheduler {
     enum class Mode : uint { Run, Synchronize } mode;
-    enum class Event : uint { StartFrame, EndFrame, Synchronized, Desynchronized } event;
+    enum class Event : uint { PreNMI, StartFrame, EndFrame, Synchronized, Desynchronized } event;
 
     cothread_t host = nullptr;
     cothread_t active = nullptr;
@@ -134,6 +134,7 @@ namespace SuperFamicom {
 
     struct {
       asIScriptFunction *init = nullptr;
+      asIScriptFunction *pre_nmi = nullptr;
       asIScriptFunction *pre_frame = nullptr;
       asIScriptFunction *post_frame = nullptr;
     } funcs;
