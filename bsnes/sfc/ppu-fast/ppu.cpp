@@ -134,7 +134,6 @@ auto PPU::scanline() -> void {
 
   if(vcounter() == 240) {
     Line::flush();
-    scheduler.leave(Scheduler::Event::EndFrame);
   }
 }
 
