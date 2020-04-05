@@ -119,7 +119,6 @@ auto PPU::scanline() -> void {
     latch.ss = false;
     io.obj.timeOver = false;
     io.obj.rangeOver = false;
-    scheduler.leave(Scheduler::Event::StartFrame);
   }
 
   if(vcounter() > 0 && vcounter() < vdisp()) {
