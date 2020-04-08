@@ -219,6 +219,14 @@ struct GUI {
       self->setIcon(img);
     }
 
+    void setPosition(float x, float y) {
+      auto sizable = (operator hiro::mSizable*)();
+      sizable->setGeometry(hiro::Geometry(
+        hiro::Position(x, y),
+        sizable->geometry().size()
+      ));
+    }
+
     auto update() -> void {
       self->update();
     }
