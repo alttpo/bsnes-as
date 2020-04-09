@@ -565,10 +565,12 @@ auto Interface::registerScriptDefs() -> void {
     r = script.engine->RegisterObjectBehaviour("Canvas", asBEHAVE_RELEASE, "void f()", asMETHOD(ScriptInterface::GUI::Canvas, ref_release), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Canvas", "void set_visible(bool visible)", asMETHOD(ScriptInterface::GUI::Canvas, setVisible), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Canvas", "void set_size(Size &in size)", asMETHOD(ScriptInterface::GUI::Canvas, setSize), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Canvas", "void setPosition(float x, float y)", asMETHOD(ScriptInterface::GUI::Canvas, setPosition), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Canvas", "void setAlignment(float horizontal, float vertical)", asMETHOD(ScriptInterface::GUI::Canvas, setAlignment), asCALL_THISCALL); assert( r >= 0 );
+    r = script.engine->RegisterObjectMethod("Canvas", "void setCollapsible(bool collapsible)", asMETHOD(ScriptInterface::GUI::Canvas, setCollapsible), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Canvas", "void update()", asMETHOD(ScriptInterface::GUI::Canvas, update), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Canvas", "void fill(uint16 color)", asMETHOD(ScriptInterface::GUI::Canvas, fill), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Canvas", "void pixel(int x, int y, uint16 color)", asMETHOD(ScriptInterface::GUI::Canvas, pixel), asCALL_THISCALL); assert( r >= 0 );
-    r = script.engine->RegisterObjectMethod("Canvas", "void setPosition(float x, float y)", asMETHOD(ScriptInterface::GUI::Canvas, setPosition), asCALL_THISCALL); assert( r >= 0 );
     r = script.engine->RegisterObjectMethod("Canvas", "void draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const array<uint16> &in tiledata, const array<uint16> &in palette)", asMETHOD(ScriptInterface::GUI::Canvas, draw_sprite_4bpp), asCALL_THISCALL); assert( r >= 0 );
   }
 

@@ -219,12 +219,20 @@ struct GUI {
       self->setIcon(img);
     }
 
-    void setPosition(float x, float y) {
-      auto sizable = (operator hiro::mSizable*)();
+    auto setPosition(float x, float y) -> void {
+      auto sizable = (operator hiro::mSizable *)();
       sizable->setGeometry(hiro::Geometry(
         hiro::Position(x, y),
         sizable->geometry().size()
       ));
+    }
+
+    auto setAlignment(float horizontal, float vertical) -> void {
+      self->setAlignment(hiro::Alignment{horizontal, vertical});
+    }
+
+    auto setCollapsible(bool collapsible) -> void {
+      self->setCollapsible(collapsible);
     }
 
     auto update() -> void {
