@@ -1,6 +1,6 @@
 target := bsnes
 binary := application
-build := performance
+build := performance_debug
 openmp := true
 local := true
 flags += -I. -I..

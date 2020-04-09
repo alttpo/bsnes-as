@@ -91,6 +91,8 @@ else ifeq ($(build),release)
   flags += -O2 -DBUILD_RELEASE
 else ifeq ($(build),performance)
   flags += -O3 -DBUILD_PERFORMANCE
+else ifeq ($(build),performance_debug)
+  flags += -O3 -g -DBUILD_PERFORMANCE
 endif
 
 # link-time optimization
