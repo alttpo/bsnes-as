@@ -38,17 +38,17 @@ struct PostFrame {
 
   bool text_shadow = false;
 
-  auto (ScriptInterface::PostFrame::*draw_glyph)(int x, int y, int glyph) -> void = &ScriptInterface::PostFrame::draw_glyph_8;
+  auto (PostFrame::*draw_glyph)(int x, int y, int glyph) -> void = &PostFrame::draw_glyph_8;
 
   int font_height = 8;
   auto get_font_height() -> int { return font_height; }
   auto set_font_height(int font_height_p) {
     if (font_height_p <= 8) {
       font_height = 8;
-      draw_glyph = &ScriptInterface::PostFrame::draw_glyph_8;
+      draw_glyph = &PostFrame::draw_glyph_8;
     } else {
       font_height = 16;
-      draw_glyph = &ScriptInterface::PostFrame::draw_glyph_16;
+      draw_glyph = &PostFrame::draw_glyph_16;
     }
   }
 
@@ -267,3 +267,71 @@ struct PostFrame {
     color = save_color;
   }
 } postFrame;
+
+auto RegisterPPUFrame(asIScriptEngine *e) -> void {
+  int r;
+
+  // assumes current default namespace is 'ppu'
+
+  // define ppu::Frame object type:
+  r = e->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
+
+  // define width and height properties:
+  r = e->RegisterObjectMethod("Frame", "uint get_width()", asMETHOD(PostFrame, get_width), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "uint get_height()", asMETHOD(PostFrame, get_height), asCALL_THISCALL); assert(r >= 0);
+
+  // define x_scale and y_scale properties:
+  r = e->RegisterObjectMethod("Frame", "int get_x_scale()", asMETHOD(PostFrame, get_x_scale), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void set_x_scale(int x_scale)", asMETHOD(PostFrame, set_x_scale), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "int get_y_scale()", asMETHOD(PostFrame, get_y_scale), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void set_y_scale(int y_scale)", asMETHOD(PostFrame, set_y_scale), asCALL_THISCALL); assert(r >= 0);
+
+  // adjust y_offset of drawing functions (default 8):
+  r = e->RegisterObjectProperty("Frame", "int y_offset", asOFFSET(PostFrame, y_offset)); assert(r >= 0);
+
+  // set color to use for drawing functions (15-bit RGB):
+  r = e->RegisterObjectMethod("Frame", "uint16 get_color()", asMETHOD(PostFrame, get_color), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void set_color(uint16 color)", asMETHOD(PostFrame, set_color), asCALL_THISCALL); assert(r >= 0);
+
+  // set luma (paired with color) to use for drawing functions (0..15):
+  r = e->RegisterObjectMethod("Frame", "uint8 get_luma()", asMETHOD(PostFrame, get_luma), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void set_luma(uint8 luma)", asMETHOD(PostFrame, set_luma), asCALL_THISCALL); assert(r >= 0);
+
+  // set alpha to use for drawing functions (0..31):
+  r = e->RegisterObjectMethod("Frame", "uint8 get_alpha()", asMETHOD(PostFrame, get_alpha), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void set_alpha(uint8 alpha)", asMETHOD(PostFrame, set_alpha), asCALL_THISCALL); assert(r >= 0);
+
+  // set font_height to use for text (8 or 16):
+  r = e->RegisterObjectProperty("Frame", "int font_height", asOFFSET(PostFrame, font_height)); assert(r >= 0);
+
+  // set text_shadow to draw shadow behind text:
+  r = e->RegisterObjectProperty("Frame", "bool text_shadow", asOFFSET(PostFrame, text_shadow)); assert(r >= 0);
+
+  // register the DrawOp enum:
+  r = e->RegisterEnum("draw_op"); assert(r >= 0);
+  r = e->RegisterEnumValue("draw_op", "op_solid", PostFrame::draw_op_t::op_solid); assert(r >= 0);
+  r = e->RegisterEnumValue("draw_op", "op_alpha", PostFrame::draw_op_t::op_alpha); assert(r >= 0);
+  r = e->RegisterEnumValue("draw_op", "op_xor", PostFrame::draw_op_t::op_xor); assert(r >= 0);
+
+  // set draw_op:
+  r = e->RegisterObjectProperty("Frame", "draw_op draw_op", asOFFSET(PostFrame, draw_op)); assert(r >= 0);
+
+  // pixel access functions:
+  r = e->RegisterObjectMethod("Frame", "uint16 read_pixel(int x, int y)", asMETHOD(PostFrame, read_pixel), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void pixel(int x, int y)", asMETHOD(PostFrame, pixel), asCALL_THISCALL); assert(r >= 0);
+
+  // primitive drawing functions:
+  r = e->RegisterObjectMethod("Frame", "void hline(int lx, int ty, int w)", asMETHOD(PostFrame, hline), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void vline(int lx, int ty, int h)", asMETHOD(PostFrame, vline), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void rect(int x, int y, int w, int h)", asMETHOD(PostFrame, rect), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void fill(int x, int y, int w, int h)", asMETHOD(PostFrame, fill), asCALL_THISCALL); assert(r >= 0);
+
+  // text drawing function:
+  r = e->RegisterObjectMethod("Frame", "int text(int x, int y, const string &in text)", asMETHOD(PostFrame, text), asCALL_THISCALL); assert(r >= 0);
+
+  // draw 4bpp paletted 8x1 row:
+  r = e->RegisterObjectMethod("Frame", "int draw_4bpp_8x8(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asMETHOD(PostFrame, draw_4bpp_8x8), asCALL_THISCALL); assert(r >= 0);
+
+  // global property to access current frame:
+  r = e->RegisterGlobalProperty("Frame frame", &postFrame); assert(r >= 0);
+}

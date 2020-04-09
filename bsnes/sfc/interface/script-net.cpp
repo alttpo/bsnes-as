@@ -1179,3 +1179,69 @@ namespace Net {
     return server;
   }
 }
+
+auto RegisterNet(asIScriptEngine *e) -> void {
+  int r;
+
+  r = e->SetDefaultNamespace("net"); assert(r >= 0);
+
+  // error reporting functions:
+  r = e->RegisterGlobalFunction("string get_is_error()", asFUNCTION(Net::get_is_error), asCALL_CDECL); assert( r >= 0 );
+  r = e->RegisterGlobalFunction("string get_error_code()", asFUNCTION(Net::get_error_code), asCALL_CDECL); assert( r >= 0 );
+  r = e->RegisterGlobalFunction("string get_error_text()", asFUNCTION(Net::get_error_text), asCALL_CDECL); assert( r >= 0 );
+  r = e->RegisterGlobalFunction("bool throw_if_error()",
+                                            asFUNCTION(Net::exception_thrown), asCALL_CDECL); assert(r >= 0 );
+
+  // Address type:
+  r = e->RegisterObjectType("Address", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+  r = e->RegisterGlobalFunction("Address@ resolve_tcp(const string &in host, const int port)", asFUNCTION(Net::resolve_tcp), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("Address@ resolve_udp(const string &in host, const int port)", asFUNCTION(Net::resolve_udp), asCALL_CDECL); assert(r >= 0);
+  // TODO: try opImplCast
+  r = e->RegisterObjectMethod("Address", "bool get_is_valid()", asMETHOD(Net::Address, operator bool), asCALL_THISCALL); assert( r >= 0 );
+
+  r = e->RegisterObjectType("Socket", 0, asOBJ_REF); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("Socket", asBEHAVE_FACTORY, "Socket@ f(Address @addr)", asFUNCTION(Net::create_socket), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("Socket", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::Socket, addRef), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectBehaviour("Socket", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::Socket, release), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "bool get_is_valid()", asMETHOD(Net::Socket, operator bool), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "void connect(Address@ addr)", asMETHOD(Net::Socket, connect), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "void bind(Address@ addr)", asMETHOD(Net::Socket, bind), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "void listen(int backlog)", asMETHOD(Net::Socket, listen), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "Socket@ accept()", asMETHOD(Net::Socket, accept), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "int recv(int offs, int size, array<uint8> &inout buffer)", asMETHOD(Net::Socket, recv), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "int send(int offs, int size, array<uint8> &inout buffer)", asMETHOD(Net::Socket, send), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "int recvfrom(int offs, int size, array<uint8> &inout buffer)", asMETHOD(Net::Socket, recvfrom), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "int sendto(int offs, int size, array<uint8> &inout buffer, const Address@ addr)", asMETHOD(Net::Socket, sendto), asCALL_THISCALL); assert( r >= 0 );
+
+  r = e->RegisterObjectType("WebSocketMessage", 0, asOBJ_REF); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_FACTORY, "WebSocketMessage@ f(uint8 opcode)", asFUNCTION(Net::create_web_socket_message), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::WebSocketMessage, addRef), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::WebSocketMessage, release), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocketMessage", "uint8 get_opcode()", asMETHOD(Net::WebSocketMessage, get_opcode), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocketMessage", "void set_opcode(uint8 value)", asMETHOD(Net::WebSocketMessage, set_opcode), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocketMessage", "string &as_string()", asMETHOD(Net::WebSocketMessage, as_string), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocketMessage", "array<uint8> &as_array()", asMETHOD(Net::WebSocketMessage, as_array), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocketMessage", "void set_payload_as_string(string &in value)", asMETHOD(Net::WebSocketMessage, set_payload_as_string), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocketMessage", "void set_payload_as_array(array<uint8> &in value)", asMETHOD(Net::WebSocketMessage, set_payload_as_array), asCALL_THISCALL); assert( r >= 0 );
+
+  r = e->RegisterObjectType("WebSocket", 0, asOBJ_REF); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("WebSocket", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::WebSocket, addRef), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectBehaviour("WebSocket", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::WebSocket, release), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocket", "WebSocketMessage@ process()", asMETHOD(Net::WebSocket, process), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocket", "void send(WebSocketMessage@ msg)", asMETHOD(Net::WebSocket, send), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocket", "bool get_is_valid()", asMETHOD(Net::WebSocket, operator bool), asCALL_THISCALL); assert( r >= 0 );
+
+  r = e->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_FACTORY, "WebSocketHandshaker@ f(Socket@ socket)", asFUNCTION(Net::create_web_socket_handshaker), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::WebSocketHandshaker, addRef), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::WebSocketHandshaker, release), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocketHandshaker", "Socket@ get_socket()", asMETHOD(Net::WebSocketHandshaker, get_socket), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocketHandshaker", "WebSocket@ handshake()", asMETHOD(Net::WebSocketHandshaker, handshake), asCALL_THISCALL); assert( r >= 0 );    r = e->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF); assert(r >= 0);
+
+  r = e->RegisterObjectType("WebSocketServer", 0, asOBJ_REF); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_FACTORY, "WebSocketServer@ f(string &in uri)", asFUNCTION(Net::create_web_socket_server), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::WebSocketServer, addRef), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::WebSocketServer, release), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocketServer", "array<WebSocket@> &get_clients()", asMETHOD(Net::WebSocketServer, get_clients), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocketServer", "int process()", asMETHOD(Net::WebSocketServer, process), asCALL_THISCALL); assert( r >= 0 );
+}
