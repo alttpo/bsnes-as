@@ -38,7 +38,11 @@ struct Bus {
     }
   }
 
-  static auto read_u16(uint32 addr0, uint32 addr1) -> uint16 {
+  static auto read_u16(uint32 addr) -> uint16 {
+    return ::SuperFamicom::bus.read(addr, 0) | (::SuperFamicom::bus.read(addr + 1,0) << 8u);
+  }
+
+  static auto read_u16_ext(uint32 addr0, uint32 addr1) -> uint16 {
     return ::SuperFamicom::bus.read(addr0, 0) | (::SuperFamicom::bus.read(addr1,0) << 8u);
   }
 
@@ -171,7 +175,8 @@ auto RegisterBus(asIScriptEngine *e) -> void {
 
   // read functions:
   r = e->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(Bus::read_u8), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("uint16 read_u16(uint32 addr0, uint32 addr1)", asFUNCTION(Bus::read_u16), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("uint16 read_u16(uint32 addr)", asFUNCTION(Bus::read_u16), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("uint16 read_u16_ext(uint32 addr0, uint32 addr1)", asFUNCTION(Bus::read_u16_ext), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("void read_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)",  asFUNCTION(Bus::read_block_u8), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("void read_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)",  asFUNCTION(Bus::read_block_u16), asCALL_CDECL); assert(r >= 0);
 
