@@ -55,12 +55,12 @@ struct Bus {
     Memory::GlobalWriteEnable = false;
   }
 
-  static auto write_u16(uint32 addr0, uint32 addr1, uint16 data) -> void {
+  static auto write_u16(uint32 addr, uint16 data) -> void {
     Memory::GlobalWriteEnable = true;
     {
       // prevent scripts from intercepting their own writes:
-      ::SuperFamicom::bus.write_no_intercept(addr0, data & 0x00FFu);
-      ::SuperFamicom::bus.write_no_intercept(addr1, (data >> 8u) & 0x00FFu);
+      ::SuperFamicom::bus.write_no_intercept(addr+0, data & 0x00FFu);
+      ::SuperFamicom::bus.write_no_intercept(addr+1, (data >> 8u) & 0x00FFu);
     }
     Memory::GlobalWriteEnable = false;
   }
@@ -182,7 +182,7 @@ auto RegisterBus(asIScriptEngine *e) -> void {
 
   // write functions:
   r = e->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(Bus::write_u8), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("void write_u16(uint32 addr0, uint32 addr1, uint16 data)", asFUNCTION(Bus::write_u16), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("void write_u16(uint32 addr, uint16 data)", asFUNCTION(Bus::write_u16), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("void write_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)", asFUNCTION(Bus::write_block_u8), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("void write_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)", asFUNCTION(Bus::write_block_u16), asCALL_CDECL); assert(r >= 0);
 
