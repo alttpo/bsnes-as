@@ -31,6 +31,11 @@ auto CPU::Enter() -> void {
   }
 }
 
+// [jsd]: set a JSL in motion
+auto CPU::call_long(uint24 addr) -> void {
+  call_addr = {addr};
+}
+
 auto CPU::main() -> void {
   if(r.wai) return instructionWait();
   if(r.stp) return instructionStop();
@@ -39,6 +44,20 @@ auto CPU::main() -> void {
   if(status.nmiPending) {
     status.nmiPending = 0;
     scheduler.leave(Scheduler::Event::PreNMI);
+
+    // NOTE: this doesn't work here; need to wait until after the NMI vector jump.
+    //if ((bool)call_addr) {
+    //  // simulate a JSL instruction:
+    //  write(r.s.w--, r.pc.b); // pushN
+    //  //r.pc.w--;
+    //  write(r.s.w--, r.pc.h); // pushN
+    //  write(r.s.w--, r.pc.l); // pushN
+    //  r.pc.d = call_addr();
+    //  idleJump();
+    //  // clear call_addr:
+    //  call_addr = nothing;
+    //}
+
     r.vector = r.e ? 0xfffa : 0xffea;
     return interrupt();
   }

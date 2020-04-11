@@ -104,6 +104,9 @@ struct CPU : Processor::WDC65816, Thread, PPUcounter {
   ) -> void;
   auto reset_dma_interceptor() -> void;
 
+  auto call_long(uint24 addr) -> void;
+  maybe<uint24> call_addr = {};
+
   uint8 wram[128 * 1024];
   vector<Thread*> coprocessors;
 
