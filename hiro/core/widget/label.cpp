@@ -37,6 +37,7 @@ auto mLabel::setForegroundColor(Color color) -> type& {
 }
 
 auto mLabel::setText(const string& text) -> type& {
+  if (text == state.text) return *this;
   state.text = text;
   signal(setText, text);
   return *this;
