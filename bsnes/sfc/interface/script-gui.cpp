@@ -66,6 +66,16 @@ struct GUI {
     auto setTitle(const string *title) -> void {
       self->setTitle(*title);
     }
+
+    mutable hiro::Color mBackgroundColor;
+    auto backgroundColor() const -> hiro::Color* {
+      mBackgroundColor = self->backgroundColor();
+      return &mBackgroundColor;
+    }
+
+    auto setBackgroundColor(const hiro::Color* color) -> void {
+      self->setBackgroundColor(*color);
+    }
   };
 
   struct VerticalLayout : Sizable {
@@ -160,6 +170,36 @@ struct GUI {
 
     auto setText(const string *text) -> void {
       self->setText(*text);
+    }
+
+    mutable hiro::Alignment mAlignment;
+    auto alignment() const -> hiro::Alignment* {
+      mAlignment = self->alignment();
+      return &mAlignment;
+    }
+
+    auto setAlignment(const hiro::Alignment* alignment) -> void {
+      self->setAlignment(*alignment);
+    }
+
+    mutable hiro::Color mBackgroundColor;
+    auto backgroundColor() const -> hiro::Color* {
+      mBackgroundColor = self->backgroundColor();
+      return &mBackgroundColor;
+    }
+
+    auto setBackgroundColor(const hiro::Color* color) -> void {
+      self->setBackgroundColor(*color);
+    }
+
+    mutable hiro::Color mForegroundColor;
+    auto foregroundColor() const -> hiro::Color* {
+      mForegroundColor = self->foregroundColor();
+      return &mForegroundColor;
+    }
+
+    auto setForegroundColor(const hiro::Color* color) -> void {
+      self->setForegroundColor(*color);
     }
   };
 
@@ -322,10 +362,20 @@ struct GUI {
 #define Constructor(Name) \
     static auto create##Name() -> Name* { return new Name(); }
 
-  // Size is a value type:
+  // Size value type:
   static auto createSize(void *memory) -> void { new(memory) hiro::Size(); }
   static auto createSizeWH(float width, float height, void *memory) -> void { new(memory) hiro::Size(width, height); }
   static auto destroySize(void *memory) -> void { ((hiro::Size*)memory)->~Size(); }
+
+  // Alignment value type:
+  static auto createAlignment(void *memory) -> void { new(memory) hiro::Alignment(); }
+  static auto createAlignmentWH(float horizontal, float vertical, void *memory) -> void { new(memory) hiro::Alignment(horizontal, vertical); }
+  static auto destroyAlignment(void *memory) -> void { ((hiro::Alignment*)memory)->~Alignment(); }
+
+  // Color value type:
+  static auto createColor(void *memory) -> void { new(memory) hiro::Color(); }
+  static auto createColorRGBA(int red, int green, int blue, int alpha, void *memory) -> void { new(memory) hiro::Color(red, green, blue, alpha); }
+  static auto destroyColor(void *memory) -> void { ((hiro::Color*)memory)->~Color(); }
 
   Constructor(Window)
   static auto createWindowAtPosition(float x, float y, bool relative) -> Window* { return new Window(x, y, relative); }
@@ -353,7 +403,20 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectType("Label", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectType("Button", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectType("Canvas", 0, asOBJ_REF); assert(r >= 0);
-  r = e->RegisterObjectType("Size", sizeof(hiro::Size), asOBJ_VALUE); assert(r >= 0);
+
+  // value types:
+  r = e->RegisterObjectType("Size", sizeof(hiro::Size), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Size>()); assert(r >= 0);
+  r = e->RegisterObjectType("Color", sizeof(hiro::Color), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Color>()); assert( r >= 0 );
+  r = e->RegisterObjectType("Alignment", sizeof(hiro::Alignment), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Alignment>()); assert( r >= 0 );
+
+  // Alignment value type:
+  r = e->RegisterObjectBehaviour("Alignment", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(GUI::createAlignment), asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("Alignment", asBEHAVE_CONSTRUCT, "void f(float horizontal, float vertical)", asFUNCTION(GUI::createAlignmentWH), asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("Alignment", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(GUI::destroyAlignment), asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = e->RegisterObjectMethod("Alignment", "float get_horizontal()", asMETHOD(hiro::Alignment, horizontal), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Alignment", "void set_horizontal(float horizontal)", asMETHOD(hiro::Alignment, setHorizontal), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Alignment", "float get_vertical()", asMETHOD(hiro::Alignment, vertical), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Alignment", "void set_vertical(float vertical)", asMETHOD(hiro::Alignment, setVertical), asCALL_THISCALL); assert(r >= 0);
 
   // Size value type:
   r = e->RegisterObjectBehaviour("Size", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(GUI::createSize), asCALL_CDECL_OBJLAST); assert(r >= 0);
@@ -363,6 +426,21 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("Size", "void set_width(float width)", asMETHOD(hiro::Size, setWidth), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Size", "float get_height()", asMETHOD(hiro::Size, height), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Size", "void set_height(float height)", asMETHOD(hiro::Size, setHeight), asCALL_THISCALL); assert(r >= 0);
+
+  // Color value type:
+  r = e->RegisterObjectBehaviour("Color", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(GUI::createColor), asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("Color", asBEHAVE_CONSTRUCT, "void f(int red, int green, int blue, int alpha = 255)", asFUNCTION(GUI::createColorRGBA), asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("Color", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(GUI::destroyColor), asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& set_color(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& set_value(uint32 value)", asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_alpha()", asMETHOD(hiro::Color, alpha), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_blue()",  asMETHOD(hiro::Color, blue), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_green()", asMETHOD(hiro::Color, green), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_red()",   asMETHOD(hiro::Color, red), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& set_alpha(int alpha)", asMETHOD(hiro::Color, setAlpha), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& set_blue(int blue)", asMETHOD(hiro::Color, setBlue), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& set_green(int green)", asMETHOD(hiro::Color, setGreen), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& set_red(int red)", asMETHOD(hiro::Color, setRed), asCALL_THISCALL); assert(r >= 0);
 
   // Window
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION(GUI::createWindow), asCALL_CDECL); assert(r >= 0);
@@ -378,6 +456,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("Window", "void set_visible(bool visible)", asMETHOD(GUI::Window, setVisible), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Window", "void set_title(const string &in title)", asMETHOD(GUI::Window, setTitle), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Window", "void set_size(Size &in size)", asMETHOD(GUI::Window, setSize), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Window", "Color& get_backgroundColor()", asMETHOD(GUI::Window, backgroundColor), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Window", "void set_backgroundColor(Color &in color)", asMETHOD(GUI::Window, setBackgroundColor), asCALL_THISCALL); assert( r >= 0 );
 
   // VerticalLayout
   r = e->RegisterObjectBehaviour("VerticalLayout", asBEHAVE_FACTORY, "VerticalLayout@ f()", asFUNCTION(GUI::createVerticalLayout), asCALL_CDECL); assert(r >= 0);
@@ -421,6 +501,14 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("Label", asBEHAVE_ADDREF, "void f()", asMETHOD(GUI::Label, ref_add), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectBehaviour("Label", asBEHAVE_RELEASE, "void f()", asMETHOD(GUI::Label, ref_release), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Label", "void set_visible(bool visible)", asMETHOD(GUI::Label, setVisible), asCALL_THISCALL); assert( r >= 0 );
+
+  r = e->RegisterObjectMethod("Label", "Alignment& get_alignment()", asMETHOD(GUI::Label, alignment), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "void set_alignment(Alignment &in alignment)", asMETHOD(GUI::Label, setAlignment), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "Color& get_backgroundColor()", asMETHOD(GUI::Label, backgroundColor), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "void set_backgroundColor(Color &in color)", asMETHOD(GUI::Label, setBackgroundColor), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "Color& get_foregroundColor()", asMETHOD(GUI::Label, foregroundColor), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "void set_foregroundColor(Color &in color)", asMETHOD(GUI::Label, setForegroundColor), asCALL_THISCALL); assert( r >= 0 );
+
   r = e->RegisterObjectMethod("Label", "string &get_text()", asMETHOD(GUI::Label, getText), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Label", "void set_text(const string &in text)", asMETHOD(GUI::Label, setText), asCALL_THISCALL); assert( r >= 0 );
 

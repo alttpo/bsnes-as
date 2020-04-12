@@ -25,12 +25,14 @@ auto mLabel::setAlignment(Alignment alignment) -> type& {
 }
 
 auto mLabel::setBackgroundColor(Color color) -> type& {
+  if (color == state.backgroundColor) return *this;
   state.backgroundColor = color;
   signal(setBackgroundColor, color);
   return *this;
 }
 
 auto mLabel::setForegroundColor(Color color) -> type& {
+  if (color == state.foregroundColor) return *this;
   state.foregroundColor = color;
   signal(setForegroundColor, color);
   return *this;
