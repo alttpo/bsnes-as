@@ -1,7 +1,7 @@
 
 struct PPUAccess {
   const uint16 *lightTable_lookup(uint8 luma) {
-    return ppu.lightTable[luma];
+    return ppu.lightTable[luma & 0x0F];
   }
 
   // Global functions related to PPU:

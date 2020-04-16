@@ -252,8 +252,8 @@ struct GUI {
     }
 
     auto setSize(hiro::Size *size) -> void {
-      // Set 15-bit BGR format for PPU-compatible images:
-      image img(0, 16, 0x8000u, 0x001Fu, 0x03E0u, 0x7C00u);
+      // Set 15-bit RGB format with 1-bit alpha for PPU-compatible images after lightTable mapping:
+      image img(0, 16, 0x8000u, 0x7C00u, 0x03E0u, 0x001Fu);
       img.allocate(size->width(), size->height());
       img.fill(0x0000u);
       self->setIcon(img);
@@ -279,9 +279,29 @@ struct GUI {
       self->update();
     }
 
+    uint8 mLuma = 0x0Fu;
+    auto luma() -> uint8 { return mLuma; }
+    auto set_luma(uint8 luma) -> void { mLuma = luma & 0x0Fu; }
+
+    auto luma_adjust(uint16 color) -> uint16 {
+      uint16 rgb = ppu.lightTable[mLuma & 0x0Fu][color & 0x7FFFu] | (color & 0x8000u);
+      return rgb;
+    }
+
     auto fill(uint16 color) -> void {
       auto& img = self->iconRef();
-      img.fill(color);
+      img.fill(luma_adjust(color));
+    }
+
+    static auto luma_adjust(uint16 color, uint8 luma) -> uint16 {
+      // lightTable flips BGR to RGB as well as applying luma:
+      uint16 bgr = ppu.lightTable[luma & 0x0F][color & 0x7FFF];
+      // flip the RGB back to BGR:
+      //uint16 bgr =
+      //    ((rgb >> 10u) & 0x001Fu)
+      //  | ((rgb & 0x001Fu) << 10u)
+      //  | (rgb & 0x03E0u);
+      return bgr | (color & 0x8000);
     }
 
     auto pixel(int x, int y, uint16 color) -> void {
@@ -289,7 +309,7 @@ struct GUI {
       // bounds check:
       if (x < 0 || y < 0 || x >= img.width() || y >= img.height()) return;
       // set pixel with full alpha (1-bit on/off):
-      img.write(img.data() + (y * img.pitch()) + (x * img.stride()), color | 0x8000u);
+      img.write(img.data() + (y * img.pitch()) + (x * img.stride()), luma_adjust(color) | 0x8000u);
     }
 
     auto draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
@@ -529,6 +549,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("Canvas", asBEHAVE_RELEASE, "void f()", asMETHOD(GUI::Canvas, ref_release), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "void set_visible(bool visible)", asMETHOD(GUI::Canvas, setVisible), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "void set_size(Size &in size)", asMETHOD(GUI::Canvas, setSize), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Canvas", "uint8 get_luma()", asMETHOD(GUI::Canvas, luma), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Canvas", "void set_luma(uint8 luma)", asMETHOD(GUI::Canvas, set_luma), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "void setPosition(float x, float y)", asMETHOD(GUI::Canvas, setPosition), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "void setAlignment(float horizontal, float vertical)", asMETHOD(GUI::Canvas, setAlignment), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "void setCollapsible(bool collapsible)", asMETHOD(GUI::Canvas, setCollapsible), asCALL_THISCALL); assert( r >= 0 );

@@ -154,6 +154,7 @@ namespace SuperFamicom {
 
   namespace ScriptInterface {
     struct PPUAccess;
+    struct GUI;
     struct PostFrame;
   }
 

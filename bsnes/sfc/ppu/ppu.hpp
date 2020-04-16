@@ -175,6 +175,7 @@ private:
   friend class System;
   friend class PPUfast;
   friend class ScriptInterface::PPUAccess;
+  friend class ScriptInterface::GUI;
 };
 
 extern PPU ppu;
