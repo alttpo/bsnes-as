@@ -76,6 +76,10 @@ struct GUI {
     auto setBackgroundColor(const hiro::Color* color) -> void {
       self->setBackgroundColor(*color);
     }
+
+    auto setFont(const hiro::Font* font) -> void {
+      self->setFont(*font);
+    }
   };
 
   struct VerticalLayout : Sizable {
@@ -125,6 +129,10 @@ struct GUI {
       self = new hiro::mLineEdit();
       self->construct();
       self->setFocusable();
+    }
+
+    auto setFont(const hiro::Font* font) -> void {
+      self->setFont(*font);
     }
 
     auto getText() -> string* {
@@ -200,6 +208,10 @@ struct GUI {
 
     auto setForegroundColor(const hiro::Color* color) -> void {
       self->setForegroundColor(*color);
+    }
+
+    auto setFont(const hiro::Font* font) -> void {
+      self->setFont(*font);
     }
   };
 
@@ -418,6 +430,10 @@ struct GUI {
   static auto createColorRGBA(int red, int green, int blue, int alpha, void *memory) -> void { new(memory) hiro::Color(red, green, blue, alpha); }
   static auto destroyColor(void *memory) -> void { ((hiro::Color*)memory)->~Color(); }
 
+  // Font value type:
+  static auto createFont(string *family, float size, void *memory) -> void { new(memory) hiro::Font(*family, size); }
+  static auto destroyFont(void *memory) -> void { ((hiro::Font*)memory)->~Font(); }
+
   Constructor(Window)
   static auto createWindowAtPosition(float x, float y, bool relative) -> Window* { return new Window(x, y, relative); }
   Constructor(VerticalLayout)
@@ -446,9 +462,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectType("Canvas", 0, asOBJ_REF); assert(r >= 0);
 
   // value types:
+  r = e->RegisterObjectType("Alignment", sizeof(hiro::Alignment), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Alignment>()); assert( r >= 0 );
   r = e->RegisterObjectType("Size", sizeof(hiro::Size), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Size>()); assert(r >= 0);
   r = e->RegisterObjectType("Color", sizeof(hiro::Color), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Color>()); assert( r >= 0 );
-  r = e->RegisterObjectType("Alignment", sizeof(hiro::Alignment), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Alignment>()); assert( r >= 0 );
+  r = e->RegisterObjectType("Font", sizeof(hiro::Font), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Font>()); assert( r >= 0 );
 
   // Alignment value type:
   r = e->RegisterObjectBehaviour("Alignment", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(GUI::createAlignment), asCALL_CDECL_OBJLAST); assert(r >= 0);
@@ -483,6 +500,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("Color", "Color& set_green(int green)", asMETHOD(hiro::Color, setGreen), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Color", "Color& set_red(int red)", asMETHOD(hiro::Color, setRed), asCALL_THISCALL); assert(r >= 0);
 
+  // Font value type:
+  r = e->RegisterObjectBehaviour("Font", asBEHAVE_CONSTRUCT, "void f(const string &in family, float size = 0.0)", asFUNCTION(GUI::createFont), asCALL_CDECL_OBJLAST); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("Font", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(GUI::destroyFont), asCALL_CDECL_OBJLAST); assert(r >= 0);
+
   // Window
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION(GUI::createWindow), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f(float rx, float ry, bool relative)", asFUNCTION(GUI::createWindowAtPosition), asCALL_CDECL); assert(r >= 0);
@@ -497,6 +518,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("Window", "void set_visible(bool visible)", asMETHOD(GUI::Window, setVisible), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Window", "void set_title(const string &in title)", asMETHOD(GUI::Window, setTitle), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Window", "void set_size(Size &in size)", asMETHOD(GUI::Window, setSize), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Window", "void set_font(Font &in font)", asMETHOD(GUI::Window, setFont), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Window", "Color& get_backgroundColor()", asMETHOD(GUI::Window, backgroundColor), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Window", "void set_backgroundColor(Color &in color)", asMETHOD(GUI::Window, setBackgroundColor), asCALL_THISCALL); assert( r >= 0 );
 
@@ -533,6 +555,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("LineEdit", asBEHAVE_ADDREF, "void f()", asMETHOD(GUI::LineEdit, ref_add), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectBehaviour("LineEdit", asBEHAVE_RELEASE, "void f()", asMETHOD(GUI::LineEdit, ref_release), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("LineEdit", "void set_visible(bool visible)", asMETHOD(GUI::LineEdit, setVisible), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("LineEdit", "void set_font(Font &in font)", asMETHOD(GUI::LineEdit, setFont), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("LineEdit", "string &get_text()", asMETHOD(GUI::LineEdit, getText), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("LineEdit", "void set_text(const string &in text)", asMETHOD(GUI::LineEdit, setText), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("LineEdit", "void set_on_change(LineEditCallback @cb)", asMETHOD(GUI::LineEdit, setOnChange), asCALL_THISCALL); assert( r >= 0 );
@@ -549,6 +572,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("Label", "void set_backgroundColor(Color &in color)", asMETHOD(GUI::Label, setBackgroundColor), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Label", "Color& get_foregroundColor()", asMETHOD(GUI::Label, foregroundColor), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Label", "void set_foregroundColor(Color &in color)", asMETHOD(GUI::Label, setForegroundColor), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "void set_font(Font &in font)", asMETHOD(GUI::Label, setFont), asCALL_THISCALL); assert( r >= 0 );
 
   r = e->RegisterObjectMethod("Label", "string &get_text()", asMETHOD(GUI::Label, getText), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Label", "void set_text(const string &in text)", asMETHOD(GUI::Label, setText), asCALL_THISCALL); assert( r >= 0 );
