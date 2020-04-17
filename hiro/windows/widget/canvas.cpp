@@ -170,12 +170,14 @@ auto pCanvas::_rasterize() -> void {
   pixels.resize(width * height);
 
   if(auto& icon = state().icon) {
-    //memory::copy<uint32_t>(pixels.data(), icon.data(), width * height);
-
+#if 0
+    memory::copy<uint32_t>(pixels.data(), icon.data(), width * height);
+#else
     // [jsd] optimized to avoid allocation
     image fakeTarget(0, 32, 255u << 24, 255u << 16, 255u << 8, 255u << 0);  // Windows uses ARGB format
     fakeTarget.use((uint8_t*)pixels.data(), width, height);
     icon.transformTo(fakeTarget);
+#endif
   } else if(auto& gradient = state().gradient) {
     auto& colors = gradient.state.colors;
     image fill;

@@ -300,7 +300,6 @@ struct GUI {
         }
       }
       self->setIcon(img32);
-      //self->update();
     }
 
     uint8 mLuma = 0x0Fu;

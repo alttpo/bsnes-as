@@ -157,8 +157,6 @@ auto image::transform(bool outputEndian, unsigned outputDepth, uint64_t outputAl
 }
 
 auto image::transformTo(image& output) const -> void {
-  if(_endian == output._endian && _depth == output._depth && _alpha == output._alpha && _red == output._red && _green == output._green && _blue == output._blue) return;
-
   for(unsigned y = 0; y < _height; y++) {
     const uint8_t* sp = _data + pitch() * y;
     uint8_t* dp = output._data + output.pitch() * y;
