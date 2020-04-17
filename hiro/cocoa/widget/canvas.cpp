@@ -204,7 +204,7 @@ auto pCanvas::_rasterize() -> void {
 
     auto target = (uint32_t*)[bitmap bitmapData];
 
-    if(auto icon = state().icon) {
+    if(auto& icon = state().icon) {
       //icon.transform(0, 32, 255u << 24, 255u << 0, 255u << 8, 255u << 16);  //Cocoa uses ABGR format
       //memory::copy(target, icon.data(), icon.size());
 
