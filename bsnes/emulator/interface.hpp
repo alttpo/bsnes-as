@@ -109,6 +109,7 @@ struct Interface {
   virtual auto registerScriptDefs() -> void {}
   virtual auto loadScript(string location) -> void {}
   virtual auto unloadScript() -> void {};
+  virtual auto paletteUpdated(uint32_t *palette, uint depth) -> void {};
 };
 
 }

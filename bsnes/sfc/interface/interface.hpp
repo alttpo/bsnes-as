@@ -79,6 +79,7 @@ struct Interface : Emulator::Interface {
   auto registerScriptDefs() -> void override;
   auto loadScript(string location) -> void override;
   auto unloadScript() -> void override;
+  auto paletteUpdated(uint32_t *palette, uint depth) -> void override;
 private:
   auto registerScriptString() -> void;
 };

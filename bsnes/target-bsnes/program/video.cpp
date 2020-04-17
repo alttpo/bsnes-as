@@ -116,6 +116,7 @@ auto Program::updateVideoPalette() -> void {
   }
 
   emulator->configure("Video/ColorEmulation", false);
+  emulator->paletteUpdated(palette, depth);
 }
 
 auto Program::updateVideoEffects() -> void {

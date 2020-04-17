@@ -175,6 +175,9 @@ namespace ScriptInterface {
     }
   }
 
+  uint32_t  *emulatorPalette;
+  uint      emulatorDepth;    // 24 or 30
+
   #include "script-bus.cpp"
   #include "script-ppu.cpp"
   #include "script-frame.cpp"
@@ -183,6 +186,17 @@ namespace ScriptInterface {
   #include "script-gui.cpp"
 
 };
+
+auto Interface::paletteUpdated(uint32_t *palette, uint depth) -> void {
+  //printf("Interface::paletteUpdated(%p, %d)\n", palette, depth);
+  ScriptInterface::emulatorPalette = palette;
+  ScriptInterface::emulatorDepth = depth;
+
+  if (script.funcs.palette_updated) {
+    script.context->Prepare(script.funcs.palette_updated);
+    script.context->Execute();
+  }
+}
 
 auto Interface::registerScriptDefs() -> void {
   int r;
@@ -255,6 +269,7 @@ auto Interface::loadScript(string location) -> void {
   script.funcs.pre_nmi = script.module->GetFunctionByDecl("void pre_nmi()");
   script.funcs.pre_frame = script.module->GetFunctionByDecl("void pre_frame()");
   script.funcs.post_frame = script.module->GetFunctionByDecl("void post_frame()");
+  script.funcs.palette_updated = script.module->GetFunctionByDecl("void palette_updated()");
 
   if (script.funcs.init) {
     script.context->Prepare(script.funcs.init);

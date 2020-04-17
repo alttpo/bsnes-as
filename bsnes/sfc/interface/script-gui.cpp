@@ -246,17 +246,28 @@ struct GUI {
     BindObject(Canvas)
     BindSizable(Canvas)
 
-    Canvas() {
+    Canvas() :
+      // Set 15-bit RGB format with 1-bit alpha for PPU-compatible images after lightTable mapping:
+      img16(0, 16, 0x8000u, 0x7C00u, 0x03E0u, 0x001Fu),
+      img32(0, 32, 0xFF000000u, 0x00FF0000u, 0x0000FF00u, 0x000000FFu)
+    {
       self = new hiro::mCanvas();
       self->construct();
     }
 
+    // holds internal SNES 15-bit BGR colors
+    image img16;
+    // used for final display
+    image img32;
+
     auto setSize(hiro::Size *size) -> void {
-      // Set 15-bit RGB format with 1-bit alpha for PPU-compatible images after lightTable mapping:
-      image img(0, 16, 0x8000u, 0x7C00u, 0x03E0u, 0x001Fu);
-      img.allocate(size->width(), size->height());
-      img.fill(0x0000u);
-      self->setIcon(img);
+      //img16 = image(0, 16, 0x8000u, 0x7C00u, 0x03E0u, 0x001Fu);
+      //img32 = image(0, 32, 0xFF000000u, 0x00FF0000u, 0x0000FF00u, 0x000000FFu);
+      img16.allocate(size->width(), size->height());
+      img32.allocate(size->width(), size->height());
+      img16.fill(0x0000u);
+      img32.fill(0x00000000u);
+      self->setIcon(img32);
     }
 
     auto setPosition(float x, float y) -> void {
@@ -276,7 +287,20 @@ struct GUI {
     }
 
     auto update() -> void {
-      self->update();
+      // translate to 24-bit or 30-bit RGB: (assuming 24-bit for now)
+      for (int y = 0; y < img32.height(); y++) {
+        uint8_t* p = img16.data() + (y * img16.pitch());
+        for (int x = 0; x < img32.width(); x++, p += img16.stride()) {
+          uint16_t bgr = *((uint16_t*)p);
+          uint32_t rgb = emulatorPalette[bgr & 0x7FFFu] | ((bgr & 0x8000u) != 0u ? 0xFF000000u : 0u);
+          img32.write(
+            img32.data() + (y * img32.pitch()) + (x * img32.stride()),
+            rgb
+          );
+        }
+      }
+      self->setIcon(img32);
+      //self->update();
     }
 
     uint8 mLuma = 0x0Fu;
@@ -289,27 +313,25 @@ struct GUI {
     }
 
     auto fill(uint16 color) -> void {
-      auto& img = self->iconRef();
-      img.fill(luma_adjust(color));
+      img16.fill(luma_adjust(color));
     }
 
     static auto luma_adjust(uint16 color, uint8 luma) -> uint16 {
       // lightTable flips BGR to RGB as well as applying luma:
-      uint16 bgr = ppu.lightTable[luma & 0x0F][color & 0x7FFF];
+      uint16 bgr = ppu.lightTable[luma & 0x0Fu][color & 0x7FFFu];
       // flip the RGB back to BGR:
       //uint16 bgr =
       //    ((rgb >> 10u) & 0x001Fu)
       //  | ((rgb & 0x001Fu) << 10u)
       //  | (rgb & 0x03E0u);
-      return bgr | (color & 0x8000);
+      return bgr | (color & 0x8000u);
     }
 
     auto pixel(int x, int y, uint16 color) -> void {
-      auto& img = self->iconRef();
       // bounds check:
-      if (x < 0 || y < 0 || x >= img.width() || y >= img.height()) return;
+      if (x < 0 || y < 0 || x >= img16.width() || y >= img16.height()) return;
       // set pixel with full alpha (1-bit on/off):
-      img.write(img.data() + (y * img.pitch()) + (x * img.stride()), luma_adjust(color) | 0x8000u);
+      img16.write(img16.data() + (y * img16.pitch()) + (x * img16.stride()), luma_adjust(color));
     }
 
     auto draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
@@ -368,7 +390,7 @@ struct GUI {
               t += tile >> (shift + 14u) & 4u;
               t += tile >> (shift + 21u) & 8u;
               if (t) {
-                auto color = palette_p[t];
+                auto color = palette_p[t] | 0x8000u;
                 pixel(x + (tx << 3) + px, y + (ty << 3) + py, color);
               }
             }
