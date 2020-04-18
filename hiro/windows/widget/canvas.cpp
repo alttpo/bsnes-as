@@ -143,9 +143,9 @@ auto pCanvas::_paint() -> void {
   }
   SelectObject(hdc, bitmap);
 
-  RECT rc;
-  GetClientRect(hwnd, &rc);
-  DrawThemeParentBackground(hwnd, ps.hdc, &rc);
+  //RECT rc;
+  //GetClientRect(hwnd, &rc);
+  //DrawThemeParentBackground(hwnd, ps.hdc, &rc);
 
   BLENDFUNCTION bf{AC_SRC_OVER, 0, (BYTE)255, AC_SRC_ALPHA};
   AlphaBlend(ps.hdc, dx, dy, width, height, hdc, 0, 0, width, height, bf);
