@@ -27,6 +27,11 @@ struct pWidget : pSizable {
   auto _parentWindow() -> maybe<pWindow&>;
   auto _setState() -> void;
 
+  auto _setZOrderBottom() -> void;
+  auto _setZOrderNoTopMost() -> void;
+  auto _setZOrderTop() -> void;
+  auto _setZOrderTopMost() -> void;
+
   bool abstract = false;
   WindowProc defaultWindowProc = nullptr;
   HWND hwnd = nullptr;
