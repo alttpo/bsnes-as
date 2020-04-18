@@ -1,0 +1,16 @@
+.git/
+.github/
+.idea/
+.DS_Store
+cmake-build-debug/
+cmake-build-release/
+cmake-build-relwithdebinfo/
+bsnes/out/
+bsnes/obj/
+bsnes/cmake-build-debug/
+screenshots/
+Dockerfile
+*.sh
+CMakeCache.txt
+CMakeFiles/
+CMakeLists.txt
