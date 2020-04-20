@@ -67,23 +67,6 @@ auto pWidget::setFont(const Font&) -> void {
   SendMessage(hwnd, WM_SETFONT, (WPARAM)hfont, 0);
 }
 
-// [jsd] additions to control Z-Order:
-auto pWidget::_setZOrderBottom() -> void {
-  SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-}
-
-auto pWidget::_setZOrderNoTopMost() -> void {
-  SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-}
-
-auto pWidget::_setZOrderTop() -> void {
-  SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-}
-
-auto pWidget::_setZOrderTopMost() -> void {
-  SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-}
-
 auto pWidget::setGeometry(Geometry geometry) -> void {
   if(auto parent = _parentWidget()) {
     auto displacement = parent->self().geometry().position();

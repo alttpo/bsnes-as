@@ -3,9 +3,7 @@
 namespace hiro {
 
 auto pCanvas::construct() -> void {
-  //hwnd = CreateWindow(L"hiroWidget", L"", WS_CHILD, 0, 0, 0, 0, _parentHandle(), nullptr, GetModuleHandle(0), 0);
-  // [jsd] make this a layered child window supported only by Windows 8+ so that we gain per-pixel alpha:
-  hwnd = CreateWindowEx(WS_EX_LAYERED, L"hiroWidget", L"", WS_CHILD, 0, 0, 0, 0, _parentHandle(), nullptr, GetModuleHandle(0), 0);
+  hwnd = CreateWindow(L"hiroWidget", L"", WS_CHILD, 0, 0, 0, 0, _parentHandle(), nullptr, GetModuleHandle(0), 0);
   pWidget::construct();
   update();
 }
@@ -37,11 +35,7 @@ auto pCanvas::setFocusable(bool focusable) -> void {
 
 auto pCanvas::setGeometry(Geometry geometry) -> void {
   pWidget::setGeometry(geometry);
-  // [jsd] set Z-Order to top:
-  pWidget::_setZOrderTop();
-#if 0
   update();
-#endif
 }
 
 auto pCanvas::setGradient(Gradient gradient) -> void {
@@ -81,17 +75,10 @@ auto pCanvas::windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> m
     return DLGC_STATIC | DLGC_WANTCHARS;
   }
 
-  // [jsd] with WS_EX_LAYERED we don't get WM_PAINT and must instead call UpdateLayeredWindow()
-#if 1
-  //if (msg == WM_CREATE) {
-  //  update();
-  //}
-#else
   if(msg == WM_ERASEBKGND || msg == WM_PAINT) {
     _paint();
     return msg == WM_ERASEBKGND;
   }
-#endif
 
   if(msg == WM_LBUTTONDOWN) {
     if(self().focusable()) setFocused();
@@ -103,7 +90,6 @@ auto pCanvas::windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> m
 //
 
 auto pCanvas::_paint() -> void {
-#if 0
   PAINTSTRUCT ps;
   BeginPaint(hwnd, &ps);
 
@@ -157,9 +143,9 @@ auto pCanvas::_paint() -> void {
   }
   SelectObject(hdc, bitmap);
 
-  RECT rc;
-  GetClientRect(hwnd, &rc);
-  DrawThemeParentBackground(hwnd, ps.hdc, &rc);
+  //RECT rc;
+  //GetClientRect(hwnd, &rc);
+  //DrawThemeParentBackground(hwnd, ps.hdc, &rc);
 
   BLENDFUNCTION bf{AC_SRC_OVER, 0, (BYTE)255, AC_SRC_ALPHA};
   AlphaBlend(ps.hdc, dx, dy, width, height, hdc, 0, 0, width, height, bf);
@@ -168,7 +154,6 @@ auto pCanvas::_paint() -> void {
   DeleteDC(hdc);
 
   EndPaint(hwnd, &ps);
-#endif
 }
 
 auto pCanvas::_rasterize() -> void {
@@ -206,86 +191,7 @@ auto pCanvas::_rasterize() -> void {
 }
 
 auto pCanvas::_redraw() -> void {
-#if 1
-  int sx = 0, sy = 0, dx = 0, dy = 0;
-  int width = this->width;
-  int height = this->height;
-
-  // early out if nothing to do:
-  if (width == 0 || height == 0) return;
-
-  auto geometry = self().geometry();
-  auto alignment = state().alignment ? state().alignment : Alignment{0.5, 0.5};
-
-  if(width <= geometry.width()) {
-    sx = 0;
-    dx = (geometry.width() - width) * alignment.horizontal();
-  } else {
-    sx = (width - geometry.width()) * alignment.horizontal();
-    dx = 0;
-    width = geometry.width();
-  }
-
-  if(height <= geometry.height()) {
-    sy = 0;
-    dy = (geometry.height() - height) * alignment.vertical();
-  } else {
-    sy = (height - geometry.height()) * alignment.vertical();
-    dy = 0;
-    height = geometry.height();
-  }
-
-  BITMAPINFO bmi{};
-  bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-  bmi.bmiHeader.biPlanes = 1;
-  bmi.bmiHeader.biBitCount = 32;
-  bmi.bmiHeader.biCompression = BI_RGB;
-  bmi.bmiHeader.biWidth = width;
-  bmi.bmiHeader.biHeight = -height;  //GDI stores bitmaps upside now; negative height flips bitmap
-  bmi.bmiHeader.biSizeImage = width * height * sizeof(uint32_t);
-
-  void* bits = nullptr;
-  HDC hdc = CreateCompatibleDC(nullptr);
-  HBITMAP bitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
-
-  if (bits) {
-    for(uint y : range(height)) {
-      auto source = (const uint8_t*)pixels.data() + (sy + y) * this->width * sizeof(uint32_t) + sx * sizeof(uint32_t);
-      auto target = (uint8_t*)bits + y * width * sizeof(uint32_t);
-      for(uint x : range(width)) {
-        target[0] = (source[0] * source[3]) / 255;
-        target[1] = (source[1] * source[3]) / 255;
-        target[2] = (source[2] * source[3]) / 255;
-        target[3] = (source[3]);
-        source += 4, target += 4;
-      }
-    }
-  }
-  HGDIOBJ hbmOld = SelectObject(hdc, bitmap);
-
-  POINT ptSrc{0, 0};
-  SIZE size{width, height};
-  BLENDFUNCTION bf{AC_SRC_OVER, 0, (BYTE)255, AC_SRC_ALPHA};
-  if (!UpdateLayeredWindow(
-    hwnd,
-    nullptr,
-    nullptr,
-    &size,
-    hdc,
-    &ptSrc,
-    0,
-    &bf,
-    ULW_ALPHA
-  )) {
-    //printf("UpdateLayeredWindow failed! err=%08x\n", GetLastError());
-  }
-
-  SelectObject(hdc, hbmOld);
-  DeleteObject(bitmap);
-  DeleteDC(hdc);
-#else
   InvalidateRect(hwnd, 0, false);
-#endif
 }
 
 }
