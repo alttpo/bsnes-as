@@ -96,6 +96,11 @@ static auto fmtUint(uint64_t value) -> string* {
   return new string(value);
 }
 
+static auto stringSlice(const string *self, int offset, int length) -> string* {
+  auto result = self->slice(offset, length);
+  return new string(result);
+}
+
 auto Interface::registerScriptString() -> void {
   int r;
   // register string type:
@@ -114,6 +119,8 @@ auto Interface::registerScriptString() -> void {
   r = script.engine->RegisterObjectMethod("string", "string &opAdd(const string &in) const", asFUNCTION(stringAdd), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
 
   r = script.engine->RegisterObjectMethod("string", "uint length() const", asMETHOD(string, length), asCALL_THISCALL); assert( r >= 0 );
+
+  r = script.engine->RegisterObjectMethod("string", "string &slice(int beginIndex, int length = -1) const", asFUNCTION(stringSlice), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
 
   // Register global functions
   r = script.engine->RegisterGlobalFunction("string &fmtHex(uint64 value, int precision = 0)", asFUNCTION(fmtHex), asCALL_CDECL); assert(r >= 0);
