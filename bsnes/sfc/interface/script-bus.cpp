@@ -13,6 +13,10 @@ struct Bus {
       asGetActiveContext()->SetException("output array must be of type uint8[]", true);
       return;
     }
+    if (offs + size > output->GetSize()) {
+      asGetActiveContext()->SetException("offset and size exceed the bounds of the output array", true);
+      return;
+    }
 
     for (uint32 a = 0; a < size; a++) {
       auto value = ::SuperFamicom::bus.read(addr + a);
@@ -27,6 +31,10 @@ struct Bus {
     }
     if (output->GetElementTypeId() != asTYPEID_UINT16) {
       asGetActiveContext()->SetException("output array must be of type uint16[]", true);
+      return;
+    }
+    if (offs + size > output->GetSize()) {
+      asGetActiveContext()->SetException("offset and size exceed the bounds of the output array", true);
       return;
     }
 
@@ -74,6 +82,10 @@ struct Bus {
       asGetActiveContext()->SetException("input array must be of type uint8[]", true);
       return;
     }
+    if (offs + size > input->GetSize()) {
+      asGetActiveContext()->SetException("offset and size exceed the bounds of the input array", true);
+      return;
+    }
 
     Memory::GlobalWriteEnable = true;
     {
@@ -92,6 +104,10 @@ struct Bus {
     }
     if (input->GetElementTypeId() != asTYPEID_UINT16) {
       asGetActiveContext()->SetException("input array must be of type uint16[]", true);
+      return;
+    }
+    if (offs + size > input->GetSize()) {
+      asGetActiveContext()->SetException("offset and size exceed the bounds of the input array", true);
       return;
     }
 
