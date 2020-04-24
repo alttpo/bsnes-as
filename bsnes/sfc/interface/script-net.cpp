@@ -105,27 +105,29 @@ namespace Net {
     addrinfo *info;
 
     // constructor:
-    Address(const string *host, int port, int family = AF_UNSPEC, int socktype = SOCK_STREAM) {
+    Address(const string *host, const string *port, int family = AF_UNSPEC, int socktype = SOCK_STREAM) {
       info = nullptr;
 
       addrinfo hints;
-      const char *addr;
+      const char *hostCstr;
+      const char *portCstr;
 
       memset(&hints, 0, sizeof(addrinfo));
       hints.ai_family = family;
       hints.ai_socktype = socktype;
 
       if (host == nullptr || (*host) == "") {
-        addr = (const char *)nullptr;
+        hostCstr = (const char *)nullptr;
         // AI_PASSIVE hint is ignored otherwise.
         hints.ai_flags = AI_PASSIVE;
       } else {
-        addr = (const char *)*host;
+        hostCstr = (const char *)*host;
       }
+      portCstr = (const char *)*port;
 
       last_error_gai = 0;
       last_error = 0;
-      int rc = ::getaddrinfo(addr, string(port), &hints, &info); last_error_location = LOCATION " getaddrinfo";
+      int rc = ::getaddrinfo(hostCstr, portCstr, &hints, &info); last_error_location = LOCATION " getaddrinfo";
       if (rc != 0) {
 #if !defined(PLATFORM_WINDOWS)
         if (rc == EAI_SYSTEM) {
@@ -150,7 +152,7 @@ namespace Net {
     operator bool() { return info; }
   };
 
-  static auto resolve_tcp(const string *host, int port) -> Address* {
+  static auto resolve_tcp(const string *host, const string *port) -> Address* {
     auto addr = new Address(host, port, AF_INET, SOCK_STREAM);
     if (!*addr) {
       delete addr;
@@ -159,7 +161,7 @@ namespace Net {
     return addr;
   }
 
-  static auto resolve_udp(const string *host, int port) -> Address* {
+  static auto resolve_udp(const string *host, const string *port) -> Address* {
     auto addr = new Address(host, port, AF_INET, SOCK_DGRAM);
     if (!*addr) {
       delete addr;
@@ -1034,7 +1036,7 @@ namespace Net {
   struct WebSocketServer {
     Socket* socket = nullptr;
     string host;
-    int port;
+    string port;
     string resource;
 
     bool valid;
@@ -1085,9 +1087,9 @@ namespace Net {
       auto host_port = host_port_path[0].split(":");
       if (host_port.size() == 2) {
         host = host_port[0];
-        port = host_port[1].integer();
+        port = host_port[1];
       } else {
-        port = 80;
+        port = "80";
       }
 
       resource = "/";
@@ -1096,7 +1098,7 @@ namespace Net {
       }
 
       // resolve listening address:
-      auto addr = resolve_tcp(&host, port);
+      auto addr = resolve_tcp(&host, &port);
       if (!*addr) {
         delete addr;
         return;
@@ -1189,13 +1191,12 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   r = e->RegisterGlobalFunction("string get_is_error()", asFUNCTION(Net::get_is_error), asCALL_CDECL); assert( r >= 0 );
   r = e->RegisterGlobalFunction("string get_error_code()", asFUNCTION(Net::get_error_code), asCALL_CDECL); assert( r >= 0 );
   r = e->RegisterGlobalFunction("string get_error_text()", asFUNCTION(Net::get_error_text), asCALL_CDECL); assert( r >= 0 );
-  r = e->RegisterGlobalFunction("bool throw_if_error()",
-                                            asFUNCTION(Net::exception_thrown), asCALL_CDECL); assert(r >= 0 );
+  r = e->RegisterGlobalFunction("bool throw_if_error()", asFUNCTION(Net::exception_thrown), asCALL_CDECL); assert(r >= 0 );
 
   // Address type:
   r = e->RegisterObjectType("Address", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
-  r = e->RegisterGlobalFunction("Address@ resolve_tcp(const string &in host, const int port)", asFUNCTION(Net::resolve_tcp), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("Address@ resolve_udp(const string &in host, const int port)", asFUNCTION(Net::resolve_udp), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("Address@ resolve_tcp(const string &in host, const string &in port)", asFUNCTION(Net::resolve_tcp), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("Address@ resolve_udp(const string &in host, const string &in port)", asFUNCTION(Net::resolve_udp), asCALL_CDECL); assert(r >= 0);
   // TODO: try opImplCast
   r = e->RegisterObjectMethod("Address", "bool get_is_valid()", asMETHOD(Net::Address, operator bool), asCALL_THISCALL); assert( r >= 0 );
 
