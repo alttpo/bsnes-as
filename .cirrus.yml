@@ -1,9 +1,9 @@
 linux-x86_64-binaries_task:
     container:
-        image: ubuntu:latest
+        image: ubuntu:bionic
 
     setup_script:
-        - apt-get update && apt-get --no-upgrade -y install build-essential libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev
+        - apt-get update && apt-get -y install --no-upgrade --no-install-recommends build-essential libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev
 
     compile_script:
         - make -C bsnes local=false build=performance
