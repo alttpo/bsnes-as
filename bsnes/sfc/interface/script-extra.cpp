@@ -299,15 +299,15 @@ auto RegisterPPUExtra(asIScriptEngine *e) -> void {
   // text drawing function:
   r = e->RegisterObjectMethod("ExtraTile", "int text(int x, int y, const string &in text)", asFUNCTION(ExtraLayer::tile_text), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-  r = e->RegisterObjectMethod("Extra", "uint16 get_color()", asMETHOD(ExtraLayer, get_color), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "void set_color(uint16 color)", asMETHOD(ExtraLayer, set_color), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "bool get_text_shadow()", asMETHOD(ExtraLayer, get_text_shadow), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "void set_text_shadow(bool color)", asMETHOD(ExtraLayer, set_text_shadow), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "uint16 get_color() property", asMETHOD(ExtraLayer, get_color), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "void set_color(uint16 color) property", asMETHOD(ExtraLayer, set_color), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "bool get_text_shadow() property", asMETHOD(ExtraLayer, get_text_shadow), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "void set_text_shadow(bool color) property", asMETHOD(ExtraLayer, set_text_shadow), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "int measure_text(const string &in text)", asMETHOD(ExtraLayer, measure_text), asCALL_THISCALL); assert(r >= 0);
 
   r = e->RegisterObjectMethod("Extra", "void reset()", asMETHOD(ExtraLayer, reset), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "uint get_count()", asMETHOD(ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "void set_count(uint count)", asMETHOD(ExtraLayer, set_tile_count), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "ExtraTile @get_opIndex(uint i)", asFUNCTION(ExtraLayer::get_tile), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "uint get_count() property", asMETHOD(ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "void set_count(uint count) property", asMETHOD(ExtraLayer, set_tile_count), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "ExtraTile @get_opIndex(uint i) property", asFUNCTION(ExtraLayer::get_tile), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = e->RegisterGlobalProperty("Extra extra", &extraLayer); assert(r >= 0);
 }

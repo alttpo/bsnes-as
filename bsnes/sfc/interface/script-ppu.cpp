@@ -197,7 +197,7 @@ auto RegisterPPU(asIScriptEngine *e) -> void {
   // create ppu namespace
   r = e->SetDefaultNamespace("ppu"); assert(r >= 0);
   r = e->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(PPUAccess::ppu_rgb), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("uint8 get_luma()", asFUNCTION(PPUAccess::ppu_get_luma), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("uint8 get_luma() property", asFUNCTION(PPUAccess::ppu_get_luma), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("uint8 sprite_width(uint8 baseSize, uint8 size)", asFUNCTION(PPUAccess::ppu_sprite_width), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("uint8 sprite_height(uint8 baseSize, uint8 size)", asFUNCTION(PPUAccess::ppu_sprite_height), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("uint8 sprite_base_size()", asFUNCTION(PPUAccess::ppu_sprite_base_size), asCALL_CDECL); assert(r >= 0);
@@ -216,7 +216,7 @@ auto RegisterPPU(asIScriptEngine *e) -> void {
   r = e->RegisterGlobalProperty("CGRAM cgram", &ppuAccess); assert(r >= 0);
 
   r = e->RegisterObjectType    ("OAMSprite", sizeof(PPUAccess::OAMObject), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
-  r = e->RegisterObjectMethod  ("OAMSprite", "bool   get_is_enabled()", asMETHOD(PPUAccess::OAMObject, get_is_enabled), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod  ("OAMSprite", "bool   get_is_enabled() property", asMETHOD(PPUAccess::OAMObject, get_is_enabled), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectProperty("OAMSprite", "uint16 x", asOFFSET(PPUAccess::OAMObject, x)); assert(r >= 0);
   r = e->RegisterObjectProperty("OAMSprite", "uint8  y", asOFFSET(PPUAccess::OAMObject, y)); assert(r >= 0);
   r = e->RegisterObjectProperty("OAMSprite", "uint16 character", asOFFSET(PPUAccess::OAMObject, character)); assert(r >= 0);
@@ -225,12 +225,12 @@ auto RegisterPPU(asIScriptEngine *e) -> void {
   r = e->RegisterObjectProperty("OAMSprite", "uint8  priority", asOFFSET(PPUAccess::OAMObject, priority)); assert(r >= 0);
   r = e->RegisterObjectProperty("OAMSprite", "uint8  palette", asOFFSET(PPUAccess::OAMObject, palette)); assert(r >= 0);
   r = e->RegisterObjectProperty("OAMSprite", "uint8  size", asOFFSET(PPUAccess::OAMObject, size)); assert(r >= 0);
-  r = e->RegisterObjectMethod  ("OAMSprite", "uint8  get_width()", asMETHOD(PPUAccess::OAMObject, get_width), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod  ("OAMSprite", "uint8  get_height()", asMETHOD(PPUAccess::OAMObject, get_height), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod  ("OAMSprite", "uint8  get_width() property", asMETHOD(PPUAccess::OAMObject, get_width), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod  ("OAMSprite", "uint8  get_height() property", asMETHOD(PPUAccess::OAMObject, get_height), asCALL_THISCALL); assert(r >= 0);
 
   r = e->RegisterObjectType  ("OAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = e->RegisterObjectMethod("OAM", "OAMSprite @get_opIndex(uint8 chr)", asFUNCTION(PPUAccess::oam_get_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = e->RegisterObjectMethod("OAM", "void set_opIndex(uint8 chr, OAMSprite @sprite)", asFUNCTION(PPUAccess::oam_set_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("OAM", "OAMSprite @get_opIndex(uint8 chr) property", asFUNCTION(PPUAccess::oam_get_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("OAM", "void set_opIndex(uint8 chr, OAMSprite @sprite) property", asFUNCTION(PPUAccess::oam_set_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   r = e->RegisterGlobalProperty("OAM oam", &ppuAccess); assert(r >= 0);
 }

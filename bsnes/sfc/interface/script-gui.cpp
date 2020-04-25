@@ -471,30 +471,30 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("Alignment", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(GUI::createAlignment), asCALL_CDECL_OBJLAST); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Alignment", asBEHAVE_CONSTRUCT, "void f(float horizontal, float vertical)", asFUNCTION(GUI::createAlignmentWH), asCALL_CDECL_OBJLAST); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Alignment", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(GUI::destroyAlignment), asCALL_CDECL_OBJLAST); assert(r >= 0);
-  r = e->RegisterObjectMethod("Alignment", "float get_horizontal()", asMETHOD(hiro::Alignment, horizontal), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Alignment", "void set_horizontal(float horizontal)", asMETHOD(hiro::Alignment, setHorizontal), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Alignment", "float get_vertical()", asMETHOD(hiro::Alignment, vertical), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Alignment", "void set_vertical(float vertical)", asMETHOD(hiro::Alignment, setVertical), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Alignment", "float get_horizontal() property", asMETHOD(hiro::Alignment, horizontal), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Alignment", "void set_horizontal(float horizontal) property", asMETHOD(hiro::Alignment, setHorizontal), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Alignment", "float get_vertical() property", asMETHOD(hiro::Alignment, vertical), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Alignment", "void set_vertical(float vertical) property", asMETHOD(hiro::Alignment, setVertical), asCALL_THISCALL); assert(r >= 0);
 
   // Size value type:
   r = e->RegisterObjectBehaviour("Size", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(GUI::createSize), asCALL_CDECL_OBJLAST); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Size", asBEHAVE_CONSTRUCT, "void f(float width, float height)", asFUNCTION(GUI::createSizeWH), asCALL_CDECL_OBJLAST); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Size", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(GUI::destroySize), asCALL_CDECL_OBJLAST); assert(r >= 0);
-  r = e->RegisterObjectMethod("Size", "float get_width()", asMETHOD(hiro::Size, width), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Size", "void set_width(float width)", asMETHOD(hiro::Size, setWidth), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Size", "float get_height()", asMETHOD(hiro::Size, height), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Size", "void set_height(float height)", asMETHOD(hiro::Size, setHeight), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Size", "float get_width() property", asMETHOD(hiro::Size, width), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Size", "void set_width(float width) property", asMETHOD(hiro::Size, setWidth), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Size", "float get_height() property", asMETHOD(hiro::Size, height), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Size", "void set_height(float height) property", asMETHOD(hiro::Size, setHeight), asCALL_THISCALL); assert(r >= 0);
 
   // Color value type:
   r = e->RegisterObjectBehaviour("Color", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(GUI::createColor), asCALL_CDECL_OBJLAST); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Color", asBEHAVE_CONSTRUCT, "void f(int red, int green, int blue, int alpha = 255)", asFUNCTION(GUI::createColorRGBA), asCALL_CDECL_OBJLAST); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Color", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(GUI::destroyColor), asCALL_CDECL_OBJLAST); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "Color& set_color(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "Color& set_value(uint32 value)", asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "uint8 get_alpha()", asMETHOD(hiro::Color, alpha), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "uint8 get_blue()",  asMETHOD(hiro::Color, blue), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "uint8 get_green()", asMETHOD(hiro::Color, green), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "uint8 get_red()",   asMETHOD(hiro::Color, red), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& setColor(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& setValue(uint32 value)", asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_alpha() property", asMETHOD(hiro::Color, alpha), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_blue() property",  asMETHOD(hiro::Color, blue), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_green() property", asMETHOD(hiro::Color, green), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_red() property",   asMETHOD(hiro::Color, red), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Color", "Color& set_alpha(int alpha)", asMETHOD(hiro::Color, setAlpha), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Color", "Color& set_blue(int blue)", asMETHOD(hiro::Color, setBlue), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Color", "Color& set_green(int green)", asMETHOD(hiro::Color, setGreen), asCALL_THISCALL); assert(r >= 0);
@@ -515,12 +515,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("Window", "void append(Label @sizable)", asMETHOD(GUI::Window, appendSizable), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Window", "void append(Button @sizable)", asMETHOD(GUI::Window, appendSizable), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Window", "void append(Canvas @sizable)", asMETHOD(GUI::Window, appendSizable), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Window", "void set_visible(bool visible)", asMETHOD(GUI::Window, setVisible), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Window", "void set_title(const string &in title)", asMETHOD(GUI::Window, setTitle), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Window", "void set_size(Size &in size)", asMETHOD(GUI::Window, setSize), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Window", "void set_font(Font &in font)", asMETHOD(GUI::Window, setFont), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Window", "Color& get_backgroundColor()", asMETHOD(GUI::Window, backgroundColor), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Window", "void set_backgroundColor(Color &in color)", asMETHOD(GUI::Window, setBackgroundColor), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Window", "void set_visible(bool visible) property", asMETHOD(GUI::Window, setVisible), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Window", "void set_title(const string &in title) property", asMETHOD(GUI::Window, setTitle), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Window", "void set_size(Size &in size) property", asMETHOD(GUI::Window, setSize), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Window", "void set_font(Font &in font) property", asMETHOD(GUI::Window, setFont), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Window", "Color& get_backgroundColor() property", asMETHOD(GUI::Window, backgroundColor), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Window", "void set_backgroundColor(Color &in color) property", asMETHOD(GUI::Window, setBackgroundColor), asCALL_THISCALL); assert( r >= 0 );
 
   // VerticalLayout
   r = e->RegisterObjectBehaviour("VerticalLayout", asBEHAVE_FACTORY, "VerticalLayout@ f()", asFUNCTION(GUI::createVerticalLayout), asCALL_CDECL); assert(r >= 0);
@@ -533,7 +533,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("VerticalLayout", "void append(Button @sizable, Size &in size)", asMETHOD(GUI::VerticalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("VerticalLayout", "void append(Canvas @sizable, Size &in size)", asMETHOD(GUI::VerticalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("VerticalLayout", "void resize()", asMETHOD(GUI::VerticalLayout, resize), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("VerticalLayout", "void set_visible(bool visible)", asMETHOD(GUI::VerticalLayout, setVisible), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("VerticalLayout", "void set_visible(bool visible) property", asMETHOD(GUI::VerticalLayout, setVisible), asCALL_THISCALL); assert( r >= 0 );
 
   // HorizontalLayout
   r = e->RegisterObjectBehaviour("HorizontalLayout", asBEHAVE_FACTORY, "HorizontalLayout@ f()", asFUNCTION(GUI::createHorizontalLayout), asCALL_CDECL); assert(r >= 0);
@@ -546,7 +546,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("HorizontalLayout", "void append(Button @sizable, Size &in size)", asMETHOD(GUI::HorizontalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("HorizontalLayout", "void append(Canvas @sizable, Size &in size)", asMETHOD(GUI::HorizontalLayout, appendSizable), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("HorizontalLayout", "void resize()", asMETHOD(GUI::HorizontalLayout, resize), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("HorizontalLayout", "void set_visible(bool visible)", asMETHOD(GUI::HorizontalLayout, setVisible), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("HorizontalLayout", "void set_visible(bool visible) property", asMETHOD(GUI::HorizontalLayout, setVisible), asCALL_THISCALL); assert( r >= 0 );
 
   // LineEdit
   // Register a simple funcdef for the callback
@@ -554,28 +554,28 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("LineEdit", asBEHAVE_FACTORY, "LineEdit@ f()", asFUNCTION(GUI::createLineEdit), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterObjectBehaviour("LineEdit", asBEHAVE_ADDREF, "void f()", asMETHOD(GUI::LineEdit, ref_add), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectBehaviour("LineEdit", asBEHAVE_RELEASE, "void f()", asMETHOD(GUI::LineEdit, ref_release), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("LineEdit", "void set_visible(bool visible)", asMETHOD(GUI::LineEdit, setVisible), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("LineEdit", "void set_font(Font &in font)", asMETHOD(GUI::LineEdit, setFont), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("LineEdit", "string &get_text()", asMETHOD(GUI::LineEdit, getText), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("LineEdit", "void set_text(const string &in text)", asMETHOD(GUI::LineEdit, setText), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("LineEdit", "void set_on_change(LineEditCallback @cb)", asMETHOD(GUI::LineEdit, setOnChange), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("LineEdit", "void set_visible(bool visible) property", asMETHOD(GUI::LineEdit, setVisible), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("LineEdit", "void set_font(Font &in font) property", asMETHOD(GUI::LineEdit, setFont), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("LineEdit", "string &get_text() property", asMETHOD(GUI::LineEdit, getText), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("LineEdit", "void set_text(const string &in text) property", asMETHOD(GUI::LineEdit, setText), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("LineEdit", "void set_on_change(LineEditCallback @cb) property", asMETHOD(GUI::LineEdit, setOnChange), asCALL_THISCALL); assert( r >= 0 );
 
   // Label
   r = e->RegisterObjectBehaviour("Label", asBEHAVE_FACTORY, "Label@ f()", asFUNCTION(GUI::createLabel), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Label", asBEHAVE_ADDREF, "void f()", asMETHOD(GUI::Label, ref_add), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectBehaviour("Label", asBEHAVE_RELEASE, "void f()", asMETHOD(GUI::Label, ref_release), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "void set_visible(bool visible)", asMETHOD(GUI::Label, setVisible), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "void set_visible(bool visible) property", asMETHOD(GUI::Label, setVisible), asCALL_THISCALL); assert( r >= 0 );
 
-  r = e->RegisterObjectMethod("Label", "Alignment& get_alignment()", asMETHOD(GUI::Label, alignment), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "void set_alignment(Alignment &in alignment)", asMETHOD(GUI::Label, setAlignment), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "Color& get_backgroundColor()", asMETHOD(GUI::Label, backgroundColor), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "void set_backgroundColor(Color &in color)", asMETHOD(GUI::Label, setBackgroundColor), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "Color& get_foregroundColor()", asMETHOD(GUI::Label, foregroundColor), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "void set_foregroundColor(Color &in color)", asMETHOD(GUI::Label, setForegroundColor), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "void set_font(Font &in font)", asMETHOD(GUI::Label, setFont), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "Alignment& get_alignment() property", asMETHOD(GUI::Label, alignment), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "void set_alignment(Alignment &in alignment) property", asMETHOD(GUI::Label, setAlignment), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "Color& get_backgroundColor() property", asMETHOD(GUI::Label, backgroundColor), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "void set_backgroundColor(Color &in color) property", asMETHOD(GUI::Label, setBackgroundColor), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "Color& get_foregroundColor() property", asMETHOD(GUI::Label, foregroundColor), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "void set_foregroundColor(Color &in color) property", asMETHOD(GUI::Label, setForegroundColor), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "void set_font(Font &in font) property", asMETHOD(GUI::Label, setFont), asCALL_THISCALL); assert( r >= 0 );
 
-  r = e->RegisterObjectMethod("Label", "string &get_text()", asMETHOD(GUI::Label, getText), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "void set_text(const string &in text)", asMETHOD(GUI::Label, setText), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "string &get_text() property", asMETHOD(GUI::Label, getText), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Label", "void set_text(const string &in text) property", asMETHOD(GUI::Label, setText), asCALL_THISCALL); assert( r >= 0 );
 
   // Button
   // Register a simple funcdef for the callback
@@ -583,19 +583,19 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("Button", asBEHAVE_FACTORY, "Button@ f()", asFUNCTION(GUI::createButton), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Button", asBEHAVE_ADDREF, "void f()", asMETHOD(GUI::Button, ref_add), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectBehaviour("Button", asBEHAVE_RELEASE, "void f()", asMETHOD(GUI::Button, ref_release), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Button", "void set_visible(bool visible)", asMETHOD(GUI::Button, setVisible), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Button", "string &get_text()", asMETHOD(GUI::Button, getText), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Button", "void set_text(const string &in text)", asMETHOD(GUI::Button, setText), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Button", "void set_on_activate(ButtonCallback @cb)", asMETHOD(GUI::Button, setOnActivate), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Button", "void set_visible(bool visible) property", asMETHOD(GUI::Button, setVisible), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Button", "string &get_text() property", asMETHOD(GUI::Button, getText), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Button", "void set_text(const string &in text) property", asMETHOD(GUI::Button, setText), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Button", "void set_on_activate(ButtonCallback @cb) property", asMETHOD(GUI::Button, setOnActivate), asCALL_THISCALL); assert( r >= 0 );
 
   // Canvas
   r = e->RegisterObjectBehaviour("Canvas", asBEHAVE_FACTORY, "Canvas@ f()", asFUNCTION(GUI::createCanvas), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Canvas", asBEHAVE_ADDREF, "void f()", asMETHOD(GUI::Canvas, ref_add), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectBehaviour("Canvas", asBEHAVE_RELEASE, "void f()", asMETHOD(GUI::Canvas, ref_release), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void set_visible(bool visible)", asMETHOD(GUI::Canvas, setVisible), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void set_size(Size &in size)", asMETHOD(GUI::Canvas, setSize), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "uint8 get_luma()", asMETHOD(GUI::Canvas, luma), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void set_luma(uint8 luma)", asMETHOD(GUI::Canvas, set_luma), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Canvas", "void set_visible(bool visible) property", asMETHOD(GUI::Canvas, setVisible), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Canvas", "void set_size(Size &in size) property", asMETHOD(GUI::Canvas, setSize), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Canvas", "uint8 get_luma() property", asMETHOD(GUI::Canvas, luma), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Canvas", "void set_luma(uint8 luma) property", asMETHOD(GUI::Canvas, set_luma), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "void setPosition(float x, float y)", asMETHOD(GUI::Canvas, setPosition), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "void setAlignment(float horizontal, float vertical)", asMETHOD(GUI::Canvas, setAlignment), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "void setCollapsible(bool collapsible)", asMETHOD(GUI::Canvas, setCollapsible), asCALL_THISCALL); assert( r >= 0 );

@@ -277,29 +277,29 @@ auto RegisterPPUFrame(asIScriptEngine *e) -> void {
   r = e->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
 
   // define width and height properties:
-  r = e->RegisterObjectMethod("Frame", "uint get_width()", asMETHOD(PostFrame, get_width), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "uint get_height()", asMETHOD(PostFrame, get_height), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "uint get_width() property", asMETHOD(PostFrame, get_width), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "uint get_height() property", asMETHOD(PostFrame, get_height), asCALL_THISCALL); assert(r >= 0);
 
   // define x_scale and y_scale properties:
-  r = e->RegisterObjectMethod("Frame", "int get_x_scale()", asMETHOD(PostFrame, get_x_scale), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void set_x_scale(int x_scale)", asMETHOD(PostFrame, set_x_scale), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "int get_y_scale()", asMETHOD(PostFrame, get_y_scale), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void set_y_scale(int y_scale)", asMETHOD(PostFrame, set_y_scale), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "int get_x_scale() property", asMETHOD(PostFrame, get_x_scale), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void set_x_scale(int x_scale) property", asMETHOD(PostFrame, set_x_scale), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "int get_y_scale() property", asMETHOD(PostFrame, get_y_scale), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void set_y_scale(int y_scale) property", asMETHOD(PostFrame, set_y_scale), asCALL_THISCALL); assert(r >= 0);
 
   // adjust y_offset of drawing functions (default 8):
   r = e->RegisterObjectProperty("Frame", "int y_offset", asOFFSET(PostFrame, y_offset)); assert(r >= 0);
 
   // set color to use for drawing functions (15-bit RGB):
-  r = e->RegisterObjectMethod("Frame", "uint16 get_color()", asMETHOD(PostFrame, get_color), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void set_color(uint16 color)", asMETHOD(PostFrame, set_color), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "uint16 get_color() property", asMETHOD(PostFrame, get_color), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void set_color(uint16 color) property", asMETHOD(PostFrame, set_color), asCALL_THISCALL); assert(r >= 0);
 
   // set luma (paired with color) to use for drawing functions (0..15):
-  r = e->RegisterObjectMethod("Frame", "uint8 get_luma()", asMETHOD(PostFrame, get_luma), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void set_luma(uint8 luma)", asMETHOD(PostFrame, set_luma), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "uint8 get_luma() property", asMETHOD(PostFrame, get_luma), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void set_luma(uint8 luma) property", asMETHOD(PostFrame, set_luma), asCALL_THISCALL); assert(r >= 0);
 
   // set alpha to use for drawing functions (0..31):
-  r = e->RegisterObjectMethod("Frame", "uint8 get_alpha()", asMETHOD(PostFrame, get_alpha), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void set_alpha(uint8 alpha)", asMETHOD(PostFrame, set_alpha), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "uint8 get_alpha() property", asMETHOD(PostFrame, get_alpha), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Frame", "void set_alpha(uint8 alpha) property", asMETHOD(PostFrame, set_alpha), asCALL_THISCALL); assert(r >= 0);
 
   // set font_height to use for text (8 or 16):
   r = e->RegisterObjectProperty("Frame", "int font_height", asOFFSET(PostFrame, font_height)); assert(r >= 0);
