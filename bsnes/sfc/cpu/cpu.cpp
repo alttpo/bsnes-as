@@ -39,25 +39,24 @@ auto CPU::call_long(uint24 addr) -> void {
 auto CPU::main() -> void {
   if(r.wai) return instructionWait();
   if(r.stp) return instructionStop();
-  if(!status.interruptPending) return instruction();
+  if(!status.interruptPending) {
+    if ((bool)call_addr) {
+      // simulate a JSL instruction:
+      write(r.s.w--, r.pc.b); // pushN
+      r.pc.w--;
+      write(r.s.w--, r.pc.h); // pushN
+      write(r.s.w--, r.pc.l); // pushN
+      r.pc.d = call_addr();
+      idleJump();
+      // clear call_addr:
+      call_addr = nothing;
+    }
+    return instruction();
+  }
 
   if(status.nmiPending) {
-    status.nmiPending = 0;
     scheduler.leave(Scheduler::Event::PreNMI);
-
-    // NOTE: this doesn't work here; need to wait until after the NMI vector jump.
-    //if ((bool)call_addr) {
-    //  // simulate a JSL instruction:
-    //  write(r.s.w--, r.pc.b); // pushN
-    //  //r.pc.w--;
-    //  write(r.s.w--, r.pc.h); // pushN
-    //  write(r.s.w--, r.pc.l); // pushN
-    //  r.pc.d = call_addr();
-    //  idleJump();
-    //  // clear call_addr:
-    //  call_addr = nothing;
-    //}
-
+    status.nmiPending = 0;
     r.vector = r.e ? 0xfffa : 0xffea;
     return interrupt();
   }
