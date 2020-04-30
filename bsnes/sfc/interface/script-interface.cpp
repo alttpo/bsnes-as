@@ -289,8 +289,10 @@ auto Interface::unloadScript() -> void {
   }
 
   script.funcs.init = nullptr;
+  script.funcs.pre_nmi = nullptr;
   script.funcs.pre_frame = nullptr;
   script.funcs.post_frame = nullptr;
+  script.funcs.palette_updated = nullptr;
 
   // reset extra-tile data:
   ScriptInterface::extraLayer.reset();
