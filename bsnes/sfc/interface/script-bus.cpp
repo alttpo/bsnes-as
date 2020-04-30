@@ -124,6 +124,26 @@ struct Bus {
     Memory::GlobalWriteEnable = false;
   }
 
+  static auto map_array(const string *addr, uint32 size, uint32 mask, uint32 offset, CScriptArray *memory) -> void {
+    // this never gets released because the map read/write functions are also never released:
+    memory->AddRef();
+
+    function<uint8 (uint, uint8)> reader = [=] (uint addr, uint8 data) -> uint8 {
+      auto idx = (addr & mask) + offset;
+      //printf("read  at(0x%04x)", idx);
+      auto val = *(uint8*)memory->At(idx);
+      //printf(" -> 0x%02x\n", val);
+      return *(uint8*)memory->At(idx);
+    };
+    function<void  (uint, uint8)> writer = [=] (uint addr, uint8 data) -> void {
+      auto idx = (addr & mask) + offset;
+      //printf("write at(0x%04x), 0x%02x\n", idx, data);
+      *(uint8*)memory->At(idx) = data;
+    };
+
+    ::SuperFamicom::bus.map(reader, writer, *addr, size);
+  }
+
   struct write_interceptor {
     asIScriptFunction *cb;
     asIScriptContext  *ctx;
@@ -201,6 +221,9 @@ auto RegisterBus(asIScriptEngine *e) -> void {
   r = e->RegisterGlobalFunction("void write_u16(uint32 addr, uint16 data)", asFUNCTION(Bus::write_u16), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("void write_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)", asFUNCTION(Bus::write_block_u8), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("void write_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)", asFUNCTION(Bus::write_block_u16), asCALL_CDECL); assert(r >= 0);
+
+  // map function:
+  r = e->RegisterGlobalFunction("void map(const string &in addr, uint32 size, uint32 mask, uint32 offset, array<uint8> @memory)", asFUNCTION(Bus::map_array), asCALL_CDECL); assert(r >= 0);
 
   r = e->RegisterFuncdef("void WriteInterceptCallback(uint32 addr, uint8 value)"); assert(r >= 0);
   r = e->RegisterGlobalFunction("void add_write_interceptor(const string &in addr, uint32 size, WriteInterceptCallback @cb)", asFUNCTION(Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
