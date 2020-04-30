@@ -262,6 +262,13 @@ auto System::power(bool reset) -> void {
 
   information.serializeSize[0] = serializeInit(0);
   information.serializeSize[1] = serializeInit(1);
+
+  // [jsd] run AngelScript post_power function if available:
+  if (script.funcs.post_power) {
+    script.context->Prepare(script.funcs.post_power);
+    script.context->SetArgByte(0, reset);
+    script.context->Execute();
+  }
 }
 
 }

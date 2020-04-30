@@ -266,6 +266,7 @@ auto Interface::loadScript(string location) -> void {
 
   // bind to functions in the script:
   script.funcs.init = script.module->GetFunctionByDecl("void init()");
+  script.funcs.post_power = script.module->GetFunctionByDecl("void post_power(bool reset)");
   script.funcs.pre_nmi = script.module->GetFunctionByDecl("void pre_nmi()");
   script.funcs.pre_frame = script.module->GetFunctionByDecl("void pre_frame()");
   script.funcs.post_frame = script.module->GetFunctionByDecl("void post_frame()");
@@ -289,6 +290,7 @@ auto Interface::unloadScript() -> void {
   }
 
   script.funcs.init = nullptr;
+  script.funcs.post_power = nullptr;
   script.funcs.pre_nmi = nullptr;
   script.funcs.pre_frame = nullptr;
   script.funcs.post_frame = nullptr;
