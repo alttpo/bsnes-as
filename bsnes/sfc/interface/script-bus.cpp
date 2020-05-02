@@ -202,6 +202,41 @@ struct Bus {
 
     ::SuperFamicom::cpu.register_dma_interceptor(dma_interceptor(cb, ctx));
   }
+
+  struct pc_interceptor {
+    asIScriptFunction *cb;
+    asIScriptContext  *ctx;
+
+    pc_interceptor(asIScriptFunction *cb, asIScriptContext *ctx) : cb(cb), ctx(ctx) {
+      cb->AddRef();
+    }
+    pc_interceptor(const pc_interceptor& other) : cb(other.cb), ctx(other.ctx) {
+      cb->AddRef();
+    }
+    pc_interceptor(const pc_interceptor&& other) : cb(other.cb), ctx(other.ctx) {
+    }
+    ~pc_interceptor() {
+      cb->Release();
+    }
+
+    auto operator()(uint32 addr) -> void {
+      ctx->Prepare(cb);
+      ctx->SetArgDWord(0, addr);
+      ctx->Execute();
+    }
+  };
+
+  static auto register_pc_interceptor(uint32 addr, asIScriptFunction *cb) -> void {
+    auto ctx = asGetActiveContext();
+
+    ::SuperFamicom::cpu.register_pc_callback(addr, pc_interceptor(cb, ctx));
+  }
+
+  static auto unregister_pc_interceptor(uint32 addr) -> void {
+    auto ctx = asGetActiveContext();
+
+    ::SuperFamicom::cpu.unregister_pc_callback(addr);
+  }
 } bus;
 
 auto RegisterBus(asIScriptEngine *e) -> void {
@@ -246,4 +281,8 @@ auto RegisterBus(asIScriptEngine *e) -> void {
 
   r = e->RegisterFuncdef("void DMAInterceptCallback(DMAIntercept @dma)"); assert(r >= 0);
   r = e->RegisterGlobalFunction("void register_dma_interceptor(DMAInterceptCallback @cb)", asFUNCTION(Bus::register_dma_interceptor), asCALL_CDECL); assert(r >= 0);
+
+  r = e->RegisterFuncdef("void PCInterceptCallback(uint32 addr)"); assert(r >= 0);
+  r = e->RegisterGlobalFunction("void register_pc_interceptor(uint32 addr, PCInterceptCallback @cb)", asFUNCTION(Bus::register_pc_interceptor), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("void unregister_pc_interceptor(uint32 addr)", asFUNCTION(Bus::unregister_pc_interceptor), asCALL_CDECL); assert(r >= 0);
 }

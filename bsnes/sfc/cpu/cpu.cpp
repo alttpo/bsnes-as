@@ -31,10 +31,29 @@ auto CPU::Enter() -> void {
   }
 }
 
+auto CPU::register_pc_callback(
+  uint32 addr,
+  const function<void (uint32 addr)> &callback
+) -> void {
+  pc_callbacks.insert(addr, callback);
+}
+
+auto CPU::unregister_pc_callback(
+  uint32 addr
+) -> void {
+  pc_callbacks.remove(addr);
+}
+
 auto CPU::main() -> void {
   if(r.wai) return instructionWait();
   if(r.stp) return instructionStop();
-  if(!status.interruptPending) return instruction();
+  if(!status.interruptPending) {
+    auto intr = pc_callbacks.find(r.pc.d);
+    if (intr) {
+      intr()(r.pc.d);
+    }
+    return instruction();
+  }
 
   if(status.nmiPending) {
     status.nmiPending = 0;

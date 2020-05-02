@@ -104,6 +104,15 @@ struct CPU : Processor::WDC65816, Thread, PPUcounter {
   ) -> void;
   auto reset_dma_interceptor() -> void;
 
+  auto register_pc_callback(
+    uint32 addr,
+    const function<void (uint32 addr)> &callback
+  ) -> void;
+  auto unregister_pc_callback(
+    uint32 addr
+  ) -> void;
+  map< uint32, function<void (uint32 addr)> > pc_callbacks;
+
   uint8 wram[128 * 1024];
   vector<Thread*> coprocessors;
 

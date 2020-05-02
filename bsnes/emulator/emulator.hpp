@@ -10,6 +10,7 @@
 #include <nall/endian.hpp>
 #include <nall/image.hpp>
 #include <nall/literals.hpp>
+#include <nall/map.hpp>
 #include <nall/random.hpp>
 #include <nall/serializer.hpp>
 #include <nall/shared-pointer.hpp>
