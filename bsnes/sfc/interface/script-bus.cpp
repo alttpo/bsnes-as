@@ -242,47 +242,79 @@ struct Bus {
 auto RegisterBus(asIScriptEngine *e) -> void {
   int r;
 
-  r = e->SetDefaultNamespace("bus"); assert(r >= 0);
+  {
+    r = e->SetDefaultNamespace("bus"); assert(r >= 0);
 
-  // read functions:
-  r = e->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(Bus::read_u8), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("uint16 read_u16(uint32 addr)", asFUNCTION(Bus::read_u16), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("uint16 read_u16_ext(uint32 addr0, uint32 addr1)", asFUNCTION(Bus::read_u16_ext), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("void read_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)",  asFUNCTION(Bus::read_block_u8), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("void read_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)",  asFUNCTION(Bus::read_block_u16), asCALL_CDECL); assert(r >= 0);
+    // read functions:
+    r = e->RegisterGlobalFunction("uint8 read_u8(uint32 addr)",  asFUNCTION(Bus::read_u8), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint16 read_u16(uint32 addr)", asFUNCTION(Bus::read_u16), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint16 read_u16_ext(uint32 addr0, uint32 addr1)", asFUNCTION(Bus::read_u16_ext), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("void read_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)",  asFUNCTION(Bus::read_block_u8), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("void read_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)",  asFUNCTION(Bus::read_block_u16), asCALL_CDECL); assert(r >= 0);
 
-  // write functions:
-  r = e->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(Bus::write_u8), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("void write_u16(uint32 addr, uint16 data)", asFUNCTION(Bus::write_u16), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("void write_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)", asFUNCTION(Bus::write_block_u8), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("void write_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)", asFUNCTION(Bus::write_block_u16), asCALL_CDECL); assert(r >= 0);
+    // write functions:
+    r = e->RegisterGlobalFunction("void write_u8(uint32 addr, uint8 data)", asFUNCTION(Bus::write_u8), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("void write_u16(uint32 addr, uint16 data)", asFUNCTION(Bus::write_u16), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("void write_block_u8(uint32 addr, uint offs, uint16 size, const array<uint8> &in output)", asFUNCTION(Bus::write_block_u8), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("void write_block_u16(uint32 addr, uint offs, uint16 size, const array<uint16> &in output)", asFUNCTION(Bus::write_block_u16), asCALL_CDECL); assert(r >= 0);
 
-  // map function:
-  r = e->RegisterGlobalFunction("void map(const string &in addr, uint32 size, uint32 mask, uint32 offset, array<uint8> @memory)", asFUNCTION(Bus::map_array), asCALL_CDECL); assert(r >= 0);
+    // map function:
+    r = e->RegisterGlobalFunction("void map(const string &in addr, uint32 size, uint32 mask, uint32 offset, array<uint8> @memory)", asFUNCTION(Bus::map_array), asCALL_CDECL); assert(r >= 0);
 
-  r = e->RegisterFuncdef("void WriteInterceptCallback(uint32 addr, uint8 value)"); assert(r >= 0);
-  r = e->RegisterGlobalFunction("void add_write_interceptor(const string &in addr, uint32 size, WriteInterceptCallback @cb)", asFUNCTION(Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterFuncdef("void WriteInterceptCallback(uint32 addr, uint8 value)"); assert(r >= 0);
+    r = e->RegisterGlobalFunction("void add_write_interceptor(const string &in addr, uint32 size, WriteInterceptCallback @cb)", asFUNCTION(Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
+  }
 
-  r = e->SetDefaultNamespace("cpu"); assert(r >= 0);
-  r = e->RegisterObjectType    ("DMAIntercept", sizeof(CPU::DMAIntercept), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint8  channel", asOFFSET(CPU::DMAIntercept, channel)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint8  transferMode", asOFFSET(CPU::DMAIntercept, transferMode)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint8  fixedTransfer", asOFFSET(CPU::DMAIntercept, fixedTransfer)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint8  reverseTransfer", asOFFSET(CPU::DMAIntercept, reverseTransfer)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint8  unused", asOFFSET(CPU::DMAIntercept, unused)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint8  indirect", asOFFSET(CPU::DMAIntercept, indirect)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint8  direction", asOFFSET(CPU::DMAIntercept, direction)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint8  targetAddress", asOFFSET(CPU::DMAIntercept, targetAddress)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint16 sourceAddress", asOFFSET(CPU::DMAIntercept, sourceAddress)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint8  sourceBank", asOFFSET(CPU::DMAIntercept, sourceBank)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint16 transferSize", asOFFSET(CPU::DMAIntercept, transferSize)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint16 indirectAddress", asOFFSET(CPU::DMAIntercept, indirectAddress)); assert(r >= 0);
-  r = e->RegisterObjectProperty("DMAIntercept", "uint8  indirectBank", asOFFSET(CPU::DMAIntercept, indirectBank)); assert(r >= 0);
+  {
+    r = e->SetDefaultNamespace("cpu"); assert(r >= 0);
 
-  r = e->RegisterFuncdef("void DMAInterceptCallback(DMAIntercept @dma)"); assert(r >= 0);
-  r = e->RegisterGlobalFunction("void register_dma_interceptor(DMAInterceptCallback @cb)", asFUNCTION(Bus::register_dma_interceptor), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterObjectType    ("Registers", sizeof(CPU::Registers), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+    r = e->RegisterObjectType    ("RegisterFlags", sizeof(CPU::f8), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+    r = e->RegisterObjectProperty("RegisterFlags", "bool c", asOFFSET(CPU::f8, c)); assert(r >= 0);
+    r = e->RegisterObjectProperty("RegisterFlags", "bool z", asOFFSET(CPU::f8, z)); assert(r >= 0);
+    r = e->RegisterObjectProperty("RegisterFlags", "bool i", asOFFSET(CPU::f8, i)); assert(r >= 0);
+    r = e->RegisterObjectProperty("RegisterFlags", "bool d", asOFFSET(CPU::f8, d)); assert(r >= 0);
+    r = e->RegisterObjectProperty("RegisterFlags", "bool x", asOFFSET(CPU::f8, x)); assert(r >= 0);
+    r = e->RegisterObjectProperty("RegisterFlags", "bool m", asOFFSET(CPU::f8, m)); assert(r >= 0);
+    r = e->RegisterObjectProperty("RegisterFlags", "bool v", asOFFSET(CPU::f8, v)); assert(r >= 0);
+    r = e->RegisterObjectProperty("RegisterFlags", "bool n", asOFFSET(CPU::f8, n)); assert(r >= 0);
 
-  r = e->RegisterFuncdef("void PCInterceptCallback(uint32 addr)"); assert(r >= 0);
-  r = e->RegisterGlobalFunction("void register_pc_interceptor(uint32 addr, PCInterceptCallback @cb)", asFUNCTION(Bus::register_pc_interceptor), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("void unregister_pc_interceptor(uint32 addr)", asFUNCTION(Bus::unregister_pc_interceptor), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "uint32        pc", asOFFSET(CPU::Registers, pc.d)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "uint16        a", asOFFSET(CPU::Registers, a.w)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "uint16        x", asOFFSET(CPU::Registers, x.w)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "uint16        y", asOFFSET(CPU::Registers, y.w)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "uint16        z", asOFFSET(CPU::Registers, z.w)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "uint16        s", asOFFSET(CPU::Registers, s.w)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "uint16        d", asOFFSET(CPU::Registers, d.w)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "uint8         b", asOFFSET(CPU::Registers, b)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "RegisterFlags p", asOFFSET(CPU::Registers, p)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "bool          e", asOFFSET(CPU::Registers, e)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "bool          irq", asOFFSET(CPU::Registers, irq)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "bool          wai", asOFFSET(CPU::Registers, wai)); assert(r >= 0);
+    r = e->RegisterObjectProperty("Registers", "bool          stp", asOFFSET(CPU::Registers, stp)); assert(r >= 0);
+    r = e->RegisterGlobalProperty("Registers r", &cpu.r); assert(r >= 0);
+
+    r = e->RegisterObjectType    ("DMAIntercept", sizeof(CPU::DMAIntercept), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint8  channel", asOFFSET(CPU::DMAIntercept, channel)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint8  transferMode", asOFFSET(CPU::DMAIntercept, transferMode)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint8  fixedTransfer", asOFFSET(CPU::DMAIntercept, fixedTransfer)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint8  reverseTransfer", asOFFSET(CPU::DMAIntercept, reverseTransfer)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint8  unused", asOFFSET(CPU::DMAIntercept, unused)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint8  indirect", asOFFSET(CPU::DMAIntercept, indirect)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint8  direction", asOFFSET(CPU::DMAIntercept, direction)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint8  targetAddress", asOFFSET(CPU::DMAIntercept, targetAddress)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint16 sourceAddress", asOFFSET(CPU::DMAIntercept, sourceAddress)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint8  sourceBank", asOFFSET(CPU::DMAIntercept, sourceBank)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint16 transferSize", asOFFSET(CPU::DMAIntercept, transferSize)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint16 indirectAddress", asOFFSET(CPU::DMAIntercept, indirectAddress)); assert(r >= 0);
+    r = e->RegisterObjectProperty("DMAIntercept", "uint8  indirectBank", asOFFSET(CPU::DMAIntercept, indirectBank)); assert(r >= 0);
+
+    r = e->RegisterFuncdef("void DMAInterceptCallback(DMAIntercept @dma)"); assert(r >= 0);
+    r = e->RegisterGlobalFunction("void register_dma_interceptor(DMAInterceptCallback @cb)", asFUNCTION(Bus::register_dma_interceptor), asCALL_CDECL); assert(r >= 0);
+
+    r = e->RegisterFuncdef("void PCInterceptCallback(uint32 addr)"); assert(r >= 0);
+    r = e->RegisterGlobalFunction("void register_pc_interceptor(uint32 addr, PCInterceptCallback @cb)", asFUNCTION(Bus::register_pc_interceptor), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("void unregister_pc_interceptor(uint32 addr)", asFUNCTION(Bus::unregister_pc_interceptor), asCALL_CDECL); assert(r >= 0);
+
+  }
 }

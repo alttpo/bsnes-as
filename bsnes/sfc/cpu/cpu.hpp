@@ -111,6 +111,7 @@ struct CPU : Processor::WDC65816, Thread, PPUcounter {
   auto unregister_pc_callback(
     uint32 addr
   ) -> void;
+  auto reset_pc_callbacks() -> void;
   map< uint32, function<void (uint32 addr)> > pc_callbacks;
 
   uint8 wram[128 * 1024];

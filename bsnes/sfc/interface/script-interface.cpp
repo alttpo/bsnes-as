@@ -282,6 +282,8 @@ auto Interface::unloadScript() -> void {
   // free any references to script callbacks:
   ::SuperFamicom::bus.reset_interceptors();
   ::SuperFamicom::cpu.reset_dma_interceptor();
+  ::SuperFamicom::cpu.reset_pc_callbacks();
+
   // TODO: GUI callbacks
 
   if (script.module) {

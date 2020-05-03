@@ -44,6 +44,10 @@ auto CPU::unregister_pc_callback(
   pc_callbacks.remove(addr);
 }
 
+auto CPU::reset_pc_callbacks() -> void {
+  pc_callbacks.reset();
+}
+
 auto CPU::main() -> void {
   if(r.wai) return instructionWait();
   if(r.stp) return instructionStop();
