@@ -176,7 +176,10 @@ auto Presentation::create() -> void {
   cheatEditor.setIcon(Icon::Edit::Replace).setText("Cheat Editor ...").onActivate([&] { toolsWindow.show(1); });
   stateManager.setIcon(Icon::Application::FileManager).setText("State Manager ...").onActivate([&] { toolsWindow.show(2); });
   manifestViewer.setIcon(Icon::Emblem::Text).setText("Manifest Viewer ...").onActivate([&] { toolsWindow.show(3); });
-  scriptLoad.setIcon(Icon::Emblem::Script).setText("Load Script ...").onActivate([&] { program.scriptLoad(); });
+
+  scriptMenu.setText(tr("Script"));
+  scriptLoadFile.setIcon(Icon::Emblem::Script).setText("Load Script File ...").onActivate([&] { program.scriptLoad(); });
+  scriptLoadFolder.setIcon(Icon::Emblem::Script).setText("Load Script Folder ...").onActivate([&] { program.scriptLoad(true); });
   scriptReload.setIcon(Icon::Emblem::Script).setText("Reload Script").onActivate([&] { program.scriptReload(); });
   scriptUnload.setIcon(Icon::Emblem::Script).setText("Unload Script").onActivate([&] { program.scriptUnload(); });
   scriptConsole.setIcon(Icon::Emblem::Script).setText("Script Console ...").onActivate([&] { toolsWindow.show(4); });

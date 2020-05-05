@@ -117,11 +117,13 @@ struct Presentation : Window {
       MenuItem cheatEditor{&toolsMenu};
       MenuItem stateManager{&toolsMenu};
       MenuItem manifestViewer{&toolsMenu};
-      MenuSeparator toolsSeparatorD{&toolsMenu};
-      MenuItem scriptLoad{&toolsMenu};
-      MenuItem scriptReload{&toolsMenu};
-      MenuItem scriptUnload{&toolsMenu};
-      MenuItem scriptConsole{&toolsMenu};
+    Menu scriptMenu{&menuBar};
+      MenuItem scriptLoadFile{&scriptMenu};
+      MenuItem scriptLoadFolder{&scriptMenu};
+      MenuItem scriptReload{&scriptMenu};
+      MenuItem scriptUnload{&scriptMenu};
+      MenuSeparator scriptSeparatorA{&scriptMenu};
+      MenuItem scriptConsole{&scriptMenu};
     Menu helpMenu{&menuBar};
       MenuItem documentation{&helpMenu};
       MenuSeparator helpSeparator{&helpMenu};

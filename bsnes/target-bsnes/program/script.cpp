@@ -46,15 +46,14 @@ auto Program::scriptInit() -> void {
   emulator->registerScriptDefs();
 }
 
-auto Program::scriptLoad() -> void {
+auto Program::scriptLoad(bool loadDirectory) -> void {
   BrowserDialog dialog;
   dialog.setAlignment(*presentation);
 
   dialog.setTitle("Load AngelScript");
   dialog.setPath(path("Scripts", settings.path.recent.script));
-  dialog.setFilters({string{"AngelScripts|*.as"}, string{"All Files|*"}});
 
-  auto location = dialog.openObject();
+  auto location = loadDirectory ? dialog.selectFolder() : dialog.openFile();
   if (!inode::exists(location)) {
     scriptMessage({"Script file '", (script.location), "' not found"}, true);
     return;

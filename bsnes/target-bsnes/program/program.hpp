@@ -146,7 +146,7 @@ struct Program : Lock, Emulator::Platform {
   auto scriptMessage(const string& msg, bool alert = false) -> void override;
   auto presentationWindow() -> hiro::Window override;
   auto scriptInit() -> void;
-  auto scriptLoad() -> void;
+  auto scriptLoad(bool loadDirectory = false) -> void;
   auto scriptReload() -> void;
   auto scriptUnload() -> void;
 
