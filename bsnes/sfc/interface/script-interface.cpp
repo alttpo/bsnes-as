@@ -307,6 +307,13 @@ auto Interface::loadScript(string location) -> void {
     script.context->Prepare(script.funcs.init);
     script.context->Execute();
   }
+  if (loaded()) {
+    if (script.funcs.post_power) {
+      script.context->Prepare(script.funcs.post_power);
+      script.context->SetArgByte(0, false); // reset = false
+      script.context->Execute();
+    }
+  }
 }
 
 auto Interface::unloadScript() -> void {
