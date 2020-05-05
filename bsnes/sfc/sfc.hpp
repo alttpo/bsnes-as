@@ -130,7 +130,9 @@ namespace SuperFamicom {
   struct Script {
     asIScriptEngine  *engine = nullptr;
     asIScriptContext *context = nullptr;
-    asIScriptModule  *module = nullptr;
+
+    vector<asIScriptModule *> modules;
+    asIScriptModule          *main_module = nullptr;
 
     struct {
       asIScriptFunction *init = nullptr;

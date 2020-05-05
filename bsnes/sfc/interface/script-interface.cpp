@@ -248,29 +248,60 @@ auto Interface::loadScript(string location) -> void {
 
   if (!inode::exists(location)) return;
 
-  if (script.module) {
+  if (script.modules) {
     unloadScript();
   }
 
-  // load script from file:
-  string scriptSource = string::read(location);
+  // create a main module:
+  script.main_module = script.engine->GetModule("main", asGM_ALWAYS_CREATE);
 
-  // add script into module:
-  script.module = script.engine->GetModule(nullptr, asGM_ALWAYS_CREATE);
-  r = script.module->AddScriptSection("script", scriptSource.begin(), scriptSource.length());
-  assert(r >= 0);
+  if (directory::exists(location)) {
+    // add all *.as files in root directory to main module:
+    for (auto scriptLocation : directory::files(location, "*.as")) {
+      string path = scriptLocation;
+      path.prepend(location);
+
+      auto filename = Location::file(path);
+      //platform->scriptMessage({"Loading ", path});
+
+      // load script from file:
+      string scriptSource = string::read(path);
+      if (!scriptSource) {
+        platform->scriptMessage({"WARN empty file at ", path});
+      }
+
+      // add script section into module:
+      r = script.main_module->AddScriptSection(filename, scriptSource.begin(), scriptSource.length());
+      if (r < 0) {
+        platform->scriptMessage({"Loading ", filename, " failed"});
+        return;
+      }
+    }
+
+    // TODO: more modules from folders
+  } else {
+    // load script from single specified file:
+    string scriptSource = string::read(location);
+
+    // add script into main module:
+    r = script.main_module->AddScriptSection(Location::file(location), scriptSource.begin(), scriptSource.length());
+    assert(r >= 0);
+  }
 
   // compile module:
-  r = script.module->Build();
+  r = script.main_module->Build();
   assert(r >= 0);
 
-  // bind to functions in the script:
-  script.funcs.init = script.module->GetFunctionByDecl("void init()");
-  script.funcs.post_power = script.module->GetFunctionByDecl("void post_power(bool reset)");
-  script.funcs.pre_nmi = script.module->GetFunctionByDecl("void pre_nmi()");
-  script.funcs.pre_frame = script.module->GetFunctionByDecl("void pre_frame()");
-  script.funcs.post_frame = script.module->GetFunctionByDecl("void post_frame()");
-  script.funcs.palette_updated = script.module->GetFunctionByDecl("void palette_updated()");
+  // track main module:
+  script.modules.append(script.main_module);
+
+  // bind to functions in the main module:
+  script.funcs.init = script.main_module->GetFunctionByDecl("void init()");
+  script.funcs.post_power = script.main_module->GetFunctionByDecl("void post_power(bool reset)");
+  script.funcs.pre_nmi = script.main_module->GetFunctionByDecl("void pre_nmi()");
+  script.funcs.pre_frame = script.main_module->GetFunctionByDecl("void pre_frame()");
+  script.funcs.post_frame = script.main_module->GetFunctionByDecl("void post_frame()");
+  script.funcs.palette_updated = script.main_module->GetFunctionByDecl("void palette_updated()");
 
   if (script.funcs.init) {
     script.context->Prepare(script.funcs.init);
@@ -286,10 +317,12 @@ auto Interface::unloadScript() -> void {
 
   // TODO: GUI callbacks
 
-  if (script.module) {
-    script.module->Discard();
-    script.module = nullptr;
+  // discard all loaded modules:
+  for (auto module : script.modules) {
+    module->Discard();
   }
+  script.modules.reset();
+  script.main_module = nullptr;
 
   script.funcs.init = nullptr;
   script.funcs.post_power = nullptr;
