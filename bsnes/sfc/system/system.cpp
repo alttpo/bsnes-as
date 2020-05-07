@@ -164,6 +164,13 @@ auto System::load(Emulator::Interface* interface) -> bool {
   if(cartridge.has.BSMemorySlot) bsmemory.load();
 
   this->interface = interface;
+
+  // [jsd] run AngelScript cartridge_loaded function if available:
+  if (script.funcs.cartridge_loaded) {
+    script.context->Prepare(script.funcs.cartridge_loaded);
+    script.context->Execute();
+  }
+
   return information.loaded = true;
 }
 
@@ -195,6 +202,13 @@ auto System::unload() -> void {
   if(cartridge.has.SufamiTurboSlotB) sufamiturboB.unload();
 
   cartridge.unload();
+
+  // [jsd] run AngelScript cartridge_unloaded function if available:
+  if (script.funcs.cartridge_unloaded) {
+    script.context->Prepare(script.funcs.cartridge_unloaded);
+    script.context->Execute();
+  }
+
   information.loaded = false;
 }
 

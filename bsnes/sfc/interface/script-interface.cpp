@@ -297,7 +297,10 @@ auto Interface::loadScript(string location) -> void {
 
   // bind to functions in the main module:
   script.funcs.init = script.main_module->GetFunctionByDecl("void init()");
+  script.funcs.unload = script.main_module->GetFunctionByDecl("void unload()");
   script.funcs.post_power = script.main_module->GetFunctionByDecl("void post_power(bool reset)");
+  script.funcs.cartridge_loaded = script.main_module->GetFunctionByDecl("void cartridge_loaded()");
+  script.funcs.cartridge_unloaded = script.main_module->GetFunctionByDecl("void cartridge_unloaded()");
   script.funcs.pre_nmi = script.main_module->GetFunctionByDecl("void pre_nmi()");
   script.funcs.pre_frame = script.main_module->GetFunctionByDecl("void pre_frame()");
   script.funcs.post_frame = script.main_module->GetFunctionByDecl("void post_frame()");
@@ -308,6 +311,10 @@ auto Interface::loadScript(string location) -> void {
     script.context->Execute();
   }
   if (loaded()) {
+    if (script.funcs.cartridge_loaded) {
+      script.context->Prepare(script.funcs.cartridge_loaded);
+      script.context->Execute();
+    }
     if (script.funcs.post_power) {
       script.context->Prepare(script.funcs.post_power);
       script.context->SetArgByte(0, false); // reset = false
@@ -324,6 +331,12 @@ auto Interface::unloadScript() -> void {
 
   // TODO: GUI callbacks
 
+  // unload script:
+  if (script.funcs.unload) {
+    script.context->Prepare(script.funcs.unload);
+    script.context->Execute();
+  }
+
   // discard all loaded modules:
   for (auto module : script.modules) {
     module->Discard();
@@ -332,7 +345,10 @@ auto Interface::unloadScript() -> void {
   script.main_module = nullptr;
 
   script.funcs.init = nullptr;
+  script.funcs.unload = nullptr;
   script.funcs.post_power = nullptr;
+  script.funcs.cartridge_loaded = nullptr;
+  script.funcs.cartridge_unloaded = nullptr;
   script.funcs.pre_nmi = nullptr;
   script.funcs.pre_frame = nullptr;
   script.funcs.post_frame = nullptr;

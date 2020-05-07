@@ -136,7 +136,10 @@ namespace SuperFamicom {
 
     struct {
       asIScriptFunction *init = nullptr;
+      asIScriptFunction *unload = nullptr;
       asIScriptFunction *post_power = nullptr;
+      asIScriptFunction *cartridge_loaded = nullptr;
+      asIScriptFunction *cartridge_unloaded = nullptr;
       asIScriptFunction *pre_nmi = nullptr;
       asIScriptFunction *pre_frame = nullptr;
       asIScriptFunction *post_frame = nullptr;
