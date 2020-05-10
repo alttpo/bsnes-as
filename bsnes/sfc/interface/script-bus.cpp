@@ -146,21 +146,26 @@ struct Bus {
 
   struct write_interceptor {
     asIScriptFunction *cb;
-    asIScriptContext  *ctx;
 
-    write_interceptor(asIScriptFunction *cb, asIScriptContext *ctx) : cb(cb), ctx(ctx) {
-      cb->AddRef();
+    write_interceptor(asIScriptFunction *cb) : cb(cb) {
+      auto refs = cb->AddRef();
+      //printf("ctor() this=%p cb=%p refs=%d\n", this, cb, refs);
     }
-    write_interceptor(const write_interceptor& other) : cb(other.cb), ctx(other.ctx) {
-      cb->AddRef();
+    write_interceptor(const write_interceptor& other) : cb(other.cb) {
+      auto refs = cb->AddRef();
+      //printf("copy() this=%p cb=%p refs=%d\n", this, cb, refs);
     }
-    write_interceptor(const write_interceptor&& other) : cb(other.cb), ctx(other.ctx) {
+    write_interceptor(const write_interceptor&& other) : cb(other.cb) {
+      //printf("move() this=%p cb=%p\n", this, cb);
     }
     ~write_interceptor() {
-      cb->Release();
+      auto refs = cb->Release();
+      //printf("dtor() this=%p cb=%p refs=%d\n", this, cb, refs);
     }
 
     auto operator()(uint addr, uint8 new_value) -> void {
+      auto ctx = ::SuperFamicom::script.context;
+      //printf("call() this=%p ctx=%p cb=%p\n", this, ctx, cb);
       ctx->Prepare(cb);
       ctx->SetArgDWord(0, addr);
       ctx->SetArgByte(1, new_value);
@@ -169,28 +174,26 @@ struct Bus {
   };
 
   static auto add_write_interceptor(const string *addr, uint32 size, asIScriptFunction *cb) -> void {
-    auto ctx = asGetActiveContext();
-
-    ::SuperFamicom::bus.add_write_interceptor(*addr, size, write_interceptor(cb, ctx));
+    ::SuperFamicom::bus.add_write_interceptor(*addr, size, write_interceptor(cb));
   }
 
   struct dma_interceptor {
     asIScriptFunction *cb;
-    asIScriptContext  *ctx;
 
-    dma_interceptor(asIScriptFunction *cb, asIScriptContext *ctx) : cb(cb), ctx(ctx) {
+    dma_interceptor(asIScriptFunction *cb) : cb(cb) {
       cb->AddRef();
     }
-    dma_interceptor(const dma_interceptor& other) : cb(other.cb), ctx(other.ctx) {
+    dma_interceptor(const dma_interceptor& other) : cb(other.cb) {
       cb->AddRef();
     }
-    dma_interceptor(const dma_interceptor&& other) : cb(other.cb), ctx(other.ctx) {
+    dma_interceptor(const dma_interceptor&& other) : cb(other.cb) {
     }
     ~dma_interceptor() {
       cb->Release();
     }
 
     auto operator()(const CPU::DMAIntercept &dma) -> void {
+      auto ctx = ::SuperFamicom::script.context;
       ctx->Prepare(cb);
       ctx->SetArgObject(0, (void *)&dma);
       ctx->Execute();
@@ -198,28 +201,26 @@ struct Bus {
   };
 
   static auto register_dma_interceptor(asIScriptFunction *cb) -> void {
-    auto ctx = asGetActiveContext();
-
-    ::SuperFamicom::cpu.register_dma_interceptor(dma_interceptor(cb, ctx));
+    ::SuperFamicom::cpu.register_dma_interceptor(dma_interceptor(cb));
   }
 
   struct pc_interceptor {
     asIScriptFunction *cb;
-    asIScriptContext  *ctx;
 
-    pc_interceptor(asIScriptFunction *cb, asIScriptContext *ctx) : cb(cb), ctx(ctx) {
+    pc_interceptor(asIScriptFunction *cb) : cb(cb) {
       cb->AddRef();
     }
-    pc_interceptor(const pc_interceptor& other) : cb(other.cb), ctx(other.ctx) {
+    pc_interceptor(const pc_interceptor& other) : cb(other.cb) {
       cb->AddRef();
     }
-    pc_interceptor(const pc_interceptor&& other) : cb(other.cb), ctx(other.ctx) {
+    pc_interceptor(const pc_interceptor&& other) : cb(other.cb) {
     }
     ~pc_interceptor() {
       cb->Release();
     }
 
     auto operator()(uint32 addr) -> void {
+      auto ctx = ::SuperFamicom::script.context;
       ctx->Prepare(cb);
       ctx->SetArgDWord(0, addr);
       ctx->Execute();
@@ -227,14 +228,10 @@ struct Bus {
   };
 
   static auto register_pc_interceptor(uint32 addr, asIScriptFunction *cb) -> void {
-    auto ctx = asGetActiveContext();
-
-    ::SuperFamicom::cpu.register_pc_callback(addr, pc_interceptor(cb, ctx));
+    ::SuperFamicom::cpu.register_pc_callback(addr, pc_interceptor(cb));
   }
 
   static auto unregister_pc_interceptor(uint32 addr) -> void {
-    auto ctx = asGetActiveContext();
-
     ::SuperFamicom::cpu.unregister_pc_callback(addr);
   }
 } bus;
