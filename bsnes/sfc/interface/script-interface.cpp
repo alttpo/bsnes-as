@@ -114,6 +114,15 @@ namespace ScriptInterface {
     return appended;
   }
 
+  static void uint8_array_append_uint8(CScriptArray *array, const uint8 *value) {
+    if (array->GetElementTypeId() != asTYPEID_UINT8) {
+      array->InsertLast((void *)value);
+      return;
+    }
+
+    array->InsertLast((void *)value);
+  }
+
   static void uint8_array_append_uint16(CScriptArray *array, const uint16 *value) {
     if (array->GetElementTypeId() != asTYPEID_UINT8) {
       array->InsertLast((void *)value);
@@ -122,6 +131,17 @@ namespace ScriptInterface {
 
     array->InsertLast((void *)&((const uint8 *)value)[0]);
     array->InsertLast((void *)&((const uint8 *)value)[1]);
+  }
+
+  static void uint8_array_append_uint24(CScriptArray *array, const uint32 *value) {
+    if (array->GetElementTypeId() != asTYPEID_UINT8) {
+      array->InsertLast((void *)value);
+      return;
+    }
+
+    array->InsertLast((void *)&((const uint8 *)value)[0]);
+    array->InsertLast((void *)&((const uint8 *)value)[1]);
+    array->InsertLast((void *)&((const uint8 *)value)[2]);
   }
 
   static void uint8_array_append_uint32(CScriptArray *array, const uint32 *value) {
@@ -213,10 +233,12 @@ auto Interface::registerScriptDefs() -> void {
   registerScriptString();
 
   // additional array functions for serialization purposes:
-  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const uint16 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint16), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint32), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const string &in other)", asFUNCTION(ScriptInterface::uint8_array_append_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void insertLast(const ? &in other)", asFUNCTION(ScriptInterface::uint8_array_append_array), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("array<T>", "void write_u8(const uint8 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint8), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("array<T>", "void write_u16(const uint16 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint16), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("array<T>", "void write_u24(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint24), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("array<T>", "void write_u32(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint32), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("array<T>", "void write_arr(const ? &in array)", asFUNCTION(ScriptInterface::uint8_array_append_array), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("array<T>", "void write_str(const string &in other)", asFUNCTION(ScriptInterface::uint8_array_append_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   r = script.engine->RegisterObjectMethod("array<T>", "string &toString(uint offs, uint size) const", asFUNCTION(ScriptInterface::array_to_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
