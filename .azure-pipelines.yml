@@ -1,0 +1,85 @@
+
+trigger:
+ branches:
+  include:
+    - '*'
+
+strategy:
+  matrix:
+
+    win64:
+      archName: 'win64'
+      imageName: 'ubuntu-18.04'
+      setupScript: |
+        echo 'win64'
+        set -e
+        sudo apt-get update
+        sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-x86-64
+      compileScript: |
+        make $(makeOptions) -C bsnes $(makeVariables) platform=windows compiler="x86_64-w64-mingw32-g++" windres="x86_64-w64-mingw32-windres"
+      artifact: bsnes
+      packageScript: |
+        mkdir $(nightly)
+        mkdir $(nightly)/Database
+        mkdir $(nightly)/Firmware
+        cp -a bsnes/out/bsnes $(nightly)/bsnes.exe
+        cp -a bsnes/Database/* $(nightly)/Database
+        cp -a shaders $(nightly)/Shaders
+        cp -a GPLv3.txt $(nightly)
+        cp -a *.as $(nightly)
+
+    macOS:
+      archName: 'macOS'
+      imageName: 'macOS-10.14'
+      setupScript: |
+        echo 'macos'
+      compileScript: |
+        make $(makeOptions) -C bsnes $(makeVariables)
+      packageScript: |
+        mkdir $(nightly)
+        cp -a bsnes/out/bsnes.app $(nightly)/
+        cp -a GPLv3.txt $(nightly)/
+        cp -a *.as $(nightly)/
+
+    linux:
+      archName: 'linux'
+      imageName: 'ubuntu-18.04'
+      setupScript: |
+        echo 'linux'
+        set -e
+        sudo apt-get update
+        sudo apt-get -y install --no-upgrade --no-install-recommends build-essential libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev
+      compileScript: |
+        make $(makeOptions) -C bsnes $(makeVariables)
+      artifact: bsnes
+      packageScript: |
+        mkdir $(nightly)
+        mkdir $(nightly)/Database
+        mkdir $(nightly)/Firmware
+        cp -a bsnes/out/bsnes $(nightly)/bsnes
+        cp -a bsnes/Database/* $(nightly)/Database
+        cp -a shaders $(nightly)/Shaders
+        cp -a GPLv3.txt $(nightly)
+        cp -a *.as $(nightly)
+
+variables:
+  makeOptions: -j4
+  makeVariables: local=false build=performance
+  nightly: bsnes-angelscript-$(archName)-$(Build.SourceVersion)
+
+pool:
+  vmImage: $(imageName)
+
+steps:
+- script: $(setupScript)
+  displayName: 'setup'
+- script: $(compileScript)
+  displayName: 'make'
+- script: $(packageScript)
+  displayName: 'package'
+
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(nightly)'
+    artifact: '$(nightly)'
+    publishLocation: 'pipeline'
