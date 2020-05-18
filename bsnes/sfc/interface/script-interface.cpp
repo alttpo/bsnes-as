@@ -129,6 +129,7 @@ namespace ScriptInterface {
       return;
     }
 
+    array->Reserve(array->GetSize() + 2);
     array->InsertLast((void *)&((const uint8 *)value)[0]);
     array->InsertLast((void *)&((const uint8 *)value)[1]);
   }
@@ -139,6 +140,7 @@ namespace ScriptInterface {
       return;
     }
 
+    array->Reserve(array->GetSize() + 3);
     array->InsertLast((void *)&((const uint8 *)value)[0]);
     array->InsertLast((void *)&((const uint8 *)value)[1]);
     array->InsertLast((void *)&((const uint8 *)value)[2]);
@@ -150,6 +152,7 @@ namespace ScriptInterface {
       return;
     }
 
+    array->Reserve(array->GetSize() + 4);
     array->InsertLast((void *)&((const uint8 *)value)[0]);
     array->InsertLast((void *)&((const uint8 *)value)[1]);
     array->InsertLast((void *)&((const uint8 *)value)[2]);
@@ -164,6 +167,7 @@ namespace ScriptInterface {
       return;
     }
 
+    array->Reserve(array->GetSize() + other->length());
     for (auto& c : *other) {
       array->InsertLast((void *)&c);
     }
@@ -177,20 +181,23 @@ namespace ScriptInterface {
 
     if (other->GetElementTypeId() == asTYPEID_UINT8) {
       array->InsertAt(array->GetSize(), *other);
-      return;
     } else if (other->GetElementTypeId() == asTYPEID_UINT16) {
-      for (uint i = 0; i < other->GetSize(); i++) {
+      auto insertPoint = array->GetSize();
+      array->Resize(insertPoint + (other->GetSize() * 2));
+      for (uint i = 0, j = insertPoint; i < other->GetSize(); i++, j += 2) {
         auto value = (const uint16 *) other->At(i);
-        array->InsertLast((void *) &((const uint8 *) value)[0]);
-        array->InsertLast((void *) &((const uint8 *) value)[1]);
+        array->SetValue(j+0, (void *) &((const uint8 *) value)[0]);
+        array->SetValue(j+1, (void *) &((const uint8 *) value)[1]);
       }
     } else if (other->GetElementTypeId() == asTYPEID_UINT32) {
-      for (uint i = 0; i < other->GetSize(); i++) {
+      auto insertPoint = array->GetSize();
+      array->Resize(insertPoint + (other->GetSize() * 4));
+      for (uint i = 0, j = insertPoint; i < other->GetSize(); i++, j += 4) {
         auto value = (const uint32 *) other->At(i);
-        array->InsertLast((void *) &((const uint8 *) value)[0]);
-        array->InsertLast((void *) &((const uint8 *) value)[1]);
-        array->InsertLast((void *) &((const uint8 *) value)[2]);
-        array->InsertLast((void *) &((const uint8 *) value)[3]);
+        array->SetValue(j+0, (void *) &((const uint8 *) value)[0]);
+        array->SetValue(j+1, (void *) &((const uint8 *) value)[1]);
+        array->SetValue(j+2, (void *) &((const uint8 *) value)[2]);
+        array->SetValue(j+3, (void *) &((const uint8 *) value)[3]);
       }
     }
   }
