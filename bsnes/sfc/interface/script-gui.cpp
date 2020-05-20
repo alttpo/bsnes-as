@@ -475,9 +475,27 @@ struct GUI {
     }
   }
 
-  static auto checkLabelSetText(hiro::sCheckLabel &p, const string* text) {
-    p->setText(*text);
-  }
+  struct Callback {
+    asIScriptFunction *cb;
+
+    Callback(asIScriptFunction *cb) : cb(cb) {
+      cb->AddRef();
+    }
+    Callback(const Callback& other) : cb(other.cb) {
+      cb->AddRef();
+    }
+    ~Callback() {
+      cb->Release();
+      cb = nullptr;
+    }
+
+    auto operator()() -> void {
+      auto ctx = ::SuperFamicom::script.context;
+      ctx->Prepare(cb);
+      ctx->Execute();
+    }
+  };
+
 };
 
 auto RegisterGUI(asIScriptEngine *e) -> void {
@@ -495,6 +513,9 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectType("Button", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectType("Canvas", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectType("CheckLabel", 0, asOBJ_REF); assert(r >= 0);
+
+  // function types:
+  r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
 
   // value types:
   r = e->RegisterObjectType("Alignment", sizeof(hiro::Alignment), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Alignment>()); assert( r >= 0 );
@@ -643,13 +664,28 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_FACTORY, "CheckLabel@ f()", asFUNCTION(GUI::newCheckLabel), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_ADDREF, "void f()", asFUNCTION(GUI::hiroAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
   r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_RELEASE, "void f()", asFUNCTION(GUI::hiroRelease), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  //r = e->RegisterObjectMethod("CheckLabel", "void setText(const string &in text)", asFUNCTION(GUI::checkLabelSetText), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("CheckLabel", "CheckLabel@ setText(const string &in text)", asFUNCTION( (+[](hiro::CheckLabel *p, const string &text) { return p->setText(text), p; }) ), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  //auto setText(const string& text = "") -> type&;
-  //auto text() const -> string;
-  //auto checked() const -> bool;
-  //auto doToggle() const -> void;
-  //auto onToggle(const function<void ()>& callback = {}) -> type&;
-  //auto setChecked(bool checked = true) -> type&;
-
+  r = e->RegisterObjectMethod("CheckLabel", "void set_text(const string &in text) property",
+    asFUNCTION( +([](hiro::CheckLabel *p, const string &text) { p->setText(text); }) ),
+    asCALL_CDECL_OBJFIRST
+  ); assert( r >= 0 );
+  r = e->RegisterObjectMethod("CheckLabel", "string &get_text() property",
+    asFUNCTION( +([](hiro::CheckLabel *p) { return new string(p->text()); }) ),
+    asCALL_CDECL_OBJFIRST
+  ); assert( r >= 0 );
+  r = e->RegisterObjectMethod("CheckLabel", "void set_checked(bool checked) property",
+    asFUNCTION( +([](hiro::CheckLabel *p, bool checked) { p->setChecked(checked); }) ),
+    asCALL_CDECL_OBJFIRST
+  ); assert( r >= 0 );
+  r = e->RegisterObjectMethod("CheckLabel", "bool get_checked() property",
+    asFUNCTION( +([](hiro::CheckLabel *p) { return p->checked(); }) ),
+    asCALL_CDECL_OBJFIRST
+  ); assert( r >= 0 );
+  r = e->RegisterObjectMethod("CheckLabel", "void doToggle()",
+    asFUNCTION( +([](hiro::CheckLabel *p) { p->doToggle(); }) ),
+    asCALL_CDECL_OBJFIRST
+  ); assert( r >= 0 );
+  r = e->RegisterObjectMethod("CheckLabel", "void onToggle(Callback @cb)",
+    asFUNCTION( +([](hiro::CheckLabel *p, asIScriptFunction *cb) { p->onToggle(GUI::Callback(cb)); }) ),
+    asCALL_CDECL_OBJFIRST
+  ); assert( r >= 0 );
 }
