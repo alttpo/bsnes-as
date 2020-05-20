@@ -444,6 +444,54 @@ struct GUI {
   Constructor(Canvas)
 
 #undef Constructor
+
+  struct CheckLabel : hiro::sCheckLabel {
+    CheckLabel() : hiro::sCheckLabel(new hiro::mCheckLabel, [](auto p) {
+      printf("delete %p\n", p);
+      p->unbind();
+      delete p;
+    }) {
+      printf("%p ctor\n", this);
+      (*this)->bind(*this);
+    }
+
+    auto addRef() -> void {
+      ++manager->strong;
+      printf("%p ++ -> %d\n", this, references());
+    }
+
+    auto release() -> void {
+      printf("%p -- -> %d\n", this, references() - 1);
+      if (manager && manager->strong) {
+        if (manager->strong == 1) {
+          if(manager->deleter) {
+            manager->deleter(manager->pointer);
+          } else {
+            delete (hiro::mCheckLabel*)manager->pointer;
+          }
+          manager->pointer = nullptr;
+        }
+        if (--manager->strong == 0) {
+          delete manager;
+          manager = nullptr;
+        }
+      }
+    }
+
+    auto self() const -> hiro::mCheckLabel& {
+      return (hiro::mCheckLabel&)operator*();
+    }
+
+    auto setText(const string* text) {
+      printf("%p setText(%p)\n", this, (void*)text);
+      self().setText(*text);
+    }
+  };
+
+  static auto newCheckLabel() -> CheckLabel* {
+    auto self = new CheckLabel;
+    return self;
+  }
 };
 
 auto RegisterGUI(asIScriptEngine *e) -> void {
@@ -460,6 +508,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectType("Label", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectType("Button", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectType("Canvas", 0, asOBJ_REF); assert(r >= 0);
+  r = e->RegisterObjectType("CheckLabel", 0, asOBJ_REF); assert(r >= 0);
 
   // value types:
   r = e->RegisterObjectType("Alignment", sizeof(hiro::Alignment), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Alignment>()); assert( r >= 0 );
@@ -603,4 +652,17 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("Canvas", "void fill(uint16 color)", asMETHOD(GUI::Canvas, fill), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "void pixel(int x, int y, uint16 color)", asMETHOD(GUI::Canvas, pixel), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "void draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const array<uint16> &in tiledata, const array<uint16> &in palette)", asMETHOD(GUI::Canvas, draw_sprite_4bpp), asCALL_THISCALL); assert( r >= 0 );
+
+  // CheckLabel
+  r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_FACTORY, "CheckLabel@ f()", asFUNCTION(GUI::newCheckLabel), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_ADDREF, "void f()", asMETHOD(GUI::CheckLabel, addRef), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_RELEASE, "void f()", asMETHOD(GUI::CheckLabel, release), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("CheckLabel", "void setText(const string &in text)", asMETHOD(GUI::CheckLabel, setText), asCALL_THISCALL); assert( r >= 0 );
+  //auto setText(const string& text = "") -> type&;
+  //auto text() const -> string;
+  //auto checked() const -> bool;
+  //auto doToggle() const -> void;
+  //auto onToggle(const function<void ()>& callback = {}) -> type&;
+  //auto setChecked(bool checked = true) -> type&;
+
 }
