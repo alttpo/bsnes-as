@@ -444,7 +444,7 @@ struct GUI {
   Constructor(Canvas)
 
 #undef Constructor
-
+#if 0
   struct CheckLabel : hiro::sCheckLabel {
     CheckLabel() : hiro::sCheckLabel(new hiro::mCheckLabel, [](auto p) {
       printf("delete %p\n", p);
@@ -483,14 +483,43 @@ struct GUI {
     }
 
     auto setText(const string* text) {
-      printf("%p setText(%p)\n", this, (void*)text);
       self().setText(*text);
     }
   };
+#endif
 
-  static auto newCheckLabel() -> CheckLabel* {
-    auto self = new CheckLabel;
+  static auto newCheckLabel() -> hiro::CheckLabel* {
+    auto self = new hiro::CheckLabel;
     return self;
+  }
+
+  struct any{};
+
+  static auto hiroAddRef(shared_pointer<any> &p) {
+    ++p.manager->strong;
+    printf("%p ++ -> %d\n", (void*)&p, p.references());
+  }
+
+  static auto hiroRelease(shared_pointer<any> &p) {
+    printf("%p -- -> %d\n", (void*)&p, p.references() - 1);
+    if (p.manager && p.manager->strong) {
+      if (p.manager->strong == 1) {
+        if(p.manager->deleter) {
+          p.manager->deleter(p.manager->pointer);
+        } else {
+          delete p.manager->pointer;
+        }
+        p.manager->pointer = nullptr;
+      }
+      if (--p.manager->strong == 0) {
+        delete p.manager;
+        p.manager = nullptr;
+      }
+    }
+  }
+
+  static auto checkLabelSetText(hiro::sCheckLabel &p, const string* text) {
+    p->setText(*text);
   }
 };
 
@@ -655,9 +684,9 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // CheckLabel
   r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_FACTORY, "CheckLabel@ f()", asFUNCTION(GUI::newCheckLabel), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_ADDREF, "void f()", asMETHOD(GUI::CheckLabel, addRef), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_RELEASE, "void f()", asMETHOD(GUI::CheckLabel, release), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("CheckLabel", "void setText(const string &in text)", asMETHOD(GUI::CheckLabel, setText), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_ADDREF, "void f()", asFUNCTION(GUI::hiroAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+  r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_RELEASE, "void f()", asFUNCTION(GUI::hiroRelease), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+  r = e->RegisterObjectMethod("CheckLabel", "void setText(const string &in text)", asFUNCTION(GUI::checkLabelSetText), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
   //auto setText(const string& text = "") -> type&;
   //auto text() const -> string;
   //auto checked() const -> bool;
