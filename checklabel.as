@@ -8,15 +8,24 @@ class SettingsWindow {
     @window = gui::Window();
     window.visible = true;
     window.title = "Test";
+    window.font = gui::Font("{mono}", 12);
     window.size = gui::Size(256, 24*3);
 
-    @chk = gui::CheckLabel();
-    chk.text = "Test";
-    chk.onToggle(@gui::Callback(this.toggled));
-
-    auto vl = gui::VerticalLayout();
+    auto @vl = gui::VerticalLayout();
     {
-      //vl.append(ok, gui::Size(0, 0));
+      @chk = gui::CheckLabel();
+      chk.text = "Test";
+      chk.onToggle(@gui::Callback(this.toggled));
+      vl.append(chk, gui::Size(0, 0));
+
+      auto @lbl = gui::Label();
+      lbl.alignment = gui::Alignment(0.5, 0.5);
+      lbl.text = "0123456789ABCDEF";
+      lbl.foregroundColor = gui::Color(240, 240,   0);
+      lbl.backgroundColor = gui::Color(0,   120, 120);
+      vl.append(lbl, gui::Size(256, 48));
+
+
     }
     window.append(vl);
   }

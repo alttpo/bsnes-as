@@ -500,29 +500,41 @@ struct GUI {
 auto RegisterGUI(asIScriptEngine *e) -> void {
   int r;
 
-#define ROM(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+#define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+
+#define EXPOSE_HIRO(name) \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF, "void f()", asFUNCTION(GUI::hiroAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(GUI::hiroRelease), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+
+#define EXPOSE_HIRO_OBJECT(name) \
+  REG_LAMBDA(name, "void set_font(const Font &in font) property", ([](hiro::name* self, hiro::Font &font){ self->setFont(font); })); \
+  REG_LAMBDA(name, "void set_visible(bool visible) property",     ([](hiro::name* self, bool visible)    { self->setVisible(visible); }))
 
   // GUI
   r = e->SetDefaultNamespace("gui"); assert(r >= 0);
 
-  // Register types first:
-  r = e->RegisterObjectType("Window", 0, asOBJ_REF); assert(r >= 0);
-  r = e->RegisterObjectType("VerticalLayout", 0, asOBJ_REF); assert(r >= 0);
-  r = e->RegisterObjectType("HorizontalLayout", 0, asOBJ_REF); assert(r >= 0);
-  r = e->RegisterObjectType("LineEdit", 0, asOBJ_REF); assert(r >= 0);
-  r = e->RegisterObjectType("Label", 0, asOBJ_REF); assert(r >= 0);
-  r = e->RegisterObjectType("Button", 0, asOBJ_REF); assert(r >= 0);
-  r = e->RegisterObjectType("Canvas", 0, asOBJ_REF); assert(r >= 0);
-  r = e->RegisterObjectType("CheckLabel", 0, asOBJ_REF); assert(r >= 0);
-
   // function types:
   r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
 
+#define REG_REF_TYPE(name) r = e->RegisterObjectType(#name, 0, asOBJ_REF); assert( r >= 0 )
+#define REG_VALUE_TYPE(name) r = e->RegisterObjectType(#name, sizeof(hiro::name), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::name>()); assert( r >= 0 )
+
+  // Register reference types:
+  REG_REF_TYPE(Window);
+  REG_REF_TYPE(VerticalLayout);
+  REG_REF_TYPE(HorizontalLayout);
+  REG_REF_TYPE(LineEdit);
+  REG_REF_TYPE(Label);
+  REG_REF_TYPE(Button);
+  REG_REF_TYPE(Canvas);
+  REG_REF_TYPE(CheckLabel);
+
   // value types:
-  r = e->RegisterObjectType("Alignment", sizeof(hiro::Alignment), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Alignment>()); assert( r >= 0 );
-  r = e->RegisterObjectType("Size", sizeof(hiro::Size), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Size>()); assert(r >= 0);
-  r = e->RegisterObjectType("Color", sizeof(hiro::Color), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Color>()); assert( r >= 0 );
-  r = e->RegisterObjectType("Font", sizeof(hiro::Font), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::Font>()); assert( r >= 0 );
+  REG_VALUE_TYPE(Alignment);
+  REG_VALUE_TYPE(Size);
+  REG_VALUE_TYPE(Color);
+  REG_VALUE_TYPE(Font);
 
   // Alignment value type:
   r = e->RegisterObjectBehaviour("Alignment", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(GUI::createAlignment), asCALL_CDECL_OBJLAST); assert(r >= 0);
@@ -548,27 +560,18 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("Color", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(GUI::destroyColor), asCALL_CDECL_OBJLAST); assert(r >= 0);
   r = e->RegisterObjectMethod("Color", "Color& setColor(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Color", "Color& setValue(uint32 value)", asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "uint8 get_alpha() property", asMETHOD(hiro::Color, alpha), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "uint8 get_blue() property",  asMETHOD(hiro::Color, blue), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "uint8 get_green() property", asMETHOD(hiro::Color, green), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "uint8 get_red() property",   asMETHOD(hiro::Color, red), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "Color& set_alpha(int alpha)", asMETHOD(hiro::Color, setAlpha), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "Color& set_blue(int blue)", asMETHOD(hiro::Color, setBlue), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "Color& set_green(int green)", asMETHOD(hiro::Color, setGreen), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Color", "Color& set_red(int red)", asMETHOD(hiro::Color, setRed), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_alpha() property",    asMETHOD(hiro::Color, alpha), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_blue() property",     asMETHOD(hiro::Color, blue), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_green() property",    asMETHOD(hiro::Color, green), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "uint8 get_red() property",      asMETHOD(hiro::Color, red), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& set_alpha(int alpha)",   asMETHOD(hiro::Color, setAlpha), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& set_blue(int blue)",     asMETHOD(hiro::Color, setBlue), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& set_green(int green)",   asMETHOD(hiro::Color, setGreen), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Color", "Color& set_red(int red)",       asMETHOD(hiro::Color, setRed), asCALL_THISCALL); assert(r >= 0);
 
   // Font value type:
   r = e->RegisterObjectBehaviour("Font", asBEHAVE_CONSTRUCT, "void f(const string &in family, float size = 0.0)", asFUNCTION(GUI::createFont), asCALL_CDECL_OBJLAST); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Font", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(GUI::destroyFont), asCALL_CDECL_OBJLAST); assert(r >= 0);
-
-#define EXPOSE_HIRO(name) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF, "void f()", asFUNCTION(GUI::hiroAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(GUI::hiroRelease), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
-
-#define EXPOSE_HIRO_OBJECT(name) \
-  ROM(name, "void set_font(const Font &in font) property", ([](hiro::name* self, hiro::Font &font){ self->setFont(font); })); \
-  ROM(name, "void set_visible(bool visible) property",     ([](hiro::name* self, bool visible)    { self->setVisible(visible); }))
 
   // Window
   EXPOSE_HIRO(Window);
@@ -582,66 +585,65 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     return self;
   })), asCALL_CDECL); assert(r >= 0);
   EXPOSE_HIRO_OBJECT(Window);
-  r = e->RegisterObjectMethod("Window", "void set_title(const string &in title) property", asFUNCTION(+([](hiro::Window* self, const string &title){ self->setTitle(title); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Window", "void set_size(Size &in size) property", asFUNCTION(+([](hiro::Window* self, hiro::Size &size){ self->setSize(size); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Window", "Color& get_backgroundColor() property", asFUNCTION(+([](hiro::Window* self){ return &self->backgroundColor(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Window", "void set_backgroundColor(Color &in color) property", asFUNCTION(+([](hiro::Window* self, hiro::Color &color){ self->setBackgroundColor(color); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Window", "void append(const ? &in sizable)", asFUNCTION(+([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->append(*sizable); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+  REG_LAMBDA(Window, "void set_title(const string &in title) property",    ([](hiro::Window* self, const string &title){ self->setTitle(title); }));
+  REG_LAMBDA(Window, "void set_size(Size &in size) property",              ([](hiro::Window* self, hiro::Size &size){ self->setSize(size); }));
+  REG_LAMBDA(Window, "Color& get_backgroundColor() property",              ([](hiro::Window* self){ return &self->backgroundColor(); }));
+  REG_LAMBDA(Window, "void set_backgroundColor(Color &in color) property", ([](hiro::Window* self, hiro::Color &color){ self->setBackgroundColor(color); }));
+  REG_LAMBDA(Window, "void append(const ? &in sizable)",                   ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->append(*sizable); }));
 
   // VerticalLayout
   EXPOSE_HIRO(VerticalLayout);
   EXPOSE_HIRO_OBJECT(VerticalLayout);
-  r = e->RegisterObjectMethod("VerticalLayout", "void append(const ? &in sizable, Size &in size)", asFUNCTION(+([](hiro::VerticalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size){ self->append(*sizable, *size); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("VerticalLayout", "void resize()", asFUNCTION(+([](hiro::VerticalLayout* self){ self->resize(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+  REG_LAMBDA(VerticalLayout, "void append(const ? &in sizable, Size &in size)", ([](hiro::VerticalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size){ self->append(*sizable, *size); }));
+  REG_LAMBDA(VerticalLayout, "void resize()",                                   ([](hiro::VerticalLayout* self){ self->resize(); }));
 
   // HorizontalLayout
   EXPOSE_HIRO(HorizontalLayout);
   EXPOSE_HIRO_OBJECT(HorizontalLayout);
-  r = e->RegisterObjectMethod("HorizontalLayout", "void append(const ? &in sizable, Size &in size)", asFUNCTION(+([](hiro::HorizontalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size){ self->append(*sizable, *size); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("HorizontalLayout", "void resize()", asFUNCTION(+([](hiro::HorizontalLayout* self){ self->resize(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+  REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size)", ([](hiro::HorizontalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size){ self->append(*sizable, *size); }));
+  REG_LAMBDA(HorizontalLayout, "void resize()",                                   ([](hiro::HorizontalLayout* self){ self->resize(); }));
 
   // LineEdit
   EXPOSE_HIRO(LineEdit);
   EXPOSE_HIRO_OBJECT(LineEdit);
-  r = e->RegisterObjectMethod("LineEdit", "string &get_text() property", asFUNCTION(+([](hiro::LineEdit* self){ return &self->text(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("LineEdit", "void set_text(const string &in text) property", asFUNCTION(+([](hiro::LineEdit* self, const string &text){ self->setText(text); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("LineEdit", "void set_on_change(Callback @cb) property", asFUNCTION(+([](hiro::LineEdit* self, asIScriptFunction* cb){
+  REG_LAMBDA(LineEdit, "string &get_text() property",                   ([](hiro::LineEdit* self){ return &self->text(); }));
+  REG_LAMBDA(LineEdit, "void set_text(const string &in text) property", ([](hiro::LineEdit* self, const string &text){ self->setText(text); }));
+  REG_LAMBDA(LineEdit, "void set_on_change(Callback @cb) property",     ([](hiro::LineEdit* self, asIScriptFunction* cb){
     self->onChange([=]{
       auto ctx = ::SuperFamicom::script.context;
       ctx->Prepare(cb);
       ctx->Execute();
     });
-  })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+  }));
 
   // Label
   EXPOSE_HIRO(Label);
   EXPOSE_HIRO_OBJECT(Label);
-  r = e->RegisterObjectMethod("Label", "Alignment& get_alignment() property", asFUNCTION(+([](hiro::Label* self){ return &self->alignment(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "void set_alignment(const Alignment &in alignment) property", asFUNCTION(+([](hiro::Label* self, const hiro::Alignment &alignment){ self->setAlignment(alignment); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "Color& get_backgroundColor() property", asFUNCTION(+([](hiro::Label* self){ return &self->backgroundColor(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "void set_backgroundColor(const Color &in color) property", asFUNCTION(+([](hiro::Label* self, const hiro::Color &color){ self->setBackgroundColor(color); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "Color& get_foregroundColor() property", asFUNCTION(+([](hiro::Label* self){ return &self->foregroundColor(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "void set_foregroundColor(const Color &in color) property", asFUNCTION(+([](hiro::Label* self, const hiro::Color &color){ self->setForegroundColor(color); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-
-  r = e->RegisterObjectMethod("Label", "string &get_text() property", asFUNCTION(+([](hiro::Label* self){ return &self->text(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Label", "void set_text(const string &in text) property", asFUNCTION(+([](hiro::Label* self, string &text){ self->setText(text); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+  REG_LAMBDA(Label, "Alignment& get_alignment() property",                        ([](hiro::Label* self){ return &self->alignment(); }));
+  REG_LAMBDA(Label, "void set_alignment(const Alignment &in alignment) property", ([](hiro::Label* self, const hiro::Alignment &alignment){ self->setAlignment(alignment); }));
+  REG_LAMBDA(Label, "Color& get_backgroundColor() property",                      ([](hiro::Label* self){ return &self->backgroundColor(); }));
+  REG_LAMBDA(Label, "void set_backgroundColor(const Color &in color) property",   ([](hiro::Label* self, const hiro::Color &color){ self->setBackgroundColor(color); }));
+  REG_LAMBDA(Label, "Color& get_foregroundColor() property",                      ([](hiro::Label* self){ return &self->foregroundColor(); }));
+  REG_LAMBDA(Label, "void set_foregroundColor(const Color &in color) property",   ([](hiro::Label* self, const hiro::Color &color){ self->setForegroundColor(color); }));
+  REG_LAMBDA(Label, "string &get_text() property",                                ([](hiro::Label* self){ return &self->text(); }));
+  REG_LAMBDA(Label, "void set_text(const string &in text) property",              ([](hiro::Label* self, string &text){ self->setText(text); }));
 
   // Button
-  // Register a simple funcdef for the callback
-  r = e->RegisterFuncdef("void ButtonCallback(Button @self)"); assert(r >= 0);
-  r = e->RegisterObjectBehaviour("Button", asBEHAVE_FACTORY, "Button@ f()", asFUNCTION(GUI::createButton), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterObjectBehaviour("Button", asBEHAVE_ADDREF, "void f()", asMETHOD(GUI::Button, ref_add), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectBehaviour("Button", asBEHAVE_RELEASE, "void f()", asMETHOD(GUI::Button, ref_release), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Button", "void set_visible(bool visible) property", asMETHOD(GUI::Button, setVisible), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Button", "string &get_text() property", asMETHOD(GUI::Button, getText), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Button", "void set_text(const string &in text) property", asMETHOD(GUI::Button, setText), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Button", "void set_on_activate(ButtonCallback @cb) property", asMETHOD(GUI::Button, setOnActivate), asCALL_THISCALL); assert( r >= 0 );
+  EXPOSE_HIRO(Button);
+  EXPOSE_HIRO_OBJECT(Button);
+  REG_LAMBDA(Button, "string &get_text() property",                   ([](hiro::Button* self){ return &self->text(); }));
+  REG_LAMBDA(Button, "void set_text(const string &in text) property", ([](hiro::Button* self, const string &text){ self->setText(text); }));
+  REG_LAMBDA(Button, "void set_on_activate(Callback @cb) property",   ([](hiro::Button* self, asIScriptFunction* cb){
+    self->onActivate([=]{
+      auto ctx = ::SuperFamicom::script.context;
+      ctx->Prepare(cb);
+      ctx->Execute();
+    });
+  }));
 
   // Canvas
-  r = e->RegisterObjectBehaviour("Canvas", asBEHAVE_FACTORY, "Canvas@ f()", asFUNCTION(GUI::createCanvas), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterObjectBehaviour("Canvas", asBEHAVE_ADDREF, "void f()", asMETHOD(GUI::Canvas, ref_add), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectBehaviour("Canvas", asBEHAVE_RELEASE, "void f()", asMETHOD(GUI::Canvas, ref_release), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void set_visible(bool visible) property", asMETHOD(GUI::Canvas, setVisible), asCALL_THISCALL); assert( r >= 0 );
+  EXPOSE_HIRO(Canvas);
+  EXPOSE_HIRO_OBJECT(Canvas);
   r = e->RegisterObjectMethod("Canvas", "void set_size(Size &in size) property", asMETHOD(GUI::Canvas, setSize), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "uint8 get_luma() property", asMETHOD(GUI::Canvas, luma), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Canvas", "void set_luma(uint8 luma) property", asMETHOD(GUI::Canvas, set_luma), asCALL_THISCALL); assert( r >= 0 );
@@ -654,31 +656,11 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("Canvas", "void draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const array<uint16> &in tiledata, const array<uint16> &in palette)", asMETHOD(GUI::Canvas, draw_sprite_4bpp), asCALL_THISCALL); assert( r >= 0 );
 
   // CheckLabel
-  r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_FACTORY, "CheckLabel@ f()", asFUNCTION( +([]{ return new hiro::CheckLabel; }) ), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_ADDREF, "void f()", asFUNCTION(GUI::hiroAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectBehaviour("CheckLabel", asBEHAVE_RELEASE, "void f()", asFUNCTION(GUI::hiroRelease), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = e->RegisterObjectMethod("CheckLabel", "void set_text(const string &in text) property",
-    asFUNCTION( +([](hiro::CheckLabel *p, const string &text) { p->setText(text); }) ),
-    asCALL_CDECL_OBJFIRST
-  ); assert( r >= 0 );
-  r = e->RegisterObjectMethod("CheckLabel", "string &get_text() property",
-    asFUNCTION( +([](hiro::CheckLabel *p) { return new string(p->text()); }) ),
-    asCALL_CDECL_OBJFIRST
-  ); assert( r >= 0 );
-  r = e->RegisterObjectMethod("CheckLabel", "void set_checked(bool checked) property",
-    asFUNCTION( +([](hiro::CheckLabel *p, bool checked) { p->setChecked(checked); }) ),
-    asCALL_CDECL_OBJFIRST
-  ); assert( r >= 0 );
-  r = e->RegisterObjectMethod("CheckLabel", "bool get_checked() property",
-    asFUNCTION( +([](hiro::CheckLabel *p) { return p->checked(); }) ),
-    asCALL_CDECL_OBJFIRST
-  ); assert( r >= 0 );
-  r = e->RegisterObjectMethod("CheckLabel", "void doToggle()",
-    asFUNCTION( +([](hiro::CheckLabel *p) { p->doToggle(); }) ),
-    asCALL_CDECL_OBJFIRST
-  ); assert( r >= 0 );
-  r = e->RegisterObjectMethod("CheckLabel", "void onToggle(Callback @cb)",
-    asFUNCTION( +([](hiro::CheckLabel *p, asIScriptFunction *cb) { p->onToggle(GUI::Callback(cb)); }) ),
-    asCALL_CDECL_OBJFIRST
-  ); assert( r >= 0 );
+  EXPOSE_HIRO(CheckLabel);
+  REG_LAMBDA(CheckLabel, "void set_text(const string &in text) property", ([](hiro::CheckLabel *p, const string &text) { p->setText(text); }));
+  REG_LAMBDA(CheckLabel, "string &get_text() property",             ([](hiro::CheckLabel *p) { return new string(p->text()); }));
+  REG_LAMBDA(CheckLabel, "void set_checked(bool checked) property", ([](hiro::CheckLabel *p, bool checked) { p->setChecked(checked); }));
+  REG_LAMBDA(CheckLabel, "bool get_checked() property",             ([](hiro::CheckLabel *p) { return p->checked(); }));
+  REG_LAMBDA(CheckLabel, "void doToggle()",                         ([](hiro::CheckLabel *p) { p->doToggle(); }));
+  REG_LAMBDA(CheckLabel, "void onToggle(Callback @cb)",             ([](hiro::CheckLabel *p, asIScriptFunction *cb) { p->onToggle(GUI::Callback(cb)); }));
 }
