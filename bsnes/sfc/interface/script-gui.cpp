@@ -394,28 +394,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(Window);
   REG_LAMBDA(Window, "void append(const ? &in sizable)",                   ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->append(*sizable); }));
 
-  //auto droppable() const { return self().droppable(); }
-  //auto frameGeometry() const { return self().frameGeometry(); }
-  //auto geometry() const { return self().geometry(); }
-  //auto handle() const { return self().handle(); }
-  //auto menuBar() const { return self().menuBar(); }
-  //auto monitor() const { return self().monitor(); }
-  //auto statusBar() const { return self().statusBar(); }
-
-  //auto append(sMenuBar menuBar) { return self().append(menuBar), *this; }
-  //auto append(sSizable sizable) { return self().append(sizable), *this; }
-  //auto append(sStatusBar statusBar) { return self().append(statusBar), *this; }
-  //auto doDrop(vector<string> names) const { return self().doDrop(names); }
-  //auto doKeyPress(signed key) const { return self().doKeyPress(key); }
-  //auto doKeyRelease(signed key) const { return self().doKeyRelease(key); }
-  //auto remove(sMenuBar menuBar) { return self().remove(menuBar), *this; }
-  //auto remove(sStatusBar statusBar) { return self().remove(statusBar), *this; }
-
-  //auto setDroppable(bool droppable = true) { return self().setDroppable(droppable), *this; }
-  //auto setFrameGeometry(Geometry geometry) { return self().setFrameGeometry(geometry), *this; }
-  //auto setGeometry(Geometry geometry) { return self().setGeometry(geometry), *this; }
-  //auto setGeometry(Alignment alignment, Size size) { return self().setGeometry(alignment, size), *this; }
-
   REG_LAMBDA(Window, "Color &get_backgroundColor() property", ([](hiro::Window* self) { return &self->backgroundColor(); }));
   REG_LAMBDA(Window, "bool get_dismissable() property",       ([](hiro::Window* self) { return  self->dismissable(); }));
   REG_LAMBDA(Window, "bool get_fullScreen() property",        ([](hiro::Window* self) { return  self->fullScreen(); }));
@@ -441,6 +419,32 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "void set_size(const Size &in size) property",              ([](hiro::Window* self, hiro::Size &size)    { self->setSize(size); }));
 
 #if 0
+  // more Window properties and functions to add:
+
+  // probably don't want these just yet but eventually:
+  //auto droppable() const { return self().droppable(); }
+  //auto frameGeometry() const { return self().frameGeometry(); }
+  //auto geometry() const { return self().geometry(); }
+  //auto handle() const { return self().handle(); }
+  //auto menuBar() const { return self().menuBar(); }
+  //auto monitor() const { return self().monitor(); }
+  //auto statusBar() const { return self().statusBar(); }
+
+  //auto append(sMenuBar menuBar) { return self().append(menuBar), *this; }
+  //auto append(sSizable sizable) { return self().append(sizable), *this; }
+  //auto append(sStatusBar statusBar) { return self().append(statusBar), *this; }
+  //auto doDrop(vector<string> names) const { return self().doDrop(names); }
+  //auto doKeyPress(signed key) const { return self().doKeyPress(key); }
+  //auto doKeyRelease(signed key) const { return self().doKeyRelease(key); }
+  //auto remove(sMenuBar menuBar) { return self().remove(menuBar), *this; }
+  //auto remove(sStatusBar statusBar) { return self().remove(statusBar), *this; }
+
+  //auto setDroppable(bool droppable = true) { return self().setDroppable(droppable), *this; }
+  //auto setFrameGeometry(Geometry geometry) { return self().setFrameGeometry(geometry), *this; }
+  //auto setGeometry(Geometry geometry) { return self().setGeometry(geometry), *this; }
+  //auto setGeometry(Alignment alignment, Size size) { return self().setGeometry(alignment, size), *this; }
+
+  // want to add these:
   auto setAlignment(Alignment alignment = Alignment::Center) { return self().setAlignment(alignment), *this; }
   auto setAlignment(sWindow relativeTo, Alignment alignment = Alignment::Center) { return self().setAlignment(relativeTo, alignment), *this; }
   auto setFramePosition(Position position) { return self().setFramePosition(position), *this; }
