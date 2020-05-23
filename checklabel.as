@@ -2,27 +2,53 @@ SettingsWindow @settings;
 
 class SettingsWindow {
   private GUI::Window @window;
-  private GUI::CheckLabel @chk;
 
   SettingsWindow() {
     @window = GUI::Window();
     window.visible = true;
     window.title = "Test";
-    window.font = GUI::Font("{mono}", 12);
-    window.size = GUI::Size(256, 24*3);
+    window.font = GUI::Font(GUI::Mono, 10);
+    window.size = GUI::Size(256, 256);
 
     auto @vl = GUI::VerticalLayout();
     {
-      @chk = GUI::CheckLabel();
-      chk.text = "Test";
+      auto @chk = GUI::CheckLabel();
+      chk.text = "Test 1 enabled, checked";
       chk.onToggle(@GUI::Callback(this.toggled));
+      chk.enabled = true;
+      chk.checked = true;
+      chk.setFocused();
+      vl.append(chk, GUI::Size(0, 0));
+
+      @chk = GUI::CheckLabel();
+      chk.text = "Test 2 disabled, checked";
+      chk.onToggle(@GUI::Callback(this.toggled));
+      chk.enabled = false;
+      chk.checked = true;
+      vl.append(chk, GUI::Size(0, 0));
+
+      @chk = GUI::CheckLabel();
+      chk.text = "Test 3 enabled, unchecked";
+      chk.onToggle(@GUI::Callback(this.toggled));
+      chk.enabled = true;
+      chk.checked = false;
+      chk.setFocused();
+      vl.append(chk, GUI::Size(0, 0));
+
+      @chk = GUI::CheckLabel();
+      chk.text = "Test 4 disabled, unchecked";
+      chk.onToggle(@GUI::Callback(this.toggled));
+      chk.enabled = false;
+      chk.checked = false;
       vl.append(chk, GUI::Size(0, 0));
 
       auto @lbl = GUI::Label();
-      lbl.alignment = GUI::Alignment(0.5, 0.5);
       lbl.text = "0123456789ABCDEF";
+      lbl.alignment = GUI::Alignment(0.5, 0.5);
       lbl.foregroundColor = GUI::Color(240, 240,   0);
       lbl.backgroundColor = GUI::Color(0,   120, 120);
+      GUI::Color fc = lbl.foregroundColor;
+      GUI::Color bc = lbl.backgroundColor;
       vl.append(lbl, GUI::Size(256, 48));
 
 
