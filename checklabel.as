@@ -25,7 +25,7 @@ class SettingsWindow {
       lbl.backgroundColor = GUI::Color(0,   120, 120);
       vl.append(lbl, GUI::Size(256, 48));
 
-      
+
     }
     window.append(vl);
   }

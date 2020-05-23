@@ -301,6 +301,19 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   //REG_LAMBDA(name, "Object &get_parent()",                        ([](hiro::name* self) { return self->parent(); })); \
 
+#define EXPOSE_HIRO_SIZABLE(name) \
+  REG_LAMBDA(name, "bool get_collapsible() property",                         ([](hiro::name* self) { return self->collapsible(); })); \
+  REG_LAMBDA(name, "void doSize()",                                           ([](hiro::name* self) { self->doSize(); })); \
+  REG_LAMBDA(name, "Size &get_minimumSize() property",                        ([](hiro::name* self) { return &self->minimumSize(); })); \
+  REG_LAMBDA(name, "void onSize(Callback @callback)",                         ([](hiro::name* self, asIScriptFunction *cb) { \
+    self->onSize([=] { \
+      auto ctx = ::SuperFamicom::script.context; \
+      ctx->Prepare(cb); \
+      ctx->Execute(); \
+    }); \
+  })); \
+  REG_LAMBDA(name, "void set_collapsible(bool collapsible = true) property",  ([](hiro::name* self, bool collapsible) { self->setCollapsible(collapsible); })); \
+
   // GUI
   r = e->SetDefaultNamespace("GUI"); assert(r >= 0);
 
@@ -384,18 +397,22 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // VerticalLayout
   EXPOSE_HIRO(VerticalLayout);
   EXPOSE_HIRO_OBJECT(VerticalLayout);
+  EXPOSE_HIRO_SIZABLE(VerticalLayout);
   REG_LAMBDA(VerticalLayout, "void append(const ? &in sizable, Size &in size)", ([](hiro::VerticalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size){ self->append(*sizable, *size); }));
   REG_LAMBDA(VerticalLayout, "void resize()",                                   ([](hiro::VerticalLayout* self){ self->resize(); }));
 
   // HorizontalLayout
   EXPOSE_HIRO(HorizontalLayout);
   EXPOSE_HIRO_OBJECT(HorizontalLayout);
+  EXPOSE_HIRO_SIZABLE(HorizontalLayout);
   REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size)", ([](hiro::HorizontalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size){ self->append(*sizable, *size); }));
   REG_LAMBDA(HorizontalLayout, "void resize()",                                   ([](hiro::HorizontalLayout* self){ self->resize(); }));
 
   // LineEdit
   EXPOSE_HIRO(LineEdit);
   EXPOSE_HIRO_OBJECT(LineEdit);
+  EXPOSE_HIRO_SIZABLE(LineEdit);
+  //EXPOSE_HIRO_WIDGET(LineEdit);
   REG_LAMBDA(LineEdit, "string &get_text() property",                   ([](hiro::LineEdit* self){ return &self->text(); }));
   REG_LAMBDA(LineEdit, "void set_text(const string &in text) property", ([](hiro::LineEdit* self, const string &text){ self->setText(text); }));
   REG_LAMBDA(LineEdit, "void set_on_change(Callback @cb) property",     ([](hiro::LineEdit* self, asIScriptFunction* cb){
@@ -409,6 +426,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // Label
   EXPOSE_HIRO(Label);
   EXPOSE_HIRO_OBJECT(Label);
+  EXPOSE_HIRO_SIZABLE(Label);
+  //EXPOSE_HIRO_WIDGET(Label);
   REG_LAMBDA(Label, "Alignment& get_alignment() property",                        ([](hiro::Label* self){ return &self->alignment(); }));
   REG_LAMBDA(Label, "void set_alignment(const Alignment &in alignment) property", ([](hiro::Label* self, const hiro::Alignment &alignment){ self->setAlignment(alignment); }));
   REG_LAMBDA(Label, "Color& get_backgroundColor() property",                      ([](hiro::Label* self){ return &self->backgroundColor(); }));
@@ -421,6 +440,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // Button
   EXPOSE_HIRO(Button);
   EXPOSE_HIRO_OBJECT(Button);
+  EXPOSE_HIRO_SIZABLE(Button);
+  //EXPOSE_HIRO_WIDGET(Button);
   REG_LAMBDA(Button, "string &get_text() property",                   ([](hiro::Button* self){ return &self->text(); }));
   REG_LAMBDA(Button, "void set_text(const string &in text) property", ([](hiro::Button* self, const string &text){ self->setText(text); }));
   REG_LAMBDA(Button, "void set_on_activate(Callback @cb) property",   ([](hiro::Button* self, asIScriptFunction* cb){
@@ -448,10 +469,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // CheckLabel
   EXPOSE_HIRO(CheckLabel);
   EXPOSE_HIRO_OBJECT(CheckLabel);
+  EXPOSE_HIRO_SIZABLE(CheckLabel);
+  //EXPOSE_HIRO_WIDGET(CheckLabel);
   REG_LAMBDA(CheckLabel, "void set_text(const string &in text) property", ([](hiro::CheckLabel *p, const string &text) { p->setText(text); }));
-  REG_LAMBDA(CheckLabel, "string &get_text() property",             ([](hiro::CheckLabel *p) { return new string(p->text()); }));
-  REG_LAMBDA(CheckLabel, "void set_checked(bool checked) property", ([](hiro::CheckLabel *p, bool checked) { p->setChecked(checked); }));
-  REG_LAMBDA(CheckLabel, "bool get_checked() property",             ([](hiro::CheckLabel *p) { return p->checked(); }));
-  REG_LAMBDA(CheckLabel, "void doToggle()",                         ([](hiro::CheckLabel *p) { p->doToggle(); }));
-  REG_LAMBDA(CheckLabel, "void onToggle(Callback @cb)",             ([](hiro::CheckLabel *p, asIScriptFunction *cb) { p->onToggle(GUI::Callback(cb)); }));
+  REG_LAMBDA(CheckLabel, "string &get_text() property",                   ([](hiro::CheckLabel *p) { return new string(p->text()); }));
+  REG_LAMBDA(CheckLabel, "void set_checked(bool checked) property",       ([](hiro::CheckLabel *p, bool checked) { p->setChecked(checked); }));
+  REG_LAMBDA(CheckLabel, "bool get_checked() property",                   ([](hiro::CheckLabel *p) { return p->checked(); }));
+  REG_LAMBDA(CheckLabel, "void doToggle()",                               ([](hiro::CheckLabel *p) { p->doToggle(); }));
+  REG_LAMBDA(CheckLabel, "void onToggle(Callback @cb)",                   ([](hiro::CheckLabel *p, asIScriptFunction *cb) { p->onToggle(GUI::Callback(cb)); }));
 }
