@@ -222,10 +222,6 @@ struct GUI {
 
 #undef Constructor
 
-  static auto newCheckLabel() -> hiro::CheckLabel* {
-    return new hiro::CheckLabel;
-  }
-
   struct any{};
 
   static auto hiroAddRef(shared_pointer<any> &p) {
