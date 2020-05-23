@@ -392,11 +392,75 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     return self;
   })), asCALL_CDECL); assert(r >= 0);
   EXPOSE_HIRO_OBJECT(Window);
-  REG_LAMBDA(Window, "void set_title(const string &in title) property",    ([](hiro::Window* self, const string &title){ self->setTitle(title); }));
-  REG_LAMBDA(Window, "void set_size(Size &in size) property",              ([](hiro::Window* self, hiro::Size &size){ self->setSize(size); }));
-  REG_LAMBDA(Window, "Color& get_backgroundColor() property",              ([](hiro::Window* self){ return &self->backgroundColor(); }));
-  REG_LAMBDA(Window, "void set_backgroundColor(Color &in color) property", ([](hiro::Window* self, hiro::Color &color){ self->setBackgroundColor(color); }));
   REG_LAMBDA(Window, "void append(const ? &in sizable)",                   ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->append(*sizable); }));
+
+  //auto droppable() const { return self().droppable(); }
+  //auto frameGeometry() const { return self().frameGeometry(); }
+  //auto geometry() const { return self().geometry(); }
+  //auto handle() const { return self().handle(); }
+  //auto menuBar() const { return self().menuBar(); }
+  //auto monitor() const { return self().monitor(); }
+  //auto statusBar() const { return self().statusBar(); }
+
+  //auto append(sMenuBar menuBar) { return self().append(menuBar), *this; }
+  //auto append(sSizable sizable) { return self().append(sizable), *this; }
+  //auto append(sStatusBar statusBar) { return self().append(statusBar), *this; }
+  //auto doDrop(vector<string> names) const { return self().doDrop(names); }
+  //auto doKeyPress(signed key) const { return self().doKeyPress(key); }
+  //auto doKeyRelease(signed key) const { return self().doKeyRelease(key); }
+  //auto remove(sMenuBar menuBar) { return self().remove(menuBar), *this; }
+  //auto remove(sStatusBar statusBar) { return self().remove(statusBar), *this; }
+
+  //auto setDroppable(bool droppable = true) { return self().setDroppable(droppable), *this; }
+  //auto setFrameGeometry(Geometry geometry) { return self().setFrameGeometry(geometry), *this; }
+  //auto setGeometry(Geometry geometry) { return self().setGeometry(geometry), *this; }
+  //auto setGeometry(Alignment alignment, Size size) { return self().setGeometry(alignment, size), *this; }
+
+  REG_LAMBDA(Window, "Color &get_backgroundColor() property", ([](hiro::Window* self) { return &self->backgroundColor(); }));
+  REG_LAMBDA(Window, "bool get_dismissable() property",       ([](hiro::Window* self) { return  self->dismissable(); }));
+  REG_LAMBDA(Window, "bool get_fullScreen() property",        ([](hiro::Window* self) { return  self->fullScreen(); }));
+  REG_LAMBDA(Window, "bool get_maximized() property",         ([](hiro::Window* self) { return  self->maximized(); }));
+  REG_LAMBDA(Window, "Size &get_maximumSize() property",      ([](hiro::Window* self) { return &self->maximumSize(); }));
+  REG_LAMBDA(Window, "bool get_minimized() property",         ([](hiro::Window* self) { return  self->minimized(); }));
+  REG_LAMBDA(Window, "Size &get_minimumSize() property",      ([](hiro::Window* self) { return &self->minimumSize(); }));
+  REG_LAMBDA(Window, "bool get_modal() property",             ([](hiro::Window* self) { return  self->modal(); }));
+  REG_LAMBDA(Window, "bool get_resizable() property",         ([](hiro::Window* self) { return  self->resizable(); }));
+  REG_LAMBDA(Window, "bool get_sizable() property",           ([](hiro::Window* self) { return  self->sizable(); }));
+  REG_LAMBDA(Window, "string &get_title() property",          ([](hiro::Window* self) { return &self->title(); }));
+
+  REG_LAMBDA(Window, "void set_backgroundColor(const Color &in color) property", ([](hiro::Window* self, hiro::Color &color)  { self->setBackgroundColor(color); }));
+  REG_LAMBDA(Window, "void set_dismissable(bool dismissable) property",          ([](hiro::Window* self, bool dismissable)    { self->setDismissable(dismissable); }));
+  REG_LAMBDA(Window, "void set_fullScreen(bool fullScreen) property",            ([](hiro::Window* self, bool fullScreen)     { self->setFullScreen(fullScreen); }));
+  REG_LAMBDA(Window, "void set_maximized(bool maximized) property",              ([](hiro::Window* self, bool maximized)      { self->setMaximized(maximized); }));
+  REG_LAMBDA(Window, "void set_maximumSize(const Size &in size) property",       ([](hiro::Window* self, hiro::Size &size)    { self->setMaximumSize(size); }));
+  REG_LAMBDA(Window, "void set_minimized(bool minimized) property",              ([](hiro::Window* self, bool minimized)      { self->setMinimized(minimized); }));
+  REG_LAMBDA(Window, "void set_minimumSize(const Size &in size) property",       ([](hiro::Window* self, hiro::Size &size)    { self->setMinimumSize(size); }));
+  REG_LAMBDA(Window, "void set_modal(bool modal) property",                      ([](hiro::Window* self, bool modal)          { self->setModal(modal); }));
+  REG_LAMBDA(Window, "void set_resizable(bool resizable) property",              ([](hiro::Window* self, bool resizable)      { self->setResizable(resizable); }));
+  REG_LAMBDA(Window, "void set_title(const string &in title) property",          ([](hiro::Window* self, const string &title) { self->setTitle(title); }));
+  REG_LAMBDA(Window, "void set_size(const Size &in size) property",              ([](hiro::Window* self, hiro::Size &size)    { self->setSize(size); }));
+
+#if 0
+  auto setAlignment(Alignment alignment = Alignment::Center) { return self().setAlignment(alignment), *this; }
+  auto setAlignment(sWindow relativeTo, Alignment alignment = Alignment::Center) { return self().setAlignment(relativeTo, alignment), *this; }
+  auto setFramePosition(Position position) { return self().setFramePosition(position), *this; }
+  auto setFrameSize(Size size) { return self().setFrameSize(size), *this; }
+  auto setPosition(Position position) { return self().setPosition(position), *this; }
+  auto setPosition(sWindow relativeTo, Position position) { return self().setPosition(relativeTo, position), *this; }
+
+  auto doClose() const { return self().doClose(); }
+  auto doMove() const { return self().doMove(); }
+  auto doSize() const { return self().doSize(); }
+
+  auto onClose(const function<void ()>& callback = {}) { return self().onClose(callback), *this; }
+  auto onDrop(const function<void (vector<string>)>& callback = {}) { return self().onDrop(callback), *this; }
+  auto onKeyPress(const function<void (signed)>& callback = {}) { return self().onKeyPress(callback), *this; }
+  auto onKeyRelease(const function<void (signed)>& callback = {}) { return self().onKeyRelease(callback), *this; }
+  auto onMove(const function<void ()>& callback = {}) { return self().onMove(callback), *this; }
+  auto onSize(const function<void ()>& callback = {}) { return self().onSize(callback), *this; }
+  auto remove(sSizable sizable) { return self().remove(sizable), *this; }
+  auto reset() { return self().reset(), *this; }
+#endif
 
   // VerticalLayout
   EXPOSE_HIRO(VerticalLayout);

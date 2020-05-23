@@ -5,10 +5,14 @@ class SettingsWindow {
 
   SettingsWindow() {
     @window = GUI::Window();
+    // TODO: this doesn't work yet; I would expect it to disable closing of the window. Tested on MacOS only so far.
+    window.dismissable = false;
+    window.resizable = false;
     window.visible = true;
     window.title = "Test";
     window.font = GUI::Font(GUI::Mono, 10);
     window.size = GUI::Size(256, 256);
+    window.backgroundColor = GUI::Color(0, 0, 100);
 
     auto @vl = GUI::VerticalLayout();
     {
