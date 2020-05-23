@@ -37,222 +37,6 @@ struct GUI {
       return (hiro::mSizable*)self.data(); \
     }
 
-  struct Window : Object {
-    BindShared(Window) \
-      BindObject(Window)
-
-    Window() {
-      self = new hiro::mWindow();
-      self->construct();
-    }
-
-    // create a Window relative to main presentation window
-    Window(float x, float y, bool relative = false) : Window() {
-      if (relative) {
-        self->setPosition(platform->presentationWindow(), hiro::Position{x, y});
-      } else {
-        self->setPosition(hiro::Position{x, y});
-      }
-    }
-
-    auto appendSizable(Sizable *child) -> void {
-      self->append((hiro::mSizable*)*child);
-    }
-
-    auto setSize(hiro::Size *size) -> void {
-      self->setSize(*size);
-    }
-
-    auto setTitle(const string *title) -> void {
-      self->setTitle(*title);
-    }
-
-    mutable hiro::Color mBackgroundColor;
-    auto backgroundColor() const -> hiro::Color* {
-      mBackgroundColor = self->backgroundColor();
-      return &mBackgroundColor;
-    }
-
-    auto setBackgroundColor(const hiro::Color* color) -> void {
-      self->setBackgroundColor(*color);
-    }
-
-    auto setFont(const hiro::Font* font) -> void {
-      self->setFont(*font);
-    }
-  };
-
-  struct VerticalLayout : Sizable {
-    BindShared(VerticalLayout)
-    BindObject(VerticalLayout)
-    BindSizable(VerticalLayout)
-
-    VerticalLayout() {
-      self = new hiro::mVerticalLayout();
-      self->construct();
-    }
-
-    auto resize() -> void {
-      self->resize();
-    }
-
-    auto appendSizable(Sizable *child, hiro::Size *size) -> void {
-      self->append((hiro::mSizable*)*child, *size);
-    }
-  };
-
-  struct HorizontalLayout : Sizable {
-    BindShared(HorizontalLayout)
-    BindObject(HorizontalLayout)
-    BindSizable(HorizontalLayout)
-
-    HorizontalLayout() {
-      self = new hiro::mHorizontalLayout();
-      self->construct();
-    }
-
-    auto resize() -> void {
-      self->resize();
-    }
-
-    auto appendSizable(Sizable *child, hiro::Size *size) -> void {
-      self->append((hiro::mSizable*)*child, *size);
-    }
-  };
-
-  struct LineEdit : Sizable {
-    BindShared(LineEdit)
-    BindObject(LineEdit)
-    BindSizable(LineEdit)
-
-    LineEdit() {
-      self = new hiro::mLineEdit();
-      self->construct();
-      self->setFocusable();
-    }
-
-    auto setFont(const hiro::Font* font) -> void {
-      self->setFont(*font);
-    }
-
-    auto getText() -> string* {
-      return new string(self->text());
-    }
-
-    auto setText(const string *text) -> void {
-      self->setText(*text);
-    }
-
-    asIScriptFunction *onChange = nullptr;
-    auto setOnChange(asIScriptFunction *func) -> void {
-      if (onChange != nullptr) {
-        onChange->Release();
-      }
-
-      onChange = func;
-
-      // register onChange callback with LineEdit:
-      auto me = this;
-      auto ctx = asGetActiveContext();
-      self->onChange([=]() -> void {
-        ctx->Prepare(onChange);
-        ctx->SetArgObject(0, me);
-        ctx->Execute();
-      });
-    }
-  };
-
-  struct Label : Sizable {
-    BindShared(Label)
-    BindObject(Label)
-    BindSizable(Label)
-
-    Label() {
-      self = new hiro::mLabel();
-      self->construct();
-    }
-
-    auto getText() -> string * {
-      return new string(self->text());
-    }
-
-    auto setText(const string *text) -> void {
-      self->setText(*text);
-    }
-
-    mutable hiro::Alignment mAlignment;
-    auto alignment() const -> hiro::Alignment* {
-      mAlignment = self->alignment();
-      return &mAlignment;
-    }
-
-    auto setAlignment(const hiro::Alignment* alignment) -> void {
-      self->setAlignment(*alignment);
-    }
-
-    mutable hiro::Color mBackgroundColor;
-    auto backgroundColor() const -> hiro::Color* {
-      mBackgroundColor = self->backgroundColor();
-      return &mBackgroundColor;
-    }
-
-    auto setBackgroundColor(const hiro::Color* color) -> void {
-      self->setBackgroundColor(*color);
-    }
-
-    mutable hiro::Color mForegroundColor;
-    auto foregroundColor() const -> hiro::Color* {
-      mForegroundColor = self->foregroundColor();
-      return &mForegroundColor;
-    }
-
-    auto setForegroundColor(const hiro::Color* color) -> void {
-      self->setForegroundColor(*color);
-    }
-
-    auto setFont(const hiro::Font* font) -> void {
-      self->setFont(*font);
-    }
-  };
-
-  struct Button : Sizable {
-    BindShared(Button)
-    BindObject(Button)
-    BindSizable(Button)
-
-    Button() {
-      self = new hiro::mButton();
-      self->construct();
-      self->setFocusable();
-    }
-
-    auto getText() -> string* {
-      return new string(self->text());
-    }
-
-    auto setText(const string *text) -> void {
-      self->setText(*text);
-    }
-
-    asIScriptFunction *onActivate = nullptr;
-    auto setOnActivate(asIScriptFunction *func) -> void {
-      if (onActivate != nullptr) {
-        onActivate->Release();
-      }
-
-      onActivate = func;
-
-      // register onActivate callback with Button:
-      auto me = this;
-      auto ctx = asGetActiveContext();
-      self->onActivate([=]() -> void {
-        ctx->Prepare(onActivate);
-        ctx->SetArgObject(0, me);
-        ctx->Execute();
-      });
-    }
-  };
-
   struct Canvas : Sizable {
     BindShared(Canvas)
     BindObject(Canvas)
@@ -434,13 +218,6 @@ struct GUI {
   static auto createFont(string *family, float size, void *memory) -> void { new(memory) hiro::Font(*family, size); }
   static auto destroyFont(void *memory) -> void { ((hiro::Font*)memory)->~Font(); }
 
-  Constructor(Window)
-  static auto createWindowAtPosition(float x, float y, bool relative) -> Window* { return new Window(x, y, relative); }
-  Constructor(VerticalLayout)
-  Constructor(HorizontalLayout)
-  Constructor(LineEdit)
-  Constructor(Label)
-  Constructor(Button)
   Constructor(Canvas)
 
 #undef Constructor
@@ -509,7 +286,20 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define EXPOSE_HIRO_OBJECT(name) \
   REG_LAMBDA(name, "void set_font(const Font &in font) property", ([](hiro::name* self, hiro::Font &font){ self->setFont(font); })); \
-  REG_LAMBDA(name, "void set_visible(bool visible) property",     ([](hiro::name* self, bool visible)    { self->setVisible(visible); }))
+  REG_LAMBDA(name, "void set_visible(bool visible) property",     ([](hiro::name* self, bool visible)    { self->setVisible(visible); })); \
+  REG_LAMBDA(name, "bool get_enabled() property",             ([](hiro::name* self) { return self->enabled(false); })); \
+  REG_LAMBDA(name, "bool get_enabled_recursive() property",   ([](hiro::name* self) { return self->enabled(true); })); \
+  REG_LAMBDA(name, "bool get_focused() property",             ([](hiro::name* self) { return self->focused(); })); \
+  REG_LAMBDA(name, "Font &get_font() property",               ([](hiro::name* self) { return &self->font(false); })); \
+  REG_LAMBDA(name, "Font &get_font_recursive() property",     ([](hiro::name* self) { return &self->font(true); })); \
+  REG_LAMBDA(name, "int get_offset() property",               ([](hiro::name* self) { return self->offset(); })); \
+  REG_LAMBDA(name, "bool get_visible() property",             ([](hiro::name* self) { return self->visible(false); })); \
+  REG_LAMBDA(name, "bool get_visible_recursive() property",   ([](hiro::name* self) { return self->visible(true); })); \
+  REG_LAMBDA(name, "void set_enabled(bool enabled) property", ([](hiro::name* self, bool enabled) { self->setEnabled(enabled); })); \
+  REG_LAMBDA(name, "void remove()",         ([](hiro::name* self) { return self->remove(); })); \
+  REG_LAMBDA(name, "void setFocused()",     ([](hiro::name* self, bool focused) { self->setFocused(); }))
+
+  //REG_LAMBDA(name, "Object &get_parent()",                        ([](hiro::name* self) { return self->parent(); })); \
 
   // GUI
   r = e->SetDefaultNamespace("gui"); assert(r >= 0);
@@ -657,6 +447,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // CheckLabel
   EXPOSE_HIRO(CheckLabel);
+  EXPOSE_HIRO_OBJECT(CheckLabel);
   REG_LAMBDA(CheckLabel, "void set_text(const string &in text) property", ([](hiro::CheckLabel *p, const string &text) { p->setText(text); }));
   REG_LAMBDA(CheckLabel, "string &get_text() property",             ([](hiro::CheckLabel *p) { return new string(p->text()); }));
   REG_LAMBDA(CheckLabel, "void set_checked(bool checked) property", ([](hiro::CheckLabel *p, bool checked) { p->setChecked(checked); }));
