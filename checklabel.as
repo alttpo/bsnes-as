@@ -1,31 +1,31 @@
 SettingsWindow @settings;
 
 class SettingsWindow {
-  private gui::Window @window;
-  private gui::CheckLabel @chk;
+  private GUI::Window @window;
+  private GUI::CheckLabel @chk;
 
   SettingsWindow() {
-    @window = gui::Window();
+    @window = GUI::Window();
     window.visible = true;
     window.title = "Test";
-    window.font = gui::Font("{mono}", 12);
-    window.size = gui::Size(256, 24*3);
+    window.font = GUI::Font("{mono}", 12);
+    window.size = GUI::Size(256, 24*3);
 
-    auto @vl = gui::VerticalLayout();
+    auto @vl = GUI::VerticalLayout();
     {
-      @chk = gui::CheckLabel();
+      @chk = GUI::CheckLabel();
       chk.text = "Test";
-      chk.onToggle(@gui::Callback(this.toggled));
-      vl.append(chk, gui::Size(0, 0));
+      chk.onToggle(@GUI::Callback(this.toggled));
+      vl.append(chk, GUI::Size(0, 0));
 
-      auto @lbl = gui::Label();
-      lbl.alignment = gui::Alignment(0.5, 0.5);
+      auto @lbl = GUI::Label();
+      lbl.alignment = GUI::Alignment(0.5, 0.5);
       lbl.text = "0123456789ABCDEF";
-      lbl.foregroundColor = gui::Color(240, 240,   0);
-      lbl.backgroundColor = gui::Color(0,   120, 120);
-      vl.append(lbl, gui::Size(256, 48));
+      lbl.foregroundColor = GUI::Color(240, 240,   0);
+      lbl.backgroundColor = GUI::Color(0,   120, 120);
+      vl.append(lbl, GUI::Size(256, 48));
 
-
+      
     }
     window.append(vl);
   }

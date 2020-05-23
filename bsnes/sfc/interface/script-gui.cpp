@@ -302,7 +302,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   //REG_LAMBDA(name, "Object &get_parent()",                        ([](hiro::name* self) { return self->parent(); })); \
 
   // GUI
-  r = e->SetDefaultNamespace("gui"); assert(r >= 0);
+  r = e->SetDefaultNamespace("GUI"); assert(r >= 0);
 
   // function types:
   r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
