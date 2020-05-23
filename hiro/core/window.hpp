@@ -68,7 +68,7 @@ struct mWindow : mObject {
 //private:
   struct State {
     Color backgroundColor;
-    bool dismissable = false;
+    bool dismissable = true;
     bool droppable = false;
     bool fullScreen = false;
     Geometry geometry = {128, 128, 256, 256};

@@ -111,6 +111,7 @@
 }
 
 -(BOOL) windowShouldClose:(id)sender {
+  if(!window->state.dismissable) return NO;
   if(window->state.onClose) window->doClose();
   else window->setVisible(false);
   if(window->state.modal && !window->visible()) window->setModal(false);
