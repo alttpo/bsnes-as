@@ -282,15 +282,15 @@ struct GUI {
     //printf("%p ++ -> %d\n", (void*)&p, p.references());
   }
 
-  template<typename T>
-  static auto sharedPtrRelease(shared_pointer<T> &p) {
+  template<class C>
+  static auto sharedPtrRelease(shared_pointer<C> &p) {
     //printf("%p -- -> %d\n", (void*)&p, p.references() - 1);
     if (p.manager && p.manager->strong) {
       if (p.manager->strong == 1) {
         if(p.manager->deleter) {
           p.manager->deleter(p.manager->pointer);
         } else {
-          delete (T*)p.manager->pointer;
+          delete (C*)p.manager->pointer;
         }
         p.manager->pointer = nullptr;
       }
@@ -330,8 +330,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
 #define EXPOSE_SHARED_PTR(name, className) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF, "void f()", asFUNCTION(GUI::sharedPtrAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(GUI::sharedPtrRelease<className>), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(GUI::sharedPtrAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION((GUI::sharedPtrRelease<className>)), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
 #define EXPOSE_HIRO(name) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
