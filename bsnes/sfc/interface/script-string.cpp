@@ -57,8 +57,8 @@ static auto stringCopyConstruct(const string &other, string *thisPointer) -> voi
   new(thisPointer) string(other);
 }
 
-static auto stringDestruct(string *thisPointer) -> void {
-  thisPointer->~string();
+static auto stringDestruct(string *self) -> void {
+  self->~string();
 }
 
 static auto stringAddAssign(const string *other, string *self) -> string* {
@@ -74,31 +74,30 @@ static auto stringCmp(const string *self, const string *other) -> int {
   return self->compare(*other);
 }
 
-static auto stringAdd(const string *self, const string *other) -> string* {
-  string *dest = new string(*self);
-  dest->_append<string>(*other);
+static auto stringAdd(const string *self, const string *other) -> string {
+  string dest = *self;
+  dest._append<string>(*other);
   return dest;
 }
 
-static auto fmtHex(uint64_t value, int precision = 0) -> string* {
-  return new string(hex(value, precision));
+static auto fmtHex(uint64_t value, int precision = 0) -> string {
+  return (hex(value, precision));
 }
 
-static auto fmtBinary(uint64_t value, int precision = 0) -> string* {
-  return new string(binary(value, precision));
+static auto fmtBinary(uint64_t value, int precision = 0) -> string {
+  return (binary(value, precision));
 }
 
-static auto fmtInt(int64_t value) -> string* {
-  return new string(value);
+static auto fmtInt(int64_t value) -> string {
+  return string(value);
 }
 
-static auto fmtUint(uint64_t value) -> string* {
-  return new string(value);
+static auto fmtUint(uint64_t value) -> string {
+  return string(value);
 }
 
-static auto stringSlice(const string *self, int offset, int length) -> string* {
-  auto result = self->slice(offset, length);
-  return new string(result);
+static auto stringSlice(const string *self, int offset, int length) -> string {
+  return self->slice(offset, length);
 }
 
 auto Interface::registerScriptString() -> void {
@@ -116,17 +115,18 @@ auto Interface::registerScriptString() -> void {
   r = script.engine->RegisterObjectMethod("string", "string &opAddAssign(const string &in)", asFUNCTION(stringAddAssign), asCALL_CDECL_OBJLAST); assert( r >= 0 );
   r = script.engine->RegisterObjectMethod("string", "bool opEquals(const string &in) const", asFUNCTION(stringEquals), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
   r = script.engine->RegisterObjectMethod("string", "int opCmp(const string &in) const", asFUNCTION(stringCmp), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
-  r = script.engine->RegisterObjectMethod("string", "string &opAdd(const string &in) const", asFUNCTION(stringAdd), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+  r = script.engine->RegisterObjectMethod("string", "string opAdd(const string &in) const", asFUNCTION(stringAdd), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
 
   r = script.engine->RegisterObjectMethod("string", "uint length() const", asMETHOD(string, length), asCALL_THISCALL); assert( r >= 0 );
 
-  r = script.engine->RegisterObjectMethod("string", "string &slice(int beginIndex, int length = -1) const", asFUNCTION(stringSlice), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+  r = script.engine->RegisterObjectMethod("string", "string slice(int beginIndex, int length = -1) const", asFUNCTION(stringSlice), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
 
   // Register global functions
-  r = script.engine->RegisterGlobalFunction("string &fmtHex(uint64 value, int precision = 0)", asFUNCTION(fmtHex), asCALL_CDECL); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("string &fmtBinary(uint64 value, int precision = 0)", asFUNCTION(fmtBinary), asCALL_CDECL); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("string &fmtInt(int64 value)", asFUNCTION(fmtInt), asCALL_CDECL); assert(r >= 0);
-  r = script.engine->RegisterGlobalFunction("string &fmtUint(uint64 value)", asFUNCTION(fmtUint), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("string fmtHex(uint64 value, int precision = 0)", asFUNCTION(fmtHex), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("string fmtBinary(uint64 value, int precision = 0)", asFUNCTION(fmtBinary), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("string fmtInt(int64 value)", asFUNCTION(fmtInt), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("string fmtUint(uint64 value)", asFUNCTION(fmtUint), asCALL_CDECL); assert(r >= 0);
+  r = script.engine->RegisterGlobalFunction("string fmtFloat(float value)", asFUNCTION(+([](float value) { return string(value); })), asCALL_CDECL); assert(r >= 0);
 
   //todo[jsd] add more string functions if necessary
 }

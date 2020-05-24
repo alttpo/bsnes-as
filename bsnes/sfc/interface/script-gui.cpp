@@ -343,23 +343,23 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(name, "bool get_enabled() property",                 ([](className* self) { return self->enabled(false); })); \
   REG_LAMBDA(name, "bool get_enabled_recursive() property",       ([](className* self) { return self->enabled(true); })); \
   REG_LAMBDA(name, "bool get_focused() property",                 ([](className* self) { return self->focused(); })); \
-  REG_LAMBDA(name, "Font &get_font() property",                   ([](className* self) { return &self->font(false); })); \
-  REG_LAMBDA(name, "Font &get_font_recursive() property",         ([](className* self) { return &self->font(true); })); \
+  REG_LAMBDA(name, "Font get_font() property",                    ([](className* self) { return self->font(false); })); \
+  REG_LAMBDA(name, "Font get_font_recursive() property",          ([](className* self) { return self->font(true); })); \
   REG_LAMBDA(name, "int get_offset() property",                   ([](className* self) { return self->offset(); })); \
   REG_LAMBDA(name, "bool get_visible() property",                 ([](className* self) { return self->visible(false); })); \
   REG_LAMBDA(name, "bool get_visible_recursive() property",       ([](className* self) { return self->visible(true); })); \
   REG_LAMBDA(name, "void set_enabled(bool enabled) property",     ([](className* self, bool enabled) { self->setEnabled(enabled); })); \
   REG_LAMBDA(name, "void remove()",         ([](className* self) { return self->remove(); })); \
-  REG_LAMBDA(name, "void setFocused()",     ([](className* self, bool focused) { self->setFocused(); }))
+  REG_LAMBDA(name, "void setFocused()",     ([](className* self) { self->setFocused(); }))
 
-  //REG_LAMBDA(name, "Object &get_parent()",                        ([](className* self) { return self->parent(); })); \
+  //REG_LAMBDA(name, "Object get_parent()",                        ([](className* self) { return self->parent(); })); \
 
 #define EXPOSE_HIRO_OBJECT(name) EXPOSE_OBJECT(name, hiro::name)
 
 #define EXPOSE_SIZABLE(name, className) \
   REG_LAMBDA(name, "bool get_collapsible() property",                         ([](className* self) { return self->collapsible(); })); \
   REG_LAMBDA(name, "void doSize()",                                           ([](className* self) { self->doSize(); })); \
-  REG_LAMBDA(name, "Size &get_minimumSize() property",                        ([](className* self) { return &self->minimumSize(); })); \
+  REG_LAMBDA(name, "Size get_minimumSize() property",                         ([](className* self) { return self->minimumSize(); })); \
   REG_LAMBDA(name, "void onSize(Callback @callback)",                         ([](className* self, asIScriptFunction *cb) { \
     self->onSize([=] { \
       auto ctx = ::SuperFamicom::script.context; \
@@ -378,7 +378,13 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
 
 #define REG_REF_TYPE(name) r = e->RegisterObjectType(#name, 0, asOBJ_REF); assert( r >= 0 )
-#define REG_VALUE_TYPE(name) r = e->RegisterObjectType(#name, sizeof(hiro::name), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<hiro::name>()); assert( r >= 0 )
+
+#define REG_VALUE_TYPE(name, flags) \
+  r = e->RegisterObjectType(#name, sizeof(hiro::name), asOBJ_VALUE | flags | asGetTypeTraits<hiro::name>()); assert( r >= 0 ); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f(const " #name " &in)", asFUNCTION(+([](hiro::name* self, const hiro::name& other) { \
+    new(self) hiro::name(other); \
+  })), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
+  r = script.engine->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asMETHODPR(hiro::name, operator =, (const hiro::name&), hiro::name&), asCALL_THISCALL); assert(r >= 0)
 
   // Register reference types:
   REG_REF_TYPE(Window);
@@ -391,10 +397,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_TYPE(CheckLabel);
 
   // value types:
-  REG_VALUE_TYPE(Alignment);
-  REG_VALUE_TYPE(Size);
-  REG_VALUE_TYPE(Color);
-  REG_VALUE_TYPE(Font);
+  REG_VALUE_TYPE(Alignment, asOBJ_APP_CLASS_CK);
+  REG_VALUE_TYPE(Color, asOBJ_APP_CLASS_CK);
+  REG_VALUE_TYPE(Font, asOBJ_APP_CLASS_CK);
+  REG_VALUE_TYPE(Size, asOBJ_APP_CLASS_CK);
 
   // Alignment value type:
   r = e->RegisterObjectBehaviour("Alignment", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(GUI::createAlignment), asCALL_CDECL_OBJLAST); assert(r >= 0);
@@ -433,6 +439,19 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("Font", asBEHAVE_CONSTRUCT, "void f(const string &in family, float size = 0.0)", asFUNCTION(GUI::createFont), asCALL_CDECL_OBJLAST); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Font", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(GUI::destroyFont), asCALL_CDECL_OBJLAST); assert(r >= 0);
 
+  REG_LAMBDA(Font, "bool get_bold() property",                          ([](hiro::Font* self) { return self->bold(); }));
+  REG_LAMBDA(Font, "string get_family() property",                      ([](hiro::Font* self) { return self->family(); }));
+  REG_LAMBDA(Font, "bool get_italic() property",                        ([](hiro::Font* self) { return self->italic(); }));
+  REG_LAMBDA(Font, "float get_size() property",                         ([](hiro::Font* self) { return self->size(); }));
+  REG_LAMBDA(Font, "void set_bold(bool bold) property",                 ([](hiro::Font* self, bool bold) { self->setBold(bold); }));
+  REG_LAMBDA(Font, "void set_family(const string &in family) property", ([](hiro::Font* self, string &family) { self->setFamily(family); }));
+  REG_LAMBDA(Font, "void set_italic(bool italic) property",             ([](hiro::Font* self, bool italic) { self->setItalic(italic); }));
+  REG_LAMBDA(Font, "void set_size(float size) property",                ([](hiro::Font* self, float size) { self->setSize(size); }));
+
+  REG_LAMBDA(Font, "Size measure(const string &in text)", ([](hiro::Font* self, string &text) { return self->size(text); }));
+  REG_LAMBDA(Font, "void reset()", ([](hiro::Font* self) { self->reset(); }));
+
+
   r = e->RegisterGlobalProperty("string Sans", (void *) &hiro::Font::Sans); assert(r >= 0);
   r = e->RegisterGlobalProperty("string Serif", (void *) &hiro::Font::Serif); assert(r >= 0);
   r = e->RegisterGlobalProperty("string Mono", (void *) &hiro::Font::Mono); assert(r >= 0);
@@ -451,17 +470,17 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(Window);
   REG_LAMBDA(Window, "void append(const ? &in sizable)",                   ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->append(*sizable); }));
 
-  REG_LAMBDA(Window, "Color &get_backgroundColor() property", ([](hiro::Window* self) { return &self->backgroundColor(); }));
-  REG_LAMBDA(Window, "bool get_dismissable() property",       ([](hiro::Window* self) { return  self->dismissable(); }));
-  REG_LAMBDA(Window, "bool get_fullScreen() property",        ([](hiro::Window* self) { return  self->fullScreen(); }));
-  REG_LAMBDA(Window, "bool get_maximized() property",         ([](hiro::Window* self) { return  self->maximized(); }));
-  REG_LAMBDA(Window, "Size &get_maximumSize() property",      ([](hiro::Window* self) { return &self->maximumSize(); }));
-  REG_LAMBDA(Window, "bool get_minimized() property",         ([](hiro::Window* self) { return  self->minimized(); }));
-  REG_LAMBDA(Window, "Size &get_minimumSize() property",      ([](hiro::Window* self) { return &self->minimumSize(); }));
-  REG_LAMBDA(Window, "bool get_modal() property",             ([](hiro::Window* self) { return  self->modal(); }));
-  REG_LAMBDA(Window, "bool get_resizable() property",         ([](hiro::Window* self) { return  self->resizable(); }));
-  REG_LAMBDA(Window, "bool get_sizable() property",           ([](hiro::Window* self) { return  self->sizable(); }));
-  REG_LAMBDA(Window, "string get_title() property",           ([](hiro::Window* self) { return  self->title(); }));
+  REG_LAMBDA(Window, "Color get_backgroundColor() property",  ([](hiro::Window* self) { return self->backgroundColor(); }));
+  REG_LAMBDA(Window, "bool get_dismissable() property",       ([](hiro::Window* self) { return self->dismissable(); }));
+  REG_LAMBDA(Window, "bool get_fullScreen() property",        ([](hiro::Window* self) { return self->fullScreen(); }));
+  REG_LAMBDA(Window, "bool get_maximized() property",         ([](hiro::Window* self) { return self->maximized(); }));
+  REG_LAMBDA(Window, "Size get_maximumSize() property",       ([](hiro::Window* self) { return self->maximumSize(); }));
+  REG_LAMBDA(Window, "bool get_minimized() property",         ([](hiro::Window* self) { return self->minimized(); }));
+  REG_LAMBDA(Window, "Size get_minimumSize() property",       ([](hiro::Window* self) { return self->minimumSize(); }));
+  REG_LAMBDA(Window, "bool get_modal() property",             ([](hiro::Window* self) { return self->modal(); }));
+  REG_LAMBDA(Window, "bool get_resizable() property",         ([](hiro::Window* self) { return self->resizable(); }));
+  REG_LAMBDA(Window, "bool get_sizable() property",           ([](hiro::Window* self) { return self->sizable(); }));
+  REG_LAMBDA(Window, "string get_title() property",           ([](hiro::Window* self) { return self->title(); }));
 
   REG_LAMBDA(Window, "void set_backgroundColor(const Color &in color) property", ([](hiro::Window* self, hiro::Color &color)  { self->setBackgroundColor(color); }));
   REG_LAMBDA(Window, "void set_dismissable(bool dismissable) property",          ([](hiro::Window* self, bool dismissable)    { self->setDismissable(dismissable); }));
@@ -557,13 +576,13 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(Label);
   EXPOSE_HIRO_SIZABLE(Label);
   //EXPOSE_HIRO_WIDGET(Label);
-  REG_LAMBDA(Label, "Alignment& get_alignment() property",                        ([](hiro::Label* self){ return &self->alignment(); }));
-  REG_LAMBDA(Label, "void set_alignment(const Alignment &in alignment) property", ([](hiro::Label* self, const hiro::Alignment &alignment){ self->setAlignment(alignment); }));
-  REG_LAMBDA(Label, "Color& get_backgroundColor() property",                      ([](hiro::Label* self){ return &self->backgroundColor(); }));
-  REG_LAMBDA(Label, "void set_backgroundColor(const Color &in color) property",   ([](hiro::Label* self, const hiro::Color &color){ self->setBackgroundColor(color); }));
-  REG_LAMBDA(Label, "Color& get_foregroundColor() property",                      ([](hiro::Label* self){ return &self->foregroundColor(); }));
-  REG_LAMBDA(Label, "void set_foregroundColor(const Color &in color) property",   ([](hiro::Label* self, const hiro::Color &color){ self->setForegroundColor(color); }));
+  REG_LAMBDA(Label, "Alignment get_alignment() property",                         ([](hiro::Label* self){ return self->alignment(); }));
+  REG_LAMBDA(Label, "Color get_backgroundColor() property",                       ([](hiro::Label* self){ return self->backgroundColor(); }));
+  REG_LAMBDA(Label, "Color get_foregroundColor() property",                       ([](hiro::Label* self){ return self->foregroundColor(); }));
   REG_LAMBDA(Label, "string get_text() property",                                 ([](hiro::Label* self){ return self->text(); }));
+  REG_LAMBDA(Label, "void set_alignment(const Alignment &in alignment) property", ([](hiro::Label* self, const hiro::Alignment &alignment){ self->setAlignment(alignment); }));
+  REG_LAMBDA(Label, "void set_backgroundColor(const Color &in color) property",   ([](hiro::Label* self, const hiro::Color &color){ self->setBackgroundColor(color); }));
+  REG_LAMBDA(Label, "void set_foregroundColor(const Color &in color) property",   ([](hiro::Label* self, const hiro::Color &color){ self->setForegroundColor(color); }));
   REG_LAMBDA(Label, "void set_text(const string &in text) property",              ([](hiro::Label* self, string &text){ self->setText(text); }));
 
   // Button

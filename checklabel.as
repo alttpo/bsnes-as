@@ -13,6 +13,13 @@ class SettingsWindow {
     window.size = GUI::Size(256, 256);
     window.backgroundColor = GUI::Color(0, 0, 100);
 
+    message(window.font.bold ? "bold" : "not bold");
+    message(window.font.italic ? "italic" : "not italic");
+    message(fmtFloat(window.font.size));
+    string text = "";
+    text += "abc";
+    message(text);
+
     auto @vl = GUI::VerticalLayout();
     {
       auto @chk = GUI::CheckLabel();
@@ -51,7 +58,7 @@ class SettingsWindow {
       lbl.foregroundColor = GUI::Color(240, 240,   0);
       lbl.backgroundColor = GUI::Color(0,   120, 120);
       GUI::Color fc = lbl.foregroundColor;
-      GUI::Color bc = lbl.backgroundColor;
+      //GUI::Color bc = lbl.backgroundColor;
       vl.append(lbl, GUI::Size(256, 48));
 
       auto @cv = GUI::SNESCanvas();
