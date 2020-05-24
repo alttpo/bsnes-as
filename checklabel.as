@@ -58,7 +58,7 @@ class SettingsWindow {
       lbl.foregroundColor = GUI::Color(240, 240,   0);
       lbl.backgroundColor = GUI::Color(0,   120, 120);
       GUI::Color fc = lbl.foregroundColor;
-      //GUI::Color bc = lbl.backgroundColor;
+      GUI::Color bc = lbl.backgroundColor;
       vl.append(lbl, GUI::Size(256, 48));
 
       auto @cv = GUI::SNESCanvas();

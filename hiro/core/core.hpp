@@ -104,6 +104,7 @@ struct Color {
   using type = Color;
 
   Color();
+  Color(const Color& color);
   Color(int red, int green, int blue, int alpha = 255);
 
   explicit operator bool() const;
