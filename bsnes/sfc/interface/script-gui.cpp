@@ -193,16 +193,40 @@ struct GUI {
 
     auto self() const -> mSNESCanvas& { return (mSNESCanvas&)operator*(); }
 
+    // Object:
+    auto enabled(bool recursive = false) const { return self().enabled(recursive); }
+    auto focused() const { return self().focused(); }
+    auto font(bool recursive = false) const { return self().font(recursive); }
+    auto offset() const { return self().offset(); }
+    auto parent() const {
+      if(auto object = self().parent()) {
+        if(auto instance = object->instance.acquire()) return hiro::Object(instance);
+      }
+      return hiro::Object();
+    }
+    auto remove() { self().remove(); }
+    auto setEnabled(bool enabled = true) { self().setEnabled(enabled); }
+    auto setFocused() { self().setFocused(); }
+    auto setFont(const hiro::Font& font = {}) { self().setFont(font); }
+    auto setVisible(bool visible = true) { self().setVisible(visible); }
+    auto visible(bool recursive = false) const { return self().visible(recursive); }
+
+    // Sizable:
+    auto collapsible() const { return self().collapsible(); }
+    auto doSize() const { return self().doSize(); }
+    auto geometry() const { return self().geometry(); }
+    auto minimumSize() const { return self().minimumSize(); }
+    auto onSize(const function<void ()>& callback = {}) { self().onSize(callback); }
+    auto setCollapsible(bool collapsible = true) { self().setCollapsible(collapsible); }
+    auto setGeometry(hiro::Geometry geometry) { self().setGeometry(geometry); }
+
+
     auto setAlignment(float horizontal, float vertical) -> void {
       self().setAlignment(hiro::Alignment{horizontal, vertical});
     }
 
     auto setSize(hiro::Size &size) -> void {
       self().setSize(size);
-    }
-
-    auto setCollapsible(bool collapsible = true) {
-      self().setCollapsible(collapsible);
     }
 
     auto setPosition(float x, float y) -> void {
@@ -304,43 +328,47 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
-#define SHARED_PTR(name) \
+#define EXPOSE_SHARED_PTR(name) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF, "void f()", asFUNCTION(GUI::sharedPtrAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(GUI::sharedPtrRelease), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
 #define EXPOSE_HIRO(name) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
-  SHARED_PTR(name)
+  EXPOSE_SHARED_PTR(name)
 
-#define EXPOSE_HIRO_OBJECT(name) \
-  REG_LAMBDA(name, "void set_font(const Font &in font) property", ([](hiro::name* self, hiro::Font &font){ self->setFont(font); })); \
-  REG_LAMBDA(name, "void set_visible(bool visible) property",     ([](hiro::name* self, bool visible)    { self->setVisible(visible); })); \
-  REG_LAMBDA(name, "bool get_enabled() property",             ([](hiro::name* self) { return self->enabled(false); })); \
-  REG_LAMBDA(name, "bool get_enabled_recursive() property",   ([](hiro::name* self) { return self->enabled(true); })); \
-  REG_LAMBDA(name, "bool get_focused() property",             ([](hiro::name* self) { return self->focused(); })); \
-  REG_LAMBDA(name, "Font &get_font() property",               ([](hiro::name* self) { return &self->font(false); })); \
-  REG_LAMBDA(name, "Font &get_font_recursive() property",     ([](hiro::name* self) { return &self->font(true); })); \
-  REG_LAMBDA(name, "int get_offset() property",               ([](hiro::name* self) { return self->offset(); })); \
-  REG_LAMBDA(name, "bool get_visible() property",             ([](hiro::name* self) { return self->visible(false); })); \
-  REG_LAMBDA(name, "bool get_visible_recursive() property",   ([](hiro::name* self) { return self->visible(true); })); \
-  REG_LAMBDA(name, "void set_enabled(bool enabled) property", ([](hiro::name* self, bool enabled) { self->setEnabled(enabled); })); \
-  REG_LAMBDA(name, "void remove()",         ([](hiro::name* self) { return self->remove(); })); \
-  REG_LAMBDA(name, "void setFocused()",     ([](hiro::name* self, bool focused) { self->setFocused(); }))
+#define EXPOSE_OBJECT(name, className) \
+  REG_LAMBDA(name, "void set_font(const Font &in font) property", ([](className* self, hiro::Font &font){ self->setFont(font); })); \
+  REG_LAMBDA(name, "void set_visible(bool visible) property",     ([](className* self, bool visible)    { self->setVisible(visible); })); \
+  REG_LAMBDA(name, "bool get_enabled() property",                 ([](className* self) { return self->enabled(false); })); \
+  REG_LAMBDA(name, "bool get_enabled_recursive() property",       ([](className* self) { return self->enabled(true); })); \
+  REG_LAMBDA(name, "bool get_focused() property",                 ([](className* self) { return self->focused(); })); \
+  REG_LAMBDA(name, "Font &get_font() property",                   ([](className* self) { return &self->font(false); })); \
+  REG_LAMBDA(name, "Font &get_font_recursive() property",         ([](className* self) { return &self->font(true); })); \
+  REG_LAMBDA(name, "int get_offset() property",                   ([](className* self) { return self->offset(); })); \
+  REG_LAMBDA(name, "bool get_visible() property",                 ([](className* self) { return self->visible(false); })); \
+  REG_LAMBDA(name, "bool get_visible_recursive() property",       ([](className* self) { return self->visible(true); })); \
+  REG_LAMBDA(name, "void set_enabled(bool enabled) property",     ([](className* self, bool enabled) { self->setEnabled(enabled); })); \
+  REG_LAMBDA(name, "void remove()",         ([](className* self) { return self->remove(); })); \
+  REG_LAMBDA(name, "void setFocused()",     ([](className* self, bool focused) { self->setFocused(); }))
 
-  //REG_LAMBDA(name, "Object &get_parent()",                        ([](hiro::name* self) { return self->parent(); })); \
+  //REG_LAMBDA(name, "Object &get_parent()",                        ([](className* self) { return self->parent(); })); \
 
-#define EXPOSE_HIRO_SIZABLE(name) \
-  REG_LAMBDA(name, "bool get_collapsible() property",                         ([](hiro::name* self) { return self->collapsible(); })); \
-  REG_LAMBDA(name, "void doSize()",                                           ([](hiro::name* self) { self->doSize(); })); \
-  REG_LAMBDA(name, "Size &get_minimumSize() property",                        ([](hiro::name* self) { return &self->minimumSize(); })); \
-  REG_LAMBDA(name, "void onSize(Callback @callback)",                         ([](hiro::name* self, asIScriptFunction *cb) { \
+#define EXPOSE_HIRO_OBJECT(name) EXPOSE_OBJECT(name, hiro::name)
+
+#define EXPOSE_SIZABLE(name, className) \
+  REG_LAMBDA(name, "bool get_collapsible() property",                         ([](className* self) { return self->collapsible(); })); \
+  REG_LAMBDA(name, "void doSize()",                                           ([](className* self) { self->doSize(); })); \
+  REG_LAMBDA(name, "Size &get_minimumSize() property",                        ([](className* self) { return &self->minimumSize(); })); \
+  REG_LAMBDA(name, "void onSize(Callback @callback)",                         ([](className* self, asIScriptFunction *cb) { \
     self->onSize([=] { \
       auto ctx = ::SuperFamicom::script.context; \
       ctx->Prepare(cb); \
       ctx->Execute(); \
     }); \
   })); \
-  REG_LAMBDA(name, "void set_collapsible(bool collapsible = true) property",  ([](hiro::name* self, bool collapsible) { self->setCollapsible(collapsible); })); \
+  REG_LAMBDA(name, "void set_collapsible(bool collapsible = true) property",  ([](className* self, bool collapsible) { self->setCollapsible(collapsible); }))
+
+#define EXPOSE_HIRO_SIZABLE(name) EXPOSE_SIZABLE(name, hiro::name)
 
   // GUI
   r = e->SetDefaultNamespace("GUI"); assert(r >= 0);
@@ -432,7 +460,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "bool get_modal() property",             ([](hiro::Window* self) { return  self->modal(); }));
   REG_LAMBDA(Window, "bool get_resizable() property",         ([](hiro::Window* self) { return  self->resizable(); }));
   REG_LAMBDA(Window, "bool get_sizable() property",           ([](hiro::Window* self) { return  self->sizable(); }));
-  REG_LAMBDA(Window, "string &get_title() property",          ([](hiro::Window* self) { return &self->title(); }));
+  REG_LAMBDA(Window, "string get_title() property",           ([](hiro::Window* self) { return  self->title(); }));
 
   REG_LAMBDA(Window, "void set_backgroundColor(const Color &in color) property", ([](hiro::Window* self, hiro::Color &color)  { self->setBackgroundColor(color); }));
   REG_LAMBDA(Window, "void set_dismissable(bool dismissable) property",          ([](hiro::Window* self, bool dismissable)    { self->setDismissable(dismissable); }));
@@ -513,8 +541,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(LineEdit);
   EXPOSE_HIRO_SIZABLE(LineEdit);
   //EXPOSE_HIRO_WIDGET(LineEdit);
-  REG_LAMBDA(LineEdit, "string &get_text() property",                   ([](hiro::LineEdit* self){ return &self->text(); }));
-  REG_LAMBDA(LineEdit, "void set_text(const string &in text) property", ([](hiro::LineEdit* self, const string &text){ self->setText(text); }));
+  REG_LAMBDA(LineEdit, "string get_text() property",                   ([](hiro::LineEdit* self){ return self->text(); }));
+  REG_LAMBDA(LineEdit, "void set_text(const string &in text) property", ([](hiro::LineEdit* self, string &text){ self->setText(text); }));
   REG_LAMBDA(LineEdit, "void set_on_change(Callback @cb) property",     ([](hiro::LineEdit* self, asIScriptFunction* cb){
     self->onChange([=]{
       auto ctx = ::SuperFamicom::script.context;
@@ -534,7 +562,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Label, "void set_backgroundColor(const Color &in color) property",   ([](hiro::Label* self, const hiro::Color &color){ self->setBackgroundColor(color); }));
   REG_LAMBDA(Label, "Color& get_foregroundColor() property",                      ([](hiro::Label* self){ return &self->foregroundColor(); }));
   REG_LAMBDA(Label, "void set_foregroundColor(const Color &in color) property",   ([](hiro::Label* self, const hiro::Color &color){ self->setForegroundColor(color); }));
-  REG_LAMBDA(Label, "string &get_text() property",                                ([](hiro::Label* self){ return &self->text(); }));
+  REG_LAMBDA(Label, "string get_text() property",                                 ([](hiro::Label* self){ return self->text(); }));
   REG_LAMBDA(Label, "void set_text(const string &in text) property",              ([](hiro::Label* self, string &text){ self->setText(text); }));
 
   // Button
@@ -542,7 +570,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(Button);
   EXPOSE_HIRO_SIZABLE(Button);
   //EXPOSE_HIRO_WIDGET(Button);
-  REG_LAMBDA(Button, "string &get_text() property",                   ([](hiro::Button* self){ return &self->text(); }));
+  REG_LAMBDA(Button, "string get_text() property",                    ([](hiro::Button* self){ return self->text(); }));
   REG_LAMBDA(Button, "void set_text(const string &in text) property", ([](hiro::Button* self, const string &text){ self->setText(text); }));
   REG_LAMBDA(Button, "void set_on_activate(Callback @cb) property",   ([](hiro::Button* self, asIScriptFunction* cb){
     self->onActivate([=]{
@@ -554,7 +582,9 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // SNESCanvas
   r = e->RegisterObjectBehaviour("SNESCanvas", asBEHAVE_FACTORY, "SNESCanvas@ f()", asFUNCTION( +([]{ return new GUI::SNESCanvas(); }) ), asCALL_CDECL); assert(r >= 0);
-  SHARED_PTR(SNESCanvas);
+  EXPOSE_SHARED_PTR(SNESCanvas);
+  EXPOSE_OBJECT(SNESCanvas, GUI::SNESCanvas);
+  EXPOSE_SIZABLE(SNESCanvas, GUI::SNESCanvas);
   r = e->RegisterObjectMethod("SNESCanvas", "void set_size(Size &in size) property", asMETHOD(GUI::SNESCanvas, setSize), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("SNESCanvas", "uint8 get_luma() property", asMETHOD(GUI::SNESCanvas, luma), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("SNESCanvas", "void set_luma(uint8 luma) property", asMETHOD(GUI::SNESCanvas, set_luma), asCALL_THISCALL); assert( r >= 0 );
@@ -572,7 +602,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_SIZABLE(CheckLabel);
   //EXPOSE_HIRO_WIDGET(CheckLabel);
   REG_LAMBDA(CheckLabel, "void set_text(const string &in text) property", ([](hiro::CheckLabel *p, const string &text) { p->setText(text); }));
-  REG_LAMBDA(CheckLabel, "string &get_text() property",                   ([](hiro::CheckLabel *p) { return new string(p->text()); }));
+  REG_LAMBDA(CheckLabel, "string get_text() property",                    ([](hiro::CheckLabel *p) { return p->text(); }));
   REG_LAMBDA(CheckLabel, "void set_checked(bool checked) property",       ([](hiro::CheckLabel *p, bool checked) { p->setChecked(checked); }));
   REG_LAMBDA(CheckLabel, "bool get_checked() property",                   ([](hiro::CheckLabel *p) { return p->checked(); }));
   REG_LAMBDA(CheckLabel, "void doToggle()",                               ([](hiro::CheckLabel *p) { p->doToggle(); }));
