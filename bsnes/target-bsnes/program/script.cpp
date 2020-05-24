@@ -44,6 +44,9 @@ auto Program::scriptInit() -> void {
 
   // Let the emulator register its script definitions:
   emulator->registerScriptDefs();
+
+  // Always set recent script folder to current folder on startup:
+  settings.path.recent.script = Path::active();
 }
 
 auto Program::scriptLoad(bool loadDirectory) -> void {
