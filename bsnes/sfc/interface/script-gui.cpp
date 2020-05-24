@@ -329,13 +329,13 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
-#define EXPOSE_SHARED_PTR(name, className) \
+#define EXPOSE_SHARED_PTR(name, className, mClassName) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(GUI::sharedPtrAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION((GUI::sharedPtrRelease<className>)), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ GUI::sharedPtrRelease<mClassName>(self); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
 #define EXPOSE_HIRO(name) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
-  EXPOSE_SHARED_PTR(name, hiro::name)
+  EXPOSE_SHARED_PTR(name, hiro::name, hiro::m##name)
 
 #define EXPOSE_OBJECT(name, className) \
   REG_LAMBDA(name, "void set_font(const Font &in font) property", ([](className* self, hiro::Font &font){ self->setFont(font); })); \
@@ -602,7 +602,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // SNESCanvas
   r = e->RegisterObjectBehaviour("SNESCanvas", asBEHAVE_FACTORY, "SNESCanvas@ f()", asFUNCTION( +([]{ return new GUI::SNESCanvas(); }) ), asCALL_CDECL); assert(r >= 0);
-  EXPOSE_SHARED_PTR(SNESCanvas, GUI::SNESCanvas);
+  EXPOSE_SHARED_PTR(SNESCanvas, GUI::SNESCanvas, GUI::mSNESCanvas);
   EXPOSE_OBJECT(SNESCanvas, GUI::SNESCanvas);
   EXPOSE_SIZABLE(SNESCanvas, GUI::SNESCanvas);
   r = e->RegisterObjectMethod("SNESCanvas", "void set_size(Size &in size) property", asMETHOD(GUI::SNESCanvas, setSize), asCALL_THISCALL); assert( r >= 0 );
