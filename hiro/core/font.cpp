@@ -11,6 +11,11 @@ Font::Font(const string& family, float size) {
   state.italic = false;
 }
 
+Font::Font(const Font& o) : Font(o.state.family, o.state.size) {
+  setBold(o.state.bold);
+  setItalic(o.state.italic);
+}
+
 Font::operator bool() const {
   return state.family || state.size || state.bold || state.italic;
 }

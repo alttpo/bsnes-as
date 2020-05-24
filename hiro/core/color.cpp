@@ -4,8 +4,7 @@ Color::Color() {
   setColor(0, 0, 0, 0);
 }
 
-Color::Color(const Color& color) {
-  setColor(color.red(), color.green(), color.blue(), color.alpha());
+Color::Color(const Color& o) : Color(o.state.red, o.state.green, o.state.blue, o.state.alpha) {
 }
 
 Color::Color(signed red, signed green, signed blue, signed alpha) {

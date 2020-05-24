@@ -104,7 +104,7 @@ struct Color {
   using type = Color;
 
   Color();
-  Color(const Color& color);
+  Color(const Color &o);
   Color(int red, int green, int blue, int alpha = 255);
 
   explicit operator bool() const;
@@ -162,6 +162,7 @@ struct Alignment {
   static const Alignment Center;
 
   Alignment();
+  Alignment(const Alignment &o);
   Alignment(float horizontal, float vertical = 0.5);
 
   explicit operator bool() const;
@@ -190,6 +191,7 @@ struct Position {
   using type = Position;
 
   Position();
+  Position(const Position &o);
   Position(float x, float y);
   template<typename X, typename Y>
   Position(X x, Y y) : Position((float)x, (float)y) {}
@@ -219,6 +221,7 @@ struct Size {
   using type = Size;
 
   Size();
+  Size(const Size &o);
   Size(float width, float height);
   template<typename W, typename H>
   Size(W width, H height) : Size((float)width, (float)height) {}

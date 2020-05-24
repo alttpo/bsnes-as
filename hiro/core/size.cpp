@@ -4,6 +4,9 @@ Size::Size() {
   setSize(0, 0);
 }
 
+Size::Size(const Size &o) : Size(o.state.width, o.state.height) {
+}
+
 Size::Size(float width, float height) {
   setSize(width, height);
 }

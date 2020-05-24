@@ -6,6 +6,9 @@ Alignment::Alignment() {
   setAlignment(-1.0, -1.0);
 }
 
+Alignment::Alignment(const Alignment &o) : Alignment(o.state.horizontal, o.state.vertical) {
+}
+
 Alignment::Alignment(float horizontal, float vertical) {
   setAlignment(horizontal, vertical);
 }

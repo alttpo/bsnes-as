@@ -3,6 +3,7 @@ struct Font {
   using type = Font;
 
   Font(const string& family = "", float size = 0.0);
+  Font(const Font& o);
 
   explicit operator bool() const;
   auto operator==(const Font& source) const -> bool;

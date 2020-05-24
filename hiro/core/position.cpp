@@ -4,6 +4,9 @@ Position::Position() {
   setPosition(0, 0);
 }
 
+Position::Position(const Position &o) : Position(o.state.x, o.state.y) {
+}
+
 Position::Position(float x, float y) {
   setPosition(x, y);
 }
