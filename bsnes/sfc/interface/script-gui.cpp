@@ -37,18 +37,14 @@ struct GUI {
       return (hiro::mSizable*)self.data(); \
     }
 
-  struct Canvas : Sizable {
-    BindShared(Canvas)
-    BindObject(Canvas)
-    BindSizable(Canvas)
-
-    Canvas() :
+  struct mSNESCanvas : hiro::mCanvas {
+    mSNESCanvas() :
+      hiro::mCanvas(),
       // Set 15-bit RGB format with 1-bit alpha for PPU-compatible images after lightTable mapping:
       img16(0, 16, 0x8000u, 0x7C00u, 0x03E0u, 0x001Fu),
       img32(0, 32, 0xFF000000u, 0x00FF0000u, 0x0000FF00u, 0x000000FFu)
     {
-      self = new hiro::mCanvas();
-      self->construct();
+      construct();
     }
 
     // holds internal SNES 15-bit BGR colors
@@ -56,30 +52,21 @@ struct GUI {
     // used for final display
     image img32;
 
-    auto setSize(hiro::Size *size) -> void {
+    auto setSize(hiro::Size size) -> void {
       //img16 = image(0, 16, 0x8000u, 0x7C00u, 0x03E0u, 0x001Fu);
       //img32 = image(0, 32, 0xFF000000u, 0x00FF0000u, 0x0000FF00u, 0x000000FFu);
-      img16.allocate(size->width(), size->height());
-      img32.allocate(size->width(), size->height());
+      img16.allocate(size.width(), size.height());
+      img32.allocate(size.width(), size.height());
       img16.fill(0x0000u);
       img32.fill(0x00000000u);
-      self->setIcon(img32);
+      setIcon(img32);
     }
 
     auto setPosition(float x, float y) -> void {
-      auto sizable = (operator hiro::mSizable *)();
-      sizable->setGeometry(hiro::Geometry(
+      setGeometry(hiro::Geometry(
         hiro::Position(x, y),
-        sizable->geometry().size()
+        geometry().size()
       ));
-    }
-
-    auto setAlignment(float horizontal, float vertical) -> void {
-      self->setAlignment(hiro::Alignment{horizontal, vertical});
-    }
-
-    auto setCollapsible(bool collapsible) -> void {
-      self->setCollapsible(collapsible);
     }
 
     auto update() -> void {
@@ -95,7 +82,7 @@ struct GUI {
           );
         }
       }
-      self->setIcon(img32);
+      setIcon(img32);
     }
 
     uint8 mLuma = 0x0Fu;
@@ -195,9 +182,55 @@ struct GUI {
     }
   };
 
+  // shared pointer interface to mSNESCanvas:
+  struct SNESCanvas : shared_pointer<mSNESCanvas> {
+    SNESCanvas() : shared_pointer<mSNESCanvas>(new mSNESCanvas, [](auto p) {
+      p->unbind();
+      delete p;
+    }) {
+      (*this)->bind(*this);
+    }
 
-#define Constructor(Name) \
-    static auto create##Name() -> Name* { return new Name(); }
+    auto self() const -> mSNESCanvas& { return (mSNESCanvas&)operator*(); }
+
+    auto setAlignment(float horizontal, float vertical) -> void {
+      self().setAlignment(hiro::Alignment{horizontal, vertical});
+    }
+
+    auto setSize(hiro::Size &size) -> void {
+      self().setSize(size);
+    }
+
+    auto setCollapsible(bool collapsible = true) {
+      self().setCollapsible(collapsible);
+    }
+
+    auto setPosition(float x, float y) -> void {
+      self().setGeometry(hiro::Geometry(
+        hiro::Position(x, y),
+        self().geometry().size()
+      ));
+    }
+
+    auto update() -> void {
+      self().update();
+    }
+
+    auto luma() -> uint8 { return self().luma(); }
+    auto set_luma(uint8 luma) -> void { self().set_luma(luma); }
+
+    auto fill(uint16 color) -> void {
+      self().fill(color);
+    }
+
+    auto pixel(int x, int y, uint16 color) -> void {
+      self().pixel(x, y, color);
+    }
+
+    auto draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
+      self().draw_sprite_4bpp(x, y, c, width, height, tile_data, palette_data);
+    }
+  };
 
   // Size value type:
   static auto createSize(void *memory) -> void { new(memory) hiro::Size(); }
@@ -218,18 +251,14 @@ struct GUI {
   static auto createFont(string *family, float size, void *memory) -> void { new(memory) hiro::Font(*family, size); }
   static auto destroyFont(void *memory) -> void { ((hiro::Font*)memory)->~Font(); }
 
-  Constructor(Canvas)
-
-#undef Constructor
-
   struct any{};
 
-  static auto hiroAddRef(shared_pointer<any> &p) {
+  static auto sharedPtrAddRef(shared_pointer<any> &p) {
     ++p.manager->strong;
     //printf("%p ++ -> %d\n", (void*)&p, p.references());
   }
 
-  static auto hiroRelease(shared_pointer<any> &p) {
+  static auto sharedPtrRelease(shared_pointer<any> &p) {
     //printf("%p -- -> %d\n", (void*)&p, p.references() - 1);
     if (p.manager && p.manager->strong) {
       if (p.manager->strong == 1) {
@@ -275,10 +304,13 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
+#define SHARED_PTR(name) \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF, "void f()", asFUNCTION(GUI::sharedPtrAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(GUI::sharedPtrRelease), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+
 #define EXPOSE_HIRO(name) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF, "void f()", asFUNCTION(GUI::hiroAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(GUI::hiroRelease), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+  SHARED_PTR(name)
 
 #define EXPOSE_HIRO_OBJECT(name) \
   REG_LAMBDA(name, "void set_font(const Font &in font) property", ([](hiro::name* self, hiro::Font &font){ self->setFont(font); })); \
@@ -326,7 +358,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_TYPE(LineEdit);
   REG_REF_TYPE(Label);
   REG_REF_TYPE(Button);
-  REG_REF_TYPE(Canvas);
+  REG_REF_TYPE(SNESCanvas);
   REG_REF_TYPE(CheckLabel);
 
   // value types:
@@ -520,19 +552,19 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     });
   }));
 
-  // Canvas
-  EXPOSE_HIRO(Canvas);
-  EXPOSE_HIRO_OBJECT(Canvas);
-  r = e->RegisterObjectMethod("Canvas", "void set_size(Size &in size) property", asMETHOD(GUI::Canvas, setSize), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "uint8 get_luma() property", asMETHOD(GUI::Canvas, luma), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void set_luma(uint8 luma) property", asMETHOD(GUI::Canvas, set_luma), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void setPosition(float x, float y)", asMETHOD(GUI::Canvas, setPosition), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void setAlignment(float horizontal, float vertical)", asMETHOD(GUI::Canvas, setAlignment), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void setCollapsible(bool collapsible)", asMETHOD(GUI::Canvas, setCollapsible), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void update()", asMETHOD(GUI::Canvas, update), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void fill(uint16 color)", asMETHOD(GUI::Canvas, fill), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void pixel(int x, int y, uint16 color)", asMETHOD(GUI::Canvas, pixel), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Canvas", "void draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const array<uint16> &in tiledata, const array<uint16> &in palette)", asMETHOD(GUI::Canvas, draw_sprite_4bpp), asCALL_THISCALL); assert( r >= 0 );
+  // SNESCanvas
+  r = e->RegisterObjectBehaviour("SNESCanvas", asBEHAVE_FACTORY, "SNESCanvas@ f()", asFUNCTION( +([]{ return new GUI::SNESCanvas(); }) ), asCALL_CDECL); assert(r >= 0);
+  SHARED_PTR(SNESCanvas);
+  r = e->RegisterObjectMethod("SNESCanvas", "void set_size(Size &in size) property", asMETHOD(GUI::SNESCanvas, setSize), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "uint8 get_luma() property", asMETHOD(GUI::SNESCanvas, luma), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "void set_luma(uint8 luma) property", asMETHOD(GUI::SNESCanvas, set_luma), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "void setPosition(float x, float y)", asMETHOD(GUI::SNESCanvas, setPosition), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "void setAlignment(float horizontal, float vertical)", asMETHOD(GUI::SNESCanvas, setAlignment), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "void setCollapsible(bool collapsible)", asMETHOD(GUI::SNESCanvas, setCollapsible), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "void update()", asMETHOD(GUI::SNESCanvas, update), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "void fill(uint16 color)", asMETHOD(GUI::SNESCanvas, fill), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "void pixel(int x, int y, uint16 color)", asMETHOD(GUI::SNESCanvas, pixel), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "void draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const array<uint16> &in tiledata, const array<uint16> &in palette)", asMETHOD(GUI::SNESCanvas, draw_sprite_4bpp), asCALL_THISCALL); assert( r >= 0 );
 
   // CheckLabel
   EXPOSE_HIRO(CheckLabel);

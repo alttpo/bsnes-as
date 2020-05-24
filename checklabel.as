@@ -5,7 +5,6 @@ class SettingsWindow {
 
   SettingsWindow() {
     @window = GUI::Window();
-    // TODO: this doesn't work yet; I would expect it to disable closing of the window. Tested on MacOS only so far.
     window.dismissable = false;
     window.resizable = false;
     window.visible = true;
@@ -55,7 +54,11 @@ class SettingsWindow {
       GUI::Color bc = lbl.backgroundColor;
       vl.append(lbl, GUI::Size(256, 48));
 
-
+      auto @cv = GUI::SNESCanvas();
+      cv.size = GUI::Size(256, 256);
+      cv.fill(0x03E0 | 0x8000);
+      cv.update();
+      vl.append(cv, GUI::Size(0, 0));
     }
     window.append(vl);
   }
