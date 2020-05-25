@@ -147,6 +147,22 @@ auto InputManager::bindHotkeys() -> void {
     enhancementSettings.mode7Supersample.setChecked(!enhancementSettings.mode7Supersample.checked()).doToggle();
   }));
 
+  hotkeys.append(InputHotkey("Reload Script").onPress([] {
+    program.scriptReload();
+  }));
+
+  hotkeys.append(InputHotkey("Unload Script").onPress([] {
+    program.scriptUnload();
+  }));
+
+  hotkeys.append(InputHotkey("Toggle Script Console").onPress([] {
+    if (toolsWindow.visible()) {
+      toolsWindow.setVisible(false);
+    } else {
+      toolsWindow.show(4);
+    }
+  }));
+
   hotkeys.append(InputHotkey("Reset Emulation").onPress([] {
     program.reset();
   }));
