@@ -451,13 +451,20 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Font, "Size measure(const string &in text)", ([](hiro::Font* self, string &text) { return self->size(text); }));
   REG_LAMBDA(Font, "void reset()", ([](hiro::Font* self) { self->reset(); }));
 
-
+  // Font names:
   r = e->RegisterGlobalProperty("string Sans", (void *) &hiro::Font::Sans); assert(r >= 0);
   r = e->RegisterGlobalProperty("string Serif", (void *) &hiro::Font::Serif); assert(r >= 0);
   r = e->RegisterGlobalProperty("string Mono", (void *) &hiro::Font::Mono); assert(r >= 0);
 
   // Window
-  EXPOSE_HIRO(Window);
+  r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION( +([]{
+    auto window = new hiro::Window;
+    // keep a reference for later destruction when unloading script:
+    ::SuperFamicom::script.windows.append(*window);
+    return window;
+  }) ), asCALL_CDECL); assert(r >= 0);
+  EXPOSE_SHARED_PTR(Window, hiro::Window, hiro::mWindow);
+
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f(float rx, float ry, bool relative)", asFUNCTION(+([](float x, float y, bool relative) {
     auto self = new hiro::Window;
     if (relative) {

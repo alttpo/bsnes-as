@@ -358,7 +358,14 @@ auto Interface::unloadScript() -> void {
   ::SuperFamicom::cpu.reset_dma_interceptor();
   ::SuperFamicom::cpu.reset_pc_callbacks();
 
-  // TODO: GUI callbacks
+  // Close any GUI windows:
+  for (auto window : script.windows) {
+    if (!window) continue;
+    window->setDismissable(true);
+    window->setVisible(false);
+    window->destruct();
+  }
+  script.windows.reset();
 
   // unload script:
   if (script.funcs.unload) {

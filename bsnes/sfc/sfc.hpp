@@ -134,6 +134,8 @@ namespace SuperFamicom {
     vector<asIScriptModule *> modules;
     asIScriptModule          *main_module = nullptr;
 
+    vector<hiro::Window> windows;
+
     struct {
       asIScriptFunction *init = nullptr;
       asIScriptFunction *unload = nullptr;
