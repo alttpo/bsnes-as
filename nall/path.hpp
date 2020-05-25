@@ -14,6 +14,31 @@ inline auto active() -> string {
   return result;
 }
 
+#if defined(PLATFORM_WINDOWS)
+inline auto isDirectory(const string& pathname) -> bool {
+  string name = pathname;
+  name.trim("\"", "\"");
+  DWORD result = GetFileAttributes(utf16_t(name));
+  if(result == INVALID_FILE_ATTRIBUTES) return false;
+  return (result & FILE_ATTRIBUTE_DIRECTORY);
+}
+#else
+inline auto isDirectory(const string& pathname) -> bool {
+  struct stat data;
+  if(stat(pathname, &data) != 0) return false;
+  return S_ISDIR(data.st_mode);
+}
+#endif
+
+inline auto realfilepath(string_view name) -> string {
+  string result;
+  char path[PATH_MAX] = "";
+  if(::realpath(name, path)) result = (string{path}.transform("\\", "/"));
+  if(!result) return name;
+  if(!result.endsWith("/") && isDirectory(result)) result.append("/");
+  return result;
+}
+
 inline auto real(string_view name) -> string {
   string result;
   char path[PATH_MAX] = "";

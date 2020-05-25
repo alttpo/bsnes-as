@@ -48,7 +48,7 @@ auto Program::scriptInit() -> void {
   // Determine "recent" script folder:
   if (inode::exists(script.location)) {
     // from script path specified on command line (--script=xyz):
-    script.location = {Path::real(script.location), Location::file(script.location)};
+    script.location = Path::realfilepath(script.location);
     settings.path.recent.script = script.location;
   }
   if (!inode::exists(settings.path.recent.script)) {
@@ -89,6 +89,7 @@ auto Program::scriptLoad(bool loadDirectory) -> void {
     settings.path.recent.script = Location::dir(Path::real(script.location));
   }
 
+  scriptMessage({"Compiling script file '", (script.location), "'"}, true);
   emulator->loadScript(script.location);
   scriptMessage({"Script file '", (script.location), "' loaded"}, true);
 }
