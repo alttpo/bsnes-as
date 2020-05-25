@@ -466,13 +466,15 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_SHARED_PTR(Window, hiro::Window, hiro::mWindow);
 
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f(float rx, float ry, bool relative)", asFUNCTION(+([](float x, float y, bool relative) {
-    auto self = new hiro::Window;
+    auto window = new hiro::Window;
+    // keep a reference for later destruction when unloading script:
+    ::SuperFamicom::script.windows.append(*window);
     if (relative) {
-      self->setPosition(platform->presentationWindow(), hiro::Position{x, y});
+      window->setPosition(platform->presentationWindow(), hiro::Position{x, y});
     } else {
-      self->setPosition(hiro::Position{x, y});
+      window->setPosition(hiro::Position{x, y});
     }
-    return self;
+    return window;
   })), asCALL_CDECL); assert(r >= 0);
   EXPOSE_HIRO_OBJECT(Window);
   REG_LAMBDA(Window, "void append(const ? &in sizable)",                   ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->append(*sizable); }));
