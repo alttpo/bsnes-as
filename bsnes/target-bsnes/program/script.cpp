@@ -35,7 +35,7 @@ void MessageCallback(const asSMessageInfo *msg, void *param) {
 }
 
 auto Program::scriptInit() -> void {
-  // initialize angelscript
+  // initialize angelscript once on emulator startup:
   script.engine = asCreateScriptEngine();
 
   // Set the message callback to receive information on errors in human readable form.
@@ -45,8 +45,25 @@ auto Program::scriptInit() -> void {
   // Let the emulator register its script definitions:
   emulator->registerScriptDefs();
 
-  // Always set recent script folder to current folder on startup:
-  settings.path.recent.script = Path::active();
+  // Determine "recent" script folder:
+  if (inode::exists(script.location)) {
+    // from script path specified on command line (--script=xyz):
+    script.location = {Path::real(script.location), Location::file(script.location)};
+    settings.path.recent.script = script.location;
+  }
+  if (!inode::exists(settings.path.recent.script)) {
+    // set to current folder:
+    settings.path.recent.script = Path::active();
+  }
+  if (!inode::exists(settings.path.recent.script)) {
+    // set to folder of current executable:
+    settings.path.recent.script = Path::program();
+  }
+
+  // Clean up recent path to always refer to a folder:
+  if (file::exists(settings.path.recent.script)) {
+    settings.path.recent.script = Location::dir(settings.path.recent.script);
+  }
 }
 
 auto Program::scriptLoad(bool loadDirectory) -> void {
@@ -57,13 +74,20 @@ auto Program::scriptLoad(bool loadDirectory) -> void {
   dialog.setPath(path("Scripts", settings.path.recent.script));
 
   auto location = loadDirectory ? dialog.selectFolder() : dialog.openFile();
+  if (!location) {
+    return;
+  }
   if (!inode::exists(location)) {
-    scriptMessage({"Script file '", (script.location), "' not found"}, true);
+    scriptMessage({"Script file '", (location), "' not found"}, true);
     return;
   }
 
   script.location = location;
-  settings.path.recent.script = Location::dir(script.location);
+  if (directory::exists(script.location)) {
+    settings.path.recent.script = Path::real(script.location);
+  } else {
+    settings.path.recent.script = Location::dir(Path::real(script.location));
+  }
 
   emulator->loadScript(script.location);
   scriptMessage({"Script file '", (script.location), "' loaded"}, true);

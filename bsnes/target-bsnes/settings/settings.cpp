@@ -101,7 +101,6 @@ auto Settings::process(bool load) -> void {
   bind(text,    "Path/Recent/BSMemory",     path.recent.bsMemory);
   bind(text,    "Path/Recent/SufamiTurboA", path.recent.sufamiTurboA);
   bind(text,    "Path/Recent/SufamiTurboB", path.recent.sufamiTurboB);
-  bind(text,    "Path/Recent/Script",       path.recent.script);
 
   bind(natural, "FastForward/FrameSkip", fastForward.frameSkip);
   bind(natural, "FastForward/Limiter",   fastForward.limiter);
