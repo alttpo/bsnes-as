@@ -28,6 +28,27 @@ strategy:
         cp -a GPLv3.txt $(nightly)
         cp -a *.as $(nightly)
 
+    win32:
+      archName: 'win32'
+      imageName: 'ubuntu-18.04'
+      setupScript: |
+        echo 'win32'
+        set -e
+        sudo apt-get update
+        sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-i686
+      compileScript: |
+        make $(makeOptions) -C bsnes $(makeVariables) platform=windows compiler="i686-w64-mingw32-g++-win32" windres="i686-w64-mingw32-windres"
+      artifact: bsnes
+      packageScript: |
+        mkdir $(nightly)
+        mkdir $(nightly)/Database
+        mkdir $(nightly)/Firmware
+        cp -a bsnes/out/bsnes $(nightly)/bsnes.exe
+        cp -a bsnes/Database/* $(nightly)/Database
+        cp -a shaders $(nightly)/Shaders
+        cp -a GPLv3.txt $(nightly)
+        cp -a *.as $(nightly)
+
     macOS:
       archName: 'macOS'
       imageName: 'macOS-10.14'
