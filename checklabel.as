@@ -25,52 +25,52 @@ class SettingsWindow {
     window.append(vl);
     {
       auto @chk = GUI::CheckLabel();
+      vl.append(chk, GUI::Size(0, 0));
       chk.text = "Test 1 enabled, checked";
       chk.onToggle(@GUI::Callback(this.toggled));
       chk.enabled = true;
       chk.checked = true;
       chk.setFocused();
-      vl.append(chk, GUI::Size(0, 0));
 
       @chk = GUI::CheckLabel();
+      vl.append(chk, GUI::Size(0, 0));
       chk.text = "Test 2 disabled, checked";
       chk.onToggle(@GUI::Callback(this.toggled));
       chk.enabled = false;
       chk.checked = true;
-      vl.append(chk, GUI::Size(0, 0));
 
       @chk = GUI::CheckLabel();
+      vl.append(chk, GUI::Size(0, 0));
       chk.text = "Test 3 enabled, unchecked";
       chk.onToggle(@GUI::Callback(this.toggled));
       chk.enabled = true;
       chk.checked = false;
-      chk.setFocused();
-      vl.append(chk, GUI::Size(0, 0));
 
       @chk = GUI::CheckLabel();
+      vl.append(chk, GUI::Size(0, 0));
       chk.text = "Test 4 disabled, unchecked";
       chk.onToggle(@GUI::Callback(this.toggled));
       chk.enabled = false;
       chk.checked = false;
-      vl.append(chk, GUI::Size(0, 0));
 
       auto @lbl = GUI::Label();
+      vl.append(lbl, GUI::Size(256, 48));
       lbl.text = "0123456789ABCDEF";
       lbl.alignment = GUI::Alignment(0.5, 0.5);
       lbl.foregroundColor = GUI::Color(240, 240,   0);
       lbl.backgroundColor = GUI::Color(0,   120, 120);
       GUI::Color fc = lbl.foregroundColor;
       GUI::Color bc = lbl.backgroundColor;
-      vl.append(lbl, GUI::Size(256, 48));
 
       auto @cv = GUI::SNESCanvas();
+      vl.append(cv, GUI::Size(0, 0));
       cv.size = GUI::Size(256, 256);
+      cv.luma = 4;
       cv.fill(0x03E0 | 0x8000);
       cv.update();
-      vl.append(cv, GUI::Size(0, 0));
 
       @dd = GUI::ComboButton();
-      vl.append(dd, GUI::Size(-1, 0));
+      vl.append(dd, GUI::Size(0, 0));
 
       auto @di = GUI::ComboButtonItem();
       di.text = "A";
@@ -81,13 +81,12 @@ class SettingsWindow {
       di.text = "B";
       dd.append(di);
 
+      dd.onChange(@GUI::Callback(comboChanged));
       dd.enabled = true;
       message(fmtInt(dd.count()));
       message(dd.selected.text);
       message(dd[0].text);
       message(dd[1].text);
-      dd.onChange(@GUI::Callback(comboChanged));
-
     }
   }
 
