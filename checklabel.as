@@ -2,6 +2,7 @@ SettingsWindow @settings;
 
 class SettingsWindow {
   private GUI::Window @window;
+  GUI::ComboButton @dd;
 
   SettingsWindow() {
     @window = GUI::Window();
@@ -9,9 +10,9 @@ class SettingsWindow {
     window.resizable = false;
     window.visible = true;
     window.title = "Test";
-    window.font = GUI::Font(GUI::Mono, 10);
-    window.size = GUI::Size(256, 256);
-    window.backgroundColor = GUI::Color(0, 0, 100);
+    //window.font = GUI::Font(GUI::Mono, 10);
+    window.size = GUI::Size(512, 512);
+    //window.backgroundColor = GUI::Color(0, 0, 100);
 
     message(window.font.bold ? "bold" : "not bold");
     message(window.font.italic ? "italic" : "not italic");
@@ -21,6 +22,7 @@ class SettingsWindow {
     message(text);
 
     auto @vl = GUI::VerticalLayout();
+    window.append(vl);
     {
       auto @chk = GUI::CheckLabel();
       chk.text = "Test 1 enabled, checked";
@@ -66,15 +68,45 @@ class SettingsWindow {
       cv.fill(0x03E0 | 0x8000);
       cv.update();
       vl.append(cv, GUI::Size(0, 0));
+
+      @dd = GUI::ComboButton();
+      vl.append(dd, GUI::Size(-1, 0));
+
+      auto @di = GUI::ComboButtonItem();
+      di.text = "A";
+      di.setSelected();
+      dd.append(di);
+
+      @di = GUI::ComboButtonItem();
+      di.text = "B";
+      dd.append(di);
+
+      dd.enabled = true;
+      message(fmtInt(dd.count()));
+      message(dd.selected.text);
+      message(dd[0].text);
+      message(dd[1].text);
+      dd.onChange(@GUI::Callback(comboChanged));
+
     }
-    window.append(vl);
   }
 
   void toggled() {
     message("toggled!");
   }
+
+  void comboChanged() {
+    message("changed");
+  }
 };
 
 void init() {
   @settings = SettingsWindow();
+}
+
+void pre_frame() {
+  //message(fmtInt(settings.dd.count()));
+  //message(settings.dd.selected.text);
+  //message(settings.dd[0].text);
+  //message(settings.dd[1].text);
 }

@@ -395,6 +395,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_TYPE(Button);
   REG_REF_TYPE(SNESCanvas);
   REG_REF_TYPE(CheckLabel);
+  REG_REF_TYPE(ComboButtonItem);
+  REG_REF_TYPE(ComboButton);
 
   // value types:
   REG_VALUE_TYPE(Alignment, asOBJ_APP_CLASS_CK);
@@ -636,4 +638,29 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(CheckLabel, "bool get_checked() property",                   ([](hiro::CheckLabel *p) { return p->checked(); }));
   REG_LAMBDA(CheckLabel, "void doToggle()",                               ([](hiro::CheckLabel *p) { p->doToggle(); }));
   REG_LAMBDA(CheckLabel, "void onToggle(Callback @cb)",                   ([](hiro::CheckLabel *p, asIScriptFunction *cb) { p->onToggle(GUI::Callback(cb)); }));
+
+  // ComboButtonItem
+  EXPOSE_HIRO(ComboButtonItem);
+  EXPOSE_HIRO_OBJECT(ComboButtonItem);
+  REG_LAMBDA(ComboButtonItem, "void set_text(const string &in text) property", ([](hiro::ComboButtonItem *p, const string &text) { p->setText(text); }));
+  REG_LAMBDA(ComboButtonItem, "string get_text() property",                    ([](hiro::ComboButtonItem *p) { return p->text(); }));
+  REG_LAMBDA(ComboButtonItem, "string get_selected() property",                ([](hiro::ComboButtonItem *p) { return p->selected(); }));
+  REG_LAMBDA(ComboButtonItem, "void setSelected()",                            ([](hiro::ComboButtonItem *self) { self->setSelected(); }));
+  // auto icon() const -> image;
+  // auto setIcon(const image& icon = {}) -> type&;
+
+  // ComboButton
+  EXPOSE_HIRO(ComboButton);
+  EXPOSE_HIRO_OBJECT(ComboButton);
+  EXPOSE_HIRO_SIZABLE(ComboButton);
+  //EXPOSE_HIRO_WIDGET(ComboButton);
+  REG_LAMBDA(ComboButton, "void append(ComboButtonItem@ item)",             ([](hiro::ComboButton *p, hiro::ComboButtonItem *item) { p->append(*item); }));
+  REG_LAMBDA(ComboButton, "ComboButtonItem @get_opIndex(uint i) property",  ([](hiro::ComboButton *p, uint i) { return new hiro::ComboButtonItem(p->item(i)); }));
+  REG_LAMBDA(ComboButton, "uint count()",                                   ([](hiro::ComboButton *p) { return p->itemCount(); }));
+  REG_LAMBDA(ComboButton, "void doChange()",                                ([](hiro::ComboButton *p) { p->doChange(); }));
+  REG_LAMBDA(ComboButton, "void remove(ComboButtonItem@ item)",             ([](hiro::ComboButton *p, hiro::ComboButtonItem *item) { p->remove(*item); }));
+  REG_LAMBDA(ComboButton, "void onChange(Callback @cb)",                    ([](hiro::ComboButton *p, asIScriptFunction *cb) { p->onChange(GUI::Callback(cb)); }));
+  REG_LAMBDA(ComboButton, "void reset()",                                   ([](hiro::ComboButton *p) { p->reset(); }));
+  REG_LAMBDA(ComboButton, "ComboButtonItem @get_selected() property",       ([](hiro::ComboButton *p) { return new hiro::ComboButtonItem(p->selected()); }));
+
 }
