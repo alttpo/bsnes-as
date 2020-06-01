@@ -19,7 +19,7 @@ strategy:
         mkdir -p /tmp/wclang /tmp/bin
         git clone https://github.com/tpoechtrager/wclang /tmp/wclang
         pushd /tmp/wclang
-        cmake -DCMAKE_INSTALL_PREFIX=/tmp/bin .
+        cmake -DCMAKE_INSTALL_PREFIX=/tmp .
         make
         make install
         popd
