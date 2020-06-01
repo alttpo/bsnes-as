@@ -14,7 +14,7 @@ strategy:
         echo 'win64 clang++'
         set -e
         sudo apt-get update
-        sudo apt-get -qq install -y --no-install-recommends ca-certificates make cmake clang++ mingw-w64-x86-64
+        sudo apt-get -qq install -y --no-install-recommends ca-certificates git make cmake clang g++-mingw-w64-x86-64
         # build wclang repo to get x86_64-w64-mingw32-clang++ installed:
         mkdir -p /tmp/wclang
         git clone https://github.com/tpoechtrager/wclang /tmp/wclang
