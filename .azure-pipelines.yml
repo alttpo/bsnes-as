@@ -11,12 +11,20 @@ strategy:
       archName: 'win64'
       imageName: 'ubuntu-18.04'
       setupScript: |
-        echo 'win64'
+        echo 'win64 clang++'
         set -e
         sudo apt-get update
-        sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-x86-64
+        sudo apt-get -qq install -y --no-install-recommends ca-certificates make cmake clang++ mingw-w64-x86-64
+        # build wclang repo to get x86_64-w64-mingw32-clang++ installed:
+        mkdir -p /tmp/wclang
+        git clone https://github.com/tpoechtrager/wclang /tmp/wclang
+        pushd /tmp/wclang
+        cmake .
+        make
+        make install
+        popd
       compileScript: |
-        make $(makeOptions) -C bsnes $(makeVariables) platform=windows compiler="x86_64-w64-mingw32-g++" windres="x86_64-w64-mingw32-windres"
+        make $(makeOptions) -C bsnes $(makeVariables) openmp=false local=false platform=windows compiler=x86_64-w64-mingw32-clang++ windres=x86_64-w64-mingw32-windres
       artifact: bsnes
       packageScript: |
         mkdir $(nightly)
@@ -84,8 +92,8 @@ strategy:
         cp -a *.as $(nightly)
 
 variables:
-  makeOptions: -j4
-  makeVariables: local=false build=performance
+  makeOptions: -j8
+  makeVariables: local=false build=performance_debug
   nightly: bsnes-angelscript-$(archName)-$(Build.SourceVersion)
 
 pool:
