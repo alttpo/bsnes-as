@@ -22,7 +22,7 @@ endif
 ifeq ($(findstring clang++,$(compiler)),clang++)
   ifeq ($(llvm_instr),true)
     flags   += -g -fprofile-instr-generate -fcoverage-mapping
-    options += -fprofile-instr-generate
+    options += -Wl,-fprofile-instr-generate
   endif
 endif
 
