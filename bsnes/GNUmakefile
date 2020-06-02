@@ -18,14 +18,6 @@ ifeq ($(local),true)
   flags += -march=native
 endif
 
-# [jsd] enable LLVM instrumentation support for clang++ compiler; control at runtime with `export LLVM_PROFILE_FILE=./llvm.prof`
-ifeq ($(findstring clang++,$(compiler)),clang++)
-  ifeq ($(llvm_instr),true)
-    flags   += -g -fprofile-instr-generate -fcoverage-mapping -Wl,-fprofile-instr-generate
-    options += -fprofile-instr-generate
-  endif
-endif
-
 nall.path := ../nall
 include $(nall.path)/GNUmakefile
 
