@@ -3,7 +3,6 @@ binary := application
 build := performance_debug
 openmp := true
 local := true
-llvm_instr := false
 flags += -I. -I..
 
 # in order for this to work, obj/lzma.o must be omitted or bsnes will hang on startup.
