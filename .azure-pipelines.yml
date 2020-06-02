@@ -11,20 +11,12 @@ strategy:
       archName: 'win64'
       imageName: 'ubuntu-18.04'
       setupScript: |
-        echo 'win64 clang++'
+        echo 'win64'
         set -e
         sudo apt-get update
-        sudo apt-get -qq install -y --no-install-recommends ca-certificates git make cmake clang g++-mingw-w64-x86-64
-        # build wclang repo to get x86_64-w64-mingw32-clang++ installed:
-        mkdir -p /tmp/wclang /tmp/bin
-        git clone https://github.com/tpoechtrager/wclang /tmp/wclang
-        pushd /tmp/wclang
-        cmake -DCMAKE_INSTALL_PREFIX=/tmp .
-        make
-        make install
-        popd
+        sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-x86-64
       compileScript: |
-        make $(makeOptions) -C bsnes $(makeVariables) profile=true openmp=false platform=windows compiler=/tmp/bin/x86_64-w64-mingw32-clang++ windres=x86_64-w64-mingw32-windres
+        make $(makeOptions) -C bsnes $(makeVariables) profile=true openmp=false platform=windows compiler=x86_64-w64-mingw32-g++-win32 windres=x86_64-w64-mingw32-windres
       artifact: bsnes
       packageScript: |
         mkdir $(nightly)
