@@ -122,7 +122,9 @@ endif
 ifeq ($(platform),windows)
   options += -mthreads -lpthread -lws2_32 -lole32
   options += $(if $(findstring g++,$(compiler)),-static -static-libgcc -static-libstdc++)
-  options += $(if $(findstring true,$(console)),-mconsole,-mwindows)
+  ifneq ($(findstring clang++,$(compiler)),clang++)
+    options += $(if $(findstring true,$(console)),-mconsole,-mwindows)
+  endif
   windres := windres
 endif
 
