@@ -3,6 +3,7 @@ binary := application
 build := performance_debug
 openmp := true
 local := true
+llvm_instr := false
 flags += -I. -I..
 
 # in order for this to work, obj/lzma.o must be omitted or bsnes will hang on startup.
@@ -15,6 +16,14 @@ endif
 # binaries built with this flag are faster, but are not portable to multiple machines.
 ifeq ($(local),true)
   flags += -march=native
+endif
+
+# [jsd] enable LLVM instrumentation support for clang++ compiler; control at runtime with `export LLVM_PROFILE_FILE=./llvm.prof`
+ifeq ($(findstring clang++,$(compiler)),clang++)
+  ifeq ($(llvm_instr),true)
+    flags   += -g -fprofile-instr-generate -fcoverage-mapping
+    options += -fprofile-instr-generate
+  endif
 endif
 
 nall.path := ../nall

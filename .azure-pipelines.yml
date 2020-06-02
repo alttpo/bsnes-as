@@ -24,7 +24,7 @@ strategy:
         make install
         popd
       compileScript: |
-        make $(makeOptions) -C bsnes $(makeVariables) openmp=false local=false platform=windows compiler=/tmp/bin/x86_64-w64-mingw32-clang++ windres=x86_64-w64-mingw32-windres "flags=-fprofile-instr-generate -fcoverage-mapping" "options=-fprofile-instr-generate"
+        make $(makeOptions) -C bsnes $(makeVariables) llvm_instr=true openmp=false platform=windows compiler=/tmp/bin/x86_64-w64-mingw32-clang++ windres=x86_64-w64-mingw32-windres
       artifact: bsnes
       packageScript: |
         mkdir $(nightly)
