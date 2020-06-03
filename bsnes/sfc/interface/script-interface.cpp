@@ -167,7 +167,7 @@ namespace ScriptInterface {
     }
 
     void save() {
-      auto fb = file_buffer("perf.csv", file_buffer::mode::write);
+      auto fb = file_buffer({"perf-",getpid(),".csv"}, file_buffer::mode::write);
       fb.truncate(0);
       fb.writes({"section,line,samples\n"});
       for (auto &node : sectionLineSamples) {
@@ -178,11 +178,11 @@ namespace ScriptInterface {
     auto lineCallback(asIScriptContext *ctx) -> void {
       // sample on a prime number frequency:
       auto time = chrono::microsecond();
-      if (time - last_time < 1009) return;
+      if (time - last_time < 10'007) return;
       last_time = time;
 
-      // auto-save CSV file every second:
-      if (time - last_save >= 1'000'000) {
+      // auto-save CSV file every 5 seconds:
+      if (time - last_save >= 5'000'000) {
         save();
         last_save = time;
       }
