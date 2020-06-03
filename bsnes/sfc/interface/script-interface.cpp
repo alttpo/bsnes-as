@@ -73,26 +73,54 @@ typedef uint16 b5g5r5;
 
 namespace ScriptInterface {
   struct ExceptionHandler {
+    auto getStackTrace(asIScriptContext *ctx) -> vector<string> {
+      vector<string> frames;
+
+      for (asUINT n = 1; n < ctx->GetCallstackSize(); n++) {
+        asIScriptFunction *func;
+        const char *scriptSection;
+        int line, column;
+
+        func = ctx->GetFunction(n);
+        line = ctx->GetLineNumber(n, &column, &scriptSection);
+
+        frames.append(string("  in `{0}` at {1}:{2}:{3}").format({
+          func->GetDeclaration(),
+          scriptSection,
+          line,
+          column
+        }));
+      }
+
+      return frames;
+    }
+
     void exceptionCallback(asIScriptContext *ctx) {
       asIScriptEngine *engine = ctx->GetEngine();
 
       // Determine the exception that occurred
       const asIScriptFunction *function = ctx->GetExceptionFunction();
-      platform->scriptMessage(
-        string("EXCEPTION `{0}` occurred in `{1}` (line {2})").format({
+      const char *scriptSection;
+      int line, column;
+      line = ctx->GetExceptionLineNumber(&column, &scriptSection);
+
+      // format main message:
+      auto message = string("EXCEPTION `{0}` occurred in `{1}` at {2}:{3}:{4}\n")
+        .format({
           ctx->GetExceptionString(),
           function->GetDeclaration(),
-          ctx->GetExceptionLineNumber()
-        }),
+          scriptSection,
+          line,
+          column
+        });
+
+      // append stack trace:
+      message.append(getStackTrace(ctx).merge("\n"));
+
+      platform->scriptMessage(
+        message,
         true
       );
-
-      // Determine the function where the exception occurred
-      //printf("func: %s\n", function->GetDeclaration());
-      //printf("modl: %s\n", function->GetModuleName());
-      //printf("sect: %s\n", function->GetScriptSectionName());
-      // Determine the line number where the exception occurred
-      //printf("line: %d\n", ctx->GetExceptionLineNumber());
     }
   } exceptionHandler;
 
