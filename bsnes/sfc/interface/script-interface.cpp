@@ -124,6 +124,89 @@ namespace ScriptInterface {
     }
   } exceptionHandler;
 
+  struct Profiler {
+    struct node_t {
+      // key:
+      const char *section;
+      int line;
+      // value:
+      uint64 samples;
+
+      node_t() = default;
+      node_t(const char *section, int line) : section(section), line(line) {}
+      node_t(const char *section, int line, uint64 samples) : section(section), line(line), samples(samples) {}
+
+      auto operator< (const node_t& source) const -> bool {
+        int c = strcmp(section, source.section);
+        if (c < 0) return true;
+        if (c > 0) return false;
+        return line <  source.line;
+      }
+      auto operator==(const node_t& source) const -> bool {
+        int c = strcmp(section, source.section);
+        if (c != 0) return false;
+        return line == source.line;
+      }
+    };
+
+    // red-black tree acting as a map storing sample counts by file:line key:
+    set< node_t > sectionLineSamples;
+    uint64 last_time = 0;
+    uint64 last_save = 0;
+
+    auto enable(asIScriptContext *ctx) -> void {
+      ctx->SetLineCallback(asMETHOD(ScriptInterface::Profiler, lineCallback), this, asCALL_THISCALL);
+    }
+
+    auto disable(asIScriptContext *ctx) -> void {
+      ctx->ClearLineCallback();
+    }
+
+    void reset() {
+      sectionLineSamples.reset();
+    }
+
+    void save() {
+      auto fb = file_buffer("perf.csv", file_buffer::mode::write);
+      fb.truncate(0);
+      fb.writes({"section,line,samples\n"});
+      for (auto &node : sectionLineSamples) {
+        fb.writes({node.section, ",", node.line, ",", node.samples, "\n"});
+      }
+    }
+
+    auto lineCallback(asIScriptContext *ctx) -> void {
+      // sample on a prime number frequency:
+      auto time = chrono::microsecond();
+      if (time - last_time < 1009) return;
+      last_time = time;
+
+      // auto-save CSV file every second:
+      if (time - last_save >= 1'000'000) {
+        save();
+        last_save = time;
+      }
+
+      // sample where we are:
+      const char *scriptSection;
+      int line, column;
+      line = ctx->GetLineNumber(0, &column, &scriptSection);
+
+      if (scriptSection == nullptr) {
+        scriptSection = "";
+      }
+
+      // increment sample counter for the section/line:
+      auto node = sectionLineSamples.find({scriptSection, line});
+      if (!node) {
+        sectionLineSamples.insert({scriptSection, line, 1});
+      } else {
+        node->samples++;
+        //printf("%s:%d = %lld\n", scriptSection, line, node->samples);
+      }
+    }
+  } profiler;
+
   static auto message(const string *msg) -> void {
     platform->scriptMessage(*msg);
   }
@@ -298,6 +381,8 @@ auto Interface::registerScriptDefs() -> void {
   script.context = script.engine->CreateContext();
 
   script.context->SetExceptionCallback(asMETHOD(ScriptInterface::ExceptionHandler, exceptionCallback), &ScriptInterface::exceptionHandler, asCALL_THISCALL);
+
+  ScriptInterface::profiler.enable(script.context);
 }
 
 auto Interface::loadScript(string location) -> void {
