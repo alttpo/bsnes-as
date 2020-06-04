@@ -154,6 +154,7 @@ namespace ScriptInterface {
     uint64 last_time = 0;
     uint64 last_save = 0;
     nall::thread thrProfiler;
+    asIScriptContext *context;
     volatile bool enabled = false;
 
     auto samplingThread(uintptr p) -> void {
@@ -162,7 +163,7 @@ namespace ScriptInterface {
         usleep(1'009);
 
         // wake up and sample script location:
-        sampleLocation(script.context);
+        sampleLocation();
 
         // auto-save every 5 seconds:
         auto time = chrono::microsecond();
@@ -174,11 +175,13 @@ namespace ScriptInterface {
     }
 
     auto enable(asIScriptContext *ctx) -> void {
+      context = ctx;
       enabled = true;
       thrProfiler = nall::thread::create({&Profiler::samplingThread, this});
     }
 
     auto disable(asIScriptContext *ctx) -> void {
+      context = nullptr;
       enabled = false;
     }
 
@@ -195,11 +198,11 @@ namespace ScriptInterface {
       }
     }
 
-    auto sampleLocation(asIScriptContext *ctx) -> void {
+    auto sampleLocation() -> void {
       // sample where we are:
       const char *scriptSection;
       int line, column;
-      line = ctx->GetLineNumber(0, &column, &scriptSection);
+      line = context->GetLineNumber(0, &column, &scriptSection);
 
       if (scriptSection == nullptr) {
         scriptSection = "";
@@ -390,7 +393,9 @@ auto Interface::registerScriptDefs() -> void {
 
   script.context->SetExceptionCallback(asMETHOD(ScriptInterface::ExceptionHandler, exceptionCallback), &ScriptInterface::exceptionHandler, asCALL_THISCALL);
 
+#if defined(AS_ENABLE_PROFILER)
   ScriptInterface::profiler.enable(script.context);
+#endif
 }
 
 auto Interface::loadScript(string location) -> void {
