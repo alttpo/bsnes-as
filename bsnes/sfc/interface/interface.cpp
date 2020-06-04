@@ -4,6 +4,7 @@
 // [jsd] for scripts
 #include <hiro/hiro.hpp>
 #include <nall/encode/base64.hpp>
+#include <nall/thread.hpp>
 #include "sha1.hpp"
 
 namespace SuperFamicom {

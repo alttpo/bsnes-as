@@ -153,13 +153,33 @@ namespace ScriptInterface {
     set< node_t > sectionLineSamples;
     uint64 last_time = 0;
     uint64 last_save = 0;
+    nall::thread thrProfiler;
+    volatile bool enabled = false;
+
+    auto samplingThread(uintptr p) -> void {
+      while (enabled) {
+        // sleep for 1ms
+        usleep(1'009);
+
+        // wake up and sample script location:
+        sampleLocation(script.context);
+
+        // auto-save every 5 seconds:
+        auto time = chrono::microsecond();
+        if (time - last_save >= 5'000'000) {
+          save();
+          last_save = time;
+        }
+      }
+    }
 
     auto enable(asIScriptContext *ctx) -> void {
-      ctx->SetLineCallback(asMETHOD(ScriptInterface::Profiler, lineCallback), this, asCALL_THISCALL);
+      enabled = true;
+      thrProfiler = nall::thread::create({&Profiler::samplingThread, this});
     }
 
     auto disable(asIScriptContext *ctx) -> void {
-      ctx->ClearLineCallback();
+      enabled = false;
     }
 
     void reset() {
@@ -175,18 +195,7 @@ namespace ScriptInterface {
       }
     }
 
-    auto lineCallback(asIScriptContext *ctx) -> void {
-      // sample on a prime number frequency:
-      auto time = chrono::microsecond();
-      if (time - last_time < 10'007) return;
-      last_time = time;
-
-      // auto-save CSV file every 5 seconds:
-      if (time - last_save >= 5'000'000) {
-        save();
-        last_save = time;
-      }
-
+    auto sampleLocation(asIScriptContext *ctx) -> void {
       // sample where we are:
       const char *scriptSection;
       int line, column;
@@ -202,7 +211,6 @@ namespace ScriptInterface {
         sectionLineSamples.insert({scriptSection, line, 1});
       } else {
         node->samples++;
-        //printf("%s:%d = %lld\n", scriptSection, line, node->samples);
       }
     }
   } profiler;
