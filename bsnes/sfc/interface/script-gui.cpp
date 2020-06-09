@@ -357,10 +357,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #define EXPOSE_HIRO_OBJECT(name) EXPOSE_OBJECT(name, hiro::name)
 
 #define EXPOSE_SIZABLE(name, className) \
-  REG_LAMBDA(name, "bool get_collapsible() property",                         ([](className* self) { return self->collapsible(); })); \
-  REG_LAMBDA(name, "void doSize()",                                           ([](className* self) { self->doSize(); })); \
-  REG_LAMBDA(name, "Size get_minimumSize() property",                         ([](className* self) { return self->minimumSize(); })); \
-  REG_LAMBDA(name, "void onSize(Callback @callback)",                         ([](className* self, asIScriptFunction *cb) { \
+  REG_LAMBDA(name, "bool get_collapsible() property",             ([](className* self) { return self->collapsible(); })); \
+  REG_LAMBDA(name, "void doSize()",                               ([](className* self) { self->doSize(); })); \
+  REG_LAMBDA(name, "Size get_minimumSize() property",             ([](className* self) { return self->minimumSize(); })); \
+  REG_LAMBDA(name, "void onSize(Callback @callback)",             ([](className* self, asIScriptFunction *cb) { \
     self->onSize([=] { \
       auto ctx = ::SuperFamicom::script.context; \
       ctx->Prepare(cb); \
@@ -390,6 +390,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_TYPE(Window);
   REG_REF_TYPE(VerticalLayout);
   REG_REF_TYPE(HorizontalLayout);
+  REG_REF_TYPE(Group);
   REG_REF_TYPE(LineEdit);
   REG_REF_TYPE(Label);
   REG_REF_TYPE(Button);
@@ -568,12 +569,19 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size)", ([](hiro::HorizontalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size){ self->append(*sizable, *size); }));
   REG_LAMBDA(HorizontalLayout, "void resize()",                                   ([](hiro::HorizontalLayout* self){ self->resize(); }));
 
+  // Group
+  EXPOSE_HIRO(Group);
+  REG_LAMBDA(Group, "void append(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->append(*object); }));
+  REG_LAMBDA(Group, "void remove(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->remove(*object); }));
+  REG_LAMBDA(Group, "Group @get_opIndex(uint i) property",  ([](hiro::Group *p, uint i) { return new hiro::ComboButtonItem(p->object(i)); }));
+  REG_LAMBDA(Group, "uint count()",                         ([](hiro::Group *p) { return p->objectCount(); }));
+
   // LineEdit
   EXPOSE_HIRO(LineEdit);
   EXPOSE_HIRO_OBJECT(LineEdit);
   EXPOSE_HIRO_SIZABLE(LineEdit);
   //EXPOSE_HIRO_WIDGET(LineEdit);
-  REG_LAMBDA(LineEdit, "string get_text() property",                   ([](hiro::LineEdit* self){ return self->text(); }));
+  REG_LAMBDA(LineEdit, "string get_text() property",                    ([](hiro::LineEdit* self){ return self->text(); }));
   REG_LAMBDA(LineEdit, "void set_text(const string &in text) property", ([](hiro::LineEdit* self, string &text){ self->setText(text); }));
   REG_LAMBDA(LineEdit, "void set_on_change(Callback @cb) property",     ([](hiro::LineEdit* self, asIScriptFunction* cb){
     self->onChange([=]{
