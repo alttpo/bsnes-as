@@ -121,6 +121,13 @@ auto Interface::registerScriptString() -> void {
 
   r = script.engine->RegisterObjectMethod("string", "string slice(int beginIndex, int length = -1) const", asFUNCTION(stringSlice), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
 
+  // conversion functions:
+  r = script.engine->RegisterObjectMethod("string", "bool boolean()", asFUNCTION(+([](string &value) { return (uint8)value.boolean(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "uint64 integer()", asFUNCTION(+([](string &value) { return value.integer(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "uint64 natural()", asFUNCTION(+([](string &value) { return value.natural(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "uint64 hex()", asFUNCTION(+([](string &value) { return value.hex(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "float real()", asFUNCTION(+([](string &value) { return value.real(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
   // Register global functions
   r = script.engine->RegisterGlobalFunction("string fmtHex(uint64 value, int precision = 0)", asFUNCTION(fmtHex), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("string fmtBinary(uint64 value, int precision = 0)", asFUNCTION(fmtBinary), asCALL_CDECL); assert(r >= 0);
@@ -128,5 +135,4 @@ auto Interface::registerScriptString() -> void {
   r = script.engine->RegisterGlobalFunction("string fmtUint(uint64 value)", asFUNCTION(fmtUint), asCALL_CDECL); assert(r >= 0);
   r = script.engine->RegisterGlobalFunction("string fmtFloat(float value)", asFUNCTION(+([](float value) { return string(value); })), asCALL_CDECL); assert(r >= 0);
 
-  //todo[jsd] add more string functions if necessary
 }
