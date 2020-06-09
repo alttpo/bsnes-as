@@ -195,6 +195,18 @@ public:
 #endif
 };
 
+struct ScriptProfiler : VerticalLayout {
+  auto create() -> void;
+  auto update() -> void;
+
+public:
+  TableView profileTable{this, Size{~0, ~0}};
+  HorizontalLayout informationLayout{this, Size{~0, 0}};
+    Button startButton{&informationLayout, Size{80_sx, 0}};
+    Button stopButton{&informationLayout, Size{80_sx, 0}};
+    Button saveButton{&informationLayout, Size{80_sx, 0}};
+};
+
 struct ToolsWindow : Window {
   auto create() -> void;
   auto setVisible(bool visible = true) -> ToolsWindow&;

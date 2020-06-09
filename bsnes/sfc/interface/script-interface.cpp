@@ -174,15 +174,23 @@ namespace ScriptInterface {
       }
     }
 
-    auto enable(asIScriptContext *ctx) -> void {
-      context = ctx;
-      enabled = true;
-      thrProfiler = nall::thread::create({&Profiler::samplingThread, this});
-    }
+    auto setEnabled(asIScriptContext *ctx, bool wantEnabled) -> void {
+      if (wantEnabled) {
+        // already enabled?
+        if (enabled) return;
 
-    auto disable(asIScriptContext *ctx) -> void {
-      context = nullptr;
-      enabled = false;
+        // enable:
+        context = ctx;
+        enabled = true;
+        thrProfiler = nall::thread::create({&Profiler::samplingThread, this});
+      } else {
+        // disable:
+        if (!enabled) return;
+
+        enabled = false;
+        thrProfiler.join();
+        context = nullptr;
+      }
     }
 
     void reset() {
@@ -199,10 +207,15 @@ namespace ScriptInterface {
     }
 
     auto sampleLocation() -> void {
+      auto ctx = context;
+      if (ctx == nullptr) {
+        return;
+      }
+
       // sample where we are:
       const char *scriptSection;
       int line, column;
-      line = context->GetLineNumber(0, &column, &scriptSection);
+      line = ctx->GetLineNumber(0, &column, &scriptSection);
 
       if (scriptSection == nullptr) {
         scriptSection = "";
