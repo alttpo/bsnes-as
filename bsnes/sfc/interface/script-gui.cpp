@@ -559,15 +559,25 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO(VerticalLayout);
   EXPOSE_HIRO_OBJECT(VerticalLayout);
   EXPOSE_HIRO_SIZABLE(VerticalLayout);
-  REG_LAMBDA(VerticalLayout, "void append(const ? &in sizable, Size &in size)", ([](hiro::VerticalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size){ self->append(*sizable, *size); }));
-  REG_LAMBDA(VerticalLayout, "void resize()",                                   ([](hiro::VerticalLayout* self){ self->resize(); }));
+  REG_LAMBDA(VerticalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
+    ([](hiro::VerticalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){ self->append(*sizable, *size, spacing); }));
+  REG_LAMBDA(VerticalLayout, "void resize()",                        ([](hiro::VerticalLayout* self){ self->resize(); }));
+  REG_LAMBDA(VerticalLayout, "void setAlignment(float alignment)",   ([](hiro::VerticalLayout *p, float alignment) { p->setAlignment(alignment); }));
+  REG_LAMBDA(VerticalLayout, "void resetAlignment()",                ([](hiro::VerticalLayout *p) { p->setAlignment(); }));
+  REG_LAMBDA(VerticalLayout, "void setPadding(float x, float y)",    ([](hiro::VerticalLayout *p, float x, float y) { p->setPadding(x, y); }));
+  REG_LAMBDA(VerticalLayout, "void setSpacing(float spacing = 5.0)", ([](hiro::VerticalLayout *p, float spacing) { p->setSpacing(spacing); }));
 
   // HorizontalLayout
   EXPOSE_HIRO(HorizontalLayout);
   EXPOSE_HIRO_OBJECT(HorizontalLayout);
   EXPOSE_HIRO_SIZABLE(HorizontalLayout);
-  REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size)", ([](hiro::HorizontalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size){ self->append(*sizable, *size); }));
-  REG_LAMBDA(HorizontalLayout, "void resize()",                                   ([](hiro::HorizontalLayout* self){ self->resize(); }));
+  REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
+    ([](hiro::HorizontalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){ self->append(*sizable, *size, spacing); }));
+  REG_LAMBDA(HorizontalLayout, "void resize()",                        ([](hiro::HorizontalLayout* self){ self->resize(); }));
+  REG_LAMBDA(HorizontalLayout, "void setAlignment(float alignment)",   ([](hiro::HorizontalLayout *p, float alignment) { p->setAlignment(alignment); }));
+  REG_LAMBDA(HorizontalLayout, "void resetAlignment()",                ([](hiro::HorizontalLayout *p) { p->setAlignment(); }));
+  REG_LAMBDA(HorizontalLayout, "void setPadding(float x, float y)",    ([](hiro::HorizontalLayout *p, float x, float y) { p->setPadding(x, y); }));
+  REG_LAMBDA(HorizontalLayout, "void setSpacing(float spacing = 5.0)", ([](hiro::HorizontalLayout *p, float spacing) { p->setSpacing(spacing); }));
 
   // Group
   EXPOSE_HIRO(Group);

@@ -23,10 +23,13 @@ class SettingsWindow {
     message(text);
 
     auto @vl = GUI::VerticalLayout();
+    auto spacing = 8.0;
+    vl.setSpacing(spacing);
+    vl.setPadding(5, 5);
     window.append(vl);
     {
       auto @chk = GUI::CheckLabel();
-      vl.append(chk, GUI::Size(0, 0));
+      vl.append(chk, GUI::Size(0, 0), spacing);
       chk.text = "Test 1 enabled, checked";
       chk.onToggle(@GUI::Callback(this.toggled));
       chk.enabled = true;
@@ -34,28 +37,28 @@ class SettingsWindow {
       chk.setFocused();
 
       @chk = GUI::CheckLabel();
-      vl.append(chk, GUI::Size(0, 0));
+      vl.append(chk, GUI::Size(0, 0), spacing);
       chk.text = "Test 2 disabled, checked";
       chk.onToggle(@GUI::Callback(this.toggled));
       chk.enabled = false;
       chk.checked = true;
 
       @chk = GUI::CheckLabel();
-      vl.append(chk, GUI::Size(0, 0));
+      vl.append(chk, GUI::Size(0, 0), spacing);
       chk.text = "Test 3 enabled, unchecked";
       chk.onToggle(@GUI::Callback(this.toggled));
       chk.enabled = true;
       chk.checked = false;
 
       @chk = GUI::CheckLabel();
-      vl.append(chk, GUI::Size(0, 0));
+      vl.append(chk, GUI::Size(0, 0), spacing);
       chk.text = "Test 4 disabled, unchecked";
       chk.onToggle(@GUI::Callback(this.toggled));
       chk.enabled = false;
       chk.checked = false;
 
       auto @lbl = GUI::Label();
-      vl.append(lbl, GUI::Size(256, 48));
+      vl.append(lbl, GUI::Size(256, 48), spacing);
       lbl.text = "0123456789ABCDEF";
       lbl.alignment = GUI::Alignment(0.5, 0.5);
       lbl.foregroundColor = GUI::Color(240, 240,   0);
@@ -64,7 +67,7 @@ class SettingsWindow {
       GUI::Color bc = lbl.backgroundColor;
 
       auto @cv = GUI::SNESCanvas();
-      vl.append(cv, GUI::Size(0, 0));
+      vl.append(cv, GUI::Size(0, 0), spacing);
       cv.size = GUI::Size(256, 256);
       cv.luma = 4;
       cv.fill(0x03E0 | 0x8000);
@@ -90,7 +93,7 @@ class SettingsWindow {
       message(dd[1].text);
 
       @hs = GUI::HorizontalSlider();
-      vl.append(hs, GUI::Size(160, 0));
+      vl.append(hs, GUI::Size(200, 0), spacing);
       hs.length = 31;
       hs.position = 31;
       hs.onChange(@GUI::Callback(slideChanged));
