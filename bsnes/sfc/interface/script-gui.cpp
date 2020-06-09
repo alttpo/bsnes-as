@@ -1,42 +1,5 @@
 
 struct GUI {
-  struct Object {
-    virtual operator hiro::mObject*() = 0;
-  };
-
-  struct Sizable : Object {
-    virtual operator hiro::mSizable*() = 0;
-  };
-
-#define BindShared(Name) \
-    hiro::s##Name self; \
-    ~Name() { \
-      self->setVisible(false); \
-      self->reset(); \
-      /*self->destruct();*/ \
-    } \
-    auto ref_add() -> void { self.manager->strong++; } \
-    auto ref_release() -> void { \
-      if (--self.manager->strong == 0) delete this; \
-    }
-
-#define BindObject(Name) \
-    operator hiro::mObject*() { return (hiro::mObject*)self.data(); } \
-    auto setVisible(bool visible = true) -> void { \
-      self->setVisible(visible); \
-    }
-
-#define BindConstructor(Name) \
-    Name() { \
-      self = new hiro::m##Name(); \
-      self->construct(); \
-    } \
-
-#define BindSizable(Name) \
-    operator hiro::mSizable*() override { \
-      return (hiro::mSizable*)self.data(); \
-    }
-
   struct mSNESCanvas : hiro::mCanvas {
     mSNESCanvas() :
       hiro::mCanvas(),
