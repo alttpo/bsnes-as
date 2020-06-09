@@ -556,7 +556,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   //EXPOSE_HIRO_WIDGET(LineEdit);
   REG_LAMBDA(LineEdit, "string get_text() property",                    ([](hiro::LineEdit* self){ return self->text(); }));
   REG_LAMBDA(LineEdit, "void set_text(const string &in text) property", ([](hiro::LineEdit* self, string &text){ self->setText(text); }));
-  REG_LAMBDA(LineEdit, "void set_on_change(Callback @cb) property",     ([](hiro::LineEdit* self, asIScriptFunction* cb){
+  REG_LAMBDA(LineEdit, "void onChange(Callback @cb)",                   ([](hiro::LineEdit* self, asIScriptFunction* cb){
     self->onChange([=]{
       auto ctx = ::SuperFamicom::script.context;
       ctx->Prepare(cb);
@@ -585,7 +585,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   //EXPOSE_HIRO_WIDGET(Button);
   REG_LAMBDA(Button, "string get_text() property",                    ([](hiro::Button* self){ return self->text(); }));
   REG_LAMBDA(Button, "void set_text(const string &in text) property", ([](hiro::Button* self, const string &text){ self->setText(text); }));
-  REG_LAMBDA(Button, "void set_on_activate(Callback @cb) property",   ([](hiro::Button* self, asIScriptFunction* cb){
+  REG_LAMBDA(Button, "void onActivate(Callback @cb)",                 ([](hiro::Button* self, asIScriptFunction* cb){
     self->onActivate([=]{
       auto ctx = ::SuperFamicom::script.context;
       ctx->Prepare(cb);
