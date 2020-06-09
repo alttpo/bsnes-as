@@ -397,6 +397,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_TYPE(CheckLabel);
   REG_REF_TYPE(ComboButtonItem);
   REG_REF_TYPE(ComboButton);
+  REG_REF_TYPE(HorizontalSlider);
 
   // value types:
   REG_VALUE_TYPE(Alignment, asOBJ_APP_CLASS_CK);
@@ -663,4 +664,15 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(ComboButton, "void reset()",                                   ([](hiro::ComboButton *p) { p->reset(); }));
   REG_LAMBDA(ComboButton, "ComboButtonItem @get_selected() property",       ([](hiro::ComboButton *p) { return new hiro::ComboButtonItem(p->selected()); }));
 
+  // HorizontalSlider
+  EXPOSE_HIRO(HorizontalSlider);
+  EXPOSE_HIRO_OBJECT(HorizontalSlider);
+  EXPOSE_HIRO_SIZABLE(HorizontalSlider);
+  //EXPOSE_HIRO_WIDGET(HorizontalSlider);
+  REG_LAMBDA(HorizontalSlider, "uint get_length() property",                ([](hiro::HorizontalSlider *p) { return p->length(); }));
+  REG_LAMBDA(HorizontalSlider, "void set_length(uint length) property",     ([](hiro::HorizontalSlider *p, uint length) { p->setLength(length); }));
+  REG_LAMBDA(HorizontalSlider, "uint get_position() property",              ([](hiro::HorizontalSlider *p) { return p->position(); }));
+  REG_LAMBDA(HorizontalSlider, "void set_position(uint position) property", ([](hiro::HorizontalSlider *p, uint length) { p->setPosition(length); }));
+  REG_LAMBDA(HorizontalSlider, "void doChange()",                           ([](hiro::HorizontalSlider *p) { p->doChange(); }));
+  REG_LAMBDA(HorizontalSlider, "void onChange(Callback @cb)",               ([](hiro::HorizontalSlider *p, asIScriptFunction *cb) { p->onChange(GUI::Callback(cb)); }));
 }

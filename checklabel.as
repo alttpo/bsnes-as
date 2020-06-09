@@ -2,7 +2,8 @@ SettingsWindow @settings;
 
 class SettingsWindow {
   private GUI::Window @window;
-  GUI::ComboButton @dd;
+  GUI::ComboButton      @dd;
+  GUI::HorizontalSlider @hs;
 
   SettingsWindow() {
     @window = GUI::Window();
@@ -87,6 +88,12 @@ class SettingsWindow {
       message(dd.selected.text);
       message(dd[0].text);
       message(dd[1].text);
+
+      @hs = GUI::HorizontalSlider();
+      vl.append(hs, GUI::Size(160, 0));
+      hs.length = 31;
+      hs.position = 31;
+      hs.onChange(@GUI::Callback(slideChanged));
     }
   }
 
@@ -96,6 +103,10 @@ class SettingsWindow {
 
   void comboChanged() {
     message("changed");
+  }
+
+  void slideChanged() {
+    message(fmtInt(hs.position));
   }
 };
 
