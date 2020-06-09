@@ -6,6 +6,15 @@ class SettingsWindow {
   GUI::HorizontalSlider @hs;
 
   SettingsWindow() {
+    auto @node = UserSettings::load("test.bml");
+    message("'" + node["test"].text + "'");
+    message("'" + node["test"].textOr("fallback") + "'");
+
+    @node = BML::Node();
+    node.create("test").value = "test";
+    node.create("test/two").value = "three";
+    UserSettings::save("test.bml", node);
+
     @window = GUI::Window();
     window.dismissable = false;
     window.resizable = false;

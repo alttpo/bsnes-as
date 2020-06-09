@@ -380,6 +380,7 @@ add_executable(bsnes
         bsnes/sfc/interface/configuration.hpp
         bsnes/sfc/interface/interface.cpp
         bsnes/sfc/interface/interface.hpp
+        bsnes/sfc/interface/script-bml.cpp
         bsnes/sfc/interface/script-interface.cpp
         bsnes/sfc/interface/script-string.cpp
         bsnes/sfc/interface/script-bus.cpp

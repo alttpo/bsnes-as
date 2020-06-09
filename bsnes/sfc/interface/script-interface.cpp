@@ -327,13 +327,60 @@ namespace ScriptInterface {
   uint32_t  *emulatorPalette;
   uint      emulatorDepth;    // 24 or 30
 
+  struct any{};
+
+  static auto sharedPtrAddRef(shared_pointer<any> &p) {
+    ++p.manager->strong;
+    //printf("%p ++ -> %d\n", (void*)&p, p.references());
+  }
+
+  template<class C>
+  static auto sharedPtrRelease(shared_pointer<C> &p) {
+    //printf("%p -- -> %d\n", (void*)&p, p.references() - 1);
+    if (p.manager && p.manager->strong) {
+      if (p.manager->strong == 1) {
+        if(p.manager->deleter) {
+          p.manager->deleter(p.manager->pointer);
+        } else {
+          delete (C*)p.manager->pointer;
+        }
+        p.manager->pointer = nullptr;
+      }
+      if (--p.manager->strong == 0) {
+        delete p.manager;
+        p.manager = nullptr;
+      }
+    }
+  }
+
+  struct Callback {
+    asIScriptFunction *cb;
+
+    Callback(asIScriptFunction *cb) : cb(cb) {
+      cb->AddRef();
+    }
+    Callback(const Callback& other) : cb(other.cb) {
+      cb->AddRef();
+    }
+    ~Callback() {
+      cb->Release();
+      cb = nullptr;
+    }
+
+    auto operator()() -> void {
+      auto ctx = ::SuperFamicom::script.context;
+      ctx->Prepare(cb);
+      ctx->Execute();
+    }
+  };
+
   #include "script-bus.cpp"
   #include "script-ppu.cpp"
   #include "script-frame.cpp"
   #include "script-extra.cpp"
   #include "script-net.cpp"
   #include "script-gui.cpp"
-
+  #include "script-bml.cpp"
 };
 
 auto Interface::paletteUpdated(uint32_t *palette, uint depth) -> void {
@@ -385,6 +432,8 @@ auto Interface::registerScriptDefs() -> void {
 
   ScriptInterface::RegisterNet(script.engine);
   ScriptInterface::RegisterGUI(script.engine);
+
+  ScriptInterface::RegisterBML(script.engine);
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 

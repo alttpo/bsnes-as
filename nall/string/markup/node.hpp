@@ -140,6 +140,9 @@ struct Node {
   auto begin() const -> iterator { return iterator(*this, 0); }
   auto end() const -> iterator { return iterator(*this, size()); }
 
+  // [jsd]
+  explicit operator SharedNode() { return shared; }
+
 protected:
   SharedNode shared;
 };

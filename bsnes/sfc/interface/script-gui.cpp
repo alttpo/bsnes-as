@@ -238,53 +238,6 @@ struct GUI {
   static auto createFont(string *family, float size, void *memory) -> void { new(memory) hiro::Font(*family, size); }
   static auto destroyFont(void *memory) -> void { ((hiro::Font*)memory)->~Font(); }
 
-  struct any{};
-
-  static auto sharedPtrAddRef(shared_pointer<any> &p) {
-    ++p.manager->strong;
-    //printf("%p ++ -> %d\n", (void*)&p, p.references());
-  }
-
-  template<class C>
-  static auto sharedPtrRelease(shared_pointer<C> &p) {
-    //printf("%p -- -> %d\n", (void*)&p, p.references() - 1);
-    if (p.manager && p.manager->strong) {
-      if (p.manager->strong == 1) {
-        if(p.manager->deleter) {
-          p.manager->deleter(p.manager->pointer);
-        } else {
-          delete (C*)p.manager->pointer;
-        }
-        p.manager->pointer = nullptr;
-      }
-      if (--p.manager->strong == 0) {
-        delete p.manager;
-        p.manager = nullptr;
-      }
-    }
-  }
-
-  struct Callback {
-    asIScriptFunction *cb;
-
-    Callback(asIScriptFunction *cb) : cb(cb) {
-      cb->AddRef();
-    }
-    Callback(const Callback& other) : cb(other.cb) {
-      cb->AddRef();
-    }
-    ~Callback() {
-      cb->Release();
-      cb = nullptr;
-    }
-
-    auto operator()() -> void {
-      auto ctx = ::SuperFamicom::script.context;
-      ctx->Prepare(cb);
-      ctx->Execute();
-    }
-  };
-
 };
 
 auto RegisterGUI(asIScriptEngine *e) -> void {
@@ -293,8 +246,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
 #define EXPOSE_SHARED_PTR(name, className, mClassName) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(GUI::sharedPtrAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ GUI::sharedPtrRelease<mClassName>(self); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(sharedPtrAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ sharedPtrRelease<mClassName>(self); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
 #define EXPOSE_HIRO(name) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
@@ -619,7 +572,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(CheckLabel, "void set_checked(bool checked) property",       ([](hiro::CheckLabel *p, bool checked) { p->setChecked(checked); }));
   REG_LAMBDA(CheckLabel, "bool get_checked() property",                   ([](hiro::CheckLabel *p) { return p->checked(); }));
   REG_LAMBDA(CheckLabel, "void doToggle()",                               ([](hiro::CheckLabel *p) { p->doToggle(); }));
-  REG_LAMBDA(CheckLabel, "void onToggle(Callback @cb)",                   ([](hiro::CheckLabel *p, asIScriptFunction *cb) { p->onToggle(GUI::Callback(cb)); }));
+  REG_LAMBDA(CheckLabel, "void onToggle(Callback @cb)",                   ([](hiro::CheckLabel *p, asIScriptFunction *cb) { p->onToggle(Callback(cb)); }));
 
   // ComboButtonItem
   EXPOSE_HIRO(ComboButtonItem);
@@ -641,7 +594,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(ComboButton, "uint count()",                                   ([](hiro::ComboButton *p) { return p->itemCount(); }));
   REG_LAMBDA(ComboButton, "void doChange()",                                ([](hiro::ComboButton *p) { p->doChange(); }));
   REG_LAMBDA(ComboButton, "void remove(ComboButtonItem@ item)",             ([](hiro::ComboButton *p, hiro::ComboButtonItem *item) { p->remove(*item); }));
-  REG_LAMBDA(ComboButton, "void onChange(Callback @cb)",                    ([](hiro::ComboButton *p, asIScriptFunction *cb) { p->onChange(GUI::Callback(cb)); }));
+  REG_LAMBDA(ComboButton, "void onChange(Callback @cb)",                    ([](hiro::ComboButton *p, asIScriptFunction *cb) { p->onChange(Callback(cb)); }));
   REG_LAMBDA(ComboButton, "void reset()",                                   ([](hiro::ComboButton *p) { p->reset(); }));
   REG_LAMBDA(ComboButton, "ComboButtonItem @get_selected() property",       ([](hiro::ComboButton *p) { return new hiro::ComboButtonItem(p->selected()); }));
 
@@ -655,5 +608,5 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(HorizontalSlider, "uint get_position() property",              ([](hiro::HorizontalSlider *p) { return p->position(); }));
   REG_LAMBDA(HorizontalSlider, "void set_position(uint position) property", ([](hiro::HorizontalSlider *p, uint length) { p->setPosition(length); }));
   REG_LAMBDA(HorizontalSlider, "void doChange()",                           ([](hiro::HorizontalSlider *p) { p->doChange(); }));
-  REG_LAMBDA(HorizontalSlider, "void onChange(Callback @cb)",               ([](hiro::HorizontalSlider *p, asIScriptFunction *cb) { p->onChange(GUI::Callback(cb)); }));
+  REG_LAMBDA(HorizontalSlider, "void onChange(Callback @cb)",               ([](hiro::HorizontalSlider *p, asIScriptFunction *cb) { p->onChange(Callback(cb)); }));
 }
