@@ -88,27 +88,58 @@ auto Program::captureScreenshot() -> bool {
   if(emulator->loaded() && screenshot.data) {
     if(auto filename = screenshotPath()) {
       //RGB555 -> RGB888
-      image capture{0, 16, 0x8000, 0x7c00, 0x03e0, 0x001f};
-      capture.copy(screenshot.data, screenshot.pitch, screenshot.width, screenshot.height);
-      capture.transform(0, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+      //image capture{0, 16, 0x8000, 0x7c00, 0x03e0, 0x001f};
+      //capture.copy(screenshot.data, screenshot.pitch, screenshot.width, screenshot.height);
+      //capture.transform(0, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
 
-      //normalize pixel aspect ratio to 1:1
-      if(capture.width() == 512 && capture.height() == 240) capture.scale(512, 480, false);  //hires
-      if(capture.width() == 256 && capture.height() == 480) capture.scale(512, 480, false);  //interlace
+      image output(0, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+      {
+        const uint16 *data;
+        uint pitch, width, height, scale;
 
-      auto data = capture.data();
-      auto pitch = capture.pitch();
-      auto width = capture.width();
-      auto height = capture.height();
+        data = screenshot.data;
+        pitch = screenshot.pitch;
+        width = screenshot.width;
+        height = screenshot.height;
+        scale = screenshot.scale;
 
-      if(!presentation.showOverscanArea.checked()) {
-        if(height == 240) data +=  8 * pitch, height -= 16;
-        if(height == 480) data += 16 * pitch, height -= 32;
+        pitch >>= 1;
+        if(!settings.video.overscan) {
+          uint multiplier = height / 240;
+          data += 8 * multiplier * pitch;
+          height -= 16 * multiplier;
+        }
+
+        uint filterWidth = width, filterHeight = height;
+        auto filterRender = filterSelect(filterWidth, filterHeight, scale);
+
+        // allocate buffer space for filtered output:
+        output.allocate(filterWidth, filterHeight);
+
+        // filter the output:
+        filterRender(
+          palette,
+          (uint32_t*)output.data(), output.pitch(),
+          (const uint16_t *)data, pitch << 1,
+          width, height
+        );
+
+        // scale to final output size:
+        uint outputWidth, outputHeight;
+        viewportSize(outputWidth, outputHeight, scale);
+        output.scale(outputWidth, outputHeight, false);
       }
 
-      if(Encode::BMP::create(filename, data, width << 2, width, height, /* alpha = */ false)) {
-        showMessage({"Captured screenshot [", Location::file(filename), "]"});
-        return true;
+      {
+        auto data = output.data();
+        auto pitch = output.pitch();
+        auto width = output.width();
+        auto height = output.height();
+
+        if (Encode::BMP::create(filename, data, width << 2, width, height, /* alpha = */ false)) {
+          showMessage({"Captured screenshot [", Location::file(filename), "]"});
+          return true;
+        }
       }
     }
   }
