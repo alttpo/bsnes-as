@@ -108,71 +108,63 @@ public:
 	  t->colors[index] |= 0x8000u;
   }
 
-  static auto tile_draw_sprite(PPUfast::ExtraTile *t, int x, int y, uint8 width, uint8 height, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
-	  if ((width == 0u) || (width & 7u)) {
-		  asGetActiveContext()->SetException("width must be a non-zero multiple of 8", true);
-		  return;
-	  }
-	  if ((height == 0u) || (height & 7u)) {
-		  asGetActiveContext()->SetException("height must be a non-zero multiple of 8", true);
-		  return;
-	  }
-	  uint tileWidth = width >> 3u;
-
+  // draws a single 8x8 4bpp sprite at (x,y) in the tile:
+  static auto tile_draw_sprite_4bpp(PPUfast::ExtraTile *t, int x, int y, int palette, const CScriptArray *tile_data, const CScriptArray *palettes) -> void {
 	  // Check validity of array inputs:
 	  if (tile_data == nullptr) {
 		  asGetActiveContext()->SetException("tile_data array cannot be null", true);
 		  return;
 	  }
-	  if (tile_data->GetElementTypeId() != asTYPEID_UINT32) {
-		  asGetActiveContext()->SetException("tile_data array must be uint32[]", true);
+	  if (tile_data->GetElementTypeId() != asTYPEID_UINT16) {
+		  asGetActiveContext()->SetException("tile_data array must be uint16[]", true);
 		  return;
 	  }
-	  if (tile_data->GetSize() < height * tileWidth) {
-		  asGetActiveContext()->SetException("tile_data array must have at least 8 elements", true);
-		  return;
-	  }
-
-	  if (palette_data == nullptr) {
-		  asGetActiveContext()->SetException("palette_data array cannot be null", true);
-		  return;
-	  }
-	  if (palette_data->GetElementTypeId() != asTYPEID_UINT16) {
-		  asGetActiveContext()->SetException("palette_data array must be uint16[]", true);
-		  return;
-	  }
-	  if (palette_data->GetSize() < 16) {
-		  asGetActiveContext()->SetException("palette_data array must have at least 8 elements", true);
+	  if (tile_data->GetSize() != 16) {
+		  asGetActiveContext()->SetException("tile_data array must have exactly 16 elements", true);
 		  return;
 	  }
 
-	  for (int py = 0; py < height; py++) {
-		  for (int tx = 0; tx < tileWidth; tx++) {
-			  auto tile_data_p = static_cast<const uint32 *>(tile_data->At(py * tileWidth + tx));
-			  if (tile_data_p == nullptr) {
-				  asGetActiveContext()->SetException("tile_data array index out of range", true);
-				  return;
-			  }
-
-			  uint32 tile = *tile_data_p;
-			  for (int px = 0; px < 8; px++) {
-				  uint32 c = 0u, shift = 7u - px;
-				  c += tile >> (shift + 0u) & 1u;
-				  c += tile >> (shift + 7u) & 2u;
-				  c += tile >> (shift + 14u) & 4u;
-				  c += tile >> (shift + 21u) & 8u;
-				  if (c) {
-					  auto palette_p = static_cast<const b5g5r5 *>(palette_data->At(c));
-					  if (palette_p == nullptr) {
-						  asGetActiveContext()->SetException("palette_data array value pointer must not be null", true);
-						  return;
-					  }
-
-					  tile_pixel_set(t, x + px + (tx << 3), y + py, *palette_p);
-				  }
-			  }
-		  }
+	  if (palettes == nullptr) {
+		  asGetActiveContext()->SetException("palettes array cannot be null", true);
+		  return;
 	  }
+	  if (palettes->GetElementTypeId() != asTYPEID_UINT16) {
+		  asGetActiveContext()->SetException("palettes array must be uint16[]", true);
+		  return;
+	  }
+	  if (palettes->GetSize() < ((palette << 4) + 16)) {
+		  asGetActiveContext()->SetException("palettes array must have enough elements to cover 16 colors at the given palette index", true);
+		  return;
+	  }
+
+    auto palette_p = static_cast<const b5g5r5 *>(palettes->At(palette << 4));
+    if (palette_p == nullptr) {
+      asGetActiveContext()->SetException("failed to index into palettes array using palette index", true);
+      return;
+    }
+
+    auto tile_data_p = static_cast<const uint16 *>(tile_data->At(0));
+    if (tile_data_p == nullptr) {
+      asGetActiveContext()->SetException("failed to index into tile_data array at element 0", true);
+      return;
+    }
+
+    for (int py = 0; py < 8; py++) {
+      uint32 tile;
+      tile  = tile_data_p[py + 0] <<  0;
+      tile |= tile_data_p[py + 8] << 16;
+
+      for (int px = 0; px < 8; px++) {
+        uint32 c = 0u, shift = 7u - px;
+        c += tile >> (shift + 0u) & 1u;
+        c += tile >> (shift + 7u) & 2u;
+        c += tile >> (shift + 14u) & 4u;
+        c += tile >> (shift + 21u) & 8u;
+        if (c) {
+          tile_pixel_set(t, x + px, y + py, palette_p[c]);
+        }
+      }
+    }
   }
 
   // draw a horizontal line from x=lx to lx+w on y=ty:
@@ -288,7 +280,7 @@ auto RegisterPPUExtra(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("ExtraTile", "void pixel_off(int x, int y)", asFUNCTION(ExtraLayer::tile_pixel_off), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = e->RegisterObjectMethod("ExtraTile", "void pixel_on(int x, int y)", asFUNCTION(ExtraLayer::tile_pixel_on), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = e->RegisterObjectMethod("ExtraTile", "void pixel(int x, int y)", asFUNCTION(ExtraLayer::tile_pixel_set), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = e->RegisterObjectMethod("ExtraTile", "void draw_sprite(int x, int y, int width, int height, const array<uint32> &in tiledata, const array<uint16> &in palette)", asFUNCTION(ExtraLayer::tile_draw_sprite), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("ExtraTile", "void draw_sprite_4bpp(int x, int y, int palette, const array<uint16> &in tiledata, const array<uint16> &in palettes)", asFUNCTION(ExtraLayer::tile_draw_sprite_4bpp), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   // primitive drawing functions:
   r = e->RegisterObjectMethod("ExtraTile", "void hline(int lx, int ty, int w)", asFUNCTION(ExtraLayer::tile_hline), asCALL_CDECL_OBJFIRST); assert(r >= 0);
