@@ -26,7 +26,7 @@ auto pHorizontalSlider::minimumSize() const -> Size {
 
 auto pHorizontalSlider::setLength(unsigned length) -> void {
   length += (length == 0);
-  SendMessage(hwnd, TBM_SETRANGE, (WPARAM)true, (LPARAM)MAKELONG(0, length - 1));
+  SendMessage(hwnd, TBM_SETRANGE, (WPARAM)true, (LPARAM)MAKELONG(0, length));
   SendMessage(hwnd, TBM_SETPAGESIZE, 0, (LPARAM)(length >> 3));
 }
 
