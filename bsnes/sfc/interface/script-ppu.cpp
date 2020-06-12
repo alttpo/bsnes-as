@@ -44,11 +44,18 @@ struct PPUAccess {
     }
   }
 
-  auto cgram_read(uint8 palette) -> uint16 {
+  auto cgram_read(uint8 addr) -> uint16 {
     if (system.fastPPU()) {
-      return ppufast.cgram[palette];
+      return ppufast.cgram[addr];
     }
-    return ppu.screen.cgram[palette];
+    return ppu.screen.cgram[addr];
+  }
+
+  auto cgram_write(uint8 addr, uint16 value) {
+    if (system.fastPPU()) {
+      ppufast.cgram[addr] = value;
+    }
+    ppu.screen.cgram[addr] = value;
   }
 
   auto vram_read(uint16 addr) -> uint16 {
@@ -212,7 +219,8 @@ auto RegisterPPU(asIScriptEngine *e) -> void {
 
   // define ppu::CGRAM object type for opIndex convenience:
   r = e->RegisterObjectType("CGRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = e->RegisterObjectMethod("CGRAM", "uint16 opIndex(uint16 addr)", asMETHOD(PPUAccess, cgram_read), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("CGRAM", "uint16 get_opIndex(uint8 addr) property", asMETHOD(PPUAccess, cgram_read), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("CGRAM", "void set_opIndex(uint8 addr, uint16 value) property", asMETHOD(PPUAccess, cgram_write), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterGlobalProperty("CGRAM cgram", &ppuAccess); assert(r >= 0);
 
   r = e->RegisterObjectType    ("OAMSprite", sizeof(PPUAccess::OAMObject), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
