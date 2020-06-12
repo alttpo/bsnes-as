@@ -123,10 +123,10 @@ auto Interface::registerScriptString() -> void {
 
   // conversion functions:
   r = script.engine->RegisterObjectMethod("string", "bool boolean()", asFUNCTION(+([](string &value) { return (uint8)value.boolean(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("string", "uint64 integer()", asFUNCTION(+([](string &value) { return value.integer(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("string", "uint64 natural()", asFUNCTION(+([](string &value) { return value.natural(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("string", "uint64 hex()", asFUNCTION(+([](string &value) { return value.hex(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("string", "float real()", asFUNCTION(+([](string &value) { return value.real(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "int64 integer()", asFUNCTION(+([](string &value) { return (int64_t)value.integer(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "uint64 natural()", asFUNCTION(+([](string &value) { return (uint64_t)value.natural(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "uint64 hex()", asFUNCTION(+([](string &value) { return (uint64_t)value.hex(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "float real()", asFUNCTION(+([](string &value) { return (double)value.real(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   // Register global functions
   r = script.engine->RegisterGlobalFunction("string fmtHex(uint64 value, int precision = 0)", asFUNCTION(fmtHex), asCALL_CDECL); assert(r >= 0);
