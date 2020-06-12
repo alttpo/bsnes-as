@@ -53,6 +53,8 @@ auto pLineEdit::onChange() -> void {
 auto pLineEdit::windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> maybe<LRESULT> {
   if(msg == WM_KEYDOWN && wparam == VK_RETURN) {
     self().doActivate();
+  } else if(msg == WM_COMMAND && HIWORD(wparam) == EN_CHANGE) {
+    self().doChange();
   }
   return pWidget::windowProc(hwnd, msg, wparam, lparam);
 }
