@@ -121,6 +121,14 @@ auto Interface::registerScriptString() -> void {
 
   r = script.engine->RegisterObjectMethod("string", "string slice(int beginIndex, int length = -1) const", asFUNCTION(stringSlice), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
 
+  // trim and strip:
+  r = script.engine->RegisterObjectMethod("string", "string trim(const string &in lhs, const string &in rhs)", asFUNCTION(+([](string &value, string &lhs, string &rhs) { return value.trim(lhs, rhs); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "string trimLeft(const string &in lhs)", asFUNCTION(+([](string &value, string &lhs) { return value.trimLeft(lhs); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "string trimRight(const string &in rhs)", asFUNCTION(+([](string &value, string &rhs) { return value.trimRight(rhs); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "string strip()", asFUNCTION(+([](string &value) { return value.strip(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "string stripLeft()", asFUNCTION(+([](string &value) { return value.stripLeft(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = script.engine->RegisterObjectMethod("string", "string stripRight()", asFUNCTION(+([](string &value) { return value.stripRight(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
   // conversion functions:
   r = script.engine->RegisterObjectMethod("string", "bool boolean()", asFUNCTION(+([](string &value) { return (uint8)value.boolean(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = script.engine->RegisterObjectMethod("string", "int64 integer()", asFUNCTION(+([](string &value) { return (int64_t)value.integer(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
