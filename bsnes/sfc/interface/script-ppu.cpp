@@ -150,7 +150,7 @@ struct PPUAccess {
     if (system.fastPPU()) {
       auto po = ppufast.objects[index];
       local->oam_objects[index].x = po.x;
-      local->oam_objects[index].y = po.y;
+      local->oam_objects[index].y = po.y - 1;
       local->oam_objects[index].character = uint16(po.character) | (uint16(po.nameselect) << 8u);
       local->oam_objects[index].vflip = po.vflip;
       local->oam_objects[index].hflip = po.hflip;
@@ -160,7 +160,7 @@ struct PPUAccess {
     } else {
       auto po = ppu.obj.oam.object[index];
       local->oam_objects[index].x = po.x;
-      local->oam_objects[index].y = po.y;
+      local->oam_objects[index].y = po.y - 1;
       local->oam_objects[index].character = uint16(po.character) | (uint16(po.nameselect) << 8u);
       local->oam_objects[index].vflip = po.vflip;
       local->oam_objects[index].hflip = po.hflip;
@@ -175,7 +175,7 @@ struct PPUAccess {
     if (system.fastPPU()) {
       auto &po = ppufast.objects[index];
       po.x = obj->x;
-      po.y = obj->y;
+      po.y = obj->y + 1;
       po.character = (obj->character & 0xFFu);
       po.nameselect = (obj->character >> 8u) & 1u;
       po.vflip = obj->vflip;
@@ -186,7 +186,7 @@ struct PPUAccess {
     } else {
       auto &po = ppu.obj.oam.object[index];
       po.x = obj->x;
-      po.y = obj->y;
+      po.y = obj->y + 1;
       po.character = (obj->character & 0xFFu);
       po.nameselect = (obj->character >> 8u) & 1u;
       po.vflip = obj->vflip;
