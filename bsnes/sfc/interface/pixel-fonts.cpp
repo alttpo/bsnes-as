@@ -321,6 +321,7 @@ struct Fonts {
     fonts.insert("vga8", new VGAFont(reinterpret_cast<const uint8_t *>(font8x8_basic), 8));
     fonts.insert("vga16", new VGAFont(reinterpret_cast<const uint8_t *>(font8x16_basic), 16));
     fonts.insert("kakwa", new PCFFont({kakwa, sizeof(kakwa)}));
+    fonts.insert("proggy-tinysz", new PCFFont({proggy_tinysz, sizeof(proggy_tinysz)}));
   }
 
   auto operator[](const string& name) -> Font* { return fonts.find(name)(); }

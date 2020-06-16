@@ -124,7 +124,7 @@ class SettingsWindow {
 
 void init() {
   @settings = SettingsWindow();
-  ppu::extra.font_name = "kakwa";
+  ppu::extra.font_name = "proggy-tinysz";
   ppu::extra.text_shadow = true;
   message(fmtInt(ppu::extra.font_height));
 }

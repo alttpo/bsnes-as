@@ -1,2 +1,3 @@
 namespace name=PixelFonts
   binary name=kakwa file=kakwafont-12-n.pcf
+  binary name=proggy_tinysz file=proggy-tinysz.pcf
