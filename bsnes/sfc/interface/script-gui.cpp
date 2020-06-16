@@ -243,6 +243,43 @@ struct GUI {
 auto RegisterGUI(asIScriptEngine *e) -> void {
   int r;
 
+  // GUI
+  r = e->SetDefaultNamespace("GUI"); assert(r >= 0);
+
+  // function types:
+  r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
+
+#define REG_REF_TYPE(name) r = e->RegisterObjectType(#name, 0, asOBJ_REF); assert( r >= 0 )
+#define REG_REF_NOCOUNT(name) r = e->RegisterObjectType(#name, 0, asOBJ_REF | asOBJ_NOCOUNT); assert( r >= 0 )
+
+#define REG_VALUE_TYPE(name, flags) \
+  r = e->RegisterObjectType(#name, sizeof(hiro::name), asOBJ_VALUE | flags | asGetTypeTraits<hiro::name>()); assert( r >= 0 ); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f(const " #name " &in)", asFUNCTION(+([](hiro::name* self, const hiro::name& other) { \
+    new(self) hiro::name(other); \
+  })), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
+  r = script.engine->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asMETHODPR(hiro::name, operator =, (const hiro::name&), hiro::name&), asCALL_THISCALL); assert(r >= 0)
+
+  // Register reference types:
+  REG_REF_NOCOUNT(Attributes);
+  REG_REF_TYPE(Window);
+  REG_REF_TYPE(VerticalLayout);
+  REG_REF_TYPE(HorizontalLayout);
+  REG_REF_TYPE(Group);
+  REG_REF_TYPE(LineEdit);
+  REG_REF_TYPE(Label);
+  REG_REF_TYPE(Button);
+  REG_REF_TYPE(SNESCanvas);
+  REG_REF_TYPE(CheckLabel);
+  REG_REF_TYPE(ComboButtonItem);
+  REG_REF_TYPE(ComboButton);
+  REG_REF_TYPE(HorizontalSlider);
+
+  // value types:
+  REG_VALUE_TYPE(Alignment, asOBJ_APP_CLASS_CK);
+  REG_VALUE_TYPE(Color, asOBJ_APP_CLASS_CK);
+  REG_VALUE_TYPE(Font, asOBJ_APP_CLASS_CK);
+  REG_VALUE_TYPE(Size, asOBJ_APP_CLASS_CK);
+
 #define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
 #define EXPOSE_SHARED_PTR(name, className, mClassName) \
@@ -254,6 +291,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_SHARED_PTR(name, hiro::name, hiro::m##name)
 
 #define EXPOSE_OBJECT(name, className) \
+  REG_LAMBDA(name, "Attributes &get_attributes() property",       ([](className* self) { return self; })); \
   REG_LAMBDA(name, "void set_font(const Font &in font) property", ([](className* self, hiro::Font &font){ self->setFont(font); })); \
   REG_LAMBDA(name, "void set_visible(bool visible) property",     ([](className* self, bool visible)    { self->setVisible(visible); })); \
   REG_LAMBDA(name, "bool get_enabled() property",                 ([](className* self) { return self->enabled(false); })); \
@@ -287,40 +325,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define EXPOSE_HIRO_SIZABLE(name) EXPOSE_SIZABLE(name, hiro::name)
 
-  // GUI
-  r = e->SetDefaultNamespace("GUI"); assert(r >= 0);
-
-  // function types:
-  r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
-
-#define REG_REF_TYPE(name) r = e->RegisterObjectType(#name, 0, asOBJ_REF); assert( r >= 0 )
-
-#define REG_VALUE_TYPE(name, flags) \
-  r = e->RegisterObjectType(#name, sizeof(hiro::name), asOBJ_VALUE | flags | asGetTypeTraits<hiro::name>()); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f(const " #name " &in)", asFUNCTION(+([](hiro::name* self, const hiro::name& other) { \
-    new(self) hiro::name(other); \
-  })), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
-  r = script.engine->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asMETHODPR(hiro::name, operator =, (const hiro::name&), hiro::name&), asCALL_THISCALL); assert(r >= 0)
-
-  // Register reference types:
-  REG_REF_TYPE(Window);
-  REG_REF_TYPE(VerticalLayout);
-  REG_REF_TYPE(HorizontalLayout);
-  REG_REF_TYPE(Group);
-  REG_REF_TYPE(LineEdit);
-  REG_REF_TYPE(Label);
-  REG_REF_TYPE(Button);
-  REG_REF_TYPE(SNESCanvas);
-  REG_REF_TYPE(CheckLabel);
-  REG_REF_TYPE(ComboButtonItem);
-  REG_REF_TYPE(ComboButton);
-  REG_REF_TYPE(HorizontalSlider);
-
-  // value types:
-  REG_VALUE_TYPE(Alignment, asOBJ_APP_CLASS_CK);
-  REG_VALUE_TYPE(Color, asOBJ_APP_CLASS_CK);
-  REG_VALUE_TYPE(Font, asOBJ_APP_CLASS_CK);
-  REG_VALUE_TYPE(Size, asOBJ_APP_CLASS_CK);
+  REG_LAMBDA(Attributes, "string get_opIndex(const string &in) property",
+    ([](hiro::Object* self, const string &name) { return self->attribute(name); }));
+  REG_LAMBDA(Attributes, "void set_opIndex(const string &in, const string &in) property",
+    ([](hiro::Object* self, const string &name, const string &value) { self->setAttribute(name, value); }));
 
   // Alignment value type:
   r = e->RegisterObjectBehaviour("Alignment", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(GUI::createAlignment), asCALL_CDECL_OBJLAST); assert(r >= 0);

@@ -86,11 +86,15 @@ class SettingsWindow {
       vl.append(dd, GUI::Size(0, 0));
 
       auto @di = GUI::ComboButtonItem();
+      di.attributes["test"] = "value";
+      message("attr['test'] = " + di.attributes["test"]);
       di.text = "A";
       di.setSelected();
       dd.append(di);
 
       @di = GUI::ComboButtonItem();
+      di.attributes["test2"] = "value2";
+      message("attr['test2'] = " + di.attributes["test2"]);
       di.text = "B";
       dd.append(di);
 
@@ -99,7 +103,9 @@ class SettingsWindow {
       message(fmtInt(dd.count()));
       message(dd.selected.text);
       message(dd[0].text);
+      message(dd[0].attributes["test"]);
       message(dd[1].text);
+      message(dd[1].attributes["test2"]);
 
       @hs = GUI::HorizontalSlider();
       vl.append(hs, GUI::Size(200, 0), spacing);
