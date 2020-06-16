@@ -125,7 +125,7 @@ class SettingsWindow {
 void init() {
   @settings = SettingsWindow();
   ppu::extra.font_name = "proggy-tinysz";
-  ppu::extra.text_shadow = true;
+  ppu::extra.text_outline = true;
   message(fmtInt(ppu::extra.font_height));
 }
 
@@ -144,9 +144,9 @@ void post_frame() {
   tile.index = 0;
   tile.priority = 2;
   tile.source = 4;
-  tile.width = ppu::extra.measure_text(text);
-  tile.height = ppu::extra.font_height;
-  tile.text(0, 0, text);
+  tile.width = ppu::extra.measure_text(text) + 2;
+  tile.height = ppu::extra.font_height + 2;
+  tile.text(1, 1, text);
   tile.x = 128 - tile.width / 2;
   tile.y = 112;
   ppu::extra.count = 1;
