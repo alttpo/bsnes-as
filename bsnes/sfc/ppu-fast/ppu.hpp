@@ -211,6 +211,8 @@ public:
     } col;
   };
 
+  static const int extra_max_colors = 4096;
+
   // extra tile for scripts to draw with:
   struct ExtraTile {
     int    x;
@@ -225,7 +227,7 @@ public:
     uint   height;
     uint   index;     // OAM index
     // color data; set MSB=1 to be opaque, pixel is not drawn when MSB=0:
-    uint16 colors[1024];
+    uint16 colors[extra_max_colors];
   };
 
   struct Object {

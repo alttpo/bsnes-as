@@ -40,6 +40,7 @@ struct PostFrame {
 
   auto (PostFrame::*draw_glyph)(int x, int y, int glyph) -> void = &PostFrame::draw_glyph_8;
 
+  // TODO: replace me with PixelFonts::fonts["vga8"]
   int font_height = 8;
   auto get_font_height() -> int { return font_height; }
   auto set_font_height(int font_height_p) {
@@ -142,8 +143,8 @@ struct PostFrame {
     for (int i = 0; i < 8; i++) {
       uint8 m = 0x80u;
       for (int j = 0; j < 8; j++, m >>= 1u) {
-        uint8_t row = font8x8_basic[glyph][i];
-        uint8 row1 = i < 7 ? font8x8_basic[glyph][i+1] : 0;
+        uint8_t row = PixelFonts::font8x8_basic[glyph][i];
+        uint8 row1 = i < 7 ? PixelFonts::font8x8_basic[glyph][i+1] : 0;
         if (row & m) {
           // Draw a shadow at x+1,y+1 if there won't be a pixel set there from the font:
           if (text_shadow && ((row1 & (m>>1u)) == 0u)) {
@@ -164,10 +165,10 @@ struct PostFrame {
     for (int i = 0; i < 16; i++) {
       uint8 m = 0x80u;
       for (int j = 0; j < 8; j++, m >>= 1u) {
-        uint8 row = font8x16_basic[glyph][i];
+        uint8 row = PixelFonts::font8x16_basic[glyph][i];
         if (row & m) {
           if (text_shadow) {
-            uint8 row1 = i < 15 ? font8x16_basic[glyph][i + 1] : 0;
+            uint8 row1 = i < 15 ? PixelFonts::font8x16_basic[glyph][i + 1] : 0;
             // Draw a shadow at x+1,y+1 if there won't be a pixel set there from the font:
             if ((row1 & (m >> 1u)) == 0u) {
               // quick swap to black for shadow:

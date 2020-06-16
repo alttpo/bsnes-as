@@ -4,8 +4,10 @@ objects += sfc-interface sfc-system sfc-controller
 objects += sfc-cartridge sfc-memory
 objects += sfc-cpu sfc-smp sfc-dsp sfc-ppu sfc-ppu-fast
 objects += sfc-expansion sfc-coprocessor sfc-slot
+objects += sfc-resource
 
 obj/sfc-interface.o:   sfc/interface/interface.cpp
+obj/sfc-resource.o:    sfc/resource/resource.cpp
 obj/sfc-system.o:      sfc/system/system.cpp
 obj/sfc-controller.o:  sfc/controller/controller.cpp
 obj/sfc-cartridge.o:   sfc/cartridge/cartridge.cpp

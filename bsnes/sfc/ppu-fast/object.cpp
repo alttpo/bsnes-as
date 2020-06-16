@@ -160,7 +160,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
 
         int index = tileY * tileWidth + tileX;
         if (index < 0) continue;
-        if (index >= 1024) continue;
+        if (index >= extra_max_colors) continue;
 
         auto color = extra.colors[index];
 

@@ -7,15 +7,29 @@ struct ExtraLayer {
   auto get_color() -> uint16 { return color; }
   auto set_color(uint16 color_p) -> void { color = uclamp<15>(color_p); }
 
+  // set default font:
+  PixelFonts::Font *font = PixelFonts::fonts["vga8"];
+
+  auto set_font_name(const string &name) -> void {
+    auto tmp = PixelFonts::fonts[name];
+    if (tmp == nullptr) {
+      // TODO: throw script exception
+      return;
+    }
+
+    font = tmp;
+  }
+
   bool text_shadow = false;
   auto get_text_shadow() -> bool { return text_shadow; }
   auto set_text_shadow(bool text_shadow_p) -> void { text_shadow = text_shadow_p; }
 
+  auto get_font_height() -> uint { return font->height(); }
+
   auto measure_text(const string *msg) -> int {
 	  const char *c = msg->data();
 
-	  auto len = 0;
-
+	  int width = 0;
 	  while (*c != 0) {
 		  if ((*c < 0x20) || (*c > 0x7F)) {
 			  // Skip the character since it is out of ASCII range:
@@ -23,11 +37,13 @@ struct ExtraLayer {
 			  continue;
 		  }
 
-		  len++;
+		  uint32_t glyph = *c;
+		  width += font->width(glyph);
+
 		  c++;
 	  }
 
-	  return len;
+	  return width;
   }
 
 public:
@@ -67,7 +83,7 @@ public:
   }
 
   static auto tile_pixels_clear(PPUfast::ExtraTile *t) -> void {
-	  memory::fill<uint16>(t->colors, 1024, 0);
+	  memory::fill<uint16>(t->colors, PPUfast::extra_max_colors, 0);
   }
 
   static auto tile_pixel(PPUfast::ExtraTile *t, int x, int y) -> void;
@@ -78,7 +94,7 @@ public:
 
 	  // make sure we're not writing past the end of the colors[] array:
 	  uint index = y * t->width + x;
-	  if (index >= 1024u) return;
+	  if (index >= PPUfast::extra_max_colors) return;
 
 	  // write the pixel with opaque bit set:
 	  t->colors[index] = color | 0x8000u;
@@ -90,7 +106,7 @@ public:
 
 	  // make sure we're not writing past the end of the colors[] array:
 	  uint index = y * t->width + x;
-	  if (index >= 1024u) return;
+	  if (index >= PPUfast::extra_max_colors) return;
 
 	  // turn off opaque bit:
 	  t->colors[index] &= 0x7fffu;
@@ -102,7 +118,7 @@ public:
 
 	  // make sure we're not writing past the end of the colors[] array:
 	  uint index = y * t->width + x;
-	  if (index >= 1024u) return;
+	  if (index >= PPUfast::extra_max_colors) return;
 
 	  // turn on opaque bit:
 	  t->colors[index] |= 0x8000u;
@@ -196,32 +212,8 @@ public:
 			  tile_pixel(t, x, y);
   }
 
-  static auto tile_glyph_8(PPUfast::ExtraTile *t, int x, int y, int glyph) -> void;
-
   // draw a line of text (currently ASCII only due to font restrictions)
-  static auto tile_text(PPUfast::ExtraTile *t, int x, int y, const string *msg) -> int {
-	  const char *c = msg->data();
-
-	  auto len = 0;
-
-	  while (*c != 0) {
-		  if ((*c < 0x20) || (*c > 0x7F)) {
-			  // Skip the character since it is out of ASCII range:
-			  c++;
-			  continue;
-		  }
-
-		  int glyph = *c - 0x20;
-		  tile_glyph_8(t, x, y, glyph);
-
-		  len++;
-		  c++;
-		  x += 8;
-	  }
-
-	  // return how many characters drawn:
-	  return len;
-  }
+  static auto tile_text(PPUfast::ExtraTile *t, int x, int y, const string *msg) -> int;
 } extraLayer;
 
 auto ExtraLayer::tile_pixel(PPUfast::ExtraTile *t, int x, int y) -> void {
@@ -230,27 +222,45 @@ auto ExtraLayer::tile_pixel(PPUfast::ExtraTile *t, int x, int y) -> void {
 
 	// make sure we're not writing past the end of the colors[] array:
 	uint index = y * t->width + x;
-	if (index >= 1024u) return;
+	if (index >= PPUfast::extra_max_colors) return;
 
 	// write the pixel with opaque bit set:
 	t->colors[index] = extraLayer.color | 0x8000u;
 }
 
-auto ExtraLayer::tile_glyph_8(PPUfast::ExtraTile *t, int x, int y, int glyph) -> void {
-	for (int i = 0; i < 8; i++) {
-		uint8 m = 0x80u;
-		for (int j = 0; j < 8; j++, m >>= 1u) {
-			uint8_t row = font8x8_basic[glyph][i];
-			uint8 row1 = i < 7 ? font8x8_basic[glyph][i+1] : 0;
-			if (row & m) {
-				// Draw a shadow at x+1,y+1 if there won't be a pixel set there from the font:
-				if (extraLayer.text_shadow && ((row1 & (m>>1u)) == 0u)) {
-					tile_pixel_set(t, x + j + 1, y + i + 1, 0x0000);
-				}
-				tile_pixel(t, x + j, y + i);
-			}
-		}
-	}
+// draw a line of text (currently ASCII only due to font restrictions)
+auto ExtraLayer::tile_text(PPUfast::ExtraTile *t, int x, int y, const string *msg) -> int {
+  const char *c = msg->data();
+
+  auto totalWidth = 0;
+
+  while (*c != 0) {
+    if ((*c < 0x20) || (*c > 0x7F)) {
+      // Skip the character since it is out of ASCII range:
+      c++;
+      continue;
+    }
+
+    uint32_t glyph = *c;
+
+    // if shadow enabled, draw a black shadow right+down one pixel underneath glyph:
+    if (extraLayer.text_shadow) {
+      extraLayer.font->drawGlyph(glyph, [=](int xo, int yo) {
+        extraLayer.tile_pixel_set(t, x + xo + 1, y + yo + 1, 0x0000);
+      });
+    }
+
+    int width = extraLayer.font->drawGlyph(glyph, [=](int xo, int yo) {
+      extraLayer.tile_pixel(t, x + xo, y + yo);
+    });
+    x += width;
+    totalWidth += width;
+
+    c++;
+  }
+
+  // return how many pixels drawn horizontally:
+  return totalWidth;
 }
 
 auto RegisterPPUExtra(asIScriptEngine *e) -> void {
@@ -293,8 +303,10 @@ auto RegisterPPUExtra(asIScriptEngine *e) -> void {
 
   r = e->RegisterObjectMethod("Extra", "uint16 get_color() property", asMETHOD(ExtraLayer, get_color), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "void set_color(uint16 color) property", asMETHOD(ExtraLayer, set_color), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "void set_font_name(const string &in name) property", asMETHOD(ExtraLayer, set_font_name), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "bool get_text_shadow() property", asMETHOD(ExtraLayer, get_text_shadow), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "void set_text_shadow(bool color) property", asMETHOD(ExtraLayer, set_text_shadow), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "uint get_font_height() property", asMETHOD(ExtraLayer, get_font_height), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "int measure_text(const string &in text)", asMETHOD(ExtraLayer, measure_text), asCALL_THISCALL); assert(r >= 0);
 
   r = e->RegisterObjectMethod("Extra", "void reset()", asMETHOD(ExtraLayer, reset), asCALL_THISCALL); assert(r >= 0);

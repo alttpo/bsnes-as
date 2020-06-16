@@ -7,6 +7,8 @@
 #include <nall/thread.hpp>
 #include "sha1.hpp"
 
+#include "pixel-fonts.cpp"
+
 namespace SuperFamicom {
 
 Settings settings;

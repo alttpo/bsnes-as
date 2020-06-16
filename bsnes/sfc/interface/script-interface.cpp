@@ -63,7 +63,6 @@ bool sock_has_error(int err) {
 #define S2(x) S1(x)
 #define LOCATION __FILE__ ":" S2(__LINE__)
 
-#include "vga-charset.cpp"
 #include "script-string.cpp"
 
 // R5G5B5 is what ends up on the final PPU frame buffer (R and B are swapped from SNES)
