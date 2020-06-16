@@ -7,6 +7,10 @@ struct ExtraLayer {
   auto get_color() -> uint16 { return color; }
   auto set_color(uint16 color_p) -> void { color = uclamp<15>(color_p); }
 
+  uint16 outline_color = 0x0000u;
+  auto get_outline_color() -> uint16 { return outline_color; }
+  auto set_outline_color(uint16 outline_color_p) -> void { outline_color = uclamp<15>(outline_color_p); }
+
   // set default font:
   PixelFonts::Font *font = PixelFonts::fonts["vga8"];
 
@@ -253,14 +257,14 @@ auto ExtraLayer::tile_text(PPUfast::ExtraTile *t, int x, int y, const string *ms
         for (int ny = -1; ny <= 1; ny++) {
           for (int nx = -1; nx <= 1; nx++) {
             if (ny == 0 && nx == 0) continue;
-            extraLayer.tile_pixel_set(t, x + xo + nx, y + yo + ny, 0x0000);
+            extraLayer.tile_pixel_set(t, x + xo + nx, y + yo + ny, extraLayer.outline_color);
           }
         }
       });
     } else if (extraLayer.text_shadow) {
       // if shadow enabled, draw a black shadow right+down one pixel before stroking the glyph:
       extraLayer.font->drawGlyph(glyph, [=](int xo, int yo) {
-        extraLayer.tile_pixel_set(t, x + xo + 1, y + yo + 1, 0x0000);
+        extraLayer.tile_pixel_set(t, x + xo + 1, y + yo + 1, extraLayer.outline_color);
       });
     }
 
@@ -318,6 +322,8 @@ auto RegisterPPUExtra(asIScriptEngine *e) -> void {
 
   r = e->RegisterObjectMethod("Extra", "uint16 get_color() property", asMETHOD(ExtraLayer, get_color), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "void set_color(uint16 color) property", asMETHOD(ExtraLayer, set_color), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "uint16 get_outline_color() property", asMETHOD(ExtraLayer, get_outline_color), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "void set_outline_color(uint16 color) property", asMETHOD(ExtraLayer, set_outline_color), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "void set_font_name(const string &in name) property", asMETHOD(ExtraLayer, set_font_name), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "bool get_text_shadow() property", asMETHOD(ExtraLayer, get_text_shadow), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "void set_text_shadow(bool color) property", asMETHOD(ExtraLayer, set_text_shadow), asCALL_THISCALL); assert(r >= 0);

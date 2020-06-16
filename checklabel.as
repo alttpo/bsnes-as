@@ -126,6 +126,8 @@ void init() {
   @settings = SettingsWindow();
   ppu::extra.font_name = "proggy-tinysz";
   ppu::extra.text_outline = true;
+  ppu::extra.color = ppu::rgb(31, 31, 31);
+  ppu::extra.outline_color = ppu::rgb(12, 12, 12);
   message(fmtInt(ppu::extra.font_height));
 }
 
@@ -139,7 +141,6 @@ void pre_frame() {
 void post_frame() {
   auto text = "UPPER lower CaSe Test";
   auto @tile = ppu::extra[0];
-  ppu::extra.color = ppu::rgb(31, 31, 31);
   tile.reset();
   tile.index = 0;
   tile.priority = 2;
