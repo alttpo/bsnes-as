@@ -124,16 +124,21 @@ namespace ScriptInterface {
   } exceptionHandler;
 
   struct Profiler {
+    ~Profiler() {
+      enabled = false;
+      thrProfiler.join();
+    }
+
     struct node_t {
       // key:
-      const char *section;
+      string section;
       int line;
       // value:
       uint64 samples;
 
       node_t() = default;
-      node_t(const char *section, int line) : section(section), line(line) {}
-      node_t(const char *section, int line, uint64 samples) : section(section), line(line), samples(samples) {}
+      node_t(const string &section, int line) : section(section), line(line) {}
+      node_t(const string &section, int line, uint64 samples) : section(section), line(line), samples(samples) {}
 
       auto operator< (const node_t& source) const -> bool {
         int c = strcmp(section, source.section);
@@ -142,7 +147,7 @@ namespace ScriptInterface {
         return line <  source.line;
       }
       auto operator==(const node_t& source) const -> bool {
-        int c = strcmp(section, source.section);
+        int c = section.compare(source.section);
         if (c != 0) return false;
         return line == source.line;
       }
@@ -153,16 +158,15 @@ namespace ScriptInterface {
     uint64 last_time = 0;
     uint64 last_save = 0;
     nall::thread thrProfiler;
-    asIScriptContext *context;
     volatile bool enabled = false;
 
     auto samplingThread(uintptr p) -> void {
       while (enabled) {
-        // sleep for 1ms
-        usleep(1'009);
+        // sleep until next period (in microseconds):
+        usleep(AS_PROFILER_PERIOD_MICROSECONDS);
 
-        // wake up and sample script location:
-        sampleLocation();
+        // wake up and record last sampled script location:
+        recordSample();
 
         // auto-save every 5 seconds:
         auto time = chrono::microsecond();
@@ -173,15 +177,27 @@ namespace ScriptInterface {
       }
     }
 
+    auto lineCallback(asIScriptContext *ctx) -> void {
+      sampleLocation(ctx);
+    }
+
     auto enable(asIScriptContext *ctx) -> void {
-      context = ctx;
+      mtx.lock();
+
       enabled = true;
       thrProfiler = nall::thread::create({&Profiler::samplingThread, this});
+      ctx->SetLineCallback(asMETHOD(ScriptInterface::Profiler, lineCallback), this, asCALL_THISCALL);
+
+      mtx.unlock();
     }
 
     auto disable(asIScriptContext *ctx) -> void {
-      context = nullptr;
+      mtx.lock();
+
+      ctx->ClearLineCallback();
       enabled = false;
+
+      mtx.unlock();
     }
 
     void reset() {
@@ -189,32 +205,61 @@ namespace ScriptInterface {
     }
 
     void save() {
+      mtx.lock();
+
       auto fb = file_buffer({"perf-",getpid(),".csv"}, file_buffer::mode::write);
       fb.truncate(0);
       fb.writes({"section,line,samples\n"});
       for (auto &node : sectionLineSamples) {
         fb.writes({node.section, ",", node.line, ",", node.samples, "\n"});
       }
+
+      mtx.unlock();
     }
 
-    auto sampleLocation() -> void {
-      // sample where we are:
-      const char *scriptSection;
-      int line, column;
-      line = context->GetLineNumber(0, &column, &scriptSection);
+    string scriptSection = "<not in script>";
+    int line, column;
+    std::mutex mtx;
 
-      if (scriptSection == nullptr) {
+    auto sampleLocation(asIScriptContext *ctx) -> void {
+      mtx.lock();
+
+      // sample where we are:
+      const char *section;
+      line = ctx->GetLineNumber(0, &column, &section);
+
+      if (section == nullptr) {
         scriptSection = "<not in script>";
         line = 0;
+      } else {
+        scriptSection = section;
       }
+
+      mtx.unlock();
+    }
+
+    auto resetLocation() -> void {
+      mtx.lock();
+
+      scriptSection = "<not in script>";
+      line = 0;
+      column = 0;
+
+      mtx.unlock();
+    }
+
+    auto recordSample() -> void {
+      mtx.lock();
 
       // increment sample counter for the section/line:
       auto node = sectionLineSamples.find({scriptSection, line});
       if (!node) {
-        sectionLineSamples.insert({scriptSection, line, 1});
+        sectionLineSamples.insert({{scriptSection}, line, 1});
       } else {
         node->samples++;
       }
+
+      mtx.unlock();
     }
   } profiler;
 
@@ -353,6 +398,11 @@ namespace ScriptInterface {
     }
   }
 
+  auto executeScript(asIScriptContext *ctx) -> void {
+    ctx->Execute();
+    profiler.resetLocation();
+  }
+
   struct Callback {
     asIScriptFunction *cb;
 
@@ -370,7 +420,7 @@ namespace ScriptInterface {
     auto operator()() -> void {
       auto ctx = ::SuperFamicom::script.context;
       ctx->Prepare(cb);
-      ctx->Execute();
+      executeScript(ctx);
     }
   };
 
@@ -390,7 +440,7 @@ auto Interface::paletteUpdated(uint32_t *palette, uint depth) -> void {
 
   if (script.funcs.palette_updated) {
     script.context->Prepare(script.funcs.palette_updated);
-    script.context->Execute();
+    ScriptInterface::executeScript(script.context);
   }
 }
 
@@ -441,10 +491,6 @@ auto Interface::registerScriptDefs() -> void {
   script.context = script.engine->CreateContext();
 
   script.context->SetExceptionCallback(asMETHOD(ScriptInterface::ExceptionHandler, exceptionCallback), &ScriptInterface::exceptionHandler, asCALL_THISCALL);
-
-#if defined(AS_ENABLE_PROFILER)
-  ScriptInterface::profiler.enable(script.context);
-#endif
 }
 
 auto Interface::loadScript(string location) -> void {
@@ -510,19 +556,23 @@ auto Interface::loadScript(string location) -> void {
   script.funcs.post_frame = script.main_module->GetFunctionByDecl("void post_frame()");
   script.funcs.palette_updated = script.main_module->GetFunctionByDecl("void palette_updated()");
 
+#if defined(AS_PROFILER_ENABLE)
+  ScriptInterface::profiler.enable(script.context);
+#endif
+
   if (script.funcs.init) {
     script.context->Prepare(script.funcs.init);
-    script.context->Execute();
+    ScriptInterface::executeScript(script.context);
   }
   if (loaded()) {
     if (script.funcs.cartridge_loaded) {
       script.context->Prepare(script.funcs.cartridge_loaded);
-      script.context->Execute();
+      ScriptInterface::executeScript(script.context);
     }
     if (script.funcs.post_power) {
       script.context->Prepare(script.funcs.post_power);
       script.context->SetArgByte(0, false); // reset = false
-      script.context->Execute();
+      ScriptInterface::executeScript(script.context);
     }
   }
 }
@@ -546,8 +596,12 @@ auto Interface::unloadScript() -> void {
   // unload script:
   if (script.funcs.unload) {
     script.context->Prepare(script.funcs.unload);
-    script.context->Execute();
+    ScriptInterface::executeScript(script.context);
   }
+
+#if defined(AS_PROFILER_ENABLE)
+  ScriptInterface::profiler.disable(script.context);
+#endif
 
   // discard all loaded modules:
   for (auto module : script.modules) {

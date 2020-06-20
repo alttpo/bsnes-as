@@ -318,7 +318,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     self->onSize([=] { \
       auto ctx = ::SuperFamicom::script.context; \
       ctx->Prepare(cb); \
-      ctx->Execute(); \
+      executeScript(ctx); \
     }); \
   })); \
   REG_LAMBDA(name, "void set_collapsible(bool collapsible = true) property",  ([](className* self, bool collapsible) { self->setCollapsible(collapsible); }))
@@ -521,7 +521,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     self->onChange([=]{
       auto ctx = ::SuperFamicom::script.context;
       ctx->Prepare(cb);
-      ctx->Execute();
+      executeScript(ctx);
     });
   }));
 
@@ -550,7 +550,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     self->onActivate([=]{
       auto ctx = ::SuperFamicom::script.context;
       ctx->Prepare(cb);
-      ctx->Execute();
+      executeScript(ctx);
     });
   }));
 

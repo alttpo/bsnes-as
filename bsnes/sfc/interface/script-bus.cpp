@@ -169,7 +169,7 @@ struct Bus {
       ctx->Prepare(cb);
       ctx->SetArgDWord(0, addr);
       ctx->SetArgByte(1, new_value);
-      ctx->Execute();
+      executeScript(ctx);
     }
   };
 
@@ -196,7 +196,7 @@ struct Bus {
       auto ctx = ::SuperFamicom::script.context;
       ctx->Prepare(cb);
       ctx->SetArgObject(0, (void *)&dma);
-      ctx->Execute();
+      executeScript(ctx);
     }
   };
 
@@ -223,7 +223,7 @@ struct Bus {
       auto ctx = ::SuperFamicom::script.context;
       ctx->Prepare(cb);
       ctx->SetArgDWord(0, addr);
-      ctx->Execute();
+      executeScript(ctx);
     }
   };
 

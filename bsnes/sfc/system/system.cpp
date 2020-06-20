@@ -107,7 +107,7 @@ auto System::frameStartEvent() -> void {
   // [jsd] run AngelScript pre_frame() function if available:
   if (script.funcs.pre_frame) {
     script.context->Prepare(script.funcs.pre_frame);
-    script.context->Execute();
+    ScriptInterface::executeScript(script.context);
   }
 }
 
@@ -115,7 +115,7 @@ auto System::framePreNMIEvent() -> void {
   // [jsd] run AngelScript pre_nmi() function if available:
   if (script.funcs.pre_nmi) {
     script.context->Prepare(script.funcs.pre_nmi);
-    script.context->Execute();
+    ScriptInterface::executeScript(script.context);
   }
 }
 
@@ -168,7 +168,7 @@ auto System::load(Emulator::Interface* interface) -> bool {
   // [jsd] run AngelScript cartridge_loaded function if available:
   if (script.funcs.cartridge_loaded) {
     script.context->Prepare(script.funcs.cartridge_loaded);
-    script.context->Execute();
+    ScriptInterface::executeScript(script.context);
   }
 
   return information.loaded = true;
@@ -206,7 +206,7 @@ auto System::unload() -> void {
   // [jsd] run AngelScript cartridge_unloaded function if available:
   if (script.funcs.cartridge_unloaded) {
     script.context->Prepare(script.funcs.cartridge_unloaded);
-    script.context->Execute();
+    ScriptInterface::executeScript(script.context);
   }
 
   information.loaded = false;
@@ -281,7 +281,7 @@ auto System::power(bool reset) -> void {
   if (script.funcs.post_power) {
     script.context->Prepare(script.funcs.post_power);
     script.context->SetArgByte(0, reset);
-    script.context->Execute();
+    ScriptInterface::executeScript(script.context);
   }
 }
 

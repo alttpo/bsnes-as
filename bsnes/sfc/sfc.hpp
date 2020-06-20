@@ -165,6 +165,7 @@ namespace SuperFamicom {
     struct PPUAccess;
     struct GUI;
     struct PostFrame;
+    auto executeScript(asIScriptContext *ctx) -> void;
   }
 
   #include <sfc/system/system.hpp>

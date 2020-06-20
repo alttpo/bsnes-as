@@ -20,7 +20,7 @@ endif
 
 # AngelScript internal profiler
 ifeq ($(script_profiler),true)
-  flags   += -DAS_ENABLE_PROFILER
+  flags += -DAS_PROFILER_ENABLE -DAS_PROFILER_PERIOD_MICROSECONDS=101
 endif
 
 nall.path := ../nall
