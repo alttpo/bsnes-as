@@ -3,6 +3,7 @@ binary := application
 build := performance_debug
 openmp := true
 local := true
+script_profiler := false
 flags += -I. -I..
 
 # in order for this to work, obj/lzma.o must be omitted or bsnes will hang on startup.
@@ -15,6 +16,11 @@ endif
 # binaries built with this flag are faster, but are not portable to multiple machines.
 ifeq ($(local),true)
   flags += -march=native
+endif
+
+# AngelScript internal profiler
+ifeq ($(script_profiler),true)
+  flags   += -DAS_ENABLE_PROFILER
 endif
 
 nall.path := ../nall

@@ -12,16 +12,12 @@ struct ExtraLayer {
   auto set_outline_color(uint16 outline_color_p) -> void { outline_color = uclamp<15>(outline_color_p); }
 
   // set default font:
-  PixelFonts::Font *font = PixelFonts::fonts["vga8"];
-
-  auto set_font_name(const string &name) -> void {
-    auto tmp = PixelFonts::fonts[name];
-    if (tmp == nullptr) {
-      // TODO: throw script exception
-      return;
-    }
-
-    font = tmp;
+  PixelFonts::Font *font = PixelFonts::fonts[0];
+  auto get_font() -> PixelFonts::Font * {
+    return font;
+  }
+  auto set_font(PixelFonts::Font *font_p) -> void {
+    font = font_p;
   }
 
   bool text_shadow = false;
@@ -31,28 +27,6 @@ struct ExtraLayer {
   bool text_outline = false;
   auto get_text_outline() -> bool { return text_outline; }
   auto set_text_outline(bool text_outline_p) -> void { text_outline = text_outline_p; }
-
-  auto get_font_height() -> uint { return font->height(); }
-
-  auto measure_text(const string *msg) -> int {
-	  const char *c = msg->data();
-
-	  int width = 0;
-	  while (*c != 0) {
-		  if ((*c < 0x20) || (*c > 0x7F)) {
-			  // Skip the character since it is out of ASCII range:
-			  c++;
-			  continue;
-		  }
-
-		  uint32_t glyph = *c;
-		  width += font->width(glyph);
-
-		  c++;
-	  }
-
-	  return width;
-  }
 
 public:
   // tile management:
@@ -243,12 +217,6 @@ auto ExtraLayer::tile_text(PPUfast::ExtraTile *t, int x, int y, const string *ms
   auto totalWidth = 0;
 
   while (*c != 0) {
-    if ((*c < 0x20) || (*c > 0x7F)) {
-      // Skip the character since it is out of ASCII range:
-      c++;
-      continue;
-    }
-
     uint32_t glyph = *c;
 
     // if outline enabled, draw a black square box around each pixel in the font before stroking the glyph:
@@ -272,6 +240,7 @@ auto ExtraLayer::tile_text(PPUfast::ExtraTile *t, int x, int y, const string *ms
     int width = extraLayer.font->drawGlyph(glyph, [=](int xo, int yo) {
       extraLayer.tile_pixel(t, x + xo, y + yo);
     });
+
     x += width;
     totalWidth += width;
 
@@ -324,13 +293,12 @@ auto RegisterPPUExtra(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("Extra", "void set_color(uint16 color) property", asMETHOD(ExtraLayer, set_color), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "uint16 get_outline_color() property", asMETHOD(ExtraLayer, get_outline_color), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "void set_outline_color(uint16 color) property", asMETHOD(ExtraLayer, set_outline_color), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "void set_font_name(const string &in name) property", asMETHOD(ExtraLayer, set_font_name), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "Font &get_font() property", asMETHOD(ExtraLayer, get_font), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("Extra", "void set_font(const Font &in font) property", asMETHOD(ExtraLayer, set_font), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "bool get_text_shadow() property", asMETHOD(ExtraLayer, get_text_shadow), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "void set_text_shadow(bool color) property", asMETHOD(ExtraLayer, set_text_shadow), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "bool get_text_outline() property", asMETHOD(ExtraLayer, get_text_outline), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "void set_text_outline(bool color) property", asMETHOD(ExtraLayer, set_text_outline), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "uint get_font_height() property", asMETHOD(ExtraLayer, get_font_height), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "int measure_text(const string &in text)", asMETHOD(ExtraLayer, measure_text), asCALL_THISCALL); assert(r >= 0);
 
   r = e->RegisterObjectMethod("Extra", "void reset()", asMETHOD(ExtraLayer, reset), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "uint get_count() property", asMETHOD(ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);

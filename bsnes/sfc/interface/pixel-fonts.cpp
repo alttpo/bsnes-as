@@ -14,13 +14,23 @@ using nall::map;
 
 // public interface for a Font:
 struct Font {
+  virtual auto displayName() -> string = 0;
   virtual auto drawGlyph(uint32_t r, const function<void(int x, int y)> &px) -> int = 0;
   virtual auto width(uint32_t r) -> uint = 0;
   virtual auto height() -> uint = 0;
+  virtual auto measureText(const string &text) -> uint {
+    uint w = 0;
+    for (auto r : text) {
+      w += width(r);
+    }
+    return w;
+  }
 };
 
 struct VGAFont : Font {
   VGAFont(const uint8_t *bitmap, uint height) : _bitmap(bitmap), _height(height) {}
+
+  auto displayName() -> string { return {"VGA 8x", _height}; };
 
   auto drawGlyph(uint32_t r, const function<void(int x, int y)> &px) -> int final {
     if (r < 0x20) return 0;
@@ -65,9 +75,13 @@ struct PCFFont : Font {
   #define PCF_COMPRESSED_METRICS  0x00000100
   #define PCF_BYTE_MASK           (1<<2)
 
-  explicit PCFFont(array_view<uint8_t> file_p) : file(file_p) {
+  explicit PCFFont(const string &displayName, array_view<uint8_t> file_p)
+    : _displayName(displayName), file(file_p)
+  {
     parse_pcf();
   }
+
+  auto displayName() -> string { return _displayName; };
 
   auto drawGlyph(uint32_t r, const function<void(int x, int y)> &px) -> int final {
     auto i = encoding.find_index(r);
@@ -120,6 +134,7 @@ struct PCFFont : Font {
   }
 
 private:
+  const string _displayName;
   const array_view<uint8_t> file;
 
   void parse_pcf() {
@@ -318,16 +333,17 @@ private:
 
 struct Fonts {
   Fonts() {
-    fonts.insert("vga8", new VGAFont(reinterpret_cast<const uint8_t *>(font8x8_basic), 8));
-    fonts.insert("vga16", new VGAFont(reinterpret_cast<const uint8_t *>(font8x16_basic), 16));
-    fonts.insert("kakwa", new PCFFont({kakwa, sizeof(kakwa)}));
-    fonts.insert("proggy-tinysz", new PCFFont({proggy_tinysz, sizeof(proggy_tinysz)}));
+    fonts.append(new PCFFont("Proggy-Tinysz", {proggy_tinysz, sizeof(proggy_tinysz)}));
+    fonts.append(new PCFFont("Kakwa", {kakwa, sizeof(kakwa)}));
+    fonts.append(new VGAFont(reinterpret_cast<const uint8_t *>(font8x8_basic), 8));
+    fonts.append(new VGAFont(reinterpret_cast<const uint8_t *>(font8x16_basic), 16));
   }
 
-  auto operator[](const string& name) -> Font* { return fonts.find(name)(); }
+  auto count() -> uint { return fonts.size(); }
+  auto operator[](uint index) -> Font* { return fonts[index]; }
 
 private:
-  map<string, Font*> fonts;
+  vector<Font*> fonts;
 };
 
 Fonts fonts;
