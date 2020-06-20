@@ -204,7 +204,8 @@ namespace ScriptInterface {
       line = context->GetLineNumber(0, &column, &scriptSection);
 
       if (scriptSection == nullptr) {
-        scriptSection = "";
+        scriptSection = "<not in script>";
+        line = 0;
       }
 
       // increment sample counter for the section/line:

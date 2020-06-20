@@ -293,8 +293,7 @@ auto RegisterPPUExtra(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("Extra", "void set_color(uint16 color) property", asMETHOD(ExtraLayer, set_color), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "uint16 get_outline_color() property", asMETHOD(ExtraLayer, get_outline_color), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "void set_outline_color(uint16 color) property", asMETHOD(ExtraLayer, set_outline_color), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "Font &get_font() property", asMETHOD(ExtraLayer, get_font), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "void set_font(const Font &in font) property", asMETHOD(ExtraLayer, set_font), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectProperty("Extra", "Font @font", asOFFSET(ExtraLayer, font)); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "bool get_text_shadow() property", asMETHOD(ExtraLayer, get_text_shadow), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "void set_text_shadow(bool color) property", asMETHOD(ExtraLayer, set_text_shadow), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("Extra", "bool get_text_outline() property", asMETHOD(ExtraLayer, get_text_outline), asCALL_THISCALL); assert(r >= 0);

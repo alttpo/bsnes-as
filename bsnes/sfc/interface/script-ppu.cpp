@@ -212,7 +212,7 @@ auto RegisterPPU(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("Font", "uint get_width(uint r) property", asMETHOD(PixelFonts::Font, width), asCALL_THISCALL); assert(r >= 0);
 
   r = e->RegisterGlobalFunction("uint get_fonts_count() property", asFUNCTION(+([]{ return PixelFonts::fonts.count(); })), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("Font &get_fonts(uint i) property", asFUNCTION(+([](uint i){ return PixelFonts::fonts[i]; })), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("Font @get_fonts(uint i) property", asFUNCTION(+([](uint i){ return PixelFonts::fonts[i]; })), asCALL_CDECL); assert(r >= 0);
 
   r = e->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(PPUAccess::ppu_rgb), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("uint8 get_luma() property", asFUNCTION(PPUAccess::ppu_get_luma), asCALL_CDECL); assert(r >= 0);
