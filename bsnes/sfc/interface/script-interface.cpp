@@ -59,6 +59,10 @@ bool sock_has_error(int err) {
 }
 #endif
 
+#if !defined(AS_PROFILER_PERIOD_MICROSECONDS)
+#  define AS_PROFILER_PERIOD_MICROSECONDS 101
+#endif
+
 #define S1(x) #x
 #define S2(x) S1(x)
 #define LOCATION __FILE__ ":" S2(__LINE__)

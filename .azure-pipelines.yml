@@ -16,7 +16,7 @@ strategy:
         sudo apt-get update
         sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-x86-64
       compileScript: |
-        make $(makeOptions) -C bsnes $(makeVariables) platform=windows compiler="x86_64-w64-mingw32-g++" windres="x86_64-w64-mingw32-windres"
+        make $(makeOptions) -C bsnes $(makeVariables) platform=windows compiler="x86_64-w64-mingw32-g++-posix" windres="x86_64-w64-mingw32-windres"
       artifact: bsnes
       packageScript: |
         mkdir $(nightly)
@@ -37,7 +37,7 @@ strategy:
         sudo apt-get update
         sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-i686
       compileScript: |
-        make $(makeOptions) -C bsnes $(makeVariables) platform=windows compiler="i686-w64-mingw32-g++-win32" windres="i686-w64-mingw32-windres"
+        make $(makeOptions) -C bsnes $(makeVariables) platform=windows compiler="i686-w64-mingw32-g++-posix" windres="i686-w64-mingw32-windres"
       artifact: bsnes
       packageScript: |
         mkdir $(nightly)
