@@ -87,7 +87,7 @@ namespace ScriptInterface {
         func = ctx->GetFunction(n);
         line = ctx->GetLineNumber(n, &column, &scriptSection);
 
-        frames.append(string("  in `{0}` at {1}:{2}:{3}").format({
+        frames.append(string("  `{0}` {1}:{2}:{3}").format({
           func->GetDeclaration(),
           scriptSection,
           line,
@@ -108,7 +108,7 @@ namespace ScriptInterface {
       line = ctx->GetExceptionLineNumber(&column, &scriptSection);
 
       // format main message:
-      auto message = string("EXCEPTION `{0}` occurred in `{1}` at {2}:{3}:{4}\n")
+      auto message = string("EXCEPTION `{0}`\n  `{1}` {2}:{3}:{4}\n")
         .format({
           ctx->GetExceptionString(),
           function->GetDeclaration(),
