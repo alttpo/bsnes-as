@@ -6,10 +6,11 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
   renderWindow(self.window, self.window.aboveEnable, windowAbove);
   renderWindow(self.window, self.window.belowEnable, windowBelow);
 
+  uint extraItemCount = min(ppu.extraTileCount, 128);
   uint itemCount = 0;
   uint tileCount = 0;
-  for(uint n : range(ppu.ItemLimit+128)) items[n].valid = false;
-  for(uint n : range(ppu.TileLimit+128)) tiles[n].valid = false;
+  for(uint n : range(ppu.ItemLimit+extraItemCount)) items[n].valid = false;
+  for(uint n : range(ppu.TileLimit+extraItemCount)) tiles[n].valid = false;
 
   int lineY = (int)y;
   uint nativeItemCount = 0;
@@ -43,7 +44,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
 
   addExtra:
     // inject extra items:
-    for (uint k : range(min(ppu.extraTileCount,128))) {
+    for (uint k : range(extraItemCount)) {
       // skip tile if not the right source:
       const auto& extra = ppu.extraTiles[k];
       if (extra.source < Source::OBJ1) continue;

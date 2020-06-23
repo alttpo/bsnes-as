@@ -97,15 +97,19 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
       if(x & width) continue;  //x < 0 || x >= width
       if(--mosaicCounter == 0) {
         uint color, shift = mirrorX ? tileX : 7 - tileX;
-      /*if(self.tileMode >= TileMode::BPP2)*/ {
+        if(self.tileMode == TileMode::BPP2) {
           color  = data >> shift +  0 &   1;
           color += data >> shift +  7 &   2;
-        }
-        if(self.tileMode >= TileMode::BPP4) {
+        } else if(self.tileMode == TileMode::BPP4) {
+          color  = data >> shift +  0 &   1;
+          color += data >> shift +  7 &   2;
           color += data >> shift + 14 &   4;
           color += data >> shift + 21 &   8;
-        }
-        if(self.tileMode >= TileMode::BPP8) {
+        } else if(self.tileMode >= TileMode::BPP8) {
+          color  = data >> shift +  0 &   1;
+          color += data >> shift +  7 &   2;
+          color += data >> shift + 14 &   4;
+          color += data >> shift + 21 &   8;
           color += data >> shift + 28 &  16;
           color += data >> shift + 35 &  32;
           color += data >> shift + 42 &  64;
