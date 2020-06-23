@@ -196,6 +196,33 @@ struct PPUAccess {
       po.size = obj->size;
     }
   }
+
+  auto oam_read_block_u8(uint16 addr, uint offs, uint16 size, CScriptArray * output) -> void {
+    if (output == nullptr) {
+      asGetActiveContext()->SetException("output array cannot be null", true);
+      return;
+    }
+    if (output->GetElementTypeId() != asTYPEID_UINT8) {
+      asGetActiveContext()->SetException("output array must be of type uint8[]", true);
+      return;
+    }
+    if (offs + size > output->GetSize()) {
+      asGetActiveContext()->SetException("offset and size exceed the bounds of the output array", true);
+      return;
+    }
+
+    if (system.fastPPU()) {
+      for (uint32 a = 0; a < size; a++) {
+        auto value = ppufast.oam[addr + a];
+        output->SetValue(offs + a, &value);
+      }
+    } else {
+      for (uint32 a = 0; a < size; a++) {
+        auto value = ppu.obj.oam.oam[addr + a];
+        output->SetValue(offs + a, &value);
+      }
+    }
+  }
 } ppuAccess;
 
 auto RegisterPPU(asIScriptEngine *e) -> void {
@@ -250,6 +277,7 @@ auto RegisterPPU(asIScriptEngine *e) -> void {
   r = e->RegisterObjectType  ("OAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = e->RegisterObjectMethod("OAM", "OAMSprite @get_opIndex(uint8 chr) property", asFUNCTION(PPUAccess::oam_get_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = e->RegisterObjectMethod("OAM", "void set_opIndex(uint8 chr, OAMSprite @sprite) property", asFUNCTION(PPUAccess::oam_set_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("OAM", "void read_block_u8(uint16 addr, uint offs, uint16 size, const array<uint8> &in output)", asMETHOD(PPUAccess, oam_read_block_u8), asCALL_THISCALL); assert(r >= 0);
 
   r = e->RegisterGlobalProperty("OAM oam", &ppuAccess); assert(r >= 0);
 }

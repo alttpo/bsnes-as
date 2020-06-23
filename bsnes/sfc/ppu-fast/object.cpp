@@ -241,6 +241,7 @@ auto PPU::readObject(uint10 address) -> uint8 {
 }
 
 auto PPU::writeObject(uint10 address, uint8 data) -> void {
+  oam[address] = data;
   if(!(address & 0x200)) {
     uint n = address >> 2;  //object#
     address &= 3;

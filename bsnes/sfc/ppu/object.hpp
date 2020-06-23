@@ -16,6 +16,8 @@ struct OAM {
     uint3 palette;
     uint1 size;
   } object[128];
+
+  uint8 oam[0x220] = {};
 };
 
 struct Object {

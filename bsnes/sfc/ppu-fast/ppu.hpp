@@ -299,6 +299,7 @@ public:
   uint16 vram[32 * 1024] = {};
   uint16 cgram[256] = {};
   Object objects[128] = {};
+  uint8 oam[0x220] = {};
 
   //[unserialized]
   uint16* output = {};
