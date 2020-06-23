@@ -74,8 +74,10 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
     voffset &= vmask;
 
     uint tileNumber = getTile(self, hoffset, voffset);
-    uint mirrorY = tileNumber & 0x8000 ? 7 : 0;
-    uint mirrorX = tileNumber & 0x4000 ? 7 : 0;
+    //uint mirrorY = tileNumber & 0x8000 ? 7 : 0;
+    //uint mirrorX = tileNumber & 0x4000 ? 7 : 0;
+    uint mirrorY = ((tileNumber & 0x8000) >> 12) - ((tileNumber & 0x8000) >> 15);
+    uint mirrorX = ((tileNumber & 0x4000) >> 11) - ((tileNumber & 0x4000) >> 14);
     uint8 tilePriority = self.priority[bool(tileNumber & 0x2000)];
     uint paletteNumber = tileNumber >> 10 & 7;
     uint paletteIndex = paletteBase + (paletteNumber << paletteShift) & 0xff;
