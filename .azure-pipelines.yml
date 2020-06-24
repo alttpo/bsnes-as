@@ -85,8 +85,8 @@ strategy:
 
 variables:
   makeOptions: -j4
-  makeVariables: local=false build=performance
-  nightly: bsnes-angelscript-$(archName)-$(Build.SourceVersion)
+  makeVariables: local=false build=performance script_profiler=true
+  nightly: bsnes-angelscript-profiler-$(archName)-$(Build.SourceVersion)
 
 pool:
   vmImage: $(imageName)
