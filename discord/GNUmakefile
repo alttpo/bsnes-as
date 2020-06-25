@@ -1,10 +1,23 @@
 
 ifeq ($(platform),macos)
   discord.flags := $(flags.objcpp)
-  discord.options := ../lib/x86_64/discord_game_sdk.bundle
 else
   discord.flags := $(flags.cpp)
-  discord.options :=
+endif
+
+ifeq ($(platform),windows)
+  # arch is 'x86_64' or 'x86'
+  discord.options := -L../lib/$(arch) -ldiscord_game_sdk.dll
+else ifeq ($(platform),macos)
+  discord.options := ../lib/x86_64/discord_game_sdk.bundle
+else ifeq ($(platform),linux)
+  discord.options := -L../lib/x86_64 -ldiscord_game_sdk
+else ifeq ($(platform),bsd)
+  # TODO: unsupported
+  discord.options := -L../lib/x86_64 -ldiscord_game_sdk
+else
+  # TODO: unsupported
+  discord.options := -L../lib/x86_64 -ldiscord_game_sdk
 endif
 
 discord.flags += -fPIC -fno-strict-aliasing -I$(discord.path)

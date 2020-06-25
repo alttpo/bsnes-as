@@ -23,6 +23,7 @@ strategy:
         mkdir $(nightly)/Database
         mkdir $(nightly)/Firmware
         cp -a bsnes/out/bsnes $(nightly)/bsnes.exe
+        cp -a bsnes/out/discord_game_sdk.dll $(nightly)/
         cp -a bsnes/Database/* $(nightly)/Database
         cp -a shaders $(nightly)/Shaders
         cp -a GPLv3.txt $(nightly)
@@ -37,13 +38,14 @@ strategy:
         sudo apt-get update
         sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-i686
       compileScript: |
-        make $(makeOptions) -C bsnes $(makeVariables) platform=windows compiler="i686-w64-mingw32-g++-posix" windres="i686-w64-mingw32-windres"
+        make $(makeOptions) -C bsnes $(makeVariables) platform=windows arch=x86 compiler="i686-w64-mingw32-g++-posix" windres="i686-w64-mingw32-windres"
       artifact: bsnes
       packageScript: |
         mkdir $(nightly)
         mkdir $(nightly)/Database
         mkdir $(nightly)/Firmware
         cp -a bsnes/out/bsnes $(nightly)/bsnes.exe
+        cp -a bsnes/out/discord_game_sdk.dll $(nightly)/
         cp -a bsnes/Database/* $(nightly)/Database
         cp -a shaders $(nightly)/Shaders
         cp -a GPLv3.txt $(nightly)

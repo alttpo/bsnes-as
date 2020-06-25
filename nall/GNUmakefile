@@ -36,6 +36,12 @@ ifeq ($(platform),)
   endif
 endif
 
+ifeq ($(arch),)
+  # default to x86_64 arch for most builds:
+  arch := x86_64
+  # support 'arch=x86' for 32-bit builds on windows
+endif
+
 # common commands
 ifeq ($(shell echo ^^),^)
   # cmd
