@@ -10,6 +10,9 @@ include $(ruby.path)/GNUmakefile
 angel.path := ../angelscript
 include $(angel.path)/GNUmakefile
 
+discord.path := ../discord
+include $(discord.path)/GNUmakefile
+
 objects += ui-bsnes ui-program ui-input ui-presentation
 objects += ui-settings ui-tools ui-resource
 objects := $(objects:%=obj/%.o)
@@ -22,10 +25,11 @@ obj/ui-settings.o: $(ui)/settings/settings.cpp
 obj/ui-tools.o: $(ui)/tools/tools.cpp
 obj/ui-resource.o: $(ui)/resource/resource.cpp
 
-all: $(objects) $(hiro.objects) $(ruby.objects) $(angel.objects)
+all: $(objects) $(hiro.objects) $(ruby.objects) $(angel.objects) $(discord.objects)
 	$(info Linking out/$(name) ...)
-	+@$(compiler) -o out/$(name) $(hiro.objects) $(ruby.objects) $(angel.objects) $(objects) $(hiro.options) $(ruby.options) $(angel.options) $(options)
-ifeq ($(platform),macos)
+	+@$(compiler) -o out/$(name) $(hiro.objects) $(ruby.objects) $(angel.objects) $(discord.objects) $(objects) $(hiro.options) $(ruby.options) $(angel.options) $(discord.options) $(options)
+ifeq ($(platform),windows)
+else ifeq ($(platform),macos)
 	rm -rf out/$(name).app
 	mkdir -p out/$(name).app/Contents/MacOS/
 	mkdir -p out/$(name).app/Contents/MacOS/Database/
@@ -33,8 +37,10 @@ ifeq ($(platform),macos)
 	mkdir -p out/$(name).app/Contents/MacOS/Shaders/
 	mkdir -p out/$(name).app/Contents/Resources/
 	mv out/$(name) out/$(name).app/Contents/MacOS/$(name)
+	install_name_tool -add_rpath @executable_path/ out/$(name).app/Contents/MacOS/bsnes
+	cp ../lib/x86_64/discord_game_sdk.dylib out/$(name).app/Contents/MacOS/
 	cp Database/* out/$(name).app/Contents/MacOS/Database/
-	cp -r ../shaders/* out/$(name).app/Contents/macOS/Shaders/
+	cp -r ../shaders/* out/$(name).app/Contents/MacOS/Shaders/
 	cp $(ui)/resource/$(name).plist out/$(name).app/Contents/Info.plist
 	sips -s format icns $(ui)/resource/$(name).png --out out/$(name).app/Contents/Resources/$(name).icns
 endif
