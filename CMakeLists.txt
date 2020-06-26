@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 14)
 include_directories(angelscript/add_on/scriptarray)
 include_directories(angelscript/include)
 include_directories(bsnes)
+include_directories(discord)
 include_directories(hiro)
 include_directories(libco)
 include_directories(nall)
@@ -487,6 +488,37 @@ add_executable(bsnes
         bsnes/target-bsnes/tools/tools.hpp
         bsnes/target-bsnes/bsnes.cpp
         bsnes/target-bsnes/bsnes.hpp
+        discord/achievement_manager.cpp
+        discord/activity_manager.cpp
+        discord/application_manager.cpp
+        discord/core.cpp
+        discord/image_manager.cpp
+        discord/lobby_manager.cpp
+        discord/network_manager.cpp
+        discord/overlay_manager.cpp
+        discord/relationship_manager.cpp
+        discord/storage_manager.cpp
+        discord/store_manager.cpp
+        discord/types.cpp
+        discord/user_manager.cpp
+        discord/voice_manager.cpp
+        discord/achievement_manager.h
+        discord/activity_manager.h
+        discord/application_manager.h
+        discord/core.h
+        discord/discord.h
+        discord/event.h
+        discord/ffi.h
+        discord/image_manager.h
+        discord/lobby_manager.h
+        discord/network_manager.h
+        discord/overlay_manager.h
+        discord/relationship_manager.h
+        discord/storage_manager.h
+        discord/store_manager.h
+        discord/types.h
+        discord/user_manager.h
+        discord/voice_manager.h
         hiro/cocoa/action/action.cpp
         hiro/cocoa/action/action.hpp
         hiro/cocoa/action/menu-check-item.cpp
