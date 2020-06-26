@@ -17,6 +17,10 @@ void pre_frame() {
     message("discord: connected!");
     auto activity = discord::Activity();
     activity.Type = 1;
+    activity.Details = "details";
+    activity.State = "state";
+    activity.Instance = true;
+    message(activity.Name);
     discord::activityManager.UpdateActivity(activity, null);
   }
   if (!discord::created) return;
