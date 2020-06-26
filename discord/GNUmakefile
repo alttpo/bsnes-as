@@ -11,7 +11,7 @@ ifeq ($(platform),windows)
 else ifeq ($(platform),macos)
   discord.options := ../lib/x86_64/discord_game_sdk.bundle
 else ifeq ($(platform),linux)
-  discord.options := -L../lib/x86_64
+  discord.options := ../lib/x86_64/discord_game_sdk.so
 else ifeq ($(platform),bsd)
   # TODO: unsupported
   discord.options := -L../lib/x86_64
