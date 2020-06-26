@@ -490,7 +490,7 @@ auto Interface::registerScriptDefs() -> void {
 
   ScriptInterface::RegisterBML(script.engine);
 
-  ScriptInterface::RegisterDiscord(script.engine);
+  ScriptInterface::DiscordInterface::Register(script.engine);
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 
