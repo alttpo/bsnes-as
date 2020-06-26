@@ -11,13 +11,13 @@ ifeq ($(platform),windows)
 else ifeq ($(platform),macos)
   discord.options := ../lib/x86_64/discord_game_sdk.bundle
 else ifeq ($(platform),linux)
-  discord.options := -L../lib/x86_64 -ldiscord_game_sdk
+  discord.options := -L../lib/x86_64
 else ifeq ($(platform),bsd)
   # TODO: unsupported
-  discord.options := -L../lib/x86_64 -ldiscord_game_sdk
+  discord.options := -L../lib/x86_64
 else
   # TODO: unsupported
-  discord.options := -L../lib/x86_64 -ldiscord_game_sdk
+  discord.options := -L../lib/x86_64
 endif
 
 discord.flags += -fPIC -fno-strict-aliasing -I$(discord.path)
