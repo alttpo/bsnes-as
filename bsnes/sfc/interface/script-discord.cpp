@@ -18,24 +18,32 @@ auto logCallback(discord::LogLevel level, const char* message) -> void {
 auto Register(asIScriptEngine *e) -> void {
   int r;
 
-#define REG_REF_FLAGS(name, flags) r = e->RegisterObjectType(#name, 0, flags); assert( r >= 0 )
-#define REG_REF_TYPE(name) REG_REF_FLAGS(name, asOBJ_REF)
-#define REG_REF_NOCOUNT(name) REG_REF_FLAGS(name, asOBJ_REF | asOBJ_NOCOUNT)
+#define REG_TYPE_FLAGS(name, flags) r = e->RegisterObjectType(#name, 0, flags); assert( r >= 0 )
+#define REG_REF_TYPE(name) REG_TYPE_FLAGS(name, asOBJ_REF)
+#define REG_REF_NOCOUNT(name) REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_NOCOUNT)
+
+#define REG_VALUE_TYPE(name, className, flags) \
+  r = e->RegisterObjectType(#name, sizeof(className), asOBJ_VALUE | flags | asGetTypeTraits<className>()); assert( r >= 0 )
 
 #define REG_GLOBAL(defn, ptr) r = e->RegisterGlobalProperty(defn, ptr); assert( r >= 0 )
 
+#define REG_METHOD_THISCALL(name, defn, mthd) r = e->RegisterObjectMethod(#name, defn, mthd, asCALL_THISCALL); assert( r >= 0 )
+
 #define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+#define REG_LAMBDA_BEHAVIOUR(name, bhvr, defn, lambda) r = e->RegisterObjectBehaviour(#name, bhvr, defn, asFUNCTION(+lambda), (bhvr == asBEHAVE_RELEASE ? asCALL_CDECL_OBJLAST : asCALL_CDECL)); assert( r >= 0 )
 
 #define REG_LAMBDA_GLOBAL(defn, lambda) r = e->RegisterGlobalFunction(defn, asFUNCTION(+lambda), asCALL_CDECL); assert( r >= 0 )
 
-#define REG_LAMBDA_CTOR(name, defn, lambda) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, defn, asFUNCTION(+lambda), asCALL_CDECL); assert( r >= 0 )
+#define REG_SCOPED_TYPE(name, className) \
+  REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_SCOPED); \
+  REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_FACTORY, #name " @f()", ([](){ return new className(); })); \
+  REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_RELEASE, "void f()", ([](className *p){ delete p; }));
 
   {
     r = e->SetDefaultNamespace("discord"); assert(r >= 0);
 
-    // Core type:
-    //REG_REF_FLAGS(Core, asOBJ_REF | asOBJ_NOCOUNT);
+    // Callback funcdef:
+    r = e->RegisterFuncdef("void Callback(int result)"); assert( r >= 0 );
 
     REG_GLOBAL("int result", &result);
     REG_GLOBAL("const bool created", &core); // implicit nullptr -> false
@@ -128,6 +136,24 @@ auto Register(asIScriptEngine *e) -> void {
       if (!core) return result = discord::Result::NotRunning, (discord::VoiceManager*)nullptr;
       return &core->VoiceManager();
     }));
+
+    // ActivityManager:
+    REG_SCOPED_TYPE(Activity, discord::Activity);
+    REG_METHOD_THISCALL(Activity, "void set_Type(int) property", asMETHOD(discord::Activity, SetType));
+    REG_METHOD_THISCALL(Activity, "int get_Type() property", asMETHOD(discord::Activity, GetType));
+
+    REG_LAMBDA(
+      ActivityManager,
+      "void UpdateActivity(const Activity &in, Callback@)",
+      ([](discord::ActivityManager& self, discord::Activity const& activity, asIScriptFunction *cb) {
+        self.UpdateActivity(activity, cb == nullptr ? std::function<void(discord::Result)>(nullptr) : [=](discord::Result result) {
+          auto ctx = ::SuperFamicom::script.context;
+          ctx->Prepare(cb);
+          ctx->SetArgDWord(0, static_cast<int>(result));
+          executeScript(ctx);
+        });
+      })
+    );
   }
 }
 
