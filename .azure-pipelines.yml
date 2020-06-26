@@ -80,6 +80,7 @@ strategy:
         mkdir $(nightly)/Database
         mkdir $(nightly)/Firmware
         cp -a bsnes/out/bsnes $(nightly)/bsnes
+        cp -a bsnes/out/discord_game_sdk.so $(nightly)/
         cp -a bsnes/Database/* $(nightly)/Database
         cp -a shaders $(nightly)/Shaders
         cp -a GPLv3.txt $(nightly)
