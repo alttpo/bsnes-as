@@ -165,6 +165,39 @@ auto Register(asIScriptEngine *e) -> void {
         (new(g->GetAddressOfReturnLocation()) string())->assign(self->GetLargeImage());
       })
     );
+    REG_LAMBDA         (ActivityAssets, "void   set_LargeText(const string &in) property",
+      ([](discord::ActivityAssets &self, string &value) {
+        self.SetLargeText(value.data());
+      })
+    );
+    REG_LAMBDA_GENERIC (ActivityAssets, "string get_LargeText() property",
+      ([](asIScriptGeneric *g) {
+        auto self = reinterpret_cast<discord::ActivityAssets *>(g->GetObject());
+        (new(g->GetAddressOfReturnLocation()) string())->assign(self->GetLargeText());
+      })
+    );
+    REG_LAMBDA         (ActivityAssets, "void   set_SmallImage(const string &in) property",
+      ([](discord::ActivityAssets &self, string &value) {
+        self.SetSmallImage(value.data());
+      })
+    );
+    REG_LAMBDA_GENERIC (ActivityAssets, "string get_SmallImage() property",
+      ([](asIScriptGeneric *g) {
+        auto self = reinterpret_cast<discord::ActivityAssets *>(g->GetObject());
+        (new(g->GetAddressOfReturnLocation()) string())->assign(self->GetSmallImage());
+      })
+    );
+    REG_LAMBDA         (ActivityAssets, "void   set_SmallText(const string &in) property",
+      ([](discord::ActivityAssets &self, string &value) {
+        self.SetSmallText(value.data());
+      })
+    );
+    REG_LAMBDA_GENERIC (ActivityAssets, "string get_SmallText() property",
+      ([](asIScriptGeneric *g) {
+        auto self = reinterpret_cast<discord::ActivityAssets *>(g->GetObject());
+        (new(g->GetAddressOfReturnLocation()) string())->assign(self->GetSmallText());
+      })
+    );
 
     // ActivityParty:
     REG_REF_NOHANDLE(ActivityParty);

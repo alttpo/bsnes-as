@@ -28,6 +28,9 @@ void pre_frame() {
     activity.Details = "details";
     activity.State = "state";
     activity.Assets.LargeImage = "logo";
+    activity.Assets.LargeText = "large text";
+    activity.Assets.SmallImage = "logo";
+    activity.Assets.SmallText = "small text";
     activity.Instance = true;
     discord::activityManager.UpdateActivity(activity, null);
   }
