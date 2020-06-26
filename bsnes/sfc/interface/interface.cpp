@@ -9,6 +9,8 @@
 
 #include "pixel-fonts.cpp"
 
+#include <discord.h>
+
 namespace SuperFamicom {
 
 Settings settings;

@@ -435,6 +435,7 @@ namespace ScriptInterface {
   #include "script-net.cpp"
   #include "script-gui.cpp"
   #include "script-bml.cpp"
+  #include "script-discord.cpp"
 };
 
 auto Interface::paletteUpdated(uint32_t *palette, uint depth) -> void {
@@ -488,6 +489,8 @@ auto Interface::registerScriptDefs() -> void {
   ScriptInterface::RegisterGUI(script.engine);
 
   ScriptInterface::RegisterBML(script.engine);
+
+  ScriptInterface::RegisterDiscord(script.engine);
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 
