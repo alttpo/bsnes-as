@@ -40,6 +40,7 @@ auto Register(asIScriptEngine *e) -> void {
 #define REG_METHOD_THISCALL(name, defn, mthd) r = e->RegisterObjectMethod(#name, defn, mthd, asCALL_THISCALL); assert( r >= 0 )
 
 #define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+#define REG_LAMBDA_GENERIC(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_GENERIC); assert( r >= 0 )
 #define REG_LAMBDA_BEHAVIOUR(name, bhvr, defn, lambda) r = e->RegisterObjectBehaviour(#name, bhvr, defn, asFUNCTION(+lambda), (bhvr == asBEHAVE_RELEASE ? asCALL_CDECL_OBJLAST : asCALL_CDECL)); assert( r >= 0 )
 
 #define REG_LAMBDA_GLOBAL(defn, lambda) r = e->RegisterGlobalFunction(defn, asFUNCTION(+lambda), asCALL_CDECL); assert( r >= 0 )
@@ -149,14 +150,41 @@ auto Register(asIScriptEngine *e) -> void {
 
     // ActivityManager:
     REG_SCOPED_TYPE(Activity, discord::Activity);
-    REG_METHOD_THISCALL(Activity, "void set_Type(int) property", asMETHOD(discord::Activity, SetType));
-    REG_METHOD_THISCALL(Activity, "int get_Type() property", asMETHOD(discord::Activity, GetType));
+    REG_METHOD_THISCALL(Activity, "void   set_Type(int) property", asMETHOD(discord::Activity, SetType));
+    REG_METHOD_THISCALL(Activity, "int    get_Type() property",    asMETHOD(discord::Activity, GetType));
+    REG_METHOD_THISCALL(Activity, "void   set_ApplicationId(int64) property", asMETHOD(discord::Activity, SetApplicationId));
+    REG_METHOD_THISCALL(Activity, "int64  get_ApplicationId() property",      asMETHOD(discord::Activity, GetApplicationId));
+    REG_LAMBDA         (Activity, "void   set_Name(const string &in) property", ([](discord::Activity &self, string &value) { self.SetName(value.data()); }));
+    REG_LAMBDA_GENERIC (Activity, "string get_Name() property",                 ([](asIScriptGeneric *g) {
+      (new(g->GetAddressOfReturnLocation()) string())->assign(reinterpret_cast<discord::Activity *>(g->GetObject())->GetName());
+    }));
+    REG_LAMBDA         (Activity, "void   set_State(const string &in) property", ([](discord::Activity &self, string &value) { self.SetState(value.data()); }));
+    REG_LAMBDA_GENERIC (Activity, "string get_State() property",                 ([](asIScriptGeneric *g) {
+      (new(g->GetAddressOfReturnLocation()) string())->assign(reinterpret_cast<discord::Activity *>(g->GetObject())->GetState());
+    }));
+    REG_LAMBDA         (Activity, "void   set_Details(const string &in) property", ([](discord::Activity &self, string &value) { self.SetDetails(value.data()); }));
+    REG_LAMBDA_GENERIC (Activity, "string get_Details() property",                 ([](asIScriptGeneric *g) {
+      (new(g->GetAddressOfReturnLocation()) string())->assign(reinterpret_cast<discord::Activity *>(g->GetObject())->GetDetails());
+    }));
+    //ActivityTimestamps& GetTimestamps();
+    //ActivityAssets& GetAssets();
+    //ActivityParty& GetParty();
+    //ActivitySecrets& GetSecrets();
+    REG_METHOD_THISCALL(Activity, "void  set_Instance(bool) property", asMETHOD(discord::Activity, SetInstance));
+    REG_METHOD_THISCALL(Activity, "bool  get_Instance() property",     asMETHOD(discord::Activity, GetInstance));
 
     REG_LAMBDA(
       ActivityManager,
       "void UpdateActivity(const Activity &in, Callback@)",
       ([](discord::ActivityManager& self, discord::Activity const& activity, asIScriptFunction *cb) {
         self.UpdateActivity(activity, createScriptCallback(cb));
+      })
+    );
+    REG_LAMBDA(
+      ActivityManager,
+      "void ClearActivity(Callback@)",
+      ([](discord::ActivityManager& self, asIScriptFunction *cb) {
+        self.ClearActivity(createScriptCallback(cb));
       })
     );
   }
