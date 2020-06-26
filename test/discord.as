@@ -15,6 +15,7 @@ void pre_frame() {
     }
 
     message("discord: connected!");
+    discord::activityManager;
   }
   if (!discord::created) return;
 
@@ -22,5 +23,4 @@ void pre_frame() {
     message("discord::runCallbacks() failed with err=" + fmtInt(discord::result));
     return;
   }
-
 }
