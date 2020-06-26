@@ -15,6 +15,16 @@ auto logCallback(discord::LogLevel level, const char* message) -> void {
   platform->scriptMessage({"Discord ", levelNames[static_cast<int>(level)], ": ", message}, (level == discord::LogLevel::Error));
 }
 
+auto createScriptCallback(asIScriptFunction *cb) -> std::function<void(discord::Result)> {
+  if (cb == nullptr) return std::function<void(discord::Result)>(nullptr);
+  return [=](discord::Result result) -> void {
+    auto ctx = ::SuperFamicom::script.context;
+    ctx->Prepare(cb);
+    ctx->SetArgDWord(0, static_cast<int>(result));
+    executeScript(ctx);
+  };
+}
+
 auto Register(asIScriptEngine *e) -> void {
   int r;
 
@@ -146,12 +156,7 @@ auto Register(asIScriptEngine *e) -> void {
       ActivityManager,
       "void UpdateActivity(const Activity &in, Callback@)",
       ([](discord::ActivityManager& self, discord::Activity const& activity, asIScriptFunction *cb) {
-        self.UpdateActivity(activity, cb == nullptr ? std::function<void(discord::Result)>(nullptr) : [=](discord::Result result) {
-          auto ctx = ::SuperFamicom::script.context;
-          ctx->Prepare(cb);
-          ctx->SetArgDWord(0, static_cast<int>(result));
-          executeScript(ctx);
-        });
+        self.UpdateActivity(activity, createScriptCallback(cb));
       })
     );
   }
