@@ -15,7 +15,9 @@ void pre_frame() {
     }
 
     message("discord: connected!");
-    discord::activityManager;
+    auto activity = discord::Activity();
+    activity.Type = 1;
+    discord::activityManager.UpdateActivity(activity, null);
   }
   if (!discord::created) return;
 
