@@ -31,6 +31,7 @@ auto Register(asIScriptEngine *e) -> void {
 #define REG_TYPE_FLAGS(name, flags) r = e->RegisterObjectType(#name, 0, flags); assert( r >= 0 )
 #define REG_REF_TYPE(name) REG_TYPE_FLAGS(name, asOBJ_REF)
 #define REG_REF_NOCOUNT(name) REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_NOCOUNT)
+#define REG_REF_NOHANDLE(name) REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_NOHANDLE)
 
 #define REG_VALUE_TYPE(name, className, flags) \
   r = e->RegisterObjectType(#name, sizeof(className), asOBJ_VALUE | flags | asGetTypeTraits<className>()); assert( r >= 0 )
@@ -45,7 +46,7 @@ auto Register(asIScriptEngine *e) -> void {
 
 #define REG_LAMBDA_GLOBAL(defn, lambda) r = e->RegisterGlobalFunction(defn, asFUNCTION(+lambda), asCALL_CDECL); assert( r >= 0 )
 
-#define REG_SCOPED_TYPE(name, className) \
+#define REG_REF_SCOPED(name, className) \
   REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_SCOPED); \
   REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_FACTORY, #name " @f()", ([](){ return new className(); })); \
   REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_RELEASE, "void f()", ([](className *p){ delete p; }));
@@ -148,8 +149,31 @@ auto Register(asIScriptEngine *e) -> void {
       return &core->VoiceManager();
     }));
 
-    // ActivityManager:
-    REG_SCOPED_TYPE(Activity, discord::Activity);
+    // ActivityTimestamps:
+    REG_REF_NOHANDLE(ActivityTimestamps);
+
+    // ActivityAssets:
+    REG_REF_NOHANDLE(ActivityAssets);
+    REG_LAMBDA         (ActivityAssets, "void   set_LargeImage(const string &in) property",
+      ([](discord::ActivityAssets &self, string &value) {
+        self.SetLargeImage(value.data());
+      })
+    );
+    REG_LAMBDA_GENERIC (ActivityAssets, "string get_LargeImage() property",
+      ([](asIScriptGeneric *g) {
+        auto self = reinterpret_cast<discord::ActivityAssets *>(g->GetObject());
+        (new(g->GetAddressOfReturnLocation()) string())->assign(self->GetLargeImage());
+      })
+    );
+
+    // ActivityParty:
+    REG_REF_NOHANDLE(ActivityParty);
+    // ActivitySecrets:
+    REG_REF_NOHANDLE(ActivitySecrets);
+
+    // Activity:
+    REG_REF_SCOPED (Activity, discord::Activity);
+
     REG_METHOD_THISCALL(Activity, "void   set_Type(int) property", asMETHOD(discord::Activity, SetType));
     REG_METHOD_THISCALL(Activity, "int    get_Type() property",    asMETHOD(discord::Activity, GetType));
     REG_METHOD_THISCALL(Activity, "void   set_ApplicationId(int64) property", asMETHOD(discord::Activity, SetApplicationId));
@@ -166,13 +190,14 @@ auto Register(asIScriptEngine *e) -> void {
     REG_LAMBDA_GENERIC (Activity, "string get_Details() property",                 ([](asIScriptGeneric *g) {
       (new(g->GetAddressOfReturnLocation()) string())->assign(reinterpret_cast<discord::Activity *>(g->GetObject())->GetDetails());
     }));
-    //ActivityTimestamps& GetTimestamps();
-    //ActivityAssets& GetAssets();
-    //ActivityParty& GetParty();
-    //ActivitySecrets& GetSecrets();
+    REG_METHOD_THISCALL(Activity, "ActivityTimestamps& get_Timestamps() property", asMETHODPR(discord::Activity, GetTimestamps, (void), discord::ActivityTimestamps&));
+    REG_METHOD_THISCALL(Activity, "ActivityAssets&     get_Assets() property",     asMETHODPR(discord::Activity, GetAssets, (void), discord::ActivityAssets&));
+    REG_METHOD_THISCALL(Activity, "ActivityParty&      get_Party() property",      asMETHODPR(discord::Activity, GetParty, (void), discord::ActivityParty&));
+    REG_METHOD_THISCALL(Activity, "ActivitySecrets&    get_Secrets() property",    asMETHODPR(discord::Activity, GetSecrets, (void), discord::ActivitySecrets&));
     REG_METHOD_THISCALL(Activity, "void  set_Instance(bool) property", asMETHOD(discord::Activity, SetInstance));
     REG_METHOD_THISCALL(Activity, "bool  get_Instance() property",     asMETHOD(discord::Activity, GetInstance));
 
+    // ActivityManager:
     REG_LAMBDA(
       ActivityManager,
       "void UpdateActivity(const Activity &in, Callback@)",
