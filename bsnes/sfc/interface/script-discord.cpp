@@ -1,10 +1,14 @@
 
-shared_pointer<discord::Core> discordCore;
+namespace DiscordInterface {
 
-auto RegisterDiscord(asIScriptEngine *e) -> void {
+discord::Result result;
+
+auto Register(asIScriptEngine *e) -> void {
   int r;
 
 #define REG_REF_TYPE(name) r = e->RegisterObjectType(#name, 0, asOBJ_REF); assert( r >= 0 )
+
+#define REG_GLOBAL(defn, ptr) r = e->RegisterGlobalProperty(defn, ptr); assert( r >= 0 )
 
 #define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
@@ -24,12 +28,14 @@ auto RegisterDiscord(asIScriptEngine *e) -> void {
     REG_REF_TYPE(Core);
     EXPOSE_SHARED_PTR(Core, discord::Core);
 
+    REG_GLOBAL("int result", &result);
+
     // constructor:
-    REG_LAMBDA_CTOR(Core, "Core@ f(uint64 clientId)", ([](uint64_t clientId) {
+    REG_LAMBDA_CTOR(Core, "Core@ f(uint64 clientId, bool requireDiscordClient = false)", ([](uint64_t clientId, bool requireDiscordClient) {
       discord::Core* core{};
-      auto result = discord::Core::Create(clientId, DiscordCreateFlags_Default, &core);
+
+      result = discord::Core::Create(clientId, requireDiscordClient ? DiscordCreateFlags_Default : DiscordCreateFlags_NoRequireDiscord, &core);
       if (core == nullptr) {
-        asGetActiveContext()->SetException(string{"Discord Core creation failed with err=", static_cast<int>(result)}.data(), true);
         return (shared_pointer<discord::Core>*)nullptr;
       }
 
@@ -39,4 +45,6 @@ auto RegisterDiscord(asIScriptEngine *e) -> void {
     // RunCallbacks()
     REG_LAMBDA(Core, "int RunCallbacks()", ([](shared_pointer<discord::Core>&p){ return p->RunCallbacks(); }));
   }
+}
+
 }
