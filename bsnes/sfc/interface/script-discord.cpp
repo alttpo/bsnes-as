@@ -225,8 +225,20 @@ auto Register(asIScriptEngine *e) -> void {
       })
     );
 
+    // PartySize:
+    REG_REF_NOHANDLE(PartySize);
+    REG_METHOD_THISCALL(PartySize, "void   set_CurrentSize(int32) property", asMETHOD(discord::PartySize, SetCurrentSize));
+    REG_METHOD_THISCALL(PartySize, "int32  get_CurrentSize() property",      asMETHOD(discord::PartySize, GetCurrentSize));
+    REG_METHOD_THISCALL(PartySize, "void   set_MaxSize(int32) property",     asMETHOD(discord::PartySize, SetMaxSize));
+    REG_METHOD_THISCALL(PartySize, "int32  get_MaxSize() property",          asMETHOD(discord::PartySize, GetMaxSize));
+
     // ActivityParty:
     REG_REF_NOHANDLE(ActivityParty);
+    REG_LAMBDA         (ActivityParty, "void   set_Id(const string &in) property", ([](discord::ActivityParty &self, string &value) { self.SetId(value.data()); }));
+    REG_LAMBDA_GENERIC (ActivityParty, "string get_Id() property",                 ([](asIScriptGeneric *g) {
+      (new(g->GetAddressOfReturnLocation()) string())->assign(reinterpret_cast<discord::ActivityParty *>(g->GetObject())->GetId());
+    }));
+    REG_METHOD_THISCALL(ActivityParty, "PartySize& get_Size() property",      asMETHODPR(discord::ActivityParty, GetSize, (void), discord::PartySize&));
 
     // ActivitySecrets:
     REG_REF_NOHANDLE(ActivitySecrets);

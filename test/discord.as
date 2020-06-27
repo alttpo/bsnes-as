@@ -3,10 +3,6 @@ int lastConnect = 1;
 int presenceCount = 1;
 uint64 start = 0;
 
-void init() {
-  start = chrono::timestamp;
-}
-
 void pre_frame() {
   if (!discord::created) {
     if (--lastConnect > 0) return;
@@ -33,6 +29,9 @@ void pre_frame() {
     activity.Type = 1;
     activity.Details = "details";
     activity.State = "state";
+    activity.Party.Id = "partyId";
+    activity.Party.Size.CurrentSize = 1;
+    activity.Party.Size.MaxSize = 4;
     activity.Assets.LargeImage = "logo";
     activity.Assets.LargeText = "ALttPO";
     //activity.Assets.SmallImage = "logo";
