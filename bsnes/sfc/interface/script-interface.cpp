@@ -476,6 +476,18 @@ auto Interface::registerScriptDefs() -> void {
   // global function to write debug messages:
   r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(ScriptInterface::message), asCALL_CDECL); assert(r >= 0);
 
+  // chrono namespace to get current timestamp and measure time:
+  {
+    r = script.engine->SetDefaultNamespace("chrono"); assert(r >= 0);
+
+    r = script.engine->RegisterGlobalFunction("uint64 get_nanosecond() property", asFUNCTION(chrono::nanosecond), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("uint64 get_microsecond() property", asFUNCTION(chrono::microsecond), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("uint64 get_millisecond() property", asFUNCTION(chrono::millisecond), asCALL_CDECL); assert(r >= 0);
+    r = script.engine->RegisterGlobalFunction("uint64 get_second() property", asFUNCTION(chrono::second), asCALL_CDECL); assert(r >= 0);
+
+    r = script.engine->RegisterGlobalFunction("uint64 get_timestamp() property", asFUNCTIONPR(chrono::timestamp, (), uint64_t), asCALL_CDECL); assert(r >= 0);
+  }
+
   ScriptInterface::RegisterBus(script.engine);
 
   {
