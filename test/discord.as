@@ -1,6 +1,11 @@
 
 int lastConnect = 1;
 int presenceCount = 1;
+uint64 start = 0;
+
+void init() {
+  start = chrono::timestamp;
+}
 
 void pre_frame() {
   if (!discord::created) {
@@ -16,21 +21,23 @@ void pre_frame() {
     }
 
     message("discord: connected!");
+    start = chrono::timestamp;
   }
   if (!discord::created) return;
 
   if (--presenceCount <= 0) {
     // update presence every 20 seconds:
-    presenceCount = 20 * 60;
+    presenceCount = 5 * 60;
 
     auto activity = discord::Activity();
     activity.Type = 1;
     activity.Details = "details";
     activity.State = "state";
     activity.Assets.LargeImage = "logo";
-    activity.Assets.LargeText = "large text";
-    activity.Assets.SmallImage = "logo";
-    activity.Assets.SmallText = "small text";
+    activity.Assets.LargeText = "ALttPO";
+    //activity.Assets.SmallImage = "logo";
+    //activity.Assets.SmallText = "small text";
+    activity.Timestamps.Start = start;
     activity.Instance = true;
     discord::activityManager.UpdateActivity(activity, null);
   }
