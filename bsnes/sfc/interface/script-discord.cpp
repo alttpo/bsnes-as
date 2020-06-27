@@ -5,6 +5,12 @@ discord::Result result;
 discord::Core* core{};
 discord::LogLevel minLevel = discord::LogLevel::Debug;
 
+auto reset() -> void {
+  delete core;
+  core = nullptr;
+  result = discord::Result::NotRunning;
+}
+
 auto logCallback(discord::LogLevel level, const char* message) -> void {
   static const char *levelNames[] = {
     "ERROR",
@@ -221,6 +227,7 @@ auto Register(asIScriptEngine *e) -> void {
 
     // ActivityParty:
     REG_REF_NOHANDLE(ActivityParty);
+
     // ActivitySecrets:
     REG_REF_NOHANDLE(ActivitySecrets);
 

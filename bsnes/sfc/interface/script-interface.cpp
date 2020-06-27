@@ -618,6 +618,8 @@ auto Interface::unloadScript() -> void {
     ScriptInterface::executeScript(script.context);
   }
 
+  ScriptInterface::DiscordInterface::reset();
+
 #if defined(AS_PROFILER_ENABLE)
   ScriptInterface::profiler.disable(script.context);
 #endif
