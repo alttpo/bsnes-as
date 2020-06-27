@@ -151,6 +151,26 @@ auto Register(asIScriptEngine *e) -> void {
 
     // ActivityTimestamps:
     REG_REF_NOHANDLE(ActivityTimestamps);
+    REG_LAMBDA(ActivityTimestamps, "void   set_Start(int64) property",
+      ([](discord::ActivityTimestamps &self, int64_t value) {
+        self.SetStart(value);
+      })
+    );
+    REG_LAMBDA(ActivityTimestamps, "int64  get_Start() property",
+      ([](discord::ActivityTimestamps &self) {
+        return self.GetStart();
+      })
+    );
+    REG_LAMBDA(ActivityTimestamps, "void   set_End(int64) property",
+      ([](discord::ActivityTimestamps &self, int64_t value) {
+        self.SetEnd(value);
+      })
+    );
+    REG_LAMBDA(ActivityTimestamps, "int64  get_End() property",
+      ([](discord::ActivityTimestamps &self) {
+        return self.GetEnd();
+      })
+    );
 
     // ActivityAssets:
     REG_REF_NOHANDLE(ActivityAssets);
