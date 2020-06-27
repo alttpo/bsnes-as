@@ -242,10 +242,21 @@ auto Register(asIScriptEngine *e) -> void {
 
     // ActivitySecrets:
     REG_REF_NOHANDLE(ActivitySecrets);
+    REG_LAMBDA         (ActivitySecrets, "void   set_Match(const string &in) property", ([](discord::ActivitySecrets &self, string &value) { self.SetMatch(value.data()); }));
+    REG_LAMBDA_GENERIC (ActivitySecrets, "string get_Match() property",                 ([](asIScriptGeneric *g) {
+      (new(g->GetAddressOfReturnLocation()) string())->assign(reinterpret_cast<discord::ActivitySecrets *>(g->GetObject())->GetMatch());
+    }));
+    REG_LAMBDA         (ActivitySecrets, "void   set_Join(const string &in) property", ([](discord::ActivitySecrets &self, string &value) { self.SetJoin(value.data()); }));
+    REG_LAMBDA_GENERIC (ActivitySecrets, "string get_Join() property",                 ([](asIScriptGeneric *g) {
+      (new(g->GetAddressOfReturnLocation()) string())->assign(reinterpret_cast<discord::ActivitySecrets *>(g->GetObject())->GetJoin());
+    }));
+    REG_LAMBDA         (ActivitySecrets, "void   set_Spectate(const string &in) property", ([](discord::ActivitySecrets &self, string &value) { self.SetSpectate(value.data()); }));
+    REG_LAMBDA_GENERIC (ActivitySecrets, "string get_Spectate() property",                 ([](asIScriptGeneric *g) {
+      (new(g->GetAddressOfReturnLocation()) string())->assign(reinterpret_cast<discord::ActivitySecrets *>(g->GetObject())->GetSpectate());
+    }));
 
     // Activity:
     REG_REF_SCOPED (Activity, discord::Activity);
-
     REG_METHOD_THISCALL(Activity, "void   set_Type(int) property", asMETHOD(discord::Activity, SetType));
     REG_METHOD_THISCALL(Activity, "int    get_Type() property",    asMETHOD(discord::Activity, GetType));
     REG_METHOD_THISCALL(Activity, "void   set_ApplicationId(int64) property", asMETHOD(discord::Activity, SetApplicationId));

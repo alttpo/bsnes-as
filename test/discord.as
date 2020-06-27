@@ -36,6 +36,7 @@ void pre_frame() {
     activity.Assets.LargeText = "ALttPO";
     //activity.Assets.SmallImage = "logo";
     //activity.Assets.SmallText = "small text";
+    activity.Secrets.Join = "join";
     activity.Timestamps.Start = start;
     activity.Instance = true;
     discord::activityManager.UpdateActivity(activity, null);
