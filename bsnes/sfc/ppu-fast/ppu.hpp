@@ -393,10 +393,10 @@ public:
   } mode7LineGroups;
 
   struct ThreadPool {
-    static const int cpu_count = 4;
-    static const int thread_count = cpu_count - 1;
-    thread t[thread_count];
-    uintptr work[thread_count];
+    const int cpu_count = std::thread::hardware_concurrency();
+    const int thread_count = cpu_count - 1;
+    vector<std::thread> t;
+    uintptr *work;
     function<void(uintptr)> job;
 
     std::mutex start_lock;

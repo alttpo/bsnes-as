@@ -221,8 +221,9 @@ auto PPU::power(bool reset) -> void {
 PPU::ThreadPool::ThreadPool() {
   done = false;
   started = 0;
+  work = new uintptr[cpu_count];
   for (int i = 0; i < thread_count; i++) {
-    t[i] = thread::create({&PPU::ThreadPool::worker, this}, i);
+    t.append(std::thread(&PPU::ThreadPool::worker, this, i));
   }
 }
 
@@ -232,6 +233,7 @@ PPU::ThreadPool::~ThreadPool() {
   for (int i = 0; i < thread_count; i++) {
     t[i].join();
   }
+  delete work;
 }
 
 auto PPU::ThreadPool::start(const function<void(uintptr)> &f) -> void {

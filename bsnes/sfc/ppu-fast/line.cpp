@@ -28,29 +28,37 @@ auto PPU::Line::flush() -> void {
       }
     };
 
-    //renderLines(0, Line::count);
+#if 0
+    uint bounds[2] = {0, Line::count};
+    renderLines((uintptr)&bounds);
+#else
+    if (Line::count >= ppu.threadPool.cpu_count) {
+      // divide up screen height into chunks for multiple threads to process:
+      uint bounds[ppu.threadPool.cpu_count][2];
+      int rows = Line::count / ppu.threadPool.cpu_count;
+      uint y = 0;
 
-    // divide up screen height into chunks for multiple threads to process:
-    uint bounds[ppu.threadPool.cpu_count][2];
-    int rows = Line::count / ppu.threadPool.cpu_count;
-    uint y = 0;
+      int i;
+      for (i = 0; i < ppu.threadPool.thread_count; i++) {
+        bounds[i][0] = y;
+        bounds[i][1] = y += rows;
+        ppu.threadPool.work[i] = (uintptr) & bounds[i];
+        //renderLines((uintptr)&bounds[i]);
+      }
+      ppu.threadPool.start(renderLines);
 
-    int i;
-    for (i = 0; i < ppu.threadPool.thread_count; i++) {
+      // take the last slice ourselves:
       bounds[i][0] = y;
-      bounds[i][1] = y += rows;
-      ppu.threadPool.work[i] = (uintptr)&bounds[i];
-      //renderLines((uintptr)&bounds[i]);
+      bounds[i][1] = Line::count;
+      renderLines((uintptr) &bounds[i]);
+
+      // wait for other threads to finish:
+      ppu.threadPool.wait();
+    } else {
+      uint bounds[2] = {0, Line::count};
+      renderLines((uintptr) &bounds);
     }
-    ppu.threadPool.start(renderLines);
-
-    // take the last slice ourselves:
-    bounds[i][0] = y;
-    bounds[i][1] = Line::count;
-    renderLines((uintptr)&bounds[i]);
-
-    // wait for other threads to finish:
-    ppu.threadPool.wait();
+#endif
 
     Line::start = 0;
     Line::count = 0;
