@@ -228,31 +228,34 @@ PPU::ThreadPool::ThreadPool() {
 
 PPU::ThreadPool::~ThreadPool() {
   done = true;
+  cv_start.notify_all();
   for (int i = 0; i < thread_count; i++) {
     t[i].join();
   }
 }
 
 auto PPU::ThreadPool::start(const function<void(uintptr)> &f) -> void {
+  std::lock_guard<std::mutex> lock(start_lock);
   job = f;
   started = 0;
   stopping = false;
   starting = true;
+  cv_start.notify_all();
 }
 
 auto PPU::ThreadPool::worker(uintptr p) -> void {
   while (true) {
     // wait for work:
     {
+      std::unique_lock<std::mutex> lock(start_lock);
       //printf("worker[%lu] cv_start.wait {\n", p);
-      while (!(done || starting)) {
-        usleep(100);
-      }
+      cv_start.wait(lock, [this](){ return done || starting; });
       //printf("worker[%lu] cv_start.wait }\n", p);
-      if (done) return;
-
-      ++started;
     }
+
+    if (done) return;
+
+    ++started;
 
     //printf("worker[%lu] job {\n", p);
     job(work[p]);
@@ -264,9 +267,7 @@ auto PPU::ThreadPool::worker(uintptr p) -> void {
       }
     }
 
-    {
-      --started;
-    }
+    --started;
   }
 }
 

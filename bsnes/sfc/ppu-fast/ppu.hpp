@@ -399,6 +399,8 @@ public:
     uintptr work[thread_count];
     function<void(uintptr)> job;
 
+    std::mutex start_lock;
+    std::condition_variable cv_start;
     std::atomic<int> started;
     std::atomic<bool> starting;
     std::atomic<bool> stopping;
