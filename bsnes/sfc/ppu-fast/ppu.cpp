@@ -228,36 +228,30 @@ PPU::ThreadPool::ThreadPool() {
 
 PPU::ThreadPool::~ThreadPool() {
   done = true;
-  cv_start.notify_all();
   for (int i = 0; i < thread_count; i++) {
     t[i].join();
   }
 }
 
 auto PPU::ThreadPool::start(const function<void(uintptr)> &f) -> void {
-  std::lock_guard<std::mutex> lock(start_lock);
   job = f;
   started = 0;
-  starting = true;
   stopping = false;
-  cv_start.notify_all();
+  starting = true;
 }
 
 auto PPU::ThreadPool::worker(uintptr p) -> void {
   while (true) {
     // wait for work:
     {
-      std::unique_lock<std::mutex> lock(start_lock);
       //printf("worker[%lu] cv_start.wait {\n", p);
-      cv_start.wait(lock, [this](){ return done || starting; });
+      while (!(done || starting)) {
+        usleep(100);
+      }
       //printf("worker[%lu] cv_start.wait }\n", p);
       if (done) return;
 
-      if (++started == thread_count) {
-        //printf("worker[%lu] cv_started.notify_one {\n", p);
-        cv_started.notify_one();
-        //printf("worker[%lu] cv_started.notify_one }\n", p);
-      }
+      ++started;
     }
 
     //printf("worker[%lu] job {\n", p);
@@ -265,41 +259,36 @@ auto PPU::ThreadPool::worker(uintptr p) -> void {
     //printf("worker[%lu] job }\n", p);
 
     {
-      std::unique_lock<std::mutex> lock(stop_lock);
-      cv_stopped.wait(lock, [this](){ return stopping; });
+      while (!(done || stopping)) {
+        //usleep(1);
+      }
     }
 
     {
-      std::unique_lock<std::mutex> lock(end_lock);
-
-      if (--started == 0) {
-        //printf("worker[%lu] cv_end.notify_one {\n", p);
-        cv_end.notify_one();
-        //printf("worker[%lu] cv_end.notify_one }\n", p);
-      }
+      --started;
     }
   }
 }
 
 auto PPU::ThreadPool::wait() -> void {
   {
-    std::unique_lock<std::mutex> lock(start_lock);
     //printf("waiter cv_started.wait {\n");
-    cv_started.wait(lock, [this](){ return done || started == thread_count; });
+    while (!(done || started == thread_count)) {
+      //usleep(1);
+    }
     //printf("waiter cv_started.wait }\n");
     starting = false;
   }
 
   {
-    std::unique_lock<std::mutex> lock(stop_lock);
     stopping = true;
-    cv_stopped.notify_all();
   }
 
   {
-    std::unique_lock<std::mutex> lock(end_lock);
     //printf("waiter cv_end.wait {\n");
-    cv_end.wait(lock, [this](){ return done || started == 0; });
+    while (!(done || started == 0)) {
+      //usleep(1);
+    }
     //printf("waiter cv_end.wait }\n");
   }
 }
