@@ -180,22 +180,27 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
     }
   };
 
-  const int cpu_count = 4;
-  const int thread_count = cpu_count - 1;
-
-  int bounds[cpu_count][2] = {};
-  int columns = width / cpu_count;
+  // divide up screen width into chunks for multiple threads to process:
+  int bounds[ppu.threadPool.cpu_count][2];
+  int columns = width / ppu.threadPool.cpu_count;
   int x = 0;
 
   int i;
-  for (i = 0; i < thread_count; i++) {
+  for (i = 0; i < ppu.threadPool.thread_count; i++) {
     bounds[i][0] = x;
     bounds[i][1] = x += columns;
-    renderColumns((uintptr)&bounds[i]);
+    ppu.threadPool.work[i] = (uintptr)&bounds[i];
+    //renderColumns((uintptr)&bounds[i]);
   }
+  ppu.threadPool.start(renderColumns);
+
+  // take the last slice ourselves:
   bounds[i][0] = x;
   bounds[i][1] = width;
   renderColumns((uintptr)&bounds[i]);
+
+  // wait for other threads to finish:
+  ppu.threadPool.wait();
 }
 
 auto PPU::Line::getTile(PPU::IO::Background& self, uint hoffset, uint voffset) -> uint {

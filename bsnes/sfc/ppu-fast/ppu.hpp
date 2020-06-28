@@ -399,17 +399,20 @@ public:
     uintptr work[thread_count];
     function<void(uintptr)> job;
 
-    std::mutex m_lock;
+    std::mutex start_lock;
+    std::mutex end_lock;
     std::condition_variable cv_start;
+    std::condition_variable cv_started;
     std::condition_variable cv_end;
-    std::atomic<int> jobs;
-    std::atomic<bool> done;
+    std::atomic<int> started;
+    bool starting;
+    bool done;
 
     ThreadPool();
     ~ThreadPool();
     auto worker(uintptr) -> void;
 
-    auto start(function<void(uintptr)> &f) -> void;
+    auto start(const function<void(uintptr)> &f) -> void;
     auto wait() -> void;
   } threadPool;
 };
