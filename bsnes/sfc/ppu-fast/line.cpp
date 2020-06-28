@@ -4,22 +4,54 @@ uint PPU::Line::count = 0;
 auto PPU::Line::flush() -> void {
   if(Line::count) {
     if(ppu.hdScale() > 1) cacheMode7HD();
-    #pragma omp parallel for if(Line::count >= 8)
-    for(uint y = 0; y < Line::count; y++) {
-      if(ppu.deinterlace()) {
-        if(!ppu.interlace()) {
-          //some games enable interlacing in 240p mode, just force these to even fields
-          ppu.lines[Line::start + y].render(0);
+
+    auto renderLines = [](uintptr p) {
+      uint *ybounds = (uint *)p;
+      uint starty = ybounds[0];
+      uint endy = ybounds[1];
+
+      //#pragma omp parallel for if(Line::count >= 8)
+      for (uint y = starty; y < endy; y++) {
+        if (ppu.deinterlace()) {
+          if (!ppu.interlace()) {
+            //some games enable interlacing in 240p mode, just force these to even fields
+            ppu.lines[Line::start + y].render(0);
+          } else {
+            //for actual interlaced frames, render both fields every farme for 480i -> 480p
+            ppu.lines[Line::start + y].render(0);
+            ppu.lines[Line::start + y].render(1);
+          }
         } else {
-          //for actual interlaced frames, render both fields every farme for 480i -> 480p
-          ppu.lines[Line::start + y].render(0);
-          ppu.lines[Line::start + y].render(1);
+          //standard 240p (progressive) and 480i (interlaced) rendering
+          ppu.lines[Line::start + y].render(ppu.field());
         }
-      } else {
-        //standard 240p (progressive) and 480i (interlaced) rendering
-        ppu.lines[Line::start + y].render(ppu.field());
       }
+    };
+
+    //renderLines(0, Line::count);
+
+    // divide up screen height into chunks for multiple threads to process:
+    uint bounds[ppu.threadPool.cpu_count][2];
+    int rows = Line::count / ppu.threadPool.cpu_count;
+    uint y = 0;
+
+    int i;
+    for (i = 0; i < ppu.threadPool.thread_count; i++) {
+      bounds[i][0] = y;
+      bounds[i][1] = y += rows;
+      ppu.threadPool.work[i] = (uintptr)&bounds[i];
+      //renderLines((uintptr)&bounds[i]);
     }
+    ppu.threadPool.start(renderLines);
+
+    // take the last slice ourselves:
+    bounds[i][0] = y;
+    bounds[i][1] = Line::count;
+    renderLines((uintptr)&bounds[i]);
+
+    // wait for other threads to finish:
+    ppu.threadPool.wait();
+
     Line::start = 0;
     Line::count = 0;
   }
