@@ -147,17 +147,17 @@ public:
     if (!threads)
       throw std::invalid_argument("Invalid thread count!");
 
-    workers = 0;
+    m_ran = 0;
     auto worker = [this]() {
       while (true) {
         Proc f;
         if (!m_queue.pop(f))
           break;
-        workers++;
         f();
-        if (--workers == 0) {
+
+        if (++m_ran == m_count) {
           std::unique_lock lock(alldone_lock);
-          cv_alldone.notify_all();
+          cv_alldone.notify_one();
         }
       }
     };
@@ -174,15 +174,18 @@ public:
 
   template<typename F, typename... Args>
   void enqueue_work(F &&f, Args &&... args) {
+    m_count++;
     m_queue.push([p = std::forward<F>(f), t = std::make_tuple(std::forward<Args>(args)...)]() { std::apply(p, t); });
   }
 
   void wait() {
     // wait until last task is complete:
     std::unique_lock lock(alldone_lock);
-    while (workers > 0) {
+    while (m_ran < m_count) {
       cv_alldone.wait(lock);
-    };
+    }
+    m_count = 0;
+    m_ran = 0;
   }
 
 #if 0
@@ -210,5 +213,6 @@ private:
 
   std::mutex alldone_lock;
   std::condition_variable cv_alldone;
-  std::atomic<int> workers;
+  std::atomic<int> m_ran;
+  std::atomic<int> m_count;
 };

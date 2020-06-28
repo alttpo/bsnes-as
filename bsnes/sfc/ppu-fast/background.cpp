@@ -39,8 +39,9 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
     }
   }
 
+  uint mosaicCounterTop = self.mosaicEnable ? io.mosaic.size : 1;
+
   auto renderColumns = [&](int startx, int endx) {
-    uint mosaicCounterTop = self.mosaicEnable ? io.mosaic.size : 1;
     uint mosaicCounter = 1;
     uint mosaicPalette = 0;
     uint8 mosaicPriority = 0;
@@ -174,6 +175,7 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
         }
       }
     }
+    //printf("task complete %3d,%3d\n", startx, endx);
   };
 
 #if 0
@@ -182,20 +184,19 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
   // divide up screen width into chunks for multiple threads to process:
   int columns = width / ppu.threadPool.thread_count;
 
-  int x = 0, start = 0, end = 0;
+  int x = 0;
   for (int i = 0; i < ppu.threadPool.thread_count - 1; i++) {
-    start = x;
-    end = x += columns;
+    int start = x;
+    int end = x += columns;
     ppu.threadPool.enqueue_work(renderColumns, start, end);
   }
 
   // take the last slice ourselves:
-  start = x;
-  end = width;
-  ppu.threadPool.enqueue_work(renderColumns, start, end);
+  ppu.threadPool.enqueue_work(renderColumns, x, width);
 
   // wait for all tasks to complete:
   ppu.threadPool.wait();
+  //printf("wait complete\n");
 #endif
 }
 
