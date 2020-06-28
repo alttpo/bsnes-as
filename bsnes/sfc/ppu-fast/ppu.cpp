@@ -246,16 +246,18 @@ auto PPU::ThreadPool::start(const function<void(uintptr)> &f) -> void {
 }
 
 auto PPU::ThreadPool::worker(uintptr p) -> void {
+  bool exit = false;
   while (true) {
     // wait for work:
     {
       std::unique_lock<std::mutex> lock(start_lock);
       //printf("worker[%lu] cv_start.wait {\n", p);
-      cv_start.wait(lock, [this](){ return done || starting; });
+      while (!starting && !(exit = done)) {
+        cv_start.wait(lock);
+      }
+      if (exit) return;
       //printf("worker[%lu] cv_start.wait }\n", p);
     }
-
-    if (done) return;
 
     ++started;
 
@@ -264,7 +266,7 @@ auto PPU::ThreadPool::worker(uintptr p) -> void {
     //printf("worker[%lu] job }\n", p);
 
     {
-      while (!(done || stopping)) {
+      while (!(stopping || done)) {
         //usleep(1);
       }
     }
