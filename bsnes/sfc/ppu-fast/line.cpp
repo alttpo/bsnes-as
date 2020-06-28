@@ -22,9 +22,6 @@ auto PPU::Line::flush() -> void {
       }
     }
 
-    // wait for all tasks to complete:
-    ppu.threadPool.wait();
-
     Line::start = 0;
     Line::count = 0;
   }

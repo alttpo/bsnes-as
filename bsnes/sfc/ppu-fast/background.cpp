@@ -39,11 +39,7 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
     }
   }
 
-  auto renderColumns = [&](uintptr p) {
-    int *bounds = (int*)p;
-    int startx = bounds[0];
-    int endx = bounds[1];
-
+  auto renderColumns = [&](int startx, int endx) {
     uint mosaicCounterTop = self.mosaicEnable ? io.mosaic.size : 1;
     uint mosaicCounter = 1;
     uint mosaicPalette = 0;
@@ -180,30 +176,25 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
     }
   };
 
-#if 1
-  int bounds[2] = {0, width};
-  renderColumns((uintptr)&bounds);
+#if 0
+  renderColumns(0, width);
 #else
   // divide up screen width into chunks for multiple threads to process:
-  int bounds[ppu.threadPool.cpu_count][2];
-  int columns = width / ppu.threadPool.cpu_count;
-  int x = 0;
+  int columns = width / ppu.threadPool.thread_count;
 
-  int i;
-  for (i = 0; i < ppu.threadPool.thread_count; i++) {
-    bounds[i][0] = x;
-    bounds[i][1] = x += columns;
-    ppu.threadPool.work[i] = (uintptr)&bounds[i];
-    //renderColumns((uintptr)&bounds[i]);
+  int x = 0, start = 0, end = 0;
+  for (int i = 0; i < ppu.threadPool.thread_count - 1; i++) {
+    start = x;
+    end = x += columns;
+    ppu.threadPool.enqueue_work(renderColumns, start, end);
   }
-  ppu.threadPool.start(renderColumns);
 
   // take the last slice ourselves:
-  bounds[i][0] = x;
-  bounds[i][1] = width;
-  renderColumns((uintptr)&bounds[i]);
+  start = x;
+  end = width;
+  ppu.threadPool.enqueue_work(renderColumns, start, end);
 
-  // wait for other threads to finish:
+  // wait for all tasks to complete:
   ppu.threadPool.wait();
 #endif
 }
