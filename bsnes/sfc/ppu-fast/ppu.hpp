@@ -391,6 +391,27 @@ public:
     int startLerpLine[32];
     int endLerpLine[32];
   } mode7LineGroups;
+
+  struct ThreadPool {
+    static const int cpu_count = 4;
+    static const int thread_count = cpu_count - 1;
+    thread t[thread_count];
+    uintptr work[thread_count];
+    function<void(uintptr)> job;
+
+    std::mutex m_lock;
+    std::condition_variable cv_start;
+    std::condition_variable cv_end;
+    std::atomic<int> jobs;
+    std::atomic<bool> done;
+
+    ThreadPool();
+    ~ThreadPool();
+    auto worker(uintptr) -> void;
+
+    auto start(function<void(uintptr)> &f) -> void;
+    auto wait() -> void;
+  } threadPool;
 };
 
 extern PPU ppufast;

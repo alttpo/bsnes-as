@@ -21,6 +21,7 @@
 #include <nall/vfs.hpp>
 #include <nall/hash/crc32.hpp>
 #include <nall/hash/sha256.hpp>
+#include <nall/thread.hpp>
 using namespace nall;
 
 #include <emulator/types.hpp>

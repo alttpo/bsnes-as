@@ -216,4 +216,49 @@ auto PPU::power(bool reset) -> void {
   frame = {};
 }
 
+// ---
+
+PPU::ThreadPool::ThreadPool() {
+  done = false;
+  jobs = 0;
+  for (int i = 0; i < thread_count; i++) {
+    t[i] = thread::create({&PPU::ThreadPool::worker, this});
+  }
+}
+
+PPU::ThreadPool::~ThreadPool() {
+  done = true;
+  cv_start.notify_all();
+  for (int i = 0; i < thread_count; i++) {
+    t[i].join();
+  }
+}
+
+auto PPU::ThreadPool::worker(uintptr p) -> void {
+  while (true) {
+    // wait for work:
+    {
+      std::unique_lock<std::mutex> lock(m_lock);
+      cv_start.wait(lock);
+      if (done) return;
+    }
+
+    job(work[p]);
+
+    jobs--;
+    cv_end.notify_one();
+  }
+}
+
+auto PPU::ThreadPool::start(function<void(uintptr)> &f) -> void {
+  jobs = thread_count;
+  cv_start.notify_all();
+}
+auto PPU::ThreadPool::wait() -> void {
+  while (jobs > 0) {
+    std::unique_lock<std::mutex> lock(m_lock);
+    cv_end.wait(lock);
+  }
+}
+
 }

@@ -25,6 +25,7 @@ namespace Math {
 
 #include <atomic>
 #include <limits>
+#include <condition_variable>
 #include <mutex>
 #include <utility>
 
