@@ -266,7 +266,9 @@ auto PPU::ThreadPool::worker(uintptr p) -> void {
     //printf("worker[%lu] job }\n", p);
 
     {
+      std::unique_lock<std::mutex> lock(end_lock);
       while (!(stopping || done)) {
+        cv_end.wait(lock);
         //usleep(1);
       }
     }
@@ -286,7 +288,9 @@ auto PPU::ThreadPool::wait() -> void {
   }
 
   {
+    std::unique_lock<std::mutex> lock(end_lock);
     stopping = true;
+    cv_end.notify_all();
   }
 
   {

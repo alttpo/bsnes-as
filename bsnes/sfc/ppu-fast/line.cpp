@@ -35,7 +35,7 @@ auto PPU::Line::flush() -> void {
     if (Line::count >= ppu.threadPool.cpu_count) {
       // divide up screen height into chunks for multiple threads to process:
       uint bounds[ppu.threadPool.cpu_count][2];
-      int rows = Line::count / ppu.threadPool.cpu_count;
+      int rows = min(1, Line::count / ppu.threadPool.cpu_count);
       uint y = 0;
 
       int i;

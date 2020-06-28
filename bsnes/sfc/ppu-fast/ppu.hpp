@@ -400,7 +400,9 @@ public:
     function<void(uintptr)> job;
 
     std::mutex start_lock;
+    std::mutex end_lock;
     std::condition_variable cv_start;
+    std::condition_variable cv_end;
     std::atomic<int> started;
     std::atomic<bool> starting;
     std::atomic<bool> stopping;
