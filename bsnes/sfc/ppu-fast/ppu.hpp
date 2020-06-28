@@ -400,12 +400,15 @@ public:
     function<void(uintptr)> job;
 
     std::mutex start_lock;
+    std::mutex stop_lock;
     std::mutex end_lock;
     std::condition_variable cv_start;
     std::condition_variable cv_started;
+    std::condition_variable cv_stopped;
     std::condition_variable cv_end;
     std::atomic<int> started;
     bool starting;
+    bool stopping;
     bool done;
 
     ThreadPool();
