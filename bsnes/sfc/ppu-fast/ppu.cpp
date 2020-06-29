@@ -34,7 +34,9 @@ auto PPU::renderCycle() const -> uint { return configuration.hacks.ppu.renderCyc
 auto PPU::noVRAMBlocking() const -> bool { return configuration.hacks.ppu.noVRAMBlocking; }
 #define ppu ppufast
 
-PPU::PPU() {
+PPU::PPU()
+  : threadPool(128)
+{
   output = new uint16_t[2304 * 2160]();
 
   for(uint l : range(16)) {
