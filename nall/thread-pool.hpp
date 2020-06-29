@@ -140,6 +140,7 @@ public:
     m_fullSlots.post();
   }
 
+#if 0
   template<typename Q = T>
   typename std::enable_if<std::is_nothrow_copy_constructible<Q>::value, bool>::type
   try_push(const T& item) noexcept
@@ -179,6 +180,7 @@ public:
     m_fullSlots.post();
     return true;
   }
+#endif
 
   template<typename Q = T>
   typename std::enable_if<
@@ -220,6 +222,7 @@ public:
     m_openSlots.post();
   }
 
+#if 0
   template<typename Q = T>
   typename std::enable_if<
     !std::is_move_assignable<Q>::value &&
@@ -265,6 +268,7 @@ public:
     m_openSlots.post();
     return true;
   }
+#endif
 
   bool empty() const noexcept
   {
@@ -293,8 +297,8 @@ private:
   std::atomic_uint m_count;
   T* m_data;
 
-  semaphore m_openSlots;
-  semaphore m_fullSlots;
+  fast_semaphore m_openSlots;
+  fast_semaphore m_fullSlots;
 };
 
 class simple_thread_pool {
