@@ -76,6 +76,8 @@ auto PPU::Line::cache() -> void {
   }
 
 #if 1
+  //if(ppu.hdScale() > 1) cacheMode7HD();
+
   auto fieldNumber = ppu.field();
   std::function<void(PPU::Line&)> renderLine;
   if (ppu.deinterlace()) {

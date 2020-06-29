@@ -123,8 +123,8 @@ auto CPU::scanline() -> void {
   if(vcounter() == (Region::NTSC() ? 261 : 311)) {
     overclocking.counter = 0;
     overclocking.target = 0;
-    double overclock = configuration.hacks.cpu.overclock / 100.0;
-    if(overclock > 1.0) {
+    if(configuration.hacks.cpu.overclock > 100) {
+      double overclock = configuration.hacks.cpu.overclock / 100.0;
       int clocks = (Region::NTSC() ? 262 : 312) * 1364;
       overclocking.target = clocks * overclock - clocks;
     }
