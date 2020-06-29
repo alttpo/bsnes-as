@@ -10,7 +10,7 @@
 #include <future>
 #endif
 
-#if 1
+#if 0
 class semaphore {
 public:
   explicit semaphore(unsigned int count = 0) noexcept
@@ -337,7 +337,7 @@ public:
   }
 
   template<typename F, typename... Args>
-  void enqueue_work(F &&f, Args &&... args) {
+  void enqueue(F &&f, Args &&... args) {
     m_tasks++;
     m_queue.push([p = std::forward<F>(f), t = std::make_tuple(std::forward<Args>(args)...)]() { std::apply(p, t); });
   }
@@ -377,7 +377,7 @@ private:
   std::atomic<int> m_ran;
   std::atomic<int> m_tasks;
 };
-#else
+#elif 1
 template<typename T>
 class blocking_queue {
 public:
@@ -546,7 +546,7 @@ public:
   }
 
   template<typename F, typename... Args>
-  void enqueue_work(F&& f, Args&&... args)
+  void enqueue(F&& f, Args&&... args)
   {
     auto work = [p = std::forward<F>(f), t = std::make_tuple(std::forward<Args>(args)...)]() { std::apply(p, t); };
     auto i = m_index++;
@@ -609,4 +609,83 @@ private:
 
   inline static const unsigned int K = 2;
 };
+#elif 0
+
+//thread pool
+class thread_pool {
+public:
+  const int thread_count;
+
+  thread_pool(unsigned int n = std::thread::hardware_concurrency())
+    : thread_count(n), busy(), processed(), stop() {
+    for (unsigned int i = 0; i < n; ++i)
+      workers.emplace_back(std::bind(&thread_pool::thread_proc, this));
+  }
+
+  ~thread_pool() {
+    // set stop-condition
+    std::unique_lock<std::mutex> latch(queue_mutex);
+    stop = true;
+    cv_task.notify_all();
+    latch.unlock();
+
+    // all threads terminate, then we're done.
+    for (auto &t : workers)
+      t.join();
+  }
+
+  template<class F>
+  void enqueue(F &&f) {
+    std::unique_lock<std::mutex> lock(queue_mutex);
+    tasks.emplace_back(std::forward<F>(f));
+    cv_task.notify_one();
+  }
+
+  void wait() {
+    std::unique_lock<std::mutex> lock(queue_mutex);
+    cv_finished.wait(lock, [this]() { return tasks.empty() && (busy == 0); });
+  }
+
+  unsigned int getProcessed() const { return processed; }
+
+private:
+  std::vector<std::thread> workers;
+  std::deque<std::function<void()> > tasks;
+  std::mutex queue_mutex;
+  std::condition_variable cv_task;
+  std::condition_variable cv_finished;
+  std::atomic_uint processed;
+  unsigned int busy;
+  bool stop;
+
+  void thread_proc() {
+    while (true) {
+      std::unique_lock<std::mutex> latch(queue_mutex);
+      cv_task.wait(latch, [this]() { return stop || !tasks.empty(); });
+      if (!tasks.empty()) {
+        // got work. set busy.
+        ++busy;
+
+        // pull from queue
+        auto fn = tasks.front();
+        tasks.pop_front();
+
+        // release lock. run async
+        latch.unlock();
+
+        // run function outside context
+        fn();
+        ++processed;
+
+        latch.lock();
+        --busy;
+        cv_finished.notify_one();
+      } else if (stop) {
+        break;
+      }
+    }
+  }
+};
+
+
 #endif
