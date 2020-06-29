@@ -35,10 +35,10 @@ auto PPU::Line::renderWindow(PPU::IO::WindowLayer& self, bool enable, bool outpu
 auto PPU::Line::renderWindow(PPU::IO::WindowColor& self, uint mask, bool output[256], int xstart, int xend) -> void {
   bool set, clear;
   switch(mask) {
-  case 0: memory::fill<bool>(output, 256, 1); return;  //always
+  case 0: memory::fill<bool>(output + xstart, xend - xstart, 1); return;  //always
   case 1: set = 1, clear = 0; break;  //inside
   case 2: set = 0, clear = 1; break;  //outside
-  case 3: memory::fill<bool>(output, 256, 0); return;  //never
+  case 3: memory::fill<bool>(output + xstart, xend - xstart, 0); return;  //never
   }
 
   if(!self.oneEnable && !self.twoEnable) {

@@ -69,19 +69,18 @@ auto PPU::Line::render(bool fieldID) -> void {
     below[x] = {Source::COL, 0, belowColor};
   }
 
-  auto renderLayers = [&](int xstart, int xend) {
+  auto renderPreObjects = [&](int xstart, int xend) {
     //hack: generally, renderBackground/renderObject ordering do not matter.
     //but for HD mode 7, a larger grid of pixels are generated, and so ordering ends up mattering.
     //as a hack for Mohawk & Headphone Jack, we reorder things for BG2 to render properly.
     //longer-term, we need to devise a better solution that can work for every game.
     renderBackground(io.bg1, Source::BG1, xstart, xend);
-    if(io.extbg == 0) renderBackground(io.bg2, Source::BG2, xstart, xend);
+    if (io.extbg == 0) renderBackground(io.bg2, Source::BG2, xstart, xend);
     renderBackground(io.bg3, Source::BG3, xstart, xend);
     renderBackground(io.bg4, Source::BG4, xstart, xend);
-    renderObject(io.obj, 0, 256);
-    if(io.extbg == 1) renderBackground(io.bg2, Source::BG2, xstart, xend);
-    renderWindow(io.col.window, io.col.window.aboveMask, windowAbove, xstart, xend);
-    renderWindow(io.col.window, io.col.window.belowMask, windowBelow, xstart, xend);
+  };
+  auto renderPostObjects = [&](int xstart, int xend) {
+    renderBackground(io.bg2, Source::BG2, xstart, xend);
   };
 
 #if 1
@@ -93,15 +92,31 @@ auto PPU::Line::render(bool fieldID) -> void {
   for (int i = 0; i < ppu.threadPool.thread_count - 1; i++) {
     int start = x;
     int end = x += columns;
-    ppu.threadPool.enqueue_work(renderLayers, start, end);
+    ppu.threadPool.enqueue_work(renderPreObjects, start, end);
   }
-
-  // take the last slice ourselves:
-  ppu.threadPool.enqueue_work(renderLayers, x, xwidth);
+  ppu.threadPool.enqueue_work(renderPreObjects, x, xwidth);
 
   // wait for all tasks to complete:
   ppu.threadPool.wait();
-  //printf("wait complete\n");
+
+  renderObject(io.obj, 0, 256);
+
+  if(io.extbg == 1) {
+    x = 0;
+    for (int i = 0; i < ppu.threadPool.thread_count - 1; i++) {
+      int start = x;
+      int end = x += columns;
+      ppu.threadPool.enqueue_work(renderPostObjects, start, end);
+    }
+    ppu.threadPool.enqueue_work(renderPostObjects, x, xwidth);
+
+    // wait for all tasks to complete:
+    ppu.threadPool.wait();
+  }
+
+  renderWindow(io.col.window, io.col.window.aboveMask, windowAbove, 0, 256);
+  renderWindow(io.col.window, io.col.window.belowMask, windowBelow, 0, 256);
+
 #endif
 
   auto luma = ppu.lightTable[io.displayBrightness];
