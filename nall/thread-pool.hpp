@@ -10,6 +10,7 @@
 #include <future>
 #endif
 
+#if 0
 class semaphore {
 public:
   explicit semaphore(unsigned int count = 0) noexcept
@@ -140,7 +141,6 @@ public:
     m_fullSlots.post();
   }
 
-#if 0
   template<typename Q = T>
   typename std::enable_if<std::is_nothrow_copy_constructible<Q>::value, bool>::type
   try_push(const T& item) noexcept
@@ -180,7 +180,6 @@ public:
     m_fullSlots.post();
     return true;
   }
-#endif
 
   template<typename Q = T>
   typename std::enable_if<
@@ -222,7 +221,6 @@ public:
     m_openSlots.post();
   }
 
-#if 0
   template<typename Q = T>
   typename std::enable_if<
     !std::is_move_assignable<Q>::value &&
@@ -268,7 +266,6 @@ public:
     m_openSlots.post();
     return true;
   }
-#endif
 
   bool empty() const noexcept
   {
@@ -297,8 +294,8 @@ private:
   std::atomic_uint m_count;
   T* m_data;
 
-  fast_semaphore m_openSlots;
-  fast_semaphore m_fullSlots;
+  semaphore m_openSlots;
+  semaphore m_fullSlots;
 };
 
 class simple_thread_pool {
@@ -312,6 +309,7 @@ public:
     if (!threads)
       throw std::invalid_argument("Invalid thread count!");
 
+    m_tasks = 0;
     m_ran = 0;
     auto worker = [this]() {
       while (true) {
@@ -340,16 +338,16 @@ public:
 
   template<typename F, typename... Args>
   void enqueue_work(F &&f, Args &&... args) {
-    m_count++;
+    m_tasks++;
     m_queue.push([p = std::forward<F>(f), t = std::make_tuple(std::forward<Args>(args)...)]() { std::apply(p, t); });
   }
 
   void wait() {
     // wait until last task is complete:
-    while (m_ran < m_count) {
+    while (m_ran < m_tasks) {
       //std::this_thread::yield();
     }
-    m_count = 0;
+    m_tasks = 0;
     m_ran = 0;
   }
 
@@ -377,5 +375,238 @@ private:
   Threads m_threads;
 
   std::atomic<int> m_ran;
-  std::atomic<int> m_count;
+  std::atomic<int> m_tasks;
+};
+#endif
+
+template<typename T>
+class blocking_queue {
+public:
+  template<typename Q = T>
+  typename std::enable_if<std::is_copy_constructible<Q>::value, void>::type
+  push(const T &item) {
+    {
+      std::unique_lock lock(m_mutex);
+      m_queue.push(item);
+    }
+    m_ready.notify_one();
+  }
+
+  template<typename Q = T>
+  typename std::enable_if<std::is_move_constructible<Q>::value, void>::type
+  push(T &&item) {
+    {
+      std::unique_lock lock(m_mutex);
+      m_queue.emplace(std::forward<T>(item));
+    }
+    m_ready.notify_one();
+  }
+
+  template<typename Q = T>
+  typename std::enable_if<std::is_copy_constructible<Q>::value, bool>::type
+  try_push(const T &item) {
+    {
+      std::unique_lock lock(m_mutex, std::try_to_lock);
+      if (!lock)
+        return false;
+      m_queue.push(item);
+    }
+    m_ready.notify_one();
+    return true;
+  }
+
+  template<typename Q = T>
+  typename std::enable_if<std::is_move_constructible<Q>::value, bool>::type
+  try_push(T &&item) {
+    {
+      std::unique_lock lock(m_mutex, std::try_to_lock);
+      if (!lock)
+        return false;
+      m_queue.emplace(std::forward<T>(item));
+    }
+    m_ready.notify_one();
+    return true;
+  }
+
+  template<typename Q = T>
+  typename std::enable_if<
+    std::is_copy_assignable<Q>::value &&
+    !std::is_move_assignable<Q>::value, bool>::type
+  pop(T &item) {
+    std::unique_lock lock(m_mutex);
+    while (m_queue.empty() && !m_done)
+      m_ready.wait(lock);
+    if (m_queue.empty())
+      return false;
+    item = m_queue.front();
+    m_queue.pop();
+    return true;
+  }
+
+  template<typename Q = T>
+  typename std::enable_if<std::is_move_assignable<Q>::value, bool>::type
+  pop(T &item) {
+    std::unique_lock lock(m_mutex);
+    while (m_queue.empty() && !m_done)
+      m_ready.wait(lock);
+    if (m_queue.empty())
+      return false;
+    item = std::move(m_queue.front());
+    m_queue.pop();
+    return true;
+  }
+
+  template<typename Q = T>
+  typename std::enable_if<
+    std::is_copy_assignable<Q>::value &&
+    !std::is_move_assignable<Q>::value, bool>::type
+  try_pop(T &item) {
+    std::unique_lock lock(m_mutex, std::try_to_lock);
+    if (!lock || m_queue.empty())
+      return false;
+    item = m_queue.front();
+    m_queue.pop();
+    return true;
+  }
+
+  template<typename Q = T>
+  typename std::enable_if<std::is_move_assignable<Q>::value, bool>::type
+  try_pop(T &item) {
+    std::unique_lock lock(m_mutex, std::try_to_lock);
+    if (!lock || m_queue.empty())
+      return false;
+    item = std::move(m_queue.front());
+    m_queue.pop();
+    return true;
+  }
+
+  void done() noexcept {
+    {
+      std::unique_lock lock(m_mutex);
+      m_done = true;
+    }
+    m_ready.notify_all();
+  }
+
+  bool empty() const noexcept {
+    std::scoped_lock lock(m_mutex);
+    return m_queue.empty();
+  }
+
+  unsigned int size() const noexcept {
+    std::scoped_lock lock(m_mutex);
+    return m_queue.size();
+  }
+
+private:
+  std::queue<T> m_queue;
+  mutable std::mutex m_mutex;
+  std::condition_variable m_ready;
+  bool m_done = false;
+};
+
+class thread_pool
+{
+public:
+  const int thread_count;
+
+  explicit thread_pool(unsigned int threads = std::thread::hardware_concurrency())
+    : m_queues(threads), m_count(threads), thread_count(threads)
+  {
+    if(!threads)
+      throw std::invalid_argument("Invalid thread count!");
+
+    m_tasks = 0;
+    m_ran = 0;
+    auto worker = [this](auto i)
+    {
+      while(true)
+      {
+        Proc f;
+        for(auto n = 0; n < m_count * K; ++n)
+          if(m_queues[(i + n) % m_count].try_pop(f))
+            break;
+        if(!f && !m_queues[i].pop(f))
+          break;
+        f();
+
+        m_ran++;
+      }
+    };
+
+    for(auto i = 0; i < threads; ++i)
+      m_threads.emplace_back(worker, i);
+  }
+
+  ~thread_pool()
+  {
+    for(auto& queue : m_queues)
+      queue.push({});
+    for(auto& thread : m_threads)
+      thread.join();
+  }
+
+  template<typename F, typename... Args>
+  void enqueue_work(F&& f, Args&&... args)
+  {
+    auto work = [p = std::forward<F>(f), t = std::make_tuple(std::forward<Args>(args)...)]() { std::apply(p, t); };
+    auto i = m_index++;
+
+    for(auto n = 0; n < m_count * K; ++n)
+      if(m_queues[(i + n) % m_count].try_push(work)) {
+        m_tasks++;
+        return;
+      }
+
+    m_queues[i % m_count].push(std::move(work));
+    m_tasks++;
+  }
+
+#if 0
+  template<typename F, typename... Args>
+  [[nodiscard]] auto enqueue_task(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>
+  {
+    using task_return_type = std::invoke_result_t<F, Args...>;
+    using task_type = std::packaged_task<task_return_type()>;
+
+    auto task = std::make_shared<task_type>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+    auto work = [task]() { (*task)(); };
+    auto result = task->get_future();
+    auto i = m_index++;
+
+    for(auto n = 0; n < m_count * K; ++n)
+      if(m_queues[(i + n) % m_count].try_push(work))
+        return result;
+
+    m_queues[i % m_count].push(std::move(work));
+
+    return result;
+  }
+#endif
+
+  void wait() {
+    // wait until last task is complete:
+    while (m_ran < m_tasks) {
+      //std::this_thread::yield();
+    }
+    m_tasks = 0;
+    m_ran = 0;
+  }
+
+private:
+  using Proc = std::function<void(void)>;
+  using Queue = blocking_queue<Proc>;
+  using Queues = std::vector<Queue>;
+  Queues m_queues;
+
+  using Threads = std::vector<std::thread>;
+  Threads m_threads;
+
+  const unsigned int m_count;
+  std::atomic_uint m_index = 0;
+
+  std::atomic<int> m_ran;
+  std::atomic<int> m_tasks;
+
+  inline static const unsigned int K = 2;
 };

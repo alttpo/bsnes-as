@@ -392,7 +392,7 @@ public:
     int endLerpLine[32];
   } mode7LineGroups;
 
-  simple_thread_pool threadPool;
+  thread_pool threadPool;
 };
 
 extern PPU ppufast;
