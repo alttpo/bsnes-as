@@ -350,8 +350,8 @@ public:
     auto renderObject(PPU::IO::Object&, int xstart, int xend) -> void;
 
     //window.cpp
-    auto renderWindow(PPU::IO::WindowLayer&, bool enable, bool output[256], int xstart, int xend) -> void;
-    auto renderWindow(PPU::IO::WindowColor&, uint mask,   bool output[256], int xstart, int xend) -> void;
+    auto renderWindow(PPU::IO::WindowLayer&, bool enable, bool output[256]) -> void;
+    auto renderWindow(PPU::IO::WindowColor&, uint mask,   bool output[256]) -> void;
 
   //unserialized:
     uint y;  //constant

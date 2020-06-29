@@ -13,8 +13,8 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source, int xs
 
   bool windowAbove[256];
   bool windowBelow[256];
-  renderWindow(self.window, self.window.aboveEnable, windowAbove, xstart >> hires, xend >> hires);
-  renderWindow(self.window, self.window.belowEnable, windowBelow, xstart >> hires, xend >> hires);
+  renderWindow(self.window, self.window.aboveEnable, windowAbove);
+  renderWindow(self.window, self.window.belowEnable, windowBelow);
 
   uint tileHeight = 3 + self.tileSize;
   uint tileWidth = !hires ? tileHeight : 4;

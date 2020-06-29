@@ -3,8 +3,8 @@ auto PPU::Line::renderObject(PPU::IO::Object& self, int xstart, int xend) -> voi
 
   bool windowAbove[256];
   bool windowBelow[256];
-  renderWindow(self.window, self.window.aboveEnable, windowAbove, xstart, xend);
-  renderWindow(self.window, self.window.belowEnable, windowBelow, xstart, xend);
+  renderWindow(self.window, self.window.aboveEnable, windowAbove);
+  renderWindow(self.window, self.window.belowEnable, windowBelow);
 
   uint extraItemCount = min(ppu.extraTileCount, 128);
   uint itemCount = 0;

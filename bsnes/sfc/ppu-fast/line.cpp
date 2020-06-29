@@ -114,8 +114,8 @@ auto PPU::Line::render(bool fieldID) -> void {
     ppu.threadPool.wait();
   }
 
-  renderWindow(io.col.window, io.col.window.aboveMask, windowAbove, 0, 256);
-  renderWindow(io.col.window, io.col.window.belowMask, windowBelow, 0, 256);
+  renderWindow(io.col.window, io.col.window.aboveMask, windowAbove);
+  renderWindow(io.col.window, io.col.window.belowMask, windowBelow);
 
 #endif
 
