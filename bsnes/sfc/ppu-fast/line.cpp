@@ -2,6 +2,9 @@ uint PPU::Line::start = 0;
 uint PPU::Line::count = 0;
 
 auto PPU::Line::flush() -> void {
+#if 1
+  ppu.threadPool.wait();
+#else
   if(Line::count) {
     if(ppu.hdScale() > 1) cacheMode7HD();
 
@@ -60,6 +63,7 @@ auto PPU::Line::flush() -> void {
     Line::start = 0;
     Line::count = 0;
   }
+#endif
 }
 
 auto PPU::Line::cache() -> void {
@@ -70,8 +74,36 @@ auto PPU::Line::cache() -> void {
     memcpy(&io, &ppu.io, sizeof(io));
     memcpy(&cgram, &ppu.cgram, sizeof(cgram));
   }
+
+#if 1
+  auto fieldNumber = ppu.field();
+  std::function<void(PPU::Line&)> renderLine;
+  if (ppu.deinterlace()) {
+    if (!ppu.interlace()) {
+      //some games enable interlacing in 240p mode, just force these to even fields
+      renderLine = [](PPU::Line &line){
+        line.render(0);
+      };
+    } else {
+      //for actual interlaced frames, render both fields every farme for 480i -> 480p
+      renderLine = [](PPU::Line &line){
+        line.render(0);
+        line.render(1);
+      };
+    }
+  } else {
+    //standard 240p (progressive) and 480i (interlaced) rendering
+    renderLine = [fieldNumber](PPU::Line &line) {
+      line.render(fieldNumber);
+    };
+  }
+
+  // queue a task to render this line:
+  ppu.threadPool.enqueue(renderLine, std::ref(ppu.lines[y]));
+#else
   if(!Line::count) Line::start = y;
   Line::count++;
+#endif
 }
 
 auto PPU::Line::render(bool fieldID) -> void {
