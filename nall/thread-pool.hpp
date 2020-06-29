@@ -527,6 +527,8 @@ public:
             break;
         if(!f && !m_queues[i].pop(f))
           break;
+        if(!f)
+          break;
         f();
 
         m_ran++;
