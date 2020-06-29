@@ -1,20 +1,20 @@
-auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> void {
+auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source, int xstart, int xend) -> void {
   if(!self.aboveEnable && !self.belowEnable) return;
 
   auto tMode = self.tileMode;
   if(tMode == TileMode::Mode7) return renderMode7(self, source);
   if(tMode == TileMode::Inactive) return;
 
-  bool windowAbove[256];
-  bool windowBelow[256];
-  renderWindow(self.window, self.window.aboveEnable, windowAbove);
-  renderWindow(self.window, self.window.belowEnable, windowBelow);
-
   bool hires = io.bgMode == 5 || io.bgMode == 6;
   bool offsetPerTileMode = io.bgMode == 2 || io.bgMode == 4 || io.bgMode == 6;
   bool directColorMode = io.col.directColor && source == Source::BG1 && (io.bgMode == 3 || io.bgMode == 4);
   uint colorShift = 3 + tMode;
   int width = 256 << hires;
+
+  bool windowAbove[256];
+  bool windowBelow[256];
+  renderWindow(self.window, self.window.aboveEnable, windowAbove, xstart >> hires, xend >> hires);
+  renderWindow(self.window, self.window.belowEnable, windowBelow, xstart >> hires, xend >> hires);
 
   uint tileHeight = 3 + self.tileSize;
   uint tileWidth = !hires ? tileHeight : 4;
@@ -40,164 +40,139 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
   }
 
   uint mosaicCounterTop = self.mosaicEnable ? io.mosaic.size : 1;
+  uint mosaicCounter = 1;
+  uint mosaicPalette = 0;
+  uint8 mosaicPriority = 0;
+  uint16 mosaicColor = 0;
 
-  auto renderColumns = [&](int startx, int endx) {
-    uint mosaicCounter = 1;
-    uint mosaicPalette = 0;
-    uint8 mosaicPriority = 0;
-    uint16 mosaicColor = 0;
-
-    int x = startx - (hscroll & 7);
-    while(x < endx) {
-      uint hoffset = x + hscroll;
-      uint voffset = y + vscroll;
-      if(offsetPerTileMode) {
-        uint validBit = 0x2000 << source;
-        uint offsetX = x + (hscroll & 7);
-        if(offsetX >= 8) {  //first column is exempt
-          uint hlookup = getTile(io.bg3, (offsetX - 8) + (io.bg3.hoffset & ~7), io.bg3.voffset + 0);
-          if(io.bgMode == 4) {
-            if(hlookup & validBit) {
-              if(!(hlookup & 0x8000)) {
-                hoffset = offsetX + (hlookup & ~7);
-              } else {
-                voffset = y + hlookup;
-              }
-            }
-          } else {
-            uint vlookup = getTile(io.bg3, (offsetX - 8) + (io.bg3.hoffset & ~7), io.bg3.voffset + 8);
-            if(hlookup & validBit) {
+  int x = xstart - (hscroll & 7);
+  while(x < xend) {
+    uint hoffset = x + hscroll;
+    uint voffset = y + vscroll;
+    if(offsetPerTileMode) {
+      uint validBit = 0x2000 << source;
+      uint offsetX = x + (hscroll & 7);
+      if(offsetX >= 8) {  //first column is exempt
+        uint hlookup = getTile(io.bg3, (offsetX - 8) + (io.bg3.hoffset & ~7), io.bg3.voffset + 0);
+        if(io.bgMode == 4) {
+          if(hlookup & validBit) {
+            if(!(hlookup & 0x8000)) {
               hoffset = offsetX + (hlookup & ~7);
+            } else {
+              voffset = y + hlookup;
             }
-            if(vlookup & validBit) {
-              voffset = y + vlookup;
-            }
-          }
-        }
-      }
-      hoffset &= hmask;
-      voffset &= vmask;
-
-      uint tileNumber = getTile(self, hoffset, voffset);
-      //uint mirrorY = tileNumber & 0x8000 ? 7 : 0;
-      //uint mirrorX = tileNumber & 0x4000 ? 7 : 0;
-      uint mirrorY = ((tileNumber & 0x8000) >> 12) - ((tileNumber & 0x8000) >> 15);
-      uint mirrorX = ((tileNumber & 0x4000) >> 11) - ((tileNumber & 0x4000) >> 14);
-      uint8 tilePriority = self.priority[bool(tileNumber & 0x2000)];
-      uint paletteNumber = tileNumber >> 10 & 7;
-      uint paletteIndex = paletteBase + (paletteNumber << paletteShift) & 0xff;
-
-      if(tileWidth  == 4 && (bool(hoffset & 8) ^ bool(mirrorX))) tileNumber +=  1;
-      if(tileHeight == 4 && (bool(voffset & 8) ^ bool(mirrorY))) tileNumber += 16;
-      tileNumber = (tileNumber & 0x03ff) + tiledataIndex & tileMask;
-
-      uint16 address;
-      address = (tileNumber << colorShift) + (voffset & 7 ^ mirrorY) & 0x7fff;
-
-      uint64 data;
-      data  = (uint64)ppu.vram[address +  0] <<  0;
-      data |= (uint64)ppu.vram[address +  8] << 16;
-      data |= (uint64)ppu.vram[address + 16] << 32;
-      data |= (uint64)ppu.vram[address + 24] << 48;
-
-      uint tileX = 0;
-      while (x < 0) {
-        tileX++;
-        x++;
-      }
-
-      for(; tileX < 8; tileX++, x++) {
-        if(x >= endx) {
-          break;
-        }
-        if(--mosaicCounter == 0) {
-          uint color, shift = mirrorX ? tileX : 7 - tileX;
-
-          if(tMode == TileMode::BPP4) {
-            color = data >> shift + 0 & 1;
-            color += data >> shift + 7 & 2;
-            color += data >> shift + 14 & 4;
-            color += data >> shift + 21 & 8;
-          } else if(tMode == TileMode::BPP2) {
-            color  = data >> shift +  0 &   1;
-            color += data >> shift +  7 &   2;
-          } else if(tMode >= TileMode::BPP8) {
-            color  = data >> shift +  0 &   1;
-            color += data >> shift +  7 &   2;
-            color += data >> shift + 14 &   4;
-            color += data >> shift + 21 &   8;
-            color += data >> shift + 28 &  16;
-            color += data >> shift + 35 &  32;
-            color += data >> shift + 42 &  64;
-            color += data >> shift + 49 & 128;
-          }
-
-          mosaicCounter = mosaicCounterTop;
-          mosaicPalette = color;
-          mosaicPriority = tilePriority;
-          if (!directColorMode) {
-            mosaicColor = cgram[paletteIndex + mosaicPalette];
-          } else {
-            mosaicColor = directColor(paletteNumber, mosaicPalette);
-          }
-        }
-        if(!mosaicPalette) {
-          continue;
-        }
-
-        if(!hires) {
-          if(self.aboveEnable && !windowAbove[x]) {
-            plotAbove(x, source, mosaicPriority, mosaicColor);
-          }
-          if(self.belowEnable && !windowBelow[x]) {
-            plotBelow(x, source, mosaicPriority, mosaicColor);
           }
         } else {
-          uint X = x >> 1;
-          if(!ppu.hd()) {
-            if (!(x & 1)) {
-              if (self.belowEnable && !windowBelow[X]) {
-                plotBelow(X, source, mosaicPriority, mosaicColor);
-              }
-            } else {
-              if (self.aboveEnable && !windowAbove[X]) {
-                plotAbove(X, source, mosaicPriority, mosaicColor);
-              }
-            }
-          } else {
-            if(self.aboveEnable && !windowAbove[X]) {
-              plotHD(above, X, source, mosaicPriority, mosaicColor, true, x & 1);
-            }
-            if(self.belowEnable && !windowBelow[X]) {
-              plotHD(below, X, source, mosaicPriority, mosaicColor, true, x & 1);
-            }
+          uint vlookup = getTile(io.bg3, (offsetX - 8) + (io.bg3.hoffset & ~7), io.bg3.voffset + 8);
+          if(hlookup & validBit) {
+            hoffset = offsetX + (hlookup & ~7);
+          }
+          if(vlookup & validBit) {
+            voffset = y + vlookup;
           }
         }
       }
     }
-    //printf("task complete %3d,%3d\n", startx, endx);
-  };
+    hoffset &= hmask;
+    voffset &= vmask;
 
-#if 0
-  renderColumns(0, width);
-#else
-  // divide up screen width into chunks for multiple threads to process:
-  int columns = width / ppu.threadPool.thread_count;
+    uint tileNumber = getTile(self, hoffset, voffset);
+    //uint mirrorY = tileNumber & 0x8000 ? 7 : 0;
+    //uint mirrorX = tileNumber & 0x4000 ? 7 : 0;
+    uint mirrorY = ((tileNumber & 0x8000) >> 12) - ((tileNumber & 0x8000) >> 15);
+    uint mirrorX = ((tileNumber & 0x4000) >> 11) - ((tileNumber & 0x4000) >> 14);
+    uint8 tilePriority = self.priority[bool(tileNumber & 0x2000)];
+    uint paletteNumber = tileNumber >> 10 & 7;
+    uint paletteIndex = paletteBase + (paletteNumber << paletteShift) & 0xff;
 
-  int x = 0;
-  for (int i = 0; i < ppu.threadPool.thread_count - 1; i++) {
-    int start = x;
-    int end = x += columns;
-    ppu.threadPool.enqueue_work(renderColumns, start, end);
+    if(tileWidth  == 4 && (bool(hoffset & 8) ^ bool(mirrorX))) tileNumber +=  1;
+    if(tileHeight == 4 && (bool(voffset & 8) ^ bool(mirrorY))) tileNumber += 16;
+    tileNumber = (tileNumber & 0x03ff) + tiledataIndex & tileMask;
+
+    uint16 address;
+    address = (tileNumber << colorShift) + (voffset & 7 ^ mirrorY) & 0x7fff;
+
+    uint64 data;
+    data  = (uint64)ppu.vram[address +  0] <<  0;
+    data |= (uint64)ppu.vram[address +  8] << 16;
+    data |= (uint64)ppu.vram[address + 16] << 32;
+    data |= (uint64)ppu.vram[address + 24] << 48;
+
+    uint tileX = 0;
+    while (x < 0) {
+      tileX++;
+      x++;
+    }
+
+    for(; tileX < 8; tileX++, x++) {
+      if(x >= xend) {
+        break;
+      }
+      if(--mosaicCounter == 0) {
+        uint color, shift = mirrorX ? tileX : 7 - tileX;
+
+        if(tMode == TileMode::BPP4) {
+          color = data >> shift + 0 & 1;
+          color += data >> shift + 7 & 2;
+          color += data >> shift + 14 & 4;
+          color += data >> shift + 21 & 8;
+        } else if(tMode == TileMode::BPP2) {
+          color  = data >> shift +  0 &   1;
+          color += data >> shift +  7 &   2;
+        } else if(tMode >= TileMode::BPP8) {
+          color  = data >> shift +  0 &   1;
+          color += data >> shift +  7 &   2;
+          color += data >> shift + 14 &   4;
+          color += data >> shift + 21 &   8;
+          color += data >> shift + 28 &  16;
+          color += data >> shift + 35 &  32;
+          color += data >> shift + 42 &  64;
+          color += data >> shift + 49 & 128;
+        }
+
+        mosaicCounter = mosaicCounterTop;
+        mosaicPalette = color;
+        mosaicPriority = tilePriority;
+        if (!directColorMode) {
+          mosaicColor = cgram[paletteIndex + mosaicPalette];
+        } else {
+          mosaicColor = directColor(paletteNumber, mosaicPalette);
+        }
+      }
+      if(!mosaicPalette) {
+        continue;
+      }
+
+      if(!hires) {
+        if(self.aboveEnable && !windowAbove[x]) {
+          plotAbove(x, source, mosaicPriority, mosaicColor);
+        }
+        if(self.belowEnable && !windowBelow[x]) {
+          plotBelow(x, source, mosaicPriority, mosaicColor);
+        }
+      } else {
+        uint X = x >> 1;
+        if(!ppu.hd()) {
+          if (!(x & 1)) {
+            if (self.belowEnable && !windowBelow[X]) {
+              plotBelow(X, source, mosaicPriority, mosaicColor);
+            }
+          } else {
+            if (self.aboveEnable && !windowAbove[X]) {
+              plotAbove(X, source, mosaicPriority, mosaicColor);
+            }
+          }
+        } else {
+          if(self.aboveEnable && !windowAbove[X]) {
+            plotHD(above, X, source, mosaicPriority, mosaicColor, true, x & 1);
+          }
+          if(self.belowEnable && !windowBelow[X]) {
+            plotHD(below, X, source, mosaicPriority, mosaicColor, true, x & 1);
+          }
+        }
+      }
+    }
   }
-
-  // take the last slice ourselves:
-  ppu.threadPool.enqueue_work(renderColumns, x, width);
-
-  // wait for all tasks to complete:
-  ppu.threadPool.wait();
-  //printf("wait complete\n");
-#endif
 }
 
 auto PPU::Line::getTile(PPU::IO::Background& self, uint hoffset, uint voffset) -> uint {

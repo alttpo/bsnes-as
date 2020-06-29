@@ -1,16 +1,18 @@
-auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
+auto PPU::Line::renderObject(PPU::IO::Object& self, int xstart, int xend) -> void {
   if(!self.aboveEnable && !self.belowEnable) return;
 
   bool windowAbove[256];
   bool windowBelow[256];
-  renderWindow(self.window, self.window.aboveEnable, windowAbove);
-  renderWindow(self.window, self.window.belowEnable, windowBelow);
+  renderWindow(self.window, self.window.aboveEnable, windowAbove, xstart, xend);
+  renderWindow(self.window, self.window.belowEnable, windowBelow, xstart, xend);
 
   uint extraItemCount = min(ppu.extraTileCount, 128);
   uint itemCount = 0;
   uint tileCount = 0;
   for(uint n : range(ppu.ItemLimit+extraItemCount)) items[n].valid = false;
   for(uint n : range(ppu.TileLimit+extraItemCount)) tiles[n].valid = false;
+
+  // TODO: filter out items by X range [xstart, xend)
 
   int lineY = (int)y;
   uint nativeItemCount = 0;
@@ -196,7 +198,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
     }
   }
 
-  for(uint x : range(256)) {
+  for(uint x : range(xstart, xend - xstart)) {
     if(!priority[x]) continue;
     if(self.aboveEnable && !windowAbove[x]) plotAbove(x, source[x], priority[x], colors[x]);
     if(self.belowEnable && !windowBelow[x]) plotBelow(x, source[x], priority[x], colors[x]);

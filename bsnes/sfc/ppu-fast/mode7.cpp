@@ -28,8 +28,8 @@ auto PPU::Line::renderMode7(PPU::IO::Background& self, uint8 source) -> void {
 
   bool windowAbove[256];
   bool windowBelow[256];
-  renderWindow(self.window, self.window.aboveEnable, windowAbove);
-  renderWindow(self.window, self.window.belowEnable, windowBelow);
+  renderWindow(self.window, self.window.aboveEnable, windowAbove, 0, 256);
+  renderWindow(self.window, self.window.belowEnable, windowBelow, 0, 256);
 
   for(int X : range(256)) {
     int x = !io.mode7.hflip ? X : 255 - X;

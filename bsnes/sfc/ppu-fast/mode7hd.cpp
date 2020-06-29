@@ -152,8 +152,8 @@ auto PPU::Line::renderMode7HD(PPU::IO::Background& self, uint8 source) -> void {
 
   bool windowAbove[256];
   bool windowBelow[256];
-  renderWindow(self.window, self.window.aboveEnable, windowAbove);
-  renderWindow(self.window, self.window.belowEnable, windowBelow);
+  renderWindow(self.window, self.window.aboveEnable, windowAbove, 0, 256);
+  renderWindow(self.window, self.window.belowEnable, windowBelow, 0, 256);
 
   int pixelYp = INT_MIN;
   for(int ys : range(scale)) {

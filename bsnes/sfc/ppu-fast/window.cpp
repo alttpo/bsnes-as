@@ -1,12 +1,12 @@
-auto PPU::Line::renderWindow(PPU::IO::WindowLayer& self, bool enable, bool output[256]) -> void {
+auto PPU::Line::renderWindow(PPU::IO::WindowLayer& self, bool enable, bool output[256], int xstart, int xend) -> void {
   if(!enable || (!self.oneEnable && !self.twoEnable)) {
-    memory::fill<bool>(output, 256, 0);
+    memory::fill<bool>(output + xstart, xend - xstart, 0);
     return;
   }
 
   if(self.oneEnable && !self.twoEnable) {
     bool set = 1 ^ self.oneInvert, clear = !set;
-    for(uint x : range(256)) {
+    for(uint x : range(xstart, xend - xstart)) {
       output[x] = x >= io.window.oneLeft && x <= io.window.oneRight ? set : clear;
     }
     return;
@@ -14,13 +14,13 @@ auto PPU::Line::renderWindow(PPU::IO::WindowLayer& self, bool enable, bool outpu
 
   if(self.twoEnable && !self.oneEnable) {
     bool set = 1 ^ self.twoInvert, clear = !set;
-    for(uint x : range(256)) {
+    for(uint x : range(xstart, xend - xstart)) {
       output[x] = x >= io.window.twoLeft && x <= io.window.twoRight ? set : clear;
     }
     return;
   }
 
-  for(uint x : range(256)) {
+  for(uint x : range(xstart, xend - xstart)) {
     bool oneMask = (x >= io.window.oneLeft && x <= io.window.oneRight) ^ self.oneInvert;
     bool twoMask = (x >= io.window.twoLeft && x <= io.window.twoRight) ^ self.twoInvert;
     switch(self.mask) {
@@ -32,7 +32,7 @@ auto PPU::Line::renderWindow(PPU::IO::WindowLayer& self, bool enable, bool outpu
   }
 }
 
-auto PPU::Line::renderWindow(PPU::IO::WindowColor& self, uint mask, bool output[256]) -> void {
+auto PPU::Line::renderWindow(PPU::IO::WindowColor& self, uint mask, bool output[256], int xstart, int xend) -> void {
   bool set, clear;
   switch(mask) {
   case 0: memory::fill<bool>(output, 256, 1); return;  //always
@@ -42,13 +42,13 @@ auto PPU::Line::renderWindow(PPU::IO::WindowColor& self, uint mask, bool output[
   }
 
   if(!self.oneEnable && !self.twoEnable) {
-    memory::fill<bool>(output, 256, clear);
+    memory::fill<bool>(output + xstart, xend - xstart, clear);
     return;
   }
 
   if(self.oneEnable && !self.twoEnable) {
     if(self.oneInvert) set ^= 1, clear ^= 1;
-    for(uint x : range(256)) {
+    for(uint x : range(xstart, xend - xstart)) {
       output[x] = x >= io.window.oneLeft && x <= io.window.oneRight ? set : clear;
     }
     return;
@@ -56,13 +56,13 @@ auto PPU::Line::renderWindow(PPU::IO::WindowColor& self, uint mask, bool output[
 
   if(self.twoEnable && !self.oneEnable) {
     if(self.twoInvert) set ^= 1, clear ^= 1;
-    for(uint x : range(256)) {
+    for(uint x : range(xstart, xend - xstart)) {
       output[x] = x >= io.window.twoLeft && x <= io.window.twoRight ? set : clear;
     }
     return;
   }
 
-  for(uint x : range(256)) {
+  for(uint x : range(xstart, xend - xstart)) {
     bool oneMask = (x >= io.window.oneLeft && x <= io.window.oneRight) ^ self.oneInvert;
     bool twoMask = (x >= io.window.twoLeft && x <= io.window.twoRight) ^ self.twoInvert;
     switch(self.mask) {

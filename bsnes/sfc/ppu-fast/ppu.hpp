@@ -326,7 +326,7 @@ public:
     alwaysinline auto plotHD(Pixel*, uint x, uint8 source, uint8 priority, uint16 color, bool hires, bool subpixel) -> void;
 
     //background.cpp
-    auto renderBackground(PPU::IO::Background&, uint8 source) -> void;
+    auto renderBackground(PPU::IO::Background&, uint8 source, int xstart, int xend) -> void;
     auto getTile(PPU::IO::Background&, uint hoffset, uint voffset) -> uint;
 
     //mode7.cpp
@@ -347,11 +347,11 @@ public:
     ) -> void;
 
     //object.cpp
-    auto renderObject(PPU::IO::Object&) -> void;
+    auto renderObject(PPU::IO::Object&, int xstart, int xend) -> void;
 
     //window.cpp
-    auto renderWindow(PPU::IO::WindowLayer&, bool enable, bool output[256]) -> void;
-    auto renderWindow(PPU::IO::WindowColor&, uint mask,   bool output[256]) -> void;
+    auto renderWindow(PPU::IO::WindowLayer&, bool enable, bool output[256], int xstart, int xend) -> void;
+    auto renderWindow(PPU::IO::WindowColor&, uint mask,   bool output[256], int xstart, int xend) -> void;
 
   //unserialized:
     uint y;  //constant
