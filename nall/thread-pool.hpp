@@ -155,10 +155,7 @@ public:
           break;
         f();
 
-        if (++m_ran == m_count) {
-          std::unique_lock lock(alldone_lock);
-          cv_alldone.notify_one();
-        }
+        m_ran++;
       }
     };
 
@@ -180,9 +177,8 @@ public:
 
   void wait() {
     // wait until last task is complete:
-    std::unique_lock lock(alldone_lock);
     while (m_ran < m_count) {
-      cv_alldone.wait(lock);
+      //std::this_thread::yield();
     }
     m_count = 0;
     m_ran = 0;
