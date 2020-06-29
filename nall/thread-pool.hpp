@@ -10,7 +10,7 @@
 #include <future>
 #endif
 
-#if 0
+#if 1
 class semaphore {
 public:
   explicit semaphore(unsigned int count = 0) noexcept
@@ -298,11 +298,11 @@ private:
   semaphore m_fullSlots;
 };
 
-class simple_thread_pool {
+class thread_pool {
 public:
   const int thread_count;
 
-  explicit simple_thread_pool(unsigned int size, unsigned int threads = std::thread::hardware_concurrency())
+  explicit thread_pool(unsigned int size, unsigned int threads = std::thread::hardware_concurrency())
     : thread_count(threads),
       m_queue(size)
   {
@@ -330,7 +330,7 @@ public:
       m_threads.emplace_back(worker);
   }
 
-  ~simple_thread_pool() {
+  ~thread_pool() {
     m_queue.push({});
     for (auto &thread : m_threads)
       thread.join();
@@ -377,8 +377,7 @@ private:
   std::atomic<int> m_ran;
   std::atomic<int> m_tasks;
 };
-#endif
-
+#else
 template<typename T>
 class blocking_queue {
 public:
@@ -610,3 +609,4 @@ private:
 
   inline static const unsigned int K = 2;
 };
+#endif

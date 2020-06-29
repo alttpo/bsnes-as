@@ -35,7 +35,7 @@ auto PPU::noVRAMBlocking() const -> bool { return configuration.hacks.ppu.noVRAM
 #define ppu ppufast
 
 PPU::PPU()
-#if 0
+#if 1
   : threadPool(128)
 #endif
 {
