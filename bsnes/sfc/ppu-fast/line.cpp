@@ -5,21 +5,56 @@ auto PPU::Line::flush() -> void {
   if(Line::count) {
     if(ppu.hdScale() > 1) cacheMode7HD();
 
-    //#pragma omp parallel for if(Line::count >= 8)
-    for (uint y = 0; y < Line::count; y++) {
-      if (ppu.deinterlace()) {
-        if (!ppu.interlace()) {
-          //some games enable interlacing in 240p mode, just force these to even fields
-          ppu.lines[Line::start + y].render(0);
-        } else {
-          //for actual interlaced frames, render both fields every farme for 480i -> 480p
-          ppu.lines[Line::start + y].render(0);
-          ppu.lines[Line::start + y].render(1);
-        }
+    auto fieldNumber = ppu.field();
+    std::function<void(PPU::Line&)> renderLine;
+    if (ppu.deinterlace()) {
+      if (!ppu.interlace()) {
+        //some games enable interlacing in 240p mode, just force these to even fields
+        renderLine = [](PPU::Line &line){
+          line.render(0);
+        };
       } else {
-        //standard 240p (progressive) and 480i (interlaced) rendering
-        ppu.lines[Line::start + y].render(ppu.field());
+        //for actual interlaced frames, render both fields every farme for 480i -> 480p
+        renderLine = [](PPU::Line &line){
+          line.render(0);
+          line.render(1);
+        };
       }
+    } else {
+      //standard 240p (progressive) and 480i (interlaced) rendering
+      renderLine = [fieldNumber](PPU::Line &line) {
+        line.render(fieldNumber);
+      };
+    }
+
+    if (Line::count < 8) {
+      for (uint y = 0; y < Line::count; y++) {
+        renderLine(ppu.lines[Line::start + y]);
+      }
+    } else {
+      //printf("%d\n", Line::count);
+
+      //#pragma omp parallel for if(Line::count >= 8)
+      for (uint y = 0; y < Line::count; y++) {
+        ppu.threadPool.enqueue(renderLine, std::ref(ppu.lines[Line::start + y]));
+#if 0
+        if (ppu.deinterlace()) {
+          if (!ppu.interlace()) {
+            //some games enable interlacing in 240p mode, just force these to even fields
+            ppu.lines[Line::start + y].render(0);
+          } else {
+            //for actual interlaced frames, render both fields every farme for 480i -> 480p
+            ppu.lines[Line::start + y].render(0);
+            ppu.lines[Line::start + y].render(1);
+          }
+        } else {
+          //standard 240p (progressive) and 480i (interlaced) rendering
+          ppu.lines[Line::start + y].render(ppu.field());
+        }
+#endif
+      }
+
+      ppu.threadPool.wait();
     }
 
     Line::start = 0;
@@ -70,6 +105,21 @@ auto PPU::Line::render(bool fieldID) -> void {
   }
 
 #if 1
+  const int xstart = 0;
+  const int xend = 256;
+  //hack: generally, renderBackground/renderObject ordering do not matter.
+  //but for HD mode 7, a larger grid of pixels are generated, and so ordering ends up mattering.
+  //as a hack for Mohawk & Headphone Jack, we reorder things for BG2 to render properly.
+  //longer-term, we need to devise a better solution that can work for every game.
+  renderBackground(io.bg1, Source::BG1, xstart, xend);
+  if(io.extbg == 0) renderBackground(io.bg2, Source::BG2, xstart, xend);
+  renderBackground(io.bg3, Source::BG3, xstart, xend);
+  renderBackground(io.bg4, Source::BG4, xstart, xend);
+  renderObject(io.obj, 0, 256);
+  if(io.extbg == 1) renderBackground(io.bg2, Source::BG2, xstart, xend);
+  renderWindow(io.col.window, io.col.window.aboveMask, windowAbove);
+  renderWindow(io.col.window, io.col.window.belowMask, windowBelow);
+#else
   // divide up screen width into chunks for multiple threads to process:
   const int count = max(1, ppu.threadPool.thread_count);
   int xwidth = hires ? 512 : 256;
