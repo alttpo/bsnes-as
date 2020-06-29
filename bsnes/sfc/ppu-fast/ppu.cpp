@@ -34,9 +34,24 @@ auto PPU::renderCycle() const -> uint { return configuration.hacks.ppu.renderCyc
 auto PPU::noVRAMBlocking() const -> bool { return configuration.hacks.ppu.noVRAMBlocking; }
 #define ppu ppufast
 
+template<typename F>
+static auto naturalOr(const char *a, const F &b) -> unsigned int {
+  if (a == nullptr)
+    return b();
+  auto astr = string{a}.strip();
+  if (astr.length() == 0)
+    return b();
+  return astr.natural();
+}
+
 PPU::PPU()
 #if 1
-  : threadPool(128)
+  : threadPool(
+    naturalOr(
+      getenv("BSNES_THREADS"),
+      std::thread::hardware_concurrency
+    )
+  )
 #endif
 {
   output = new uint16_t[2304 * 2160]();

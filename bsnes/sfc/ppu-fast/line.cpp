@@ -71,7 +71,7 @@ auto PPU::Line::render(bool fieldID) -> void {
 
 #if 1
   // divide up screen width into chunks for multiple threads to process:
-  const int count = ppu.threadPool.thread_count;
+  const int count = max(1, ppu.threadPool.thread_count);
   int xwidth = hires ? 512 : 256;
   int columns = xwidth / count;
 

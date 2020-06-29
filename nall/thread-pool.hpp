@@ -507,13 +507,13 @@ private:
 class thread_pool
 {
 public:
-  const int thread_count;
+  const unsigned int thread_count;
 
   explicit thread_pool(unsigned int threads = std::thread::hardware_concurrency())
     : m_queues(threads), m_count(threads), thread_count(threads)
   {
     if(!threads)
-      throw std::invalid_argument("Invalid thread count!");
+      return;
 
     m_tasks = 0;
     m_ran = 0;
@@ -541,15 +541,24 @@ public:
 
   ~thread_pool()
   {
+    if(!thread_count)
+      return;
+
     for(auto& queue : m_queues)
       queue.push({});
     for(auto& thread : m_threads)
-      thread.join();
+      if(thread.joinable())
+        thread.join();
   }
 
   template<typename F, typename... Args>
   void enqueue(F&& f, Args&&... args)
   {
+    if(!thread_count) {
+      f(args...);
+      return;
+    }
+
     auto work = [p = std::forward<F>(f), t = std::make_tuple(std::forward<Args>(args)...)]() { std::apply(p, t); };
     auto i = m_index++;
 
@@ -586,6 +595,9 @@ public:
 #endif
 
   void wait() {
+    if(!thread_count)
+      return;
+
     // wait until last task is complete:
     while (m_ran < m_tasks) {
       //std::this_thread::yield();
