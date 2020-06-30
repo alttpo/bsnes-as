@@ -214,13 +214,13 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
       } else {
         uint X = x >> 1;
         if(!ppu.hd()) {
-          if (!(x & 1)) {
-            if (self.belowEnable && !windowBelow[X]) {
-              plotBelow(X, source, mosaicPriority, mosaicColor);
-            }
-          } else {
+          if ((x & 1) != 0) {
             if (self.aboveEnable && !windowAbove[X]) {
               plotAbove(X, source, mosaicPriority, mosaicColor);
+            }
+          } else {
+            if (self.belowEnable && !windowBelow[X]) {
+              plotBelow(X, source, mosaicPriority, mosaicColor);
             }
           }
         } else {
