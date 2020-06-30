@@ -1,10 +1,23 @@
+
 auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source, int xstart, int xend) -> void {
-  if(!self.aboveEnable && !self.belowEnable) return;
+  if (!self.aboveEnable && !self.belowEnable) return;
 
   auto tMode = self.tileMode;
-  if(tMode == TileMode::Mode7) return renderMode7(self, source);
-  if(tMode == TileMode::Inactive) return;
+  if (tMode == TileMode::BPP2) {
+    _renderBackgroundTileMode<TileMode::BPP2>(self, source, xstart, xend);
+  } else if (tMode == TileMode::BPP4) {
+    _renderBackgroundTileMode<TileMode::BPP4>(self, source, xstart, xend);
+  } else if (tMode == TileMode::BPP8) {
+    _renderBackgroundTileMode<TileMode::BPP8>(self, source, xstart, xend);
+  } else if (tMode == TileMode::Mode7) {
+    return renderMode7(self, source);
+  } else { // Inactive
+    return;
+  }
+}
 
+template<uint8 tMode>
+auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 source, int xstart, int xend) -> void {
   bool hires = io.bgMode == 5 || io.bgMode == 6;
   bool offsetPerTileMode = io.bgMode == 2 || io.bgMode == 4 || io.bgMode == 6;
   bool directColorMode = io.col.directColor && source == Source::BG1 && (io.bgMode == 3 || io.bgMode == 4);
@@ -31,7 +44,7 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source, int xs
 
   uint y = this->y;
   if(self.mosaicEnable) y -= io.mosaic.size - io.mosaic.counter;
-  if(hires) {
+  if constexpr(hires) {
     hscroll <<= 1;
     if(io.interlace) {
       y = y << 1 | field();
@@ -111,15 +124,15 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source, int xs
       if(--mosaicCounter == 0) {
         uint color, shift = mirrorX ? tileX : 7 - tileX;
 
-        if(tMode == TileMode::BPP4) {
-          color = data >> shift + 0 & 1;
+        if constexpr(tMode == TileMode::BPP4) {
+          color  = data >> shift + 0 & 1;
           color += data >> shift + 7 & 2;
           color += data >> shift + 14 & 4;
           color += data >> shift + 21 & 8;
-        } else if(tMode == TileMode::BPP2) {
+        } else if constexpr(tMode == TileMode::BPP2) {
           color  = data >> shift +  0 &   1;
           color += data >> shift +  7 &   2;
-        } else if(tMode >= TileMode::BPP8) {
+        } else if constexpr(tMode >= TileMode::BPP8) {
           color  = data >> shift +  0 &   1;
           color += data >> shift +  7 &   2;
           color += data >> shift + 14 &   4;
