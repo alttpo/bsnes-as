@@ -91,7 +91,7 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
   uint8 mosaicPriority = 0;
   uint16 mosaicColor = 0;
 
-  auto getTile = [=,this](PPU::IO::Background& self, uint hoffset, uint voffset) -> uint {
+  auto getTile = [=](PPU::IO::Background& self, uint hoffset, uint voffset) -> uint {
     uint screenX = self.screenSize & 1 ? 32 << 5 : 0;
     uint screenY = self.screenSize & 2 ? 32 << 5 + (self.screenSize & 1) : 0;
     uint tileX = hoffset >> tileWidth;
@@ -137,7 +137,7 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
     //uint mirrorY = tileNumber & 0x8000 ? 7 : 0;
     //uint mirrorX = tileNumber & 0x4000 ? 7 : 0;
     uint mirrorY = ((tileNumber & 0x8000) >> 12) - ((tileNumber & 0x8000) >> 15);
-    bool mirrorX = bool(tileNumber & 0x4000);
+    uint mirrorX = ((tileNumber & 0x4000) >> 11) - ((tileNumber & 0x4000) >> 14);
     uint8 tilePriority = self.priority[bool(tileNumber & 0x2000)];
     uint paletteNumber = tileNumber >> 10 & 7;
     uint paletteIndex = paletteBase + (paletteNumber << paletteShift) & 0xff;
