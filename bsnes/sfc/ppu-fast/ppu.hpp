@@ -326,9 +326,9 @@ public:
     alwaysinline auto plotHD(Pixel*, uint x, uint8 source, uint8 priority, uint16 color, bool hires, bool subpixel) -> void;
 
     //background.cpp
-    auto renderBackground(PPU::IO::Background&, uint8 source, int xstart, int xend) -> void;
+    auto renderBackground(PPU::IO::Background&, uint8 source) -> void;
     template<uint8 bgMode, uint8 tMode>
-    auto _renderBackgroundTileMode(PPU::IO::Background&, uint8 source, int xstart, int xend) -> void;
+    auto _renderBackgroundTileMode(PPU::IO::Background&, uint8 source) -> void;
 
     //mode7.cpp
     auto renderMode7(PPU::IO::Background&, uint8 source) -> void;
@@ -348,7 +348,7 @@ public:
     ) -> void;
 
     //object.cpp
-    auto renderObject(PPU::IO::Object&, int xstart, int xend) -> void;
+    auto renderObject(PPU::IO::Object&) -> void;
 
     //window.cpp
     auto renderWindow(PPU::IO::WindowLayer&, bool enable, bool output[256]) -> void;

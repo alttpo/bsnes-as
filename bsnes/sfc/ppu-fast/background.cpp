@@ -1,5 +1,5 @@
 
-auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source, int xstart, int xend) -> void {
+auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> void {
   if (!self.aboveEnable && !self.belowEnable) return;
 
   auto tMode = self.tileMode;
@@ -7,33 +7,33 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source, int xs
     return renderMode7(self, source);
   } else if (tMode == TileMode::BPP2) {
     switch (io.bgMode) {
-      case 0: _renderBackgroundTileMode<0, TileMode::BPP2>(self, source, xstart, xend); break;
-      case 1: _renderBackgroundTileMode<1, TileMode::BPP2>(self, source, xstart, xend); break;
-      case 2: _renderBackgroundTileMode<2, TileMode::BPP2>(self, source, xstart, xend); break;
-      case 3: _renderBackgroundTileMode<3, TileMode::BPP2>(self, source, xstart, xend); break;
-      case 4: _renderBackgroundTileMode<4, TileMode::BPP2>(self, source, xstart, xend); break;
-      case 5: _renderBackgroundTileMode<5, TileMode::BPP2>(self, source, xstart, xend); break;
-      case 6: _renderBackgroundTileMode<6, TileMode::BPP2>(self, source, xstart, xend); break;
+      case 0: _renderBackgroundTileMode<0, TileMode::BPP2>(self, source); break;
+      case 1: _renderBackgroundTileMode<1, TileMode::BPP2>(self, source); break;
+      case 2: _renderBackgroundTileMode<2, TileMode::BPP2>(self, source); break;
+      case 3: _renderBackgroundTileMode<3, TileMode::BPP2>(self, source); break;
+      case 4: _renderBackgroundTileMode<4, TileMode::BPP2>(self, source); break;
+      case 5: _renderBackgroundTileMode<5, TileMode::BPP2>(self, source); break;
+      case 6: _renderBackgroundTileMode<6, TileMode::BPP2>(self, source); break;
     }
   } else if (tMode == TileMode::BPP4) {
     switch (io.bgMode) {
-      case 0: _renderBackgroundTileMode<0, TileMode::BPP4>(self, source, xstart, xend); break;
-      case 1: _renderBackgroundTileMode<1, TileMode::BPP4>(self, source, xstart, xend); break;
-      case 2: _renderBackgroundTileMode<2, TileMode::BPP4>(self, source, xstart, xend); break;
-      case 3: _renderBackgroundTileMode<3, TileMode::BPP4>(self, source, xstart, xend); break;
-      case 4: _renderBackgroundTileMode<4, TileMode::BPP4>(self, source, xstart, xend); break;
-      case 5: _renderBackgroundTileMode<5, TileMode::BPP4>(self, source, xstart, xend); break;
-      case 6: _renderBackgroundTileMode<6, TileMode::BPP4>(self, source, xstart, xend); break;
+      case 0: _renderBackgroundTileMode<0, TileMode::BPP4>(self, source); break;
+      case 1: _renderBackgroundTileMode<1, TileMode::BPP4>(self, source); break;
+      case 2: _renderBackgroundTileMode<2, TileMode::BPP4>(self, source); break;
+      case 3: _renderBackgroundTileMode<3, TileMode::BPP4>(self, source); break;
+      case 4: _renderBackgroundTileMode<4, TileMode::BPP4>(self, source); break;
+      case 5: _renderBackgroundTileMode<5, TileMode::BPP4>(self, source); break;
+      case 6: _renderBackgroundTileMode<6, TileMode::BPP4>(self, source); break;
     }
   } else if (tMode == TileMode::BPP8) {
     switch (io.bgMode) {
-      case 0: _renderBackgroundTileMode<0, TileMode::BPP8>(self, source, xstart, xend); break;
-      case 1: _renderBackgroundTileMode<1, TileMode::BPP8>(self, source, xstart, xend); break;
-      case 2: _renderBackgroundTileMode<2, TileMode::BPP8>(self, source, xstart, xend); break;
-      case 3: _renderBackgroundTileMode<3, TileMode::BPP8>(self, source, xstart, xend); break;
-      case 4: _renderBackgroundTileMode<4, TileMode::BPP8>(self, source, xstart, xend); break;
-      case 5: _renderBackgroundTileMode<5, TileMode::BPP8>(self, source, xstart, xend); break;
-      case 6: _renderBackgroundTileMode<6, TileMode::BPP8>(self, source, xstart, xend); break;
+      case 0: _renderBackgroundTileMode<0, TileMode::BPP8>(self, source); break;
+      case 1: _renderBackgroundTileMode<1, TileMode::BPP8>(self, source); break;
+      case 2: _renderBackgroundTileMode<2, TileMode::BPP8>(self, source); break;
+      case 3: _renderBackgroundTileMode<3, TileMode::BPP8>(self, source); break;
+      case 4: _renderBackgroundTileMode<4, TileMode::BPP8>(self, source); break;
+      case 5: _renderBackgroundTileMode<5, TileMode::BPP8>(self, source); break;
+      case 6: _renderBackgroundTileMode<6, TileMode::BPP8>(self, source); break;
     }
   } else { // Inactive
     return;
@@ -41,7 +41,7 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source, int xs
 }
 
 template<uint8 bgMode, uint8 tMode>
-auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 source, int xstart, int xend) -> void {
+auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 source) -> void {
   constexpr bool hires = bgMode == 5 || bgMode == 6;
   constexpr bool offsetPerTileMode = bgMode == 2 || bgMode == 4 || bgMode == 6;
   bool directColorMode = io.col.directColor && source == Source::BG1 && (bgMode == 3 || bgMode == 4);
@@ -102,8 +102,8 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
     return ppu.vram[self.screenAddress + offset & 0x7fff];
   };
 
-  int x = xstart - (hscroll & 7);
-  while(x < xend) {
+  int x = 0 - (hscroll & 7);
+  while(x < width) {
     uint hoffset = x + hscroll;
     uint voffset = y + vscroll;
     if constexpr(offsetPerTileMode) {
@@ -137,7 +137,7 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
     //uint mirrorY = tileNumber & 0x8000 ? 7 : 0;
     //uint mirrorX = tileNumber & 0x4000 ? 7 : 0;
     uint mirrorY = ((tileNumber & 0x8000) >> 12) - ((tileNumber & 0x8000) >> 15);
-    uint mirrorX = ((tileNumber & 0x4000) >> 11) - ((tileNumber & 0x4000) >> 14);
+    bool mirrorX = bool(tileNumber & 0x4000);
     uint8 tilePriority = self.priority[bool(tileNumber & 0x2000)];
     uint paletteNumber = tileNumber >> 10 & 7;
     uint paletteIndex = paletteBase + (paletteNumber << paletteShift) & 0xff;
@@ -162,20 +162,20 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
     }
 
     for(; tileX < 8; tileX++, x++) {
-      if(x >= xend) {
+      if(x >= width) {
         break;
       }
       if(--mosaicCounter == 0) {
         uint color, shift = mirrorX ? tileX : 7 - tileX;
 
-        if constexpr(tMode == TileMode::BPP4) {
-          color  = data >> shift + 0 & 1;
-          color += data >> shift + 7 & 2;
-          color += data >> shift + 14 & 4;
-          color += data >> shift + 21 & 8;
-        } else if constexpr(tMode == TileMode::BPP2) {
+        if constexpr(tMode == TileMode::BPP2) {
           color  = data >> shift +  0 &   1;
           color += data >> shift +  7 &   2;
+        } else if constexpr(tMode == TileMode::BPP4) {
+          color  = data >> shift +  0 &   1;
+          color += data >> shift +  7 &   2;
+          color += data >> shift + 14 &   4;
+          color += data >> shift + 21 &   8;
         } else if constexpr(tMode >= TileMode::BPP8) {
           color  = data >> shift +  0 &   1;
           color += data >> shift +  7 &   2;

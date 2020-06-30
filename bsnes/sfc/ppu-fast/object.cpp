@@ -1,4 +1,4 @@
-auto PPU::Line::renderObject(PPU::IO::Object& self, int xstart, int xend) -> void {
+auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
   if(!self.aboveEnable && !self.belowEnable) return;
 
   bool windowAbove[256];
@@ -198,7 +198,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self, int xstart, int xend) -> voi
     }
   }
 
-  for(uint x : range(xstart, xend - xstart)) {
+  for(uint x : range(256)) {
     if(!priority[x]) continue;
     if(self.aboveEnable && !windowAbove[x]) plotAbove(x, source[x], priority[x], colors[x]);
     if(self.belowEnable && !windowBelow[x]) plotBelow(x, source[x], priority[x], colors[x]);

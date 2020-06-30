@@ -138,70 +138,18 @@ auto PPU::Line::render(bool fieldID) -> void {
     below[x] = {Source::COL, 0, belowColor};
   }
 
-#if 1
-  const int xstart = 0;
-  const int xend = 256;
   //hack: generally, renderBackground/renderObject ordering do not matter.
   //but for HD mode 7, a larger grid of pixels are generated, and so ordering ends up mattering.
   //as a hack for Mohawk & Headphone Jack, we reorder things for BG2 to render properly.
   //longer-term, we need to devise a better solution that can work for every game.
-  renderBackground(io.bg1, Source::BG1, xstart, xend);
-  if(io.extbg == 0) renderBackground(io.bg2, Source::BG2, xstart, xend);
-  renderBackground(io.bg3, Source::BG3, xstart, xend);
-  renderBackground(io.bg4, Source::BG4, xstart, xend);
-  renderObject(io.obj, 0, 256);
-  if(io.extbg == 1) renderBackground(io.bg2, Source::BG2, xstart, xend);
+  renderBackground(io.bg1, Source::BG1);
+  if(io.extbg == 0) renderBackground(io.bg2, Source::BG2);
+  renderBackground(io.bg3, Source::BG3);
+  renderBackground(io.bg4, Source::BG4);
+  renderObject(io.obj);
+  if(io.extbg == 1) renderBackground(io.bg2, Source::BG2);
   renderWindow(io.col.window, io.col.window.aboveMask, windowAbove);
   renderWindow(io.col.window, io.col.window.belowMask, windowBelow);
-#else
-  // divide up screen width into chunks for multiple threads to process:
-  const int count = max(1, ppu.threadPool.thread_count);
-  int xwidth = hires ? 512 : 256;
-  int columns = xwidth / count;
-
-  int x = 0;
-  for (int i = 0; i < count; i++) {
-    int xstart = x;
-    int xend = x += columns;
-    if (i == count - 1) xend = xwidth;
-    //ppu.threadPool.enqueue_work(renderPreObjects, start, end);
-    ppu.threadPool.enqueue([xstart, xend, this]() {
-      //hack: generally, renderBackground/renderObject ordering do not matter.
-      //but for HD mode 7, a larger grid of pixels are generated, and so ordering ends up mattering.
-      //as a hack for Mohawk & Headphone Jack, we reorder things for BG2 to render properly.
-      //longer-term, we need to devise a better solution that can work for every game.
-      renderBackground(io.bg1, Source::BG1, xstart, xend);
-      if (io.extbg == 0) renderBackground(io.bg2, Source::BG2, xstart, xend);
-      renderBackground(io.bg3, Source::BG3, xstart, xend);
-      renderBackground(io.bg4, Source::BG4, xstart, xend);
-    });
-  }
-
-  // wait for all tasks to complete:
-  ppu.threadPool.wait();
-
-  renderObject(io.obj, 0, 256);
-
-  if(io.extbg == 1) {
-    x = 0;
-    for (int i = 0; i < count; i++) {
-      int xstart = x;
-      int xend = x += columns;
-      if (i == count - 1) xend = xwidth;
-      //ppu.threadPool.enqueue_work(renderPostObjects, start, end);
-      ppu.threadPool.enqueue([xstart, xend, this](){
-        renderBackground(io.bg2, Source::BG2, xstart, xend);
-      });
-    }
-
-    // wait for all tasks to complete:
-    ppu.threadPool.wait();
-  }
-
-  renderWindow(io.col.window, io.col.window.aboveMask, windowAbove);
-  renderWindow(io.col.window, io.col.window.belowMask, windowBelow);
-
-#endif
 
   auto luma = ppu.lightTable[io.displayBrightness];
   uint curr = 0, prev = 0;
