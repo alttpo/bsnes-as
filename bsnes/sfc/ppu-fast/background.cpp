@@ -99,8 +99,10 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
     uint tileX = hoffset >> tileWidth;
     uint tileY = voffset >> tileHeight;
     uint offset = (tileY & 0x1f) << 5 | (tileX & 0x1f);
-    if(tileX & 0x20) offset += screenX;
-    if(tileY & 0x20) offset += screenY;
+    //if(tileX & 0x20) offset += screenX;
+    //if(tileY & 0x20) offset += screenY;
+    offset += screenX * ((tileX & 0x20) >> 5);
+    offset += screenY * ((tileY & 0x20) >> 5);
     return ppu.vram[self.screenAddress + offset & 0x7fff];
   };
 
