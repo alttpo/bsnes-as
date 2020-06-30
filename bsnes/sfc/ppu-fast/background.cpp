@@ -92,8 +92,10 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
   uint16 mosaicColor = 0;
 
   auto getTile = [=](PPU::IO::Background& self, uint hoffset, uint voffset) -> uint {
-    uint screenX = self.screenSize & 1 ? 32 << 5 : 0;
-    uint screenY = self.screenSize & 2 ? 32 << 5 + (self.screenSize & 1) : 0;
+    //uint screenX = self.screenSize & 1 ? 32 << 5 : 0;
+    //uint screenY = self.screenSize & 2 ? 32 << 5 + (self.screenSize & 1) : 0;
+    uint screenX = (self.screenSize & 1) << 10;
+    uint screenY = (self.screenSize & 2) <<  9 + (self.screenSize & 1);
     uint tileX = hoffset >> tileWidth;
     uint tileY = voffset >> tileHeight;
     uint offset = (tileY & 0x1f) << 5 | (tileX & 0x1f);
