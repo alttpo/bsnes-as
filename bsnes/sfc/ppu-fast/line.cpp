@@ -212,13 +212,19 @@ auto PPU::Line::directColor(uint paletteIndex, uint paletteColor) const -> uint1
 }
 
 auto PPU::Line::plotAbove(uint x, uint8 source, uint8 priority, uint16 color) -> void {
-  if(ppu.hd()) return plotHD(above, x, source, priority, color, false, false);
-  if(priority > above[x].priority) above[x] = {source, priority, color};
+  if(ppu.hd())
+    return plotHD(above, x, source, priority, color, false, false);
+  if(priority > above[x].priority) {
+    above[x] = {source, priority, color};
+  }
 }
 
 auto PPU::Line::plotBelow(uint x, uint8 source, uint8 priority, uint16 color) -> void {
-  if(ppu.hd()) return plotHD(below, x, source, priority, color, false, false);
-  if(priority > below[x].priority) below[x] = {source, priority, color};
+  if(ppu.hd())
+    return plotHD(below, x, source, priority, color, false, false);
+  if(priority > below[x].priority) {
+    below[x] = {source, priority, color};
+  }
 }
 
 //todo: name these variables more clearly ...
