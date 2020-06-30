@@ -104,7 +104,11 @@ endif
 # link-time optimization
 ifeq ($(lto),true)
   flags   += -fwhole-program -flto -fno-fat-lto-objects
-  options += -fwhole-program -flto=jobserver
+  ifeq ($(findstring clang++,$(compiler)),clang++)
+    options += -fwhole-program -flto
+  else
+    options += -fwhole-program -flto=jobserver
+  endif
 endif
 
 # openmp support
