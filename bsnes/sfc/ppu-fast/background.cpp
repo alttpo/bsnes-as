@@ -3,26 +3,50 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source, int xs
   if (!self.aboveEnable && !self.belowEnable) return;
 
   auto tMode = self.tileMode;
-  if (tMode == TileMode::BPP2) {
-    _renderBackgroundTileMode<TileMode::BPP2>(self, source, xstart, xend);
-  } else if (tMode == TileMode::BPP4) {
-    _renderBackgroundTileMode<TileMode::BPP4>(self, source, xstart, xend);
-  } else if (tMode == TileMode::BPP8) {
-    _renderBackgroundTileMode<TileMode::BPP8>(self, source, xstart, xend);
-  } else if (tMode == TileMode::Mode7) {
+  if (tMode == TileMode::Mode7) {
     return renderMode7(self, source);
+  } else if (tMode == TileMode::BPP2) {
+    switch (io.bgMode) {
+      case 0: _renderBackgroundTileMode<0, TileMode::BPP2>(self, source, xstart, xend); break;
+      case 1: _renderBackgroundTileMode<1, TileMode::BPP2>(self, source, xstart, xend); break;
+      case 2: _renderBackgroundTileMode<2, TileMode::BPP2>(self, source, xstart, xend); break;
+      case 3: _renderBackgroundTileMode<3, TileMode::BPP2>(self, source, xstart, xend); break;
+      case 4: _renderBackgroundTileMode<4, TileMode::BPP2>(self, source, xstart, xend); break;
+      case 5: _renderBackgroundTileMode<5, TileMode::BPP2>(self, source, xstart, xend); break;
+      case 6: _renderBackgroundTileMode<6, TileMode::BPP2>(self, source, xstart, xend); break;
+    }
+  } else if (tMode == TileMode::BPP4) {
+    switch (io.bgMode) {
+      case 0: _renderBackgroundTileMode<0, TileMode::BPP4>(self, source, xstart, xend); break;
+      case 1: _renderBackgroundTileMode<1, TileMode::BPP4>(self, source, xstart, xend); break;
+      case 2: _renderBackgroundTileMode<2, TileMode::BPP4>(self, source, xstart, xend); break;
+      case 3: _renderBackgroundTileMode<3, TileMode::BPP4>(self, source, xstart, xend); break;
+      case 4: _renderBackgroundTileMode<4, TileMode::BPP4>(self, source, xstart, xend); break;
+      case 5: _renderBackgroundTileMode<5, TileMode::BPP4>(self, source, xstart, xend); break;
+      case 6: _renderBackgroundTileMode<6, TileMode::BPP4>(self, source, xstart, xend); break;
+    }
+  } else if (tMode == TileMode::BPP8) {
+    switch (io.bgMode) {
+      case 0: _renderBackgroundTileMode<0, TileMode::BPP8>(self, source, xstart, xend); break;
+      case 1: _renderBackgroundTileMode<1, TileMode::BPP8>(self, source, xstart, xend); break;
+      case 2: _renderBackgroundTileMode<2, TileMode::BPP8>(self, source, xstart, xend); break;
+      case 3: _renderBackgroundTileMode<3, TileMode::BPP8>(self, source, xstart, xend); break;
+      case 4: _renderBackgroundTileMode<4, TileMode::BPP8>(self, source, xstart, xend); break;
+      case 5: _renderBackgroundTileMode<5, TileMode::BPP8>(self, source, xstart, xend); break;
+      case 6: _renderBackgroundTileMode<6, TileMode::BPP8>(self, source, xstart, xend); break;
+    }
   } else { // Inactive
     return;
   }
 }
 
-template<uint8 tMode>
+template<uint8 bgMode, uint8 tMode>
 auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 source, int xstart, int xend) -> void {
-  bool hires = io.bgMode == 5 || io.bgMode == 6;
-  bool offsetPerTileMode = io.bgMode == 2 || io.bgMode == 4 || io.bgMode == 6;
-  bool directColorMode = io.col.directColor && source == Source::BG1 && (io.bgMode == 3 || io.bgMode == 4);
-  uint colorShift = 3 + tMode;
-  int width = 256 << hires;
+  constexpr bool hires = bgMode == 5 || bgMode == 6;
+  constexpr bool offsetPerTileMode = bgMode == 2 || bgMode == 4 || bgMode == 6;
+  bool directColorMode = io.col.directColor && source == Source::BG1 && (bgMode == 3 || bgMode == 4);
+  constexpr uint colorShift = 3 + tMode;
+  constexpr int width = 256 << hires;
 
   bool windowAbove[256];
   bool windowBelow[256];
@@ -30,11 +54,20 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
   renderWindow(self.window, self.window.belowEnable, windowBelow);
 
   uint tileHeight = 3 + self.tileSize;
-  uint tileWidth = !hires ? tileHeight : 4;
-  uint tileMask = 0x0fff >> tMode;
+  uint tileWidth;
+  if constexpr(!hires) {
+    tileWidth = tileHeight;
+  } else {
+    tileWidth = 4;
+  }
+  constexpr uint tileMask = 0x0fff >> tMode;
   uint tiledataIndex = self.tiledataAddress >> 3 + tMode;
 
-  uint paletteBase = io.bgMode == 0 ? source << 5 : 0;
+  uint paletteBase;
+  if constexpr (bgMode == 0)
+    paletteBase = source << 5;
+  else
+    paletteBase = 0;
   uint paletteShift = 2 << tMode;
 
   uint hscroll = self.hoffset;
@@ -58,16 +91,37 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
   uint8 mosaicPriority = 0;
   uint16 mosaicColor = 0;
 
+  auto getTile = [=,this](PPU::IO::Background& self, uint hoffset, uint voffset) -> uint {
+#if 0
+    constexpr bool hires = bgMode == 5 || bgMode == 6;
+    uint tileHeight = 3 + self.tileSize;
+    uint tileWidth;
+    if constexpr(!hires) {
+      tileWidth = tileHeight;
+    } else {
+      tileWidth = 4;
+    }
+#endif
+    uint screenX = self.screenSize & 1 ? 32 << 5 : 0;
+    uint screenY = self.screenSize & 2 ? 32 << 5 + (self.screenSize & 1) : 0;
+    uint tileX = hoffset >> tileWidth;
+    uint tileY = voffset >> tileHeight;
+    uint offset = (tileY & 0x1f) << 5 | (tileX & 0x1f);
+    if(tileX & 0x20) offset += screenX;
+    if(tileY & 0x20) offset += screenY;
+    return ppu.vram[self.screenAddress + offset & 0x7fff];
+  };
+
   int x = xstart - (hscroll & 7);
   while(x < xend) {
     uint hoffset = x + hscroll;
     uint voffset = y + vscroll;
-    if(offsetPerTileMode) {
+    if constexpr(offsetPerTileMode) {
       uint validBit = 0x2000 << source;
       uint offsetX = x + (hscroll & 7);
       if(offsetX >= 8) {  //first column is exempt
         uint hlookup = getTile(io.bg3, (offsetX - 8) + (io.bg3.hoffset & ~7), io.bg3.voffset + 0);
-        if(io.bgMode == 4) {
+        if constexpr(bgMode == 4) {
           if(hlookup & validBit) {
             if(!(hlookup & 0x8000)) {
               hoffset = offsetX + (hlookup & ~7);
@@ -156,7 +210,7 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
         continue;
       }
 
-      if(!hires) {
+      if constexpr(!hires) {
         if(self.aboveEnable && !windowAbove[x]) {
           plotAbove(x, source, mosaicPriority, mosaicColor);
         }
@@ -188,6 +242,7 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
   }
 }
 
+#if 0
 auto PPU::Line::getTile(PPU::IO::Background& self, uint hoffset, uint voffset) -> uint {
   bool hires = io.bgMode == 5 || io.bgMode == 6;
   uint tileHeight = 3 + self.tileSize;
@@ -201,3 +256,4 @@ auto PPU::Line::getTile(PPU::IO::Background& self, uint hoffset, uint voffset) -
   if(tileY & 0x20) offset += screenY;
   return ppu.vram[self.screenAddress + offset & 0x7fff];
 }
+#endif

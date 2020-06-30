@@ -327,9 +327,11 @@ public:
 
     //background.cpp
     auto renderBackground(PPU::IO::Background&, uint8 source, int xstart, int xend) -> void;
-    template<uint8 tMode>
+    template<uint8 bgMode, uint8 tMode>
     auto _renderBackgroundTileMode(PPU::IO::Background&, uint8 source, int xstart, int xend) -> void;
+#if 0
     auto getTile(PPU::IO::Background&, uint hoffset, uint voffset) -> uint;
+#endif
 
     //mode7.cpp
     auto renderMode7(PPU::IO::Background&, uint8 source) -> void;
