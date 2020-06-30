@@ -92,16 +92,6 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
   uint16 mosaicColor = 0;
 
   auto getTile = [=,this](PPU::IO::Background& self, uint hoffset, uint voffset) -> uint {
-#if 0
-    constexpr bool hires = bgMode == 5 || bgMode == 6;
-    uint tileHeight = 3 + self.tileSize;
-    uint tileWidth;
-    if constexpr(!hires) {
-      tileWidth = tileHeight;
-    } else {
-      tileWidth = 4;
-    }
-#endif
     uint screenX = self.screenSize & 1 ? 32 << 5 : 0;
     uint screenY = self.screenSize & 2 ? 32 << 5 + (self.screenSize & 1) : 0;
     uint tileX = hoffset >> tileWidth;
@@ -241,19 +231,3 @@ auto PPU::Line::_renderBackgroundTileMode(PPU::IO::Background& self, uint8 sourc
     }
   }
 }
-
-#if 0
-auto PPU::Line::getTile(PPU::IO::Background& self, uint hoffset, uint voffset) -> uint {
-  bool hires = io.bgMode == 5 || io.bgMode == 6;
-  uint tileHeight = 3 + self.tileSize;
-  uint tileWidth = !hires ? tileHeight : 4;
-  uint screenX = self.screenSize & 1 ? 32 << 5 : 0;
-  uint screenY = self.screenSize & 2 ? 32 << 5 + (self.screenSize & 1) : 0;
-  uint tileX = hoffset >> tileWidth;
-  uint tileY = voffset >> tileHeight;
-  uint offset = (tileY & 0x1f) << 5 | (tileX & 0x1f);
-  if(tileX & 0x20) offset += screenX;
-  if(tileY & 0x20) offset += screenY;
-  return ppu.vram[self.screenAddress + offset & 0x7fff];
-}
-#endif
