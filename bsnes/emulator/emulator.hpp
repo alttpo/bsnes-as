@@ -32,12 +32,14 @@ using namespace nall;
 #include <angelscript.h>
 #include <scriptarray.h>
 
+#include "version.generated.hpp"
+
 namespace Emulator {
-  static const string Name      = "bsnes-angelscript";
-  static const string Version   = "115";
-  static const string Copyright = "byuu";
+  static const string Name      = "bsnes-as";
+  static const string Version   = "115." BSNES_BUILD_NUMBER;
+  static const string Copyright = "jsd1982,byuu";
   static const string License   = "GPLv3";
-  static const string Website   = "https://byuu.org";
+  static const string Website   = "https://github.com/JamesDunne/bsnes-angelscript";
 
   //incremented only when serialization format changes
   static const string SerializerVersion = "115";

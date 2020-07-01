@@ -1,10 +1,10 @@
 AngelScript
 ===========
-I have embedded the [AngelScript v2.33.0](https://www.angelcode.com/angelscript/) engine into the bsnes code and created
+I have embedded the [AngelScript v2.34.0](https://www.angelcode.com/angelscript/) engine into the bsnes code and created
 some rudimentary script function bindings between the bsnes emulator and AngelScript scripts.
 
 Download nightly binary builds here:
-https://cirrus-ci.com/github/JamesDunne/bsnes-angelscript
+https://dev.azure.com/ALttPO/alttpo/_build?definitionId=1
 
 Screenshots
 ---
@@ -86,12 +86,3 @@ AngelScript Interface
 =====================
 
 Refer to [this document](angelscript.md) for details on the AngelScript interface to bsnes.
-
-Nightly Builds
-==============
-
-  - [Download](https://cirrus-ci.com/github/JamesDunne/bsnes-angelscript/master)
-  - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=windows-x86_64-binaries)
-  - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=windows-x86_32-binaries)
-  - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=macOS-x86_64-binaries)
-  - ![Build status](https://api.cirrus-ci.com/github/JamesDunne/bsnes-angelscript.svg?task=linux-x86_64-binaries)

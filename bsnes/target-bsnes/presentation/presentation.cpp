@@ -200,15 +200,27 @@ auto Presentation::create() -> void {
     .setAlignment(*this)
     .show();
   });
-  about.setIcon(Icon::Prompt::Question).setText({tr("About bsnes"), " ..."}).onActivate([&] {
+  aboutAngelScript.setIcon(Icon::Prompt::Question).setText({tr("About AngelScript"), " ..."}).onActivate([&] {
+    AboutDialog()
+    .setName("AngelScript")
+    .setLogo(Resource::AngelScript)
+    .setDescription("AngelScript scripting language")
+    .setVersion("2.34.0")
+    .setCopyright("Andreas Jönsson")
+    .setLicense("zlib")
+    .setWebsite("http://angelcode.com/angelscript/")
+    .setAlignment(*this)
+    .show();
+  });
+  about.setIcon(Icon::Prompt::Question).setText({tr("About bsnes-as"), " ..."}).onActivate([&] {
     AboutDialog()
     .setName(Emulator::Name)
     .setLogo(Resource::Logo)
-    .setDescription("Super Nintendo emulator")
+    .setDescription("Super Nintendo emulator with AngelScript integration")
     .setVersion(Emulator::Version)
-    .setCopyright("byuu")
-    .setLicense("GPLv3")
-    .setWebsite("https://byuu.org")
+    .setCopyright(Emulator::Copyright)
+    .setLicense(Emulator::License)
+    .setWebsite(Emulator::Website)
     .setAlignment(*this)
     .show();
   });

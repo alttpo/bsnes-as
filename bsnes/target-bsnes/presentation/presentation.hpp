@@ -128,6 +128,7 @@ struct Presentation : Window {
       MenuItem documentation{&helpMenu};
       MenuSeparator helpSeparator{&helpMenu};
       MenuItem aboutSameBoy{&helpMenu};
+      MenuItem aboutAngelScript{&helpMenu};
       MenuItem about{&helpMenu};
 
   VerticalLayout layout{this};

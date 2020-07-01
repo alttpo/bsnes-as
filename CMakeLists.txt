@@ -19,22 +19,18 @@ add_executable(bsnes
         bsnes/emulator/audio/audio.cpp
         bsnes/emulator/audio/audio.hpp
         bsnes/emulator/audio/stream.cpp
-        bsnes/emulator/memory/memory.hpp
-        bsnes/emulator/memory/readable.hpp
-        bsnes/emulator/memory/writable.hpp
         bsnes/emulator/cheat.hpp
         bsnes/emulator/emulator.cpp
         bsnes/emulator/emulator.hpp
         bsnes/emulator/game.hpp
         bsnes/emulator/interface.hpp
+        bsnes/emulator/memory/memory.hpp
+        bsnes/emulator/memory/readable.hpp
+        bsnes/emulator/memory/writable.hpp
         bsnes/emulator/platform.hpp
         bsnes/emulator/random.hpp
         bsnes/emulator/types.hpp
-        bsnes/filter/sai/sai.cpp
-        bsnes/filter/snes_ntsc/snes_ntsc.c
-        bsnes/filter/snes_ntsc/snes_ntsc.h
-        bsnes/filter/snes_ntsc/snes_ntsc_config.h
-        bsnes/filter/snes_ntsc/snes_ntsc_impl.h
+        bsnes/emulator/version.generated.hpp
         bsnes/filter/2xsai.cpp
         bsnes/filter/filter.cpp
         bsnes/filter/filter.hpp
@@ -46,10 +42,15 @@ add_executable(bsnes
         bsnes/filter/ntsc-rgb.cpp
         bsnes/filter/ntsc-svideo.cpp
         bsnes/filter/pixellate2x.cpp
+        bsnes/filter/sai/sai.cpp
         bsnes/filter/scale2x.cpp
         bsnes/filter/scanlines-black.cpp
         bsnes/filter/scanlines-dark.cpp
         bsnes/filter/scanlines-light.cpp
+        bsnes/filter/snes_ntsc/snes_ntsc.c
+        bsnes/filter/snes_ntsc/snes_ntsc.h
+        bsnes/filter/snes_ntsc/snes_ntsc_config.h
+        bsnes/filter/snes_ntsc/snes_ntsc_impl.h
         bsnes/filter/super-2xsai.cpp
         bsnes/filter/super-eagle.cpp
         bsnes/gb/Core/apu.c
@@ -132,8 +133,6 @@ add_executable(bsnes
         bsnes/lzma/LzFindMt.c
         bsnes/lzma/LzFindMt.h
         bsnes/lzma/LzHash.h
-        bsnes/lzma/lzma.cpp
-        bsnes/lzma/lzma.hpp
         bsnes/lzma/Lzma2Dec.c
         bsnes/lzma/Lzma2Dec.h
         bsnes/lzma/Lzma2DecMt.c
@@ -175,6 +174,8 @@ add_executable(bsnes
         bsnes/lzma/XzEnc.c
         bsnes/lzma/XzEnc.h
         bsnes/lzma/XzIn.c
+        bsnes/lzma/lzma.cpp
+        bsnes/lzma/lzma.hpp
         bsnes/processor/arm7tdmi/algorithms.cpp
         bsnes/processor/arm7tdmi/arm7tdmi.cpp
         bsnes/processor/arm7tdmi/arm7tdmi.hpp
@@ -198,6 +199,7 @@ add_executable(bsnes
         bsnes/processor/hg51b/instructions.cpp
         bsnes/processor/hg51b/registers.cpp
         bsnes/processor/hg51b/serialization.cpp
+        bsnes/processor/processor.hpp
         bsnes/processor/sm83/algorithms.cpp
         bsnes/processor/sm83/disassembler.cpp
         bsnes/processor/sm83/instruction.cpp
@@ -235,12 +237,13 @@ add_executable(bsnes
         bsnes/processor/wdc65816/serialization.cpp
         bsnes/processor/wdc65816/wdc65816.cpp
         bsnes/processor/wdc65816/wdc65816.hpp
-        bsnes/processor/processor.hpp
         bsnes/sfc/cartridge/cartridge.cpp
         bsnes/sfc/cartridge/cartridge.hpp
         bsnes/sfc/cartridge/load.cpp
         bsnes/sfc/cartridge/save.cpp
         bsnes/sfc/cartridge/serialization.cpp
+        bsnes/sfc/controller/controller.cpp
+        bsnes/sfc/controller/controller.hpp
         bsnes/sfc/controller/gamepad/gamepad.cpp
         bsnes/sfc/controller/gamepad/gamepad.hpp
         bsnes/sfc/controller/justifier/justifier.cpp
@@ -251,13 +254,13 @@ add_executable(bsnes
         bsnes/sfc/controller/super-multitap/super-multitap.hpp
         bsnes/sfc/controller/super-scope/super-scope.cpp
         bsnes/sfc/controller/super-scope/super-scope.hpp
-        bsnes/sfc/controller/controller.cpp
-        bsnes/sfc/controller/controller.hpp
         bsnes/sfc/coprocessor/armdsp/armdsp.cpp
         bsnes/sfc/coprocessor/armdsp/armdsp.hpp
         bsnes/sfc/coprocessor/armdsp/memory.cpp
         bsnes/sfc/coprocessor/armdsp/registers.hpp
         bsnes/sfc/coprocessor/armdsp/serialization.cpp
+        bsnes/sfc/coprocessor/coprocessor.cpp
+        bsnes/sfc/coprocessor/coprocessor.hpp
         bsnes/sfc/coprocessor/cx4/cx4.cpp
         bsnes/sfc/coprocessor/cx4/cx4.hpp
         bsnes/sfc/coprocessor/cx4/data.cpp
@@ -352,8 +355,6 @@ add_executable(bsnes
         bsnes/sfc/coprocessor/superfx/superfx.cpp
         bsnes/sfc/coprocessor/superfx/superfx.hpp
         bsnes/sfc/coprocessor/superfx/timing.cpp
-        bsnes/sfc/coprocessor/coprocessor.cpp
-        bsnes/sfc/coprocessor/coprocessor.hpp
         bsnes/sfc/cpu/cpu.cpp
         bsnes/sfc/cpu/cpu.hpp
         bsnes/sfc/cpu/dma.cpp
@@ -362,6 +363,8 @@ add_executable(bsnes
         bsnes/sfc/cpu/memory.cpp
         bsnes/sfc/cpu/serialization.cpp
         bsnes/sfc/cpu/timing.cpp
+        bsnes/sfc/dsp/SPC_DSP.cpp
+        bsnes/sfc/dsp/SPC_DSP.h
         bsnes/sfc/dsp/blargg_common.h
         bsnes/sfc/dsp/blargg_config.h
         bsnes/sfc/dsp/blargg_endian.h
@@ -369,28 +372,27 @@ add_executable(bsnes
         bsnes/sfc/dsp/dsp.cpp
         bsnes/sfc/dsp/dsp.hpp
         bsnes/sfc/dsp/serialization.cpp
-        bsnes/sfc/dsp/SPC_DSP.cpp
-        bsnes/sfc/dsp/SPC_DSP.h
         bsnes/sfc/expansion/21fx/21fx.cpp
         bsnes/sfc/expansion/21fx/21fx.hpp
-        bsnes/sfc/expansion/satellaview/satellaview.cpp
-        bsnes/sfc/expansion/satellaview/satellaview.hpp
         bsnes/sfc/expansion/expansion.cpp
         bsnes/sfc/expansion/expansion.hpp
+        bsnes/sfc/expansion/satellaview/satellaview.cpp
+        bsnes/sfc/expansion/satellaview/satellaview.hpp
         bsnes/sfc/interface/configuration.cpp
         bsnes/sfc/interface/configuration.hpp
         bsnes/sfc/interface/interface.cpp
         bsnes/sfc/interface/interface.hpp
         bsnes/sfc/interface/pixel-fonts.cpp
         bsnes/sfc/interface/script-bml.cpp
-        bsnes/sfc/interface/script-interface.cpp
-        bsnes/sfc/interface/script-string.cpp
         bsnes/sfc/interface/script-bus.cpp
-        bsnes/sfc/interface/script-ppu.cpp
+        bsnes/sfc/interface/script-discord.cpp
         bsnes/sfc/interface/script-extra.cpp
         bsnes/sfc/interface/script-frame.cpp
-        bsnes/sfc/interface/script-net.cpp
         bsnes/sfc/interface/script-gui.cpp
+        bsnes/sfc/interface/script-interface.cpp
+        bsnes/sfc/interface/script-net.cpp
+        bsnes/sfc/interface/script-ppu.cpp
+        bsnes/sfc/interface/script-string.cpp
         bsnes/sfc/interface/sha1.hpp
         bsnes/sfc/interface/vga-charset.cpp
         bsnes/sfc/memory/memory-inline.hpp
@@ -399,11 +401,21 @@ add_executable(bsnes
         bsnes/sfc/memory/protectable.hpp
         bsnes/sfc/memory/readable.hpp
         bsnes/sfc/memory/writable.hpp
+        bsnes/sfc/ppu-fast/background.cpp
+        bsnes/sfc/ppu-fast/io.cpp
+        bsnes/sfc/ppu-fast/line.cpp
+        bsnes/sfc/ppu-fast/mode7.cpp
+        bsnes/sfc/ppu-fast/mode7hd.cpp
+        bsnes/sfc/ppu-fast/object.cpp
+        bsnes/sfc/ppu-fast/ppu.cpp
+        bsnes/sfc/ppu-fast/ppu.hpp
+        bsnes/sfc/ppu-fast/serialization.cpp
+        bsnes/sfc/ppu-fast/window.cpp
+        bsnes/sfc/ppu/background.cpp
+        bsnes/sfc/ppu/background.hpp
         bsnes/sfc/ppu/counter/counter-inline.hpp
         bsnes/sfc/ppu/counter/counter.hpp
         bsnes/sfc/ppu/counter/serialization.cpp
-        bsnes/sfc/ppu/background.cpp
-        bsnes/sfc/ppu/background.hpp
         bsnes/sfc/ppu/io.cpp
         bsnes/sfc/ppu/mode7.cpp
         bsnes/sfc/ppu/oam.cpp
@@ -416,24 +428,15 @@ add_executable(bsnes
         bsnes/sfc/ppu/serialization.cpp
         bsnes/sfc/ppu/window.cpp
         bsnes/sfc/ppu/window.hpp
-        bsnes/sfc/ppu-fast/background.cpp
-        bsnes/sfc/ppu-fast/io.cpp
-        bsnes/sfc/ppu-fast/line.cpp
-        bsnes/sfc/ppu-fast/mode7.cpp
-        bsnes/sfc/ppu-fast/mode7hd.cpp
-        bsnes/sfc/ppu-fast/object.cpp
-        bsnes/sfc/ppu-fast/ppu.cpp
-        bsnes/sfc/ppu-fast/ppu.hpp
-        bsnes/sfc/ppu-fast/serialization.cpp
-        bsnes/sfc/ppu-fast/window.cpp
+        bsnes/sfc/sfc.hpp
         bsnes/sfc/slot/bsmemory/bsmemory.cpp
         bsnes/sfc/slot/bsmemory/bsmemory.hpp
         bsnes/sfc/slot/bsmemory/serialization.cpp
+        bsnes/sfc/slot/slot.cpp
+        bsnes/sfc/slot/slot.hpp
         bsnes/sfc/slot/sufamiturbo/serialization.cpp
         bsnes/sfc/slot/sufamiturbo/sufamiturbo.cpp
         bsnes/sfc/slot/sufamiturbo/sufamiturbo.hpp
-        bsnes/sfc/slot/slot.cpp
-        bsnes/sfc/slot/slot.hpp
         bsnes/sfc/smp/io.cpp
         bsnes/sfc/smp/memory.cpp
         bsnes/sfc/smp/serialization.cpp
@@ -443,7 +446,8 @@ add_executable(bsnes
         bsnes/sfc/system/serialization.cpp
         bsnes/sfc/system/system.cpp
         bsnes/sfc/system/system.hpp
-        bsnes/sfc/sfc.hpp
+        bsnes/target-bsnes/bsnes.cpp
+        bsnes/target-bsnes/bsnes.hpp
         bsnes/target-bsnes/input/hotkeys.cpp
         bsnes/target-bsnes/input/input.cpp
         bsnes/target-bsnes/input/input.hpp
@@ -482,42 +486,40 @@ add_executable(bsnes
         bsnes/target-bsnes/tools/cheat-editor.cpp
         bsnes/target-bsnes/tools/cheat-finder.cpp
         bsnes/target-bsnes/tools/manifest-viewer.cpp
-        bsnes/target-bsnes/tools/state-manager.cpp
         bsnes/target-bsnes/tools/script-console.cpp
+        bsnes/target-bsnes/tools/state-manager.cpp
         bsnes/target-bsnes/tools/tools.cpp
         bsnes/target-bsnes/tools/tools.hpp
-        bsnes/target-bsnes/bsnes.cpp
-        bsnes/target-bsnes/bsnes.hpp
         discord/achievement_manager.cpp
-        discord/activity_manager.cpp
-        discord/application_manager.cpp
-        discord/core.cpp
-        discord/image_manager.cpp
-        discord/lobby_manager.cpp
-        discord/network_manager.cpp
-        discord/overlay_manager.cpp
-        discord/relationship_manager.cpp
-        discord/storage_manager.cpp
-        discord/store_manager.cpp
-        discord/types.cpp
-        discord/user_manager.cpp
-        discord/voice_manager.cpp
         discord/achievement_manager.h
+        discord/activity_manager.cpp
         discord/activity_manager.h
+        discord/application_manager.cpp
         discord/application_manager.h
+        discord/core.cpp
         discord/core.h
         discord/discord.h
         discord/event.h
         discord/ffi.h
+        discord/image_manager.cpp
         discord/image_manager.h
+        discord/lobby_manager.cpp
         discord/lobby_manager.h
+        discord/network_manager.cpp
         discord/network_manager.h
+        discord/overlay_manager.cpp
         discord/overlay_manager.h
+        discord/relationship_manager.cpp
         discord/relationship_manager.h
+        discord/storage_manager.cpp
         discord/storage_manager.h
+        discord/store_manager.cpp
         discord/store_manager.h
+        discord/types.cpp
         discord/types.h
+        discord/user_manager.cpp
         discord/user_manager.h
+        discord/voice_manager.cpp
         discord/voice_manager.h
         hiro/cocoa/action/action.cpp
         hiro/cocoa/action/action.hpp
@@ -531,6 +533,40 @@ add_executable(bsnes
         hiro/cocoa/action/menu-separator.hpp
         hiro/cocoa/action/menu.cpp
         hiro/cocoa/action/menu.hpp
+        hiro/cocoa/application.cpp
+        hiro/cocoa/application.hpp
+        hiro/cocoa/browser-window.cpp
+        hiro/cocoa/browser-window.hpp
+        hiro/cocoa/desktop.cpp
+        hiro/cocoa/desktop.hpp
+        hiro/cocoa/font.cpp
+        hiro/cocoa/font.hpp
+        hiro/cocoa/group.cpp
+        hiro/cocoa/group.hpp
+        hiro/cocoa/header.hpp
+        hiro/cocoa/keyboard.cpp
+        hiro/cocoa/keyboard.hpp
+        hiro/cocoa/menu-bar.cpp
+        hiro/cocoa/menu-bar.hpp
+        hiro/cocoa/message-window.cpp
+        hiro/cocoa/message-window.hpp
+        hiro/cocoa/monitor.cpp
+        hiro/cocoa/monitor.hpp
+        hiro/cocoa/mouse.cpp
+        hiro/cocoa/mouse.hpp
+        hiro/cocoa/object.cpp
+        hiro/cocoa/object.hpp
+        hiro/cocoa/platform.cpp
+        hiro/cocoa/platform.hpp
+        hiro/cocoa/popup-menu.cpp
+        hiro/cocoa/popup-menu.hpp
+        hiro/cocoa/sizable.cpp
+        hiro/cocoa/sizable.hpp
+        hiro/cocoa/status-bar.cpp
+        hiro/cocoa/status-bar.hpp
+        hiro/cocoa/timer.cpp
+        hiro/cocoa/timer.hpp
+        hiro/cocoa/utility.cpp
         hiro/cocoa/widget/button.cpp
         hiro/cocoa/widget/button.hpp
         hiro/cocoa/widget/canvas.cpp
@@ -585,48 +621,55 @@ add_executable(bsnes
         hiro/cocoa/widget/viewport.hpp
         hiro/cocoa/widget/widget.cpp
         hiro/cocoa/widget/widget.hpp
-        hiro/cocoa/application.cpp
-        hiro/cocoa/application.hpp
-        hiro/cocoa/browser-window.cpp
-        hiro/cocoa/browser-window.hpp
-        hiro/cocoa/desktop.cpp
-        hiro/cocoa/desktop.hpp
-        hiro/cocoa/font.cpp
-        hiro/cocoa/font.hpp
-        hiro/cocoa/group.cpp
-        hiro/cocoa/group.hpp
-        hiro/cocoa/header.hpp
-        hiro/cocoa/keyboard.cpp
-        hiro/cocoa/keyboard.hpp
-        hiro/cocoa/menu-bar.cpp
-        hiro/cocoa/menu-bar.hpp
-        hiro/cocoa/message-window.cpp
-        hiro/cocoa/message-window.hpp
-        hiro/cocoa/monitor.cpp
-        hiro/cocoa/monitor.hpp
-        hiro/cocoa/mouse.cpp
-        hiro/cocoa/mouse.hpp
-        hiro/cocoa/object.cpp
-        hiro/cocoa/object.hpp
-        hiro/cocoa/platform.cpp
-        hiro/cocoa/platform.hpp
-        hiro/cocoa/popup-menu.cpp
-        hiro/cocoa/popup-menu.hpp
-        hiro/cocoa/sizable.cpp
-        hiro/cocoa/sizable.hpp
-        hiro/cocoa/status-bar.cpp
-        hiro/cocoa/status-bar.hpp
-        hiro/cocoa/timer.cpp
-        hiro/cocoa/timer.hpp
-        hiro/cocoa/utility.cpp
         hiro/cocoa/window.cpp
         hiro/cocoa/window.hpp
+        hiro/components.hpp
         hiro/core/action/action.cpp
         hiro/core/action/menu-check-item.cpp
         hiro/core/action/menu-item.cpp
         hiro/core/action/menu-radio-item.cpp
         hiro/core/action/menu-separator.cpp
         hiro/core/action/menu.cpp
+        hiro/core/alignment.cpp
+        hiro/core/application.cpp
+        hiro/core/application.hpp
+        hiro/core/attribute.cpp
+        hiro/core/attribute.hpp
+        hiro/core/browser-window.cpp
+        hiro/core/color.cpp
+        hiro/core/core.cpp
+        hiro/core/core.hpp
+        hiro/core/desktop.cpp
+        hiro/core/desktop.hpp
+        hiro/core/font.cpp
+        hiro/core/font.hpp
+        hiro/core/geometry.cpp
+        hiro/core/gradient.cpp
+        hiro/core/group.cpp
+        hiro/core/group.hpp
+        hiro/core/hotkey.cpp
+        hiro/core/keyboard.cpp
+        hiro/core/lock.hpp
+        hiro/core/menu-bar.cpp
+        hiro/core/message-window.cpp
+        hiro/core/monitor.cpp
+        hiro/core/monitor.hpp
+        hiro/core/mouse-cursor.cpp
+        hiro/core/mouse-cursor.hpp
+        hiro/core/mouse.cpp
+        hiro/core/object.cpp
+        hiro/core/object.hpp
+        hiro/core/popup-menu.cpp
+        hiro/core/position.cpp
+        hiro/core/shared.hpp
+        hiro/core/sizable.cpp
+        hiro/core/sizable.hpp
+        hiro/core/size.cpp
+        hiro/core/status-bar.cpp
+        hiro/core/text-cursor.cpp
+        hiro/core/text-cursor.hpp
+        hiro/core/timer.cpp
+        hiro/core/timer.hpp
         hiro/core/widget/button.cpp
         hiro/core/widget/canvas.cpp
         hiro/core/widget/canvas.hpp
@@ -675,46 +718,6 @@ add_executable(bsnes
         hiro/core/widget/viewport.hpp
         hiro/core/widget/widget.cpp
         hiro/core/widget/widget.hpp
-        hiro/core/alignment.cpp
-        hiro/core/application.cpp
-        hiro/core/application.hpp
-        hiro/core/browser-window.cpp
-        hiro/core/color.cpp
-        hiro/core/core.cpp
-        hiro/core/core.hpp
-        hiro/core/desktop.cpp
-        hiro/core/desktop.hpp
-        hiro/core/font.cpp
-        hiro/core/font.hpp
-        hiro/core/geometry.cpp
-        hiro/core/gradient.cpp
-        hiro/core/group.cpp
-        hiro/core/group.hpp
-        hiro/core/hotkey.cpp
-        hiro/core/keyboard.cpp
-        hiro/core/lock.hpp
-        hiro/core/menu-bar.cpp
-        hiro/core/message-window.cpp
-        hiro/core/monitor.cpp
-        hiro/core/monitor.hpp
-        hiro/core/mouse-cursor.cpp
-        hiro/core/mouse-cursor.hpp
-        hiro/core/mouse.cpp
-        hiro/core/object.cpp
-        hiro/core/object.hpp
-        hiro/core/popup-menu.cpp
-        hiro/core/position.cpp
-        hiro/core/attribute.cpp
-        hiro/core/attribute.hpp
-        hiro/core/shared.hpp
-        hiro/core/sizable.cpp
-        hiro/core/sizable.hpp
-        hiro/core/size.cpp
-        hiro/core/status-bar.cpp
-        hiro/core/text-cursor.cpp
-        hiro/core/text-cursor.hpp
-        hiro/core/timer.cpp
-        hiro/core/timer.hpp
         hiro/core/window.cpp
         hiro/core/window.hpp
         hiro/extension/about-dialog.cpp
@@ -754,6 +757,42 @@ add_executable(bsnes
         hiro/gtk/action/menu-separator.hpp
         hiro/gtk/action/menu.cpp
         hiro/gtk/action/menu.hpp
+        hiro/gtk/application.cpp
+        hiro/gtk/application.hpp
+        hiro/gtk/browser-window.cpp
+        hiro/gtk/browser-window.hpp
+        hiro/gtk/desktop.cpp
+        hiro/gtk/desktop.hpp
+        hiro/gtk/font.cpp
+        hiro/gtk/font.hpp
+        hiro/gtk/group.cpp
+        hiro/gtk/group.hpp
+        hiro/gtk/header.hpp
+        hiro/gtk/keyboard.cpp
+        hiro/gtk/keyboard.hpp
+        hiro/gtk/menu-bar.cpp
+        hiro/gtk/menu-bar.hpp
+        hiro/gtk/message-window.cpp
+        hiro/gtk/message-window.hpp
+        hiro/gtk/monitor.cpp
+        hiro/gtk/monitor.hpp
+        hiro/gtk/mouse.cpp
+        hiro/gtk/mouse.hpp
+        hiro/gtk/object.cpp
+        hiro/gtk/object.hpp
+        hiro/gtk/platform.cpp
+        hiro/gtk/platform.hpp
+        hiro/gtk/popup-menu.cpp
+        hiro/gtk/popup-menu.hpp
+        hiro/gtk/settings.cpp
+        hiro/gtk/settings.hpp
+        hiro/gtk/sizable.cpp
+        hiro/gtk/sizable.hpp
+        hiro/gtk/status-bar.cpp
+        hiro/gtk/status-bar.hpp
+        hiro/gtk/timer.cpp
+        hiro/gtk/timer.hpp
+        hiro/gtk/utility.cpp
         hiro/gtk/widget/button.cpp
         hiro/gtk/widget/button.hpp
         hiro/gtk/widget/canvas.cpp
@@ -822,44 +861,10 @@ add_executable(bsnes
         hiro/gtk/widget/viewport.hpp
         hiro/gtk/widget/widget.cpp
         hiro/gtk/widget/widget.hpp
-        hiro/gtk/application.cpp
-        hiro/gtk/application.hpp
-        hiro/gtk/browser-window.cpp
-        hiro/gtk/browser-window.hpp
-        hiro/gtk/desktop.cpp
-        hiro/gtk/desktop.hpp
-        hiro/gtk/font.cpp
-        hiro/gtk/font.hpp
-        hiro/gtk/group.cpp
-        hiro/gtk/group.hpp
-        hiro/gtk/header.hpp
-        hiro/gtk/keyboard.cpp
-        hiro/gtk/keyboard.hpp
-        hiro/gtk/menu-bar.cpp
-        hiro/gtk/menu-bar.hpp
-        hiro/gtk/message-window.cpp
-        hiro/gtk/message-window.hpp
-        hiro/gtk/monitor.cpp
-        hiro/gtk/monitor.hpp
-        hiro/gtk/mouse.cpp
-        hiro/gtk/mouse.hpp
-        hiro/gtk/object.cpp
-        hiro/gtk/object.hpp
-        hiro/gtk/platform.cpp
-        hiro/gtk/platform.hpp
-        hiro/gtk/popup-menu.cpp
-        hiro/gtk/popup-menu.hpp
-        hiro/gtk/settings.cpp
-        hiro/gtk/settings.hpp
-        hiro/gtk/sizable.cpp
-        hiro/gtk/sizable.hpp
-        hiro/gtk/status-bar.cpp
-        hiro/gtk/status-bar.hpp
-        hiro/gtk/timer.cpp
-        hiro/gtk/timer.hpp
-        hiro/gtk/utility.cpp
         hiro/gtk/window.cpp
         hiro/gtk/window.hpp
+        hiro/hiro.cpp
+        hiro/hiro.hpp
         hiro/platform/windows/keyboard.hpp
         hiro/platform/xorg/keyboard.hpp
         hiro/qt/action/action.cpp
@@ -874,6 +879,43 @@ add_executable(bsnes
         hiro/qt/action/menu-separator.hpp
         hiro/qt/action/menu.cpp
         hiro/qt/action/menu.hpp
+        hiro/qt/application.cpp
+        hiro/qt/application.hpp
+        hiro/qt/browser-window.cpp
+        hiro/qt/browser-window.hpp
+        hiro/qt/desktop.cpp
+        hiro/qt/desktop.hpp
+        hiro/qt/font.cpp
+        hiro/qt/font.hpp
+        hiro/qt/group.cpp
+        hiro/qt/group.hpp
+        hiro/qt/header.hpp
+        hiro/qt/keyboard.cpp
+        hiro/qt/keyboard.hpp
+        hiro/qt/menu-bar.cpp
+        hiro/qt/menu-bar.hpp
+        hiro/qt/message-window.cpp
+        hiro/qt/message-window.hpp
+        hiro/qt/monitor.cpp
+        hiro/qt/monitor.hpp
+        hiro/qt/mouse.cpp
+        hiro/qt/mouse.hpp
+        hiro/qt/object.cpp
+        hiro/qt/object.hpp
+        hiro/qt/platform.cpp
+        hiro/qt/platform.hpp
+        hiro/qt/popup-menu.cpp
+        hiro/qt/popup-menu.hpp
+        hiro/qt/qt.hpp
+        hiro/qt/settings.cpp
+        hiro/qt/settings.hpp
+        hiro/qt/sizable.cpp
+        hiro/qt/sizable.hpp
+        hiro/qt/status-bar.cpp
+        hiro/qt/status-bar.hpp
+        hiro/qt/timer.cpp
+        hiro/qt/timer.hpp
+        hiro/qt/utility.cpp
         hiro/qt/widget/button.cpp
         hiro/qt/widget/button.hpp
         hiro/qt/widget/canvas.cpp
@@ -926,43 +968,6 @@ add_executable(bsnes
         hiro/qt/widget/viewport.hpp
         hiro/qt/widget/widget.cpp
         hiro/qt/widget/widget.hpp
-        hiro/qt/application.cpp
-        hiro/qt/application.hpp
-        hiro/qt/browser-window.cpp
-        hiro/qt/browser-window.hpp
-        hiro/qt/desktop.cpp
-        hiro/qt/desktop.hpp
-        hiro/qt/font.cpp
-        hiro/qt/font.hpp
-        hiro/qt/group.cpp
-        hiro/qt/group.hpp
-        hiro/qt/header.hpp
-        hiro/qt/keyboard.cpp
-        hiro/qt/keyboard.hpp
-        hiro/qt/menu-bar.cpp
-        hiro/qt/menu-bar.hpp
-        hiro/qt/message-window.cpp
-        hiro/qt/message-window.hpp
-        hiro/qt/monitor.cpp
-        hiro/qt/monitor.hpp
-        hiro/qt/mouse.cpp
-        hiro/qt/mouse.hpp
-        hiro/qt/object.cpp
-        hiro/qt/object.hpp
-        hiro/qt/platform.cpp
-        hiro/qt/platform.hpp
-        hiro/qt/popup-menu.cpp
-        hiro/qt/popup-menu.hpp
-        hiro/qt/qt.hpp
-        hiro/qt/settings.cpp
-        hiro/qt/settings.hpp
-        hiro/qt/sizable.cpp
-        hiro/qt/sizable.hpp
-        hiro/qt/status-bar.cpp
-        hiro/qt/status-bar.hpp
-        hiro/qt/timer.cpp
-        hiro/qt/timer.hpp
-        hiro/qt/utility.cpp
         hiro/qt/window.cpp
         hiro/qt/window.hpp
         hiro/resource/resource.cpp
@@ -979,6 +984,44 @@ add_executable(bsnes
         hiro/windows/action/menu-separator.hpp
         hiro/windows/action/menu.cpp
         hiro/windows/action/menu.hpp
+        hiro/windows/application.cpp
+        hiro/windows/application.hpp
+        hiro/windows/browser-window.cpp
+        hiro/windows/browser-window.hpp
+        hiro/windows/desktop.cpp
+        hiro/windows/desktop.hpp
+        hiro/windows/font.cpp
+        hiro/windows/font.hpp
+        hiro/windows/group.cpp
+        hiro/windows/group.hpp
+        hiro/windows/header.hpp
+        hiro/windows/keyboard.cpp
+        hiro/windows/keyboard.hpp
+        hiro/windows/menu-bar.cpp
+        hiro/windows/menu-bar.hpp
+        hiro/windows/message-window.cpp
+        hiro/windows/message-window.hpp
+        hiro/windows/monitor.cpp
+        hiro/windows/monitor.hpp
+        hiro/windows/mouse.cpp
+        hiro/windows/mouse.hpp
+        hiro/windows/object.cpp
+        hiro/windows/object.hpp
+        hiro/windows/platform.cpp
+        hiro/windows/platform.hpp
+        hiro/windows/popup-menu.cpp
+        hiro/windows/popup-menu.hpp
+        hiro/windows/settings.cpp
+        hiro/windows/settings.hpp
+        hiro/windows/sizable.cpp
+        hiro/windows/sizable.hpp
+        hiro/windows/status-bar.cpp
+        hiro/windows/status-bar.hpp
+        hiro/windows/timer.cpp
+        hiro/windows/timer.hpp
+        hiro/windows/tool-tip.cpp
+        hiro/windows/tool-tip.hpp
+        hiro/windows/utility.cpp
         hiro/windows/widget/button.cpp
         hiro/windows/widget/button.hpp
         hiro/windows/widget/canvas.cpp
@@ -1031,49 +1074,8 @@ add_executable(bsnes
         hiro/windows/widget/viewport.hpp
         hiro/windows/widget/widget.cpp
         hiro/windows/widget/widget.hpp
-        hiro/windows/application.cpp
-        hiro/windows/application.hpp
-        hiro/windows/browser-window.cpp
-        hiro/windows/browser-window.hpp
-        hiro/windows/desktop.cpp
-        hiro/windows/desktop.hpp
-        hiro/windows/font.cpp
-        hiro/windows/font.hpp
-        hiro/windows/group.cpp
-        hiro/windows/group.hpp
-        hiro/windows/header.hpp
-        hiro/windows/keyboard.cpp
-        hiro/windows/keyboard.hpp
-        hiro/windows/menu-bar.cpp
-        hiro/windows/menu-bar.hpp
-        hiro/windows/message-window.cpp
-        hiro/windows/message-window.hpp
-        hiro/windows/monitor.cpp
-        hiro/windows/monitor.hpp
-        hiro/windows/mouse.cpp
-        hiro/windows/mouse.hpp
-        hiro/windows/object.cpp
-        hiro/windows/object.hpp
-        hiro/windows/platform.cpp
-        hiro/windows/platform.hpp
-        hiro/windows/popup-menu.cpp
-        hiro/windows/popup-menu.hpp
-        hiro/windows/settings.cpp
-        hiro/windows/settings.hpp
-        hiro/windows/sizable.cpp
-        hiro/windows/sizable.hpp
-        hiro/windows/status-bar.cpp
-        hiro/windows/status-bar.hpp
-        hiro/windows/timer.cpp
-        hiro/windows/timer.hpp
-        hiro/windows/tool-tip.cpp
-        hiro/windows/tool-tip.hpp
-        hiro/windows/utility.cpp
         hiro/windows/window.cpp
         hiro/windows/window.hpp
-        hiro/components.hpp
-        hiro/hiro.cpp
-        hiro/hiro.hpp
         libco/aarch64.c
         libco/amd64.c
         libco/arm.c
@@ -1086,15 +1088,26 @@ add_executable(bsnes
         libco/sjlj.c
         libco/ucontext.c
         libco/x86.c
+        nall/adaptive-array.hpp
+        nall/algorithm.hpp
+        nall/any.hpp
+        nall/arguments.hpp
+        nall/arithmetic.hpp
         nall/arithmetic/barrett.hpp
         nall/arithmetic/natural.hpp
         nall/arithmetic/unsigned.hpp
+        nall/array-span.hpp
+        nall/array-view.hpp
+        nall/array.hpp
+        nall/atoi.hpp
         nall/beat/archive/container.hpp
         nall/beat/archive/create.hpp
         nall/beat/archive/extract.hpp
         nall/beat/archive/node.hpp
         nall/beat/single/apply.hpp
         nall/beat/single/create.hpp
+        nall/bit.hpp
+        nall/cd.hpp
         nall/cd/crc16.hpp
         nall/cd/edc.hpp
         nall/cd/efm.hpp
@@ -1102,7 +1115,9 @@ add_executable(bsnes
         nall/cd/scrambler.hpp
         nall/cd/session.hpp
         nall/cd/sync.hpp
+        nall/chrono.hpp
         nall/cipher/chacha20.hpp
+        nall/counting-sort.hpp
         nall/database/odbc.hpp
         nall/database/sqlite3.hpp
         nall/decode/base.hpp
@@ -1119,11 +1134,13 @@ add_executable(bsnes
         nall/decode/rle.hpp
         nall/decode/url.hpp
         nall/decode/zip.hpp
+        nall/directory.hpp
+        nall/dl.hpp
+        nall/dsp/dsp.hpp
         nall/dsp/iir/biquad.hpp
         nall/dsp/iir/dc-removal.hpp
         nall/dsp/iir/one-pole.hpp
         nall/dsp/resampler/cubic.hpp
-        nall/dsp/dsp.hpp
         nall/elliptic-curve/curve25519.hpp
         nall/elliptic-curve/ed25519.hpp
         nall/elliptic-curve/modulo25519-optimized.hpp
@@ -1140,6 +1157,12 @@ add_executable(bsnes
         nall/encode/rle.hpp
         nall/encode/url.hpp
         nall/encode/zip.hpp
+        nall/endian.hpp
+        nall/file-buffer.hpp
+        nall/file-map.hpp
+        nall/file.hpp
+        nall/function.hpp
+        nall/galois-field.hpp
         nall/hash/crc16.hpp
         nall/hash/crc32.hpp
         nall/hash/crc64.hpp
@@ -1148,12 +1171,15 @@ add_executable(bsnes
         nall/hash/sha256.hpp
         nall/hash/sha384.hpp
         nall/hash/sha512.hpp
+        nall/hashset.hpp
+        nall/hid.hpp
         nall/http/client.hpp
         nall/http/message.hpp
         nall/http/request.hpp
         nall/http/response.hpp
         nall/http/role.hpp
         nall/http/server.hpp
+        nall/image.hpp
         nall/image/blend.hpp
         nall/image/core.hpp
         nall/image/fill.hpp
@@ -1162,95 +1188,6 @@ add_executable(bsnes
         nall/image/scale.hpp
         nall/image/static.hpp
         nall/image/utility.hpp
-        nall/mac/poly1305.hpp
-        nall/macos/guard.hpp
-        nall/posix/service.hpp
-        nall/posix/shared-memory.hpp
-        nall/primitives/bit-field.hpp
-        nall/primitives/bit-range.hpp
-        nall/primitives/boolean.hpp
-        nall/primitives/integer.hpp
-        nall/primitives/literals.hpp
-        nall/primitives/natural.hpp
-        nall/primitives/real.hpp
-        nall/primitives/types.hpp
-        nall/string/allocator/adaptive.hpp
-        nall/string/allocator/copy-on-write.hpp
-        nall/string/allocator/small-string-optimization.hpp
-        nall/string/allocator/vector.hpp
-        nall/string/eval/evaluator.hpp
-        nall/string/eval/literal.hpp
-        nall/string/eval/node.hpp
-        nall/string/eval/parser.hpp
-        nall/string/markup/bml.hpp
-        nall/string/markup/find.hpp
-        nall/string/markup/node.hpp
-        nall/string/markup/xml.hpp
-        nall/string/transform/cml.hpp
-        nall/string/transform/dml.hpp
-        nall/string/atoi.hpp
-        nall/string/cast.hpp
-        nall/string/compare.hpp
-        nall/string/convert.hpp
-        nall/string/core.hpp
-        nall/string/find.hpp
-        nall/string/format.hpp
-        nall/string/match.hpp
-        nall/string/pascal.hpp
-        nall/string/replace.hpp
-        nall/string/split.hpp
-        nall/string/trim.hpp
-        nall/string/utf8.hpp
-        nall/string/utility.hpp
-        nall/string/vector.hpp
-        nall/string/view.hpp
-        nall/vector/specialization/uint8_t.hpp
-        nall/vector/access.hpp
-        nall/vector/assign.hpp
-        nall/vector/compare.hpp
-        nall/vector/core.hpp
-        nall/vector/iterator.hpp
-        nall/vector/memory.hpp
-        nall/vector/modify.hpp
-        nall/vector/utility.hpp
-        nall/vfs/fs/file.hpp
-        nall/vfs/memory/file.hpp
-        nall/vfs/vfs.hpp
-        nall/windows/detour.hpp
-        nall/windows/guard.hpp
-        nall/windows/guid.hpp
-        nall/windows/launcher.hpp
-        nall/windows/registry.hpp
-        nall/windows/service.hpp
-        nall/windows/shared-memory.hpp
-        nall/windows/utf8.hpp
-        nall/xorg/clipboard.hpp
-        nall/xorg/guard.hpp
-        nall/xorg/xorg.hpp
-        nall/adaptive-array.hpp
-        nall/algorithm.hpp
-        nall/any.hpp
-        nall/arguments.hpp
-        nall/arithmetic.hpp
-        nall/array-span.hpp
-        nall/array-view.hpp
-        nall/array.hpp
-        nall/atoi.hpp
-        nall/bit.hpp
-        nall/cd.hpp
-        nall/chrono.hpp
-        nall/counting-sort.hpp
-        nall/directory.hpp
-        nall/dl.hpp
-        nall/endian.hpp
-        nall/file-buffer.hpp
-        nall/file-map.hpp
-        nall/file.hpp
-        nall/function.hpp
-        nall/galois-field.hpp
-        nall/hashset.hpp
-        nall/hid.hpp
-        nall/image.hpp
         nall/induced-sort.hpp
         nall/inline-if.hpp
         nall/inode.hpp
@@ -1261,6 +1198,8 @@ add_executable(bsnes
         nall/literals.hpp
         nall/locale.hpp
         nall/location.hpp
+        nall/mac/poly1305.hpp
+        nall/macos/guard.hpp
         nall/main.hpp
         nall/map.hpp
         nall/matrix-multiply.hpp
@@ -1272,7 +1211,17 @@ add_executable(bsnes
         nall/path.hpp
         nall/platform.hpp
         nall/pointer.hpp
+        nall/posix/service.hpp
+        nall/posix/shared-memory.hpp
         nall/primitives.hpp
+        nall/primitives/bit-field.hpp
+        nall/primitives/bit-range.hpp
+        nall/primitives/boolean.hpp
+        nall/primitives/integer.hpp
+        nall/primitives/literals.hpp
+        nall/primitives/natural.hpp
+        nall/primitives/real.hpp
+        nall/primitives/types.hpp
         nall/queue.hpp
         nall/random.hpp
         nall/range.hpp
@@ -1288,8 +1237,39 @@ add_executable(bsnes
         nall/smtp.hpp
         nall/stdint.hpp
         nall/string.hpp
+        nall/string/allocator/adaptive.hpp
+        nall/string/allocator/copy-on-write.hpp
+        nall/string/allocator/small-string-optimization.hpp
+        nall/string/allocator/vector.hpp
+        nall/string/atoi.hpp
+        nall/string/cast.hpp
+        nall/string/compare.hpp
+        nall/string/convert.hpp
+        nall/string/core.hpp
+        nall/string/eval/evaluator.hpp
+        nall/string/eval/literal.hpp
+        nall/string/eval/node.hpp
+        nall/string/eval/parser.hpp
+        nall/string/find.hpp
+        nall/string/format.hpp
+        nall/string/markup/bml.hpp
+        nall/string/markup/find.hpp
+        nall/string/markup/node.hpp
+        nall/string/markup/xml.hpp
+        nall/string/match.hpp
+        nall/string/pascal.hpp
+        nall/string/replace.hpp
+        nall/string/split.hpp
+        nall/string/transform/cml.hpp
+        nall/string/transform/dml.hpp
+        nall/string/trim.hpp
+        nall/string/utf8.hpp
+        nall/string/utility.hpp
+        nall/string/vector.hpp
+        nall/string/view.hpp
         nall/suffix-array.hpp
         nall/terminal.hpp
+        nall/thread-pool.hpp
         nall/thread.hpp
         nall/traits.hpp
         nall/unique-pointer.hpp
@@ -1297,8 +1277,31 @@ add_executable(bsnes
         nall/variant.hpp
         nall/varint.hpp
         nall/vector.hpp
+        nall/vector/access.hpp
+        nall/vector/assign.hpp
+        nall/vector/compare.hpp
+        nall/vector/core.hpp
+        nall/vector/iterator.hpp
+        nall/vector/memory.hpp
+        nall/vector/modify.hpp
+        nall/vector/specialization/uint8_t.hpp
+        nall/vector/utility.hpp
         nall/vfs.hpp
+        nall/vfs/fs/file.hpp
+        nall/vfs/memory/file.hpp
+        nall/vfs/vfs.hpp
         nall/view.hpp
+        nall/windows/detour.hpp
+        nall/windows/guard.hpp
+        nall/windows/guid.hpp
+        nall/windows/launcher.hpp
+        nall/windows/registry.hpp
+        nall/windows/service.hpp
+        nall/windows/shared-memory.hpp
+        nall/windows/utf8.hpp
+        nall/xorg/clipboard.hpp
+        nall/xorg/guard.hpp
+        nall/xorg/xorg.hpp
         ruby/audio/alsa.cpp
         ruby/audio/ao.cpp
         ruby/audio/asio.cpp
@@ -1314,6 +1317,9 @@ add_executable(bsnes
         ruby/audio/waveout.cpp
         ruby/audio/xaudio2.cpp
         ruby/audio/xaudio2.hpp
+        ruby/input/carbon.cpp
+        ruby/input/input.cpp
+        ruby/input/input.hpp
         ruby/input/joypad/directinput.cpp
         ruby/input/joypad/sdl.cpp
         ruby/input/joypad/udev.cpp
@@ -1324,15 +1330,20 @@ add_executable(bsnes
         ruby/input/keyboard/xlib.cpp
         ruby/input/mouse/rawinput.cpp
         ruby/input/mouse/xlib.cpp
-        ruby/input/shared/rawinput.cpp
-        ruby/input/carbon.cpp
-        ruby/input/input.cpp
-        ruby/input/input.hpp
         ruby/input/quartz.cpp
         ruby/input/sdl.cpp
+        ruby/input/shared/rawinput.cpp
         ruby/input/udev.cpp
         ruby/input/windows.cpp
         ruby/input/xlib.cpp
+        ruby/ruby.cpp
+        ruby/ruby.hpp
+        ruby/video/cgl.cpp
+        ruby/video/direct3d.cpp
+        ruby/video/directdraw.cpp
+        ruby/video/gdi.cpp
+        ruby/video/glx.cpp
+        ruby/video/glx2.cpp
         ruby/video/opengl/bind.hpp
         ruby/video/opengl/main.hpp
         ruby/video/opengl/opengl.hpp
@@ -1341,17 +1352,10 @@ add_executable(bsnes
         ruby/video/opengl/surface.hpp
         ruby/video/opengl/texture.hpp
         ruby/video/opengl/utility.hpp
-        ruby/video/cgl.cpp
-        ruby/video/direct3d.cpp
-        ruby/video/directdraw.cpp
-        ruby/video/gdi.cpp
-        ruby/video/glx.cpp
-        ruby/video/glx2.cpp
         ruby/video/video.cpp
         ruby/video/video.hpp
         ruby/video/wgl.cpp
         ruby/video/xshm.cpp
         ruby/video/xvideo.cpp
-        ruby/ruby.cpp
-        ruby/ruby.hpp
-        sourcery/sourcery.cpp bsnes/sfc/interface/script-discord.cpp)
+        sourcery/sourcery.cpp
+)
