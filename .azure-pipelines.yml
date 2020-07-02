@@ -16,7 +16,7 @@ strategy:
         sudo apt-get update
         sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-x86-64
       compileScript: |
-        echo '#define BSNES_BUILD_NUMBER "' "$(buildVersion)" '"' > bsnes/emulator/version.generated.hpp
+        echo '#define BSNES_BUILD_NUMBER "'"$(buildVersion)"'"' > bsnes/emulator/version.generated.hpp
         make $(makeOptions) -C bsnes $(makeVariables) platform=windows compiler="x86_64-w64-mingw32-g++-posix" windres="x86_64-w64-mingw32-windres"
       artifact: bsnes
       packageScript: |
@@ -39,7 +39,7 @@ strategy:
         sudo apt-get update
         sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-i686
       compileScript: |
-        echo '#define BSNES_BUILD_NUMBER "' "$(buildVersion)" '"' > bsnes/emulator/version.generated.hpp
+        echo '#define BSNES_BUILD_NUMBER "'"$(buildVersion)"'"' > bsnes/emulator/version.generated.hpp
         make $(makeOptions) -C bsnes $(makeVariables) platform=windows arch=x86 compiler="i686-w64-mingw32-g++-posix" windres="i686-w64-mingw32-windres"
       artifact: bsnes
       packageScript: |
@@ -59,7 +59,7 @@ strategy:
       setupScript: |
         echo 'macos'
       compileScript: |
-        echo '#define BSNES_BUILD_NUMBER "' "$(buildVersion)" '"' > bsnes/emulator/version.generated.hpp
+        echo '#define BSNES_BUILD_NUMBER "'"$(buildVersion)"'"' > bsnes/emulator/version.generated.hpp
         make $(makeOptions) -C bsnes $(makeVariables)
       packageScript: |
         mkdir $(nightly)
@@ -76,7 +76,7 @@ strategy:
         sudo apt-get update
         sudo apt-get -y install --no-upgrade --no-install-recommends build-essential libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev
       compileScript: |
-        echo '#define BSNES_BUILD_NUMBER "' "$(buildVersion)" '"' > bsnes/emulator/version.generated.hpp
+        echo '#define BSNES_BUILD_NUMBER "'"$(buildVersion)"'"' > bsnes/emulator/version.generated.hpp
         make $(makeOptions) -C bsnes $(makeVariables)
       artifact: bsnes
       packageScript: |
@@ -94,7 +94,7 @@ variables:
   makeOptions: -j4
   makeVariables: local=false build=performance
   nightly: bsnes-angelscript-$(archName)-$(Build.SourceVersion)
-  buildVersion: $(Date:yyyyMMdd)-$(Build.BuildId)
+  buildVersion: $(Build.BuildId)
 
 pool:
   vmImage: $(imageName)
