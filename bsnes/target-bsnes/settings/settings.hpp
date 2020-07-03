@@ -113,6 +113,7 @@ struct Settings : Markup::Node {
         bool fast = true;
         bool deinterlace = true;
         bool noSpriteLimit = false;
+        uint threads = 0;
         bool noVRAMBlocking = false;
         struct Mode7 {
           uint scale = 1;
@@ -365,6 +366,12 @@ public:
     CheckLabel fastPPU{&ppuLayout, Size{0, 0}};
     CheckLabel deinterlace{&ppuLayout, Size{0, 0}};
     CheckLabel noSpriteLimit{&ppuLayout, Size{0, 0}};
+  //
+  Label renderingThreadsLabel{this, Size{~0, 0}, 2};
+  HorizontalLayout renderingThreadsLayout{this, Size{~0, 0}};
+    Label threadsLabel{&renderingThreadsLayout, Size{0, 0}};
+    Label threadsValue{&renderingThreadsLayout, Size{50_sx, 0}};
+    HorizontalSlider threadsCount{&renderingThreadsLayout, Size{~0, 0}};
   //
   Label mode7Label{this, Size{~0, 0}, 2};
   HorizontalLayout mode7Layout{this, Size{~0, 0}};

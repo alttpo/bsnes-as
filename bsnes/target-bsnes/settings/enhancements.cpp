@@ -73,6 +73,13 @@ auto EnhancementSettings::create() -> void {
   noSpriteLimit.setText("No sprite limit").setChecked(settings.emulator.hack.ppu.noSpriteLimit).onToggle([&] {
     settings.emulator.hack.ppu.noSpriteLimit = noSpriteLimit.checked();
   });
+  renderingThreadsLabel.setText("Rendering threads (fast PPU only)").setFont(Font().setBold());
+  threadsLabel.setText("Threads:");
+  threadsCount.setLength(std::thread::hardware_concurrency()).setPosition(settings.emulator.hack.ppu.threads).onChange([&] {
+    settings.emulator.hack.ppu.threads = threadsCount.position();
+    emulator->configure("Hacks/PPU/Threads", settings.emulator.hack.ppu.threads);
+    threadsValue.setText({settings.emulator.hack.ppu.threads});
+  }).doChange();
 
   mode7Label.setText("HD Mode 7 (fast PPU only)").setFont(Font().setBold());
   mode7ScaleLabel.setText("Scale:");

@@ -45,14 +45,7 @@ static auto naturalOr(const char *a, const F &b) -> unsigned int {
 }
 
 PPU::PPU()
-#if 1
-  : threadPool(
-    naturalOr(
-      getenv("BSNES_THREADS"),
-      std::thread::hardware_concurrency
-    )
-  )
-#endif
+  : threadPool()
 {
   output = new uint16_t[2304 * 2160]();
 
@@ -151,8 +144,11 @@ auto PPU::scanline() -> void {
     if(!io.displayDisable) oamAddressReset();
   }
 
+#undef ppu
+
   if(vcounter() == 240) {
     Line::flush();
+    threadPool.resize(configuration.hacks.ppu.threads);
   }
 }
 
@@ -225,7 +221,6 @@ auto PPU::power(bool reset) -> void {
   io = {};
   updateVideoMode();
 
-  #undef ppu
   ItemLimit = !configuration.hacks.ppu.noSpriteLimit ? 32 : 128;
   TileLimit = !configuration.hacks.ppu.noSpriteLimit ? 34 : 128;
 

@@ -27,6 +27,7 @@ auto Configuration::process(Markup::Node document, bool load) -> void {
   bind(natural, "Hacks/PPU/RenderCycle", hacks.ppu.renderCycle);
   bind(boolean, "Hacks/PPU/NoSpriteLimit", hacks.ppu.noSpriteLimit);
   bind(boolean, "Hacks/PPU/NoVRAMBlocking", hacks.ppu.noVRAMBlocking);
+  bind(natural, "Hacks/PPU/Threads", hacks.ppu.threads);
   bind(natural, "Hacks/PPU/Mode7/Scale", hacks.ppu.mode7.scale);
   bind(boolean, "Hacks/PPU/Mode7/Perspective", hacks.ppu.mode7.perspective);
   bind(boolean, "Hacks/PPU/Mode7/Supersample", hacks.ppu.mode7.supersample);

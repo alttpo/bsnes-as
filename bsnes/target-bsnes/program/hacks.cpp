@@ -70,6 +70,7 @@ auto Program::hackCompatibility() -> void {
   emulator->configure("Hacks/CPU/FastJoypadPolling", fastJoypadPolling);
   emulator->configure("Hacks/PPU/Fast", fastPPU);
   emulator->configure("Hacks/PPU/NoSpriteLimit", fastPPUNoSpriteLimit);
+  emulator->configure("Hacks/PPU/Threads", settings.emulator.hack.ppu.threads);
   emulator->configure("Hacks/PPU/RenderCycle", renderCycle);
   emulator->configure("Hacks/PPU/Mode7/Scale", settings.emulator.hack.ppu.mode7.scale);
   emulator->configure("Hacks/PPU/Mode7/Perspective", settings.emulator.hack.ppu.mode7.perspective);

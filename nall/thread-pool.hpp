@@ -380,8 +380,7 @@ private:
 };
 #elif 1
 template<typename T>
-class blocking_queue {
-public:
+struct blocking_queue {
   template<typename Q = T>
   typename std::enable_if<std::is_copy_constructible<Q>::value, void>::type
   push(const T &item) {
@@ -498,6 +497,16 @@ public:
     return m_queue.size();
   }
 
+  blocking_queue()
+    : m_mutex(), m_ready(), m_queue(), m_done(false)
+  {
+  }
+
+  blocking_queue(const blocking_queue &other)
+    : m_mutex(), m_ready(), m_queue(other.m_queue), m_done(other.m_done)
+  {
+  }
+
 private:
   std::queue<T> m_queue;
   mutable std::mutex m_mutex;
@@ -505,51 +514,28 @@ private:
   bool m_done = false;
 };
 
-class thread_pool
+struct thread_pool
 {
-public:
-  const unsigned int thread_count;
+  unsigned int thread_count;
 
-  explicit thread_pool(unsigned int threads = std::thread::hardware_concurrency())
-    : m_queues(threads), m_count(threads), thread_count(threads)
+  explicit thread_pool(unsigned int threads = 0)
+    : m_queues(), m_count(threads), thread_count(threads)
   {
-    if(!threads)
-      return;
-
-    m_tasks = 0;
-    m_ran = 0;
-    auto worker = [this](auto i)
-    {
-      while(true)
-      {
-        Proc f;
-        for(auto n = 0; n < m_count * K; ++n)
-          if(m_queues[(i + n) % m_count].try_pop(f))
-            break;
-        if(!f && !m_queues[i].pop(f))
-          break;
-        if(!f)
-          break;
-        f();
-
-        m_ran++;
-      }
-    };
-
-    for(auto i = 0; i < threads; ++i)
-      m_threads.emplace_back(worker, i);
+    construct();
   }
 
   ~thread_pool()
   {
-    if(!thread_count)
-      return;
+    destruct();
+  }
 
-    for(auto& queue : m_queues)
-      queue.push({});
-    for(auto& thread : m_threads)
-      if(thread.joinable())
-        thread.join();
+  void resize(unsigned int threads) {
+    if (threads == thread_count) return;
+
+    destruct();
+    thread_count = threads;
+    m_count = threads;
+    construct();
   }
 
   template<typename F, typename... Args>
@@ -608,6 +594,57 @@ public:
   }
 
 private:
+  void construct() {
+    if(!thread_count)
+      return;
+
+    m_tasks = 0;
+    m_ran = 0;
+    auto worker = [this](auto i)
+    {
+      while(true)
+      {
+        Proc f;
+        for(auto n = 0; n < m_count * K; ++n)
+          if(m_queues[(i + n) % m_count].try_pop(f))
+            break;
+        if(!f && !m_queues[i].pop(f))
+          break;
+        if(!f)
+          break;
+        f();
+
+        m_ran++;
+      }
+    };
+
+    for(auto i = 0; i < thread_count; ++i) {
+      m_queues.emplace_back(std::move(Queue()));
+    }
+    for(auto i = 0; i < thread_count; ++i) {
+      m_threads.emplace_back(worker, i);
+    }
+  }
+
+  void destruct()
+  {
+    if(!thread_count)
+      return;
+
+    for(auto& queue : m_queues)
+      queue.push({});
+    wait();
+    for(auto& thread : m_threads)
+      if(thread.joinable())
+        thread.join();
+    for(uint i = 0; i < m_count; i++) {
+      m_queues.pop_back();
+    }
+    for(uint i = 0; i < m_count; i++) {
+      m_threads.pop_back();
+    }
+  }
+
   using Proc = std::function<void(void)>;
   using Queue = blocking_queue<Proc>;
   using Queues = std::vector<Queue>;
@@ -616,8 +653,8 @@ private:
   using Threads = std::vector<std::thread>;
   Threads m_threads;
 
-  const unsigned int m_count;
-  std::atomic_uint m_index = 0;
+  unsigned int m_count = 0;
+  std::atomic_uint m_index;
 
   std::atomic<int> m_ran;
   std::atomic<int> m_tasks;

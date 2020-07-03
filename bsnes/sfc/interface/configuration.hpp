@@ -40,6 +40,7 @@ struct Configuration {
       bool deinterlace = true;
       bool noSpriteLimit = false;
       bool noVRAMBlocking = false;
+      uint threads = 0;
       uint renderCycle = 512;
       struct Mode7 {
         uint scale = 1;
