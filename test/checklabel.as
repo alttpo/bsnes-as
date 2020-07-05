@@ -114,32 +114,31 @@ class SettingsWindow {
       hs.onChange(@GUI::Callback(slideChanged));
 
       auto @tf = GUI::TabFrame();
-      vl.append(tf, GUI::Size(200, 200), spacing);
+      vl.append(tf, GUI::Size(400, 250), spacing);
       {
         auto @tfi = GUI::TabFrameItem();
         tfi.text = "Test 1";
+        tf.append(tfi);
 
         auto @vl = GUI::VerticalLayout();
         tfi.append(vl);
+
         auto @lbl = GUI::Label();
         lbl.text = "hello";
-        vl.append(lbl, GUI::Size(-1, -1));
-
-        tf.append(tfi);
+        vl.append(lbl, GUI::Size(0, 0), spacing);
       }
       {
         auto @tfi = GUI::TabFrameItem();
         tfi.text = "Test 2";
 
         auto @vl = GUI::VerticalLayout();
-        tfi.append(vl);
         auto @lbl = GUI::Label();
         lbl.text = "world";
-        vl.append(lbl, GUI::Size(-1, -1));
+        vl.append(lbl, GUI::Size(0, 0), spacing);
 
+        tfi.append(vl);
         tf.append(tfi);
       }
-      tf.enabled = true;
     }
   }
 

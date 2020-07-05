@@ -633,7 +633,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(TabFrameItem, "void   set_movable(bool) property",             ([](hiro::TabFrameItem *p, bool value) { p->setMovable(value); }));
   // auto icon() const -> image;
   // auto setIcon(const image& icon = {}) -> type&;
-  REG_LAMBDA(TabFrameItem, "void append(const ? &in sizable)",              ([](hiro::TabFrameItem* self, hiro::Sizable *sizable){ self->append(*sizable); }));
+  REG_LAMBDA(TabFrameItem, "void append(const ? &in sizable)",              ([](hiro::TabFrameItem* p, hiro::Sizable *sizable){ p->append(*sizable); }));
 
   // TabFrame
   EXPOSE_HIRO(TabFrame);
