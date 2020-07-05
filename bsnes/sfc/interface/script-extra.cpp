@@ -13,12 +13,6 @@ struct ExtraLayer {
 
   // set default font:
   PixelFonts::Font *font = PixelFonts::fonts[0];
-  auto get_font() -> PixelFonts::Font * {
-    return font;
-  }
-  auto set_font(PixelFonts::Font *font_p) -> void {
-    font = font_p;
-  }
 
   bool text_shadow = false;
   auto get_text_shadow() -> bool { return text_shadow; }

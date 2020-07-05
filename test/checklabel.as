@@ -77,7 +77,7 @@ class SettingsWindow {
 
       auto @cv = GUI::SNESCanvas();
       vl.append(cv, GUI::Size(0, 0), spacing);
-      cv.size = GUI::Size(256, 256);
+      cv.size = GUI::Size(32, 32);
       cv.luma = 4;
       cv.fill(0x03E0 | 0x8000);
       cv.update();
@@ -112,6 +112,34 @@ class SettingsWindow {
       hs.length = 31;
       hs.position = 31;
       hs.onChange(@GUI::Callback(slideChanged));
+
+      auto @tf = GUI::TabFrame();
+      vl.append(tf, GUI::Size(200, 200), spacing);
+      {
+        auto @tfi = GUI::TabFrameItem();
+        tfi.text = "Test 1";
+
+        auto @vl = GUI::VerticalLayout();
+        tfi.append(vl);
+        auto @lbl = GUI::Label();
+        lbl.text = "hello";
+        vl.append(lbl, GUI::Size(-1, -1));
+
+        tf.append(tfi);
+      }
+      {
+        auto @tfi = GUI::TabFrameItem();
+        tfi.text = "Test 2";
+
+        auto @vl = GUI::VerticalLayout();
+        tfi.append(vl);
+        auto @lbl = GUI::Label();
+        lbl.text = "world";
+        vl.append(lbl, GUI::Size(-1, -1));
+
+        tf.append(tfi);
+      }
+      tf.enabled = true;
     }
   }
 
@@ -130,11 +158,11 @@ class SettingsWindow {
 
 void init() {
   @settings = SettingsWindow();
-  ppu::extra.font_name = "proggy-tinysz";
+  @ppu::extra.font = ppu::fonts[0];
   ppu::extra.text_outline = true;
   ppu::extra.color = ppu::rgb(31, 31, 31);
   ppu::extra.outline_color = ppu::rgb(12, 12, 12);
-  message(fmtInt(ppu::extra.font_height));
+  message(fmtInt(ppu::extra.font.height));
 }
 
 void pre_frame() {
@@ -151,8 +179,8 @@ void post_frame() {
   tile.index = 0;
   tile.priority = 2;
   tile.source = 4;
-  tile.width = ppu::extra.measure_text(text) + 2;
-  tile.height = ppu::extra.font_height + 2;
+  tile.width = ppu::extra.font.measureText(text) + 2;
+  tile.height = ppu::extra.font.height + 2;
   tile.text(1, 1, text);
   tile.x = 128 - tile.width / 2;
   tile.y = 112;

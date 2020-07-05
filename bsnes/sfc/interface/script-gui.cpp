@@ -273,6 +273,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_TYPE(ComboButtonItem);
   REG_REF_TYPE(ComboButton);
   REG_REF_TYPE(HorizontalSlider);
+  REG_REF_TYPE(TabFrameItem);
+  REG_REF_TYPE(TabFrame);
 
   // value types:
   REG_VALUE_TYPE(Alignment, asOBJ_APP_CLASS_CK);
@@ -617,4 +619,33 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(HorizontalSlider, "void set_position(uint position) property", ([](hiro::HorizontalSlider *p, uint length) { p->setPosition(length); }));
   REG_LAMBDA(HorizontalSlider, "void doChange()",                           ([](hiro::HorizontalSlider *p) { p->doChange(); }));
   REG_LAMBDA(HorizontalSlider, "void onChange(Callback @cb)",               ([](hiro::HorizontalSlider *p, asIScriptFunction *cb) { p->onChange(Callback(cb)); }));
+
+  // TabFrameItem
+  EXPOSE_HIRO(TabFrameItem);
+  EXPOSE_HIRO_OBJECT(TabFrameItem);
+  REG_LAMBDA(TabFrameItem, "void set_text(const string &in text) property", ([](hiro::TabFrameItem *p, const string &text) { p->setText(text); }));
+  REG_LAMBDA(TabFrameItem, "string get_text() property",                    ([](hiro::TabFrameItem *p) { return p->text(); }));
+  REG_LAMBDA(TabFrameItem, "string get_selected() property",                ([](hiro::TabFrameItem *p) { return p->selected(); }));
+  REG_LAMBDA(TabFrameItem, "void setSelected()",                            ([](hiro::TabFrameItem *p) { p->setSelected(); }));
+  REG_LAMBDA(TabFrameItem, "bool   get_closable() property",                ([](hiro::TabFrameItem *p) { return p->closable(); }));
+  REG_LAMBDA(TabFrameItem, "void   set_closable(bool) property",            ([](hiro::TabFrameItem *p, bool value) { p->setClosable(value); }));
+  REG_LAMBDA(TabFrameItem, "bool   get_movable() property",                 ([](hiro::TabFrameItem *p) { return p->movable(); }));
+  REG_LAMBDA(TabFrameItem, "void   set_movable(bool) property",             ([](hiro::TabFrameItem *p, bool value) { p->setMovable(value); }));
+  // auto icon() const -> image;
+  // auto setIcon(const image& icon = {}) -> type&;
+  REG_LAMBDA(TabFrameItem, "void append(const ? &in sizable)",              ([](hiro::TabFrameItem* self, hiro::Sizable *sizable){ self->append(*sizable); }));
+
+  // TabFrame
+  EXPOSE_HIRO(TabFrame);
+  EXPOSE_HIRO_OBJECT(TabFrame);
+  EXPOSE_HIRO_SIZABLE(TabFrame);
+  //EXPOSE_HIRO_WIDGET(TabFrame);
+  REG_LAMBDA(TabFrame, "void append(TabFrameItem@ item)",             ([](hiro::TabFrame *p, hiro::TabFrameItem *item) { p->append(*item); }));
+  REG_LAMBDA(TabFrame, "TabFrameItem @get_opIndex(uint i) property",  ([](hiro::TabFrame *p, uint i) { return new hiro::TabFrameItem(p->item(i)); }));
+  REG_LAMBDA(TabFrame, "uint count()",                                ([](hiro::TabFrame *p) { return p->itemCount(); }));
+  REG_LAMBDA(TabFrame, "void doChange()",                             ([](hiro::TabFrame *p) { p->doChange(); }));
+  REG_LAMBDA(TabFrame, "void remove(TabFrameItem@ item)",             ([](hiro::TabFrame *p, hiro::TabFrameItem *item) { p->remove(*item); }));
+  REG_LAMBDA(TabFrame, "void onChange(Callback @cb)",                 ([](hiro::TabFrame *p, asIScriptFunction *cb) { p->onChange(Callback(cb)); }));
+  REG_LAMBDA(TabFrame, "void reset()",                                ([](hiro::TabFrame *p) { p->reset(); }));
+  REG_LAMBDA(TabFrame, "TabFrameItem @get_selected() property",       ([](hiro::TabFrame *p) { return new hiro::TabFrameItem(p->selected()); }));
 }
