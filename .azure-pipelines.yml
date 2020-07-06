@@ -28,7 +28,6 @@ strategy:
         cp -a bsnes/Database/* $(nightly)/Database
         cp -a shaders $(nightly)/Shaders
         cp -a GPLv3.txt $(nightly)
-        cp -a *.as $(nightly)
 
     win32:
       archName: 'win32'
@@ -51,7 +50,6 @@ strategy:
         cp -a bsnes/Database/* $(nightly)/Database
         cp -a shaders $(nightly)/Shaders
         cp -a GPLv3.txt $(nightly)
-        cp -a *.as $(nightly)
 
     macOS:
       archName: 'macOS'
@@ -65,7 +63,6 @@ strategy:
         mkdir $(nightly)
         cp -a bsnes/out/bsnes.app $(nightly)/
         cp -a GPLv3.txt $(nightly)/
-        cp -a *.as $(nightly)/
 
     linux:
       archName: 'linux'
@@ -88,7 +85,6 @@ strategy:
         cp -a bsnes/Database/* $(nightly)/Database
         cp -a shaders $(nightly)/Shaders
         cp -a GPLv3.txt $(nightly)
-        cp -a *.as $(nightly)
 
 variables:
   makeOptions: -j4
