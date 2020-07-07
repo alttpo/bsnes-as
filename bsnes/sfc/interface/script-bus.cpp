@@ -174,8 +174,8 @@ struct Bus {
     }
   };
 
-  static auto add_write_interceptor(const string *addr, uint32 size, asIScriptFunction *cb) -> void {
-    ::SuperFamicom::bus.add_write_interceptor(*addr, size, write_interceptor(cb));
+  static auto add_write_interceptor(const string *addr, asIScriptFunction *cb) -> void {
+    ::SuperFamicom::bus.add_write_interceptor(*addr, write_interceptor(cb));
   }
 
   struct dma_interceptor {
@@ -260,7 +260,7 @@ auto RegisterBus(asIScriptEngine *e) -> void {
     r = e->RegisterGlobalFunction("void map(const string &in addr, uint32 size, uint32 mask, uint32 offset, array<uint8> @memory)", asFUNCTION(Bus::map_array), asCALL_CDECL); assert(r >= 0);
 
     r = e->RegisterFuncdef("void WriteInterceptCallback(uint32 addr, uint8 oldValue, uint8 newValue)"); assert(r >= 0);
-    r = e->RegisterGlobalFunction("void add_write_interceptor(const string &in addr, uint32 size, WriteInterceptCallback @cb)", asFUNCTION(Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("void add_write_interceptor(const string &in addr, WriteInterceptCallback @cb)", asFUNCTION(Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
   }
 
   {

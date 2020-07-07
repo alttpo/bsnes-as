@@ -42,7 +42,7 @@ struct Bus {
   // [jsd] for intercepting writes:
   alwaysinline auto write_no_intercept(uint addr, uint8 data) -> void;
   auto add_write_interceptor(
-    const string& addr, uint size,
+    const string& addr,
     const function<void (uint, uint8, function<uint8()>)> &intercept
   ) -> uint;
   auto reset_interceptors() -> void;
@@ -57,7 +57,7 @@ private:
 
   // [jsd] for intercepting writes:
   uint8* interceptor_lookup = nullptr;
-  function<void (uint, uint8, function<uint8()>)> interceptor[256];
+  function<void (uint, uint8, const function<uint8()> &)> interceptor[256];
   uint interceptor_counter[256];
 };
 

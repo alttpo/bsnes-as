@@ -121,7 +121,7 @@ auto Bus::unmap(const string& addr) -> void {
 }
 
 auto Bus::add_write_interceptor(
-  const string& addr, uint size,
+  const string& addr,
   const function<void (uint, uint8, function<uint8()>)> &intercept
 ) -> uint {
   uint id = 1;
