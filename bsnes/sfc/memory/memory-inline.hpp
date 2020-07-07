@@ -28,9 +28,13 @@ auto Bus::read(uint addr, uint8 data) -> uint8 {
 }
 
 auto Bus::write(uint addr, uint8 data) -> void {
+  uint8 fn = lookup[addr];
+  uint32 offset = target[addr];
+
   // call interceptor before actual write takes place:
-  interceptor[interceptor_lookup[addr]](interceptor_target[addr], data);
-  return writer[lookup[addr]](target[addr], data);
+  interceptor[interceptor_lookup[addr]](addr, data, [=](){ return reader[fn](offset, 0); });
+
+  return writer[fn](offset, data);
 }
 
 auto Bus::write_no_intercept(uint addr, uint8 data) -> void {

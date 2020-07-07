@@ -21,6 +21,8 @@ struct Memory {
 #include "protectable.hpp"
 
 struct Bus {
+  using interceptor_fn = function<void (uint, uint8, uint8)>;
+
   alwaysinline static auto mirror(uint address, uint size) -> uint;
   alwaysinline static auto reduce(uint address, uint mask) -> uint;
 
@@ -32,7 +34,7 @@ struct Bus {
   auto reset() -> void;
   auto map(
     const function<uint8 (uint, uint8)>& read,
-    const function<void (uint, uint8)>& write,
+    const function<void  (uint, uint8)>& write,
     const string& address, uint size = 0, uint base = 0, uint mask = 0
   ) -> uint;
   auto unmap(const string& address) -> void;
@@ -41,7 +43,7 @@ struct Bus {
   alwaysinline auto write_no_intercept(uint addr, uint8 data) -> void;
   auto add_write_interceptor(
     const string& addr, uint size,
-    const function<void  (uint, uint8)> &intercept
+    const function<void (uint, uint8, function<uint8()>)> &intercept
   ) -> uint;
   auto reset_interceptors() -> void;
 
@@ -55,8 +57,7 @@ private:
 
   // [jsd] for intercepting writes:
   uint8* interceptor_lookup = nullptr;
-  uint32* interceptor_target = nullptr;
-  function<void  (uint, uint8)> interceptor[256];
+  function<void (uint, uint8, function<uint8()>)> interceptor[256];
   uint interceptor_counter[256];
 };
 

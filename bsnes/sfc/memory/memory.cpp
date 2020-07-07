@@ -9,7 +9,6 @@ Bus::~Bus() {
   if(lookup) delete[] lookup;
   if(target) delete[] target;
   if(interceptor_lookup) delete[] interceptor_lookup;
-  if(interceptor_target) delete[] interceptor_target;
 }
 
 auto Bus::reset() -> void {
@@ -39,12 +38,10 @@ auto Bus::reset_interceptors() -> void {
   }
 
   if(interceptor_lookup) delete[] interceptor_lookup;
-  if(interceptor_target) delete[] interceptor_target;
 
   interceptor_lookup = new uint8 [16 * 1024 * 1024]();
-  interceptor_target = new uint32 [16 * 1024 * 1024]();
 
-  interceptor[0] = [](uint, uint8) -> void {};
+  interceptor[0] = [](uint, uint8, function<uint8()>) -> void {};
 }
 
 auto Bus::map(
@@ -125,7 +122,7 @@ auto Bus::unmap(const string& addr) -> void {
 
 auto Bus::add_write_interceptor(
   const string& addr, uint size,
-  const function<void  (uint, uint8)> &intercept
+  const function<void (uint, uint8, function<uint8()>)> &intercept
 ) -> uint {
   uint id = 1;
   while(interceptor_counter[id]) {
@@ -133,9 +130,6 @@ auto Bus::add_write_interceptor(
   }
 
   interceptor[id] = intercept;
-
-  const uint base = 0;
-  const uint mask = 0;
 
   auto p = addr.split(":", 1L);
   auto banks = p(0).split(",");
@@ -156,10 +150,7 @@ auto Bus::add_write_interceptor(
             interceptor[pid].reset();
           }
 
-          uint offset = reduce(bank << 16u | addr, mask);
-          if(size) offset = base + mirror(offset, size - base);
           interceptor_lookup[bank << 16u | addr] = id;
-          interceptor_target[bank << 16u | addr] = offset;
           interceptor_counter[id]++;
         }
       }

@@ -163,12 +163,13 @@ struct Bus {
       //printf("dtor() this=%p cb=%p refs=%d\n", this, cb, refs);
     }
 
-    auto operator()(uint addr, uint8 new_value) -> void {
+    auto operator()(uint addr, uint8 new_value, const function<uint8()> &get_old_value) -> void {
       auto ctx = ::SuperFamicom::script.context;
       //printf("call() this=%p ctx=%p cb=%p\n", this, ctx, cb);
       ctx->Prepare(cb);
       ctx->SetArgDWord(0, addr);
-      ctx->SetArgByte(1, new_value);
+      ctx->SetArgByte(1, get_old_value());
+      ctx->SetArgByte(2, new_value);
       executeScript(ctx);
     }
   };
@@ -258,7 +259,7 @@ auto RegisterBus(asIScriptEngine *e) -> void {
     // map function:
     r = e->RegisterGlobalFunction("void map(const string &in addr, uint32 size, uint32 mask, uint32 offset, array<uint8> @memory)", asFUNCTION(Bus::map_array), asCALL_CDECL); assert(r >= 0);
 
-    r = e->RegisterFuncdef("void WriteInterceptCallback(uint32 addr, uint8 value)"); assert(r >= 0);
+    r = e->RegisterFuncdef("void WriteInterceptCallback(uint32 addr, uint8 oldValue, uint8 newValue)"); assert(r >= 0);
     r = e->RegisterGlobalFunction("void add_write_interceptor(const string &in addr, uint32 size, WriteInterceptCallback @cb)", asFUNCTION(Bus::add_write_interceptor), asCALL_CDECL); assert(r >= 0);
   }
 
