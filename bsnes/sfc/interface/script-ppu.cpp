@@ -65,6 +65,16 @@ struct PPUAccess {
     return ppu.vram[addr];
   }
 
+  auto vram_write(uint16 addr, uint16 value) -> void {
+    if (system.fastPPU()) {
+      auto vram = (uint16 *)ppufast.vram;
+      vram[addr & 0x7fff] = value;
+    } else {
+      auto vram = (uint16 *)ppu.vram.data;
+      vram[addr & 0x7fff] = value;
+    }
+  }
+
   auto vram_chr_address(uint16 chr) -> uint16 {
     return 0x4000u + (chr << 4u);
   }
@@ -249,7 +259,8 @@ auto RegisterPPU(asIScriptEngine *e) -> void {
 
   // define ppu::VRAM object type for opIndex convenience:
   r = e->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = e->RegisterObjectMethod("VRAM", "uint16 opIndex(uint16 addr)", asMETHOD(PPUAccess, vram_read), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("VRAM", "uint16 get_opIndex(uint16 addr) property", asMETHOD(PPUAccess, vram_read), asCALL_THISCALL); assert(r >= 0);
+  r = e->RegisterObjectMethod("VRAM", "void set_opIndex(uint16 addr, uint16 value) property", asMETHOD(PPUAccess, vram_write), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("VRAM", "uint16 chr_address(uint16 chr)", asMETHOD(PPUAccess, vram_chr_address), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("VRAM", "void read_block(uint16 addr, uint offs, uint16 size, array<uint16> &inout output)", asMETHOD(PPUAccess, vram_read_block), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("VRAM", "void write_block(uint16 addr, uint offs, uint16 size, const array<uint16> &in data)", asMETHOD(PPUAccess, vram_write_block), asCALL_THISCALL); assert(r >= 0);
