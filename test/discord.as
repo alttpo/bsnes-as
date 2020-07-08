@@ -17,7 +17,7 @@ void pre_frame() {
     }
 
     message("discord: connected!");
-    start = chrono::timestamp;
+    start = chrono::realtime::timestamp;
   }
   if (!discord::created) return;
 

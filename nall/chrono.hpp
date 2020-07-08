@@ -24,6 +24,22 @@ inline auto benchmark(const function<void ()>& f, uint64_t times = 1) -> void {
   print("[chrono::benchmark] ", (double)(end - start) / 1'000'000'000.0, "s\n");
 }
 
+namespace realtime {
+
+//passage of time functions (from system epoch)
+
+inline auto nanosecond() -> uint64_t {
+  timespec tv;
+  clock_gettime(CLOCK_REALTIME, &tv);
+  return tv.tv_sec * 1'000'000'000 + tv.tv_nsec;
+}
+
+inline auto microsecond() -> uint64_t { return nanosecond() / 1'000; }
+inline auto millisecond() -> uint64_t { return nanosecond() / 1'000'000; }
+inline auto second() -> uint64_t { return nanosecond() / 1'000'000'000; }
+
+}
+
 //exact date/time functions (from system epoch)
 
 struct timeinfo {
