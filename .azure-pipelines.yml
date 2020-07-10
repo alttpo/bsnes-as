@@ -93,7 +93,7 @@ strategy:
 variables:
   makeOptions: -j4
   makeVariables: local=false build=performance
-  nightly: bsnes-angelscript-$(archName)-$(Build.SourceVersion)
+  nightly: bsnes-angelscript-$(archName)-$(Build.BuildNumber)
   buildVersion: $(Build.BuildId)
 
 pool:
