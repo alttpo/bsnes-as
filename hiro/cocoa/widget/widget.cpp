@@ -82,7 +82,9 @@ auto pWidget::setMouseCursor(const MouseCursor& mouseCursor) -> void {
 }
 
 auto pWidget::setToolTip(const string& toolTip) -> void {
-  //TODO
+  @autoreleasepool {
+    [cocoaView setToolTip:[NSString stringWithUTF8String:toolTip]];
+  }
 }
 
 auto pWidget::setVisible(bool visible) -> void {
