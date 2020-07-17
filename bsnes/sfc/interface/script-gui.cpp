@@ -290,6 +290,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
   EXPOSE_SHARED_PTR(name, hiro::name, hiro::m##name)
 
+  // Object:
 #define EXPOSE_OBJECT(name, className) \
   REG_LAMBDA(name, "Attributes &get_attributes() property",       ([](className* self) { return self; })); \
   REG_LAMBDA(name, "void set_font(const Font &in font) property", ([](className* self, hiro::Font &font){ self->setFont(font); })); \
@@ -310,6 +311,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define EXPOSE_HIRO_OBJECT(name) EXPOSE_OBJECT(name, hiro::name)
 
+  // Sizable:
 #define EXPOSE_SIZABLE(name, className) \
   REG_LAMBDA(name, "bool get_collapsible() property",             ([](className* self) { return self->collapsible(); })); \
   REG_LAMBDA(name, "void doSize()",                               ([](className* self) { self->doSize(); })); \
@@ -324,6 +326,13 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(name, "void set_collapsible(bool collapsible = true) property",  ([](className* self, bool collapsible) { self->setCollapsible(collapsible); }))
 
 #define EXPOSE_HIRO_SIZABLE(name) EXPOSE_SIZABLE(name, hiro::name)
+
+  // Widget:
+#define EXPOSE_WIDGET(name, className) \
+  REG_LAMBDA(name, "string get_toolTip() property",                 ([](className* self) { return self->toolTip(); })); \
+  REG_LAMBDA(name, "void   set_toolTip(const string &in) property", ([](className* self, string &value) { self->setToolTip(value); }))
+
+#define EXPOSE_HIRO_WIDGET(name) EXPOSE_WIDGET(name, hiro::name)
 
   REG_LAMBDA(Attributes, "string get_opIndex(const string &in) property",
     ([](hiro::Object* self, const string &name) { return self->attribute(name); }));
@@ -514,7 +523,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO(LineEdit);
   EXPOSE_HIRO_OBJECT(LineEdit);
   EXPOSE_HIRO_SIZABLE(LineEdit);
-  //EXPOSE_HIRO_WIDGET(LineEdit);
+  EXPOSE_HIRO_WIDGET(LineEdit);
   REG_LAMBDA(LineEdit, "string get_text() property",                    ([](hiro::LineEdit* self){ return self->text(); }));
   REG_LAMBDA(LineEdit, "void set_text(const string &in text) property", ([](hiro::LineEdit* self, string &text){ self->setText(text); }));
   REG_LAMBDA(LineEdit, "void onChange(Callback @cb)",                   ([](hiro::LineEdit* self, asIScriptFunction* cb){
@@ -529,7 +538,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO(Label);
   EXPOSE_HIRO_OBJECT(Label);
   EXPOSE_HIRO_SIZABLE(Label);
-  //EXPOSE_HIRO_WIDGET(Label);
+  EXPOSE_HIRO_WIDGET(Label);
   REG_LAMBDA(Label, "Alignment get_alignment() property",                         ([](hiro::Label* self){ return self->alignment(); }));
   REG_LAMBDA(Label, "Color get_backgroundColor() property",                       ([](hiro::Label* self){ return self->backgroundColor(); }));
   REG_LAMBDA(Label, "Color get_foregroundColor() property",                       ([](hiro::Label* self){ return self->foregroundColor(); }));
@@ -543,7 +552,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO(Button);
   EXPOSE_HIRO_OBJECT(Button);
   EXPOSE_HIRO_SIZABLE(Button);
-  //EXPOSE_HIRO_WIDGET(Button);
+  EXPOSE_HIRO_WIDGET(Button);
   REG_LAMBDA(Button, "string get_text() property",                    ([](hiro::Button* self){ return self->text(); }));
   REG_LAMBDA(Button, "void set_text(const string &in text) property", ([](hiro::Button* self, const string &text){ self->setText(text); }));
   REG_LAMBDA(Button, "void onActivate(Callback @cb)",                 ([](hiro::Button* self, asIScriptFunction* cb){
@@ -574,7 +583,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO(CheckLabel);
   EXPOSE_HIRO_OBJECT(CheckLabel);
   EXPOSE_HIRO_SIZABLE(CheckLabel);
-  //EXPOSE_HIRO_WIDGET(CheckLabel);
+  EXPOSE_HIRO_WIDGET(CheckLabel);
   REG_LAMBDA(CheckLabel, "void set_text(const string &in text) property", ([](hiro::CheckLabel *p, const string &text) { p->setText(text); }));
   REG_LAMBDA(CheckLabel, "string get_text() property",                    ([](hiro::CheckLabel *p) { return p->text(); }));
   REG_LAMBDA(CheckLabel, "void set_checked(bool checked) property",       ([](hiro::CheckLabel *p, bool checked) { p->setChecked(checked); }));
@@ -596,7 +605,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO(ComboButton);
   EXPOSE_HIRO_OBJECT(ComboButton);
   EXPOSE_HIRO_SIZABLE(ComboButton);
-  //EXPOSE_HIRO_WIDGET(ComboButton);
+  EXPOSE_HIRO_WIDGET(ComboButton);
   REG_LAMBDA(ComboButton, "void append(ComboButtonItem@ item)",             ([](hiro::ComboButton *p, hiro::ComboButtonItem *item) { p->append(*item); }));
   REG_LAMBDA(ComboButton, "ComboButtonItem @get_opIndex(uint i) property",  ([](hiro::ComboButton *p, uint i) { return new hiro::ComboButtonItem(p->item(i)); }));
   REG_LAMBDA(ComboButton, "uint count()",                                   ([](hiro::ComboButton *p) { return p->itemCount(); }));
@@ -610,7 +619,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO(HorizontalSlider);
   EXPOSE_HIRO_OBJECT(HorizontalSlider);
   EXPOSE_HIRO_SIZABLE(HorizontalSlider);
-  //EXPOSE_HIRO_WIDGET(HorizontalSlider);
+  EXPOSE_HIRO_WIDGET(HorizontalSlider);
   REG_LAMBDA(HorizontalSlider, "uint get_length() property",                ([](hiro::HorizontalSlider *p) { return p->length(); }));
   REG_LAMBDA(HorizontalSlider, "void set_length(uint length) property",     ([](hiro::HorizontalSlider *p, uint length) { p->setLength(length); }));
   REG_LAMBDA(HorizontalSlider, "uint get_position() property",              ([](hiro::HorizontalSlider *p) { return p->position(); }));

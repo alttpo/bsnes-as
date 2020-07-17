@@ -69,6 +69,7 @@ class SettingsWindow {
       auto @lbl = GUI::Label();
       vl.append(lbl, GUI::Size(256, 48), spacing);
       lbl.text = "0123456789ABCDEF";
+      lbl.toolTip = "tool tip";
       lbl.alignment = GUI::Alignment(0.5, 0.5);
       lbl.foregroundColor = GUI::Color(240, 240,   0);
       lbl.backgroundColor = GUI::Color(0,   120, 120);
@@ -100,6 +101,7 @@ class SettingsWindow {
 
       dd.onChange(@GUI::Callback(comboChanged));
       dd.enabled = true;
+      dd.toolTip = "tool tip";
       message(fmtInt(dd.count()));
       message(dd.selected.text);
       message(dd[0].text);
@@ -130,11 +132,11 @@ class SettingsWindow {
 
 void init() {
   @settings = SettingsWindow();
-  ppu::extra.font_name = "proggy-tinysz";
+  @ppu::extra.font = ppu::fonts[0]; // "proggy-tinysz";
   ppu::extra.text_outline = true;
   ppu::extra.color = ppu::rgb(31, 31, 31);
   ppu::extra.outline_color = ppu::rgb(12, 12, 12);
-  message(fmtInt(ppu::extra.font_height));
+  message(fmtInt(ppu::extra.font.height));
 }
 
 void pre_frame() {
@@ -151,8 +153,8 @@ void post_frame() {
   tile.index = 0;
   tile.priority = 2;
   tile.source = 4;
-  tile.width = ppu::extra.measure_text(text) + 2;
-  tile.height = ppu::extra.font_height + 2;
+  tile.width = ppu::extra.font.measureText(text) + 2;
+  tile.height = ppu::extra.font.height + 2;
   tile.text(1, 1, text);
   tile.x = 128 - tile.width / 2;
   tile.y = 112;

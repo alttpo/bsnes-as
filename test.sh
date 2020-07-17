@@ -1,2 +1,2 @@
 #!/bin/bash
-./bsnes/out/bsnes.app/Contents/MacOS/bsnes "--script=$1" "../alttp-multiplayer/alttp.smc"
+./bsnes/out/bsnes.app/Contents/MacOS/bsnes "--script=$1" "../alttpo/alttp.smc"
