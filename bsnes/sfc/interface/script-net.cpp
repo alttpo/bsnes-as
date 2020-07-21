@@ -244,7 +244,7 @@ namespace Net {
       last_error = 0;
       if (rc < 0) {
         last_error = sock_capture_error();
-        close(false);
+        closeNoError();
         exception_thrown();
         return;
       }
@@ -260,7 +260,7 @@ namespace Net {
         last_error = 0;
         if (rc < 0) {
           last_error = sock_capture_error();
-          close(false);
+          closeNoError();
           exception_thrown();
           return;
         }
@@ -275,7 +275,7 @@ namespace Net {
       last_error = 0;
       if (rc < 0) {
         last_error = sock_capture_error();
-        close(false);
+        closeNoError();
         exception_thrown();
         return;
       }
@@ -298,7 +298,16 @@ namespace Net {
         delete this;
     }
 
-    auto close(bool set_last_error = true) -> void {
+    auto close() -> int {
+      return closeOptionalError<true>();
+    }
+
+    auto closeNoError() -> int {
+      return closeOptionalError<false>();
+    }
+
+    template<bool set_last_error>
+    auto closeOptionalError() -> int {
       int rc;
 #if !defined(PLATFORM_WINDOWS)
       rc = ::close(fd); set_last_error && (last_error_location = LOCATION " close");
@@ -314,6 +323,7 @@ namespace Net {
       }
 
       fd = -1;
+      return rc;
     }
 
     operator bool() { return fd >= 0; }
@@ -915,7 +925,7 @@ namespace Net {
           //printf("socket closed!\n");
           reset();
           state = CLOSED;
-          socket->close(false);
+          socket->closeNoError();
           return nullptr;
         }
 
@@ -1244,6 +1254,7 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("Socket", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::Socket, addRef), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectBehaviour("Socket", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::Socket, release), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Socket", "bool get_is_valid() property", asMETHOD(Net::Socket, operator bool), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "int close()", asMETHOD(Net::Socket, close), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Socket", "int connect(Address@ addr)", asMETHOD(Net::Socket, connect), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Socket", "int bind(Address@ addr)", asMETHOD(Net::Socket, bind), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Socket", "int listen(int backlog)", asMETHOD(Net::Socket, listen), asCALL_THISCALL); assert( r >= 0 );

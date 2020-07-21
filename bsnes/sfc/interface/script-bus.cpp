@@ -17,6 +17,10 @@ struct Bus {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the output array", true);
       return;
     }
+    if (addr + size > 0xFFFFFF) {
+      asGetActiveContext()->SetException("addr + size exceeds the address space", true);
+      return;
+    }
 
     for (uint32 a = 0; a < size; a++) {
       auto value = ::SuperFamicom::bus.read(addr + a);
@@ -37,6 +41,10 @@ struct Bus {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the output array", true);
       return;
     }
+    if (addr + (size << 1) > 0xFFFFFF) {
+      asGetActiveContext()->SetException("addr + size exceeds the address space", true);
+      return;
+    }
 
     for (uint32 a = 0; a < size; a++) {
       auto lo = ::SuperFamicom::bus.read(addr + (a << 1u) + 0u);
@@ -47,11 +55,11 @@ struct Bus {
   }
 
   static auto read_u16(uint32 addr) -> uint16 {
-    return ::SuperFamicom::bus.read(addr, 0) | (::SuperFamicom::bus.read(addr + 1,0) << 8u);
+    return ::SuperFamicom::bus.read(addr & 0xFFFFFF, 0) | (::SuperFamicom::bus.read((addr + 1) & 0xFFFFFF,0) << 8u);
   }
 
   static auto read_u16_ext(uint32 addr0, uint32 addr1) -> uint16 {
-    return ::SuperFamicom::bus.read(addr0, 0) | (::SuperFamicom::bus.read(addr1,0) << 8u);
+    return ::SuperFamicom::bus.read(addr0 & 0xFFFFFF, 0) | (::SuperFamicom::bus.read(addr1 & 0xFFFFFF, 0) << 8u);
   }
 
   static auto write_u8(uint32 addr, uint8 data) -> void {
@@ -67,8 +75,8 @@ struct Bus {
     Memory::GlobalWriteEnable = true;
     {
       // prevent scripts from intercepting their own writes:
-      ::SuperFamicom::bus.write_no_intercept(addr+0, data & 0x00FFu);
-      ::SuperFamicom::bus.write_no_intercept(addr+1, (data >> 8u) & 0x00FFu);
+      ::SuperFamicom::bus.write_no_intercept((addr+0) & 0xFFFFFF, data & 0x00FFu);
+      ::SuperFamicom::bus.write_no_intercept((addr+1) & 0xFFFFFF, (data >> 8u) & 0x00FFu);
     }
     Memory::GlobalWriteEnable = false;
   }
@@ -84,6 +92,10 @@ struct Bus {
     }
     if (offs + size > input->GetSize()) {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the input array", true);
+      return;
+    }
+    if (addr + size > 0xFFFFFF) {
+      asGetActiveContext()->SetException("addr + size exceeds the address space", true);
       return;
     }
 
@@ -108,6 +120,10 @@ struct Bus {
     }
     if (offs + size > input->GetSize()) {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the input array", true);
+      return;
+    }
+    if (addr + (size << 1) > 0xFFFFFF) {
+      asGetActiveContext()->SetException("addr + size exceeds the address space", true);
       return;
     }
 
