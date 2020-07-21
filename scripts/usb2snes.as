@@ -4,6 +4,7 @@ class Bridge {
   GUI::LineEdit@ txtHost;
   GUI::LineEdit@ txtPort;
   GUI::Button@ go;
+  GUI::Button@ stop;
 
   Bridge() {
     @window = GUI::Window(120, 120, true);
@@ -50,6 +51,12 @@ class Bridge {
         go.text = "Connect";
         go.onActivate(@GUI::Callback(goClicked));
         hz.append(go, GUI::Size(-1, -1));
+
+        @stop = GUI::Button();
+        stop.text = "Disconnect";
+        stop.onActivate(@GUI::Callback(stopClicked));
+        stop.enabled = false;
+        hz.append(stop, GUI::Size(-1, -1));
       }
     }
 
@@ -63,7 +70,9 @@ class Bridge {
   private net::Socket@ sock = null;
 
   void reset() {
+    sock.close();
     go.enabled = true;
+    stop.enabled = false;
     state = 0;
   }
 
@@ -81,10 +90,24 @@ class Bridge {
 
     state = 1;
     go.enabled = false;
+    stop.enabled = true;
+  }
+
+  private void stopClicked() {
+    if (state >= 1) {
+      sock.close();
+      @sock = null;
+    }
+
+    state = 0;
+    go.enabled = true;
+    stop.enabled = false;
   }
 
   void main() {
-    if (state == 1) {
+    if (state == 0) {
+      return;
+    } else if (state == 1) {
       // connect:
       @sock = net::Socket(addr);
       sock.connect(addr);
@@ -96,6 +119,7 @@ class Bridge {
       // wait for connection success:
       state = 2;
     } else if (state == 2) {
+      // socket writable means connected:
       bool connected = net::is_writable(sock);
       if (!connected && net::is_error) {
         fail("is_writable");
@@ -136,7 +160,11 @@ class Bridge {
 
     auto messages = t.split("\n");
     for (uint k = 0; k < messages.length(); k++) {
-      auto line = messages[k];
+      auto line = messages[k].stripRight();
+      if (line.length() == 0) {
+        continue;
+      }
+
       auto parts = line.split("|");
       uint len = parts.length();
       if (len == 0) {
@@ -178,6 +206,8 @@ class Bridge {
         message("Message: " + parts[1]);
       } else if (parts[0] == "SetName") {
         message("My name is " + parts[1]);
+      } else {
+        message("'" + line + "'");
       }
 
       // make sure socket is writable before sending reply:
