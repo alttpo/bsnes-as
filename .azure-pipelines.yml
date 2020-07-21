@@ -27,6 +27,7 @@ strategy:
         cp -a bsnes/out/discord_game_sdk.dll $(nightly)/
         cp -a bsnes/Database/* $(nightly)/Database
         cp -a shaders $(nightly)/Shaders
+        cp -a scripts $(nightly)/scripts
         cp -a GPLv3.txt $(nightly)
 
     win32:
@@ -49,6 +50,7 @@ strategy:
         cp -a bsnes/out/discord_game_sdk.dll $(nightly)/
         cp -a bsnes/Database/* $(nightly)/Database
         cp -a shaders $(nightly)/Shaders
+        cp -a scripts $(nightly)/scripts
         cp -a GPLv3.txt $(nightly)
 
     macOS:
@@ -62,6 +64,7 @@ strategy:
       packageScript: |
         mkdir $(nightly)
         cp -a bsnes/out/bsnes.app $(nightly)/
+        cp -a scripts $(nightly)/scripts
         cp -a GPLv3.txt $(nightly)/
 
     linux:
@@ -84,6 +87,7 @@ strategy:
         cp -a bsnes/out/discord_game_sdk.so $(nightly)/
         cp -a bsnes/Database/* $(nightly)/Database
         cp -a shaders $(nightly)/Shaders
+        cp -a scripts $(nightly)/scripts
         cp -a GPLv3.txt $(nightly)
 
 variables:
