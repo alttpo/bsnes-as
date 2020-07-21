@@ -88,7 +88,7 @@ class Bridge {
       // connect:
       @sock = net::Socket(addr);
       sock.connect(addr);
-      if (net::is_error && net::error_code != "EINPROGRESS") {
+      if (net::is_error && net::error_code != "EINPROGRESS" && net::error_code != "EWOULDBLOCK") {
         fail("connect");
         return;
       }
