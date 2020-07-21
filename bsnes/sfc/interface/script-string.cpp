@@ -102,9 +102,17 @@ static auto stringSlice(const string *self, int offset, int length) -> string {
 
 auto Interface::registerScriptString() -> void {
   int r;
+
   // register string type:
   r = script.engine->RegisterObjectType("string", sizeof(string), asOBJ_VALUE | asOBJ_APP_CLASS_CDAK); assert( r >= 0 );
   r = script.engine->RegisterStringFactory("string", stringFactorySingleton());
+
+  // register strings type (aka `vector<string>*`):
+  r = script.engine->RegisterObjectType("strings", 0, asOBJ_REF | asOBJ_SCOPED); assert( r >= 0 );
+  r = script.engine->RegisterObjectBehaviour("strings", asBEHAVE_RELEASE,  "void f()", asFUNCTION(+([](vector<string>* v){ delete v; })), asCALL_CDECL_OBJLAST); assert(r >= 0);
+
+  r = script.engine->RegisterObjectMethod("strings", "uint length() const", asFUNCTION(+([](vector<string>* v){ return v->size(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+  r = script.engine->RegisterObjectMethod("strings", "string opIndex(int) const", asFUNCTION(+([](vector<string>* v, int i){ return v->operator()(i, ""); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   // Register the object operator overloads
   r = script.engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f()",                       asFUNCTION(stringConstruct), asCALL_CDECL_OBJLAST); assert(r >= 0);
@@ -120,6 +128,12 @@ auto Interface::registerScriptString() -> void {
   r = script.engine->RegisterObjectMethod("string", "uint length() const", asMETHOD(string, length), asCALL_THISCALL); assert( r >= 0 );
 
   r = script.engine->RegisterObjectMethod("string", "string slice(int beginIndex, int length = -1) const", asFUNCTION(stringSlice), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+
+  r = script.engine->RegisterObjectMethod("string", "int opIndex(int i) const", asFUNCTION(+([](string &s, int i){ return s[i]; })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+
+  r = script.engine->RegisterObjectMethod("string", "strings@ split(const string &in key) const", asFUNCTION(+([](string &value, string &key) {
+    return new vector<string>( value.split(key) );
+  })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   // trim and strip:
   r = script.engine->RegisterObjectMethod("string", "string trim(const string &in lhs, const string &in rhs)", asFUNCTION(+([](string &value, string &lhs, string &rhs) { return value.trim(lhs, rhs); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);

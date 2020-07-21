@@ -38,6 +38,9 @@ auto Program::scriptInit() -> void {
   // initialize angelscript once on emulator startup:
   script.engine = asCreateScriptEngine();
 
+  // use single-quoted character literals:
+  script.engine->SetEngineProperty(asEP_USE_CHARACTER_LITERALS, true);
+
   // Set the message callback to receive information on errors in human readable form.
   int r = script.engine->SetMessageCallback(asFUNCTION(MessageCallback), 0, asCALL_CDECL);
   assert(r >= 0);
