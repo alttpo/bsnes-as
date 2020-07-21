@@ -105,17 +105,17 @@ class Bridge {
       // connected:
       state = 3;
     } else if (state == 3) {
-      if (!net::is_readable(sock)) {
-        if (net::is_error) {
-          fail("is_readable");
-        }
-        return;
-      }
+      //if (!net::is_readable(sock)) {
+      //  if (net::is_error) {
+      //    fail("is_readable");
+      //  }
+      //  return;
+      //}
 
       // receive a message:
       array<uint8> m(1500);
       int n = sock.recv(0, 1500, m);
-      if (net::is_error) {
+      if (net::is_error && net::error_code != "EWOULDBLOCK") {
         fail("recv");
         return;
       }
@@ -132,7 +132,7 @@ class Bridge {
   private void processMessage(const array<uint8> &in m) {
     // convert byte array to string and strip off trailing '\n':
     string t = m.toString(0, m.length());
-    message(t.stripRight());
+    //message(t.stripRight());
 
     auto messages = t.split("\n");
     for (uint k = 0; k < messages.length(); k++) {
@@ -150,7 +150,7 @@ class Bridge {
         auto madr = parts[1].natural();
         auto mlen = parts[2].natural();
 
-        message("read  0x" + fmtHex(madr,6) + " for 0x" + fmtHex(mlen, 4));
+        //message("read  0x" + fmtHex(madr,6) + " for 0x" + fmtHex(mlen, 4));
 
         array<uint8> mblk(mlen);
         bus::read_block_u8(madr, 0, mlen, mblk);
@@ -166,7 +166,7 @@ class Bridge {
         auto madr = parts[1].natural();
         auto mlen = parts.length() - 2;
 
-        message("write 0x" + fmtHex(madr,6) + " for 0x" + fmtHex(mlen, 4));
+        //message("write 0x" + fmtHex(madr,6) + " for 0x" + fmtHex(mlen, 4));
 
         array<uint8> mblk(mlen);
         for (uint i = 0; i < mlen; i++) {
