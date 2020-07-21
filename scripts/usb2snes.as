@@ -58,40 +58,75 @@ class Bridge {
     window.setFocused();
   }
 
-  private bool connecting = false;
-  private bool connected = false;
+  private int state = 0;
   private net::Address@ addr = null;
   private net::Socket@ sock = null;
 
+  void reset() {
+    go.enabled = true;
+    state = 0;
+  }
+
+  void fail(string what) {
+    message("net::" + what + " error " + net::error_code + "; " + net::error_text);
+    reset();
+  }
+
   private void goClicked() {
-    connected = false;
-    connecting = true;
     @addr = net::resolve_tcp(txtHost.text, txtPort.text);
+    if (net::is_error) {
+      fail("resolve_tcp");
+      return;
+    }
+
+    state = 1;
+    go.enabled = false;
   }
 
   void main() {
-    if (!connected) {
-      if (!connecting) {
-      return;
-      }
-
+    if (state == 1) {
       // connect:
       @sock = net::Socket(addr);
       sock.connect(addr);
-      connecting = false;
-      connected = true;
-    }
+      if (net::is_error && net::error_code != "EINPROGRESS") {
+        fail("connect");
+        return;
+      }
 
-    // receive a message:
-    array<uint8> m(1500);
-    int n = sock.recv(0, 1500, m);
-    if (n <= 0) {
-      return;
-    }
-    m.resize(n);
+      // wait for connection success:
+      state = 2;
+    } else if (state == 2) {
+      bool connected = net::is_writable(sock);
+      if (!connected && net::is_error) {
+        fail("is_writable");
+        return;
+      }
 
-    // process the message:
-    processMessage(m);
+      // connected:
+      state = 3;
+    } else if (state == 3) {
+      if (!net::is_readable(sock)) {
+        if (net::is_error) {
+          fail("is_readable");
+        }
+        return;
+      }
+
+      // receive a message:
+      array<uint8> m(1500);
+      int n = sock.recv(0, 1500, m);
+      if (net::is_error) {
+        fail("recv");
+        return;
+      }
+      if (n <= 0) {
+        return;
+      }
+      m.resize(n);
+
+      // process the message:
+      processMessage(m);
+    }
   }
 
   private void processMessage(const array<uint8> &in m) {
