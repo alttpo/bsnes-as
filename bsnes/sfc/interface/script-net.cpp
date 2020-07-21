@@ -5,31 +5,44 @@ namespace Net {
   const char *last_error_location = nullptr;
 
   // socket error codes:
-  const string *strEWOULDBLOCK = new string("EWOULDBLOCK");
-  const string *strUnknown     = new string("EUNKNOWN");
+  const string strUnknown        = "EUNKNOWN";
+  const string strEWOULDBLOCK    = "EWOULDBLOCK";
+
+  const string strEINVAL         = "EINVAL";
+  const string strEBADF          = "EBADF";
+  const string strENOTSOCK       = "ENOTSOCK";
+  const string strEADDRNOTAVAIL  = "EADDRNOTAVAIL";
+  const string strEAFNOSUPPORT   = "EAFNOSUPPORT";
+  const string strEISCONN        = "EISCONN";
+  const string strETIMEDOUT      = "ETIMEDOUT";
+  const string strECONNREFUSED   = "ECONNREFUSED";
+  const string strENETUNREACH    = "ENETUNREACH";
+  const string strEADDRINUSE     = "EADDRINUSE";
+  const string strEINPROGRESS    = "EINPROGRESS";
+  const string strEALREADY       = "EALREADY";
 
   // getaddrinfo error codes:
-  const string *strEAI_ADDRFAMILY = new string("EAI_ADDRFAMILY");
-  const string *strEAI_AGAIN      = new string("EAI_AGAIN");
-  const string *strEAI_BADFLAGS   = new string("EAI_BADFLAGS");
-  const string *strEAI_FAIL       = new string("EAI_FAIL");
-  const string *strEAI_FAMILY     = new string("EAI_FAMILY");
-  const string *strEAI_MEMORY     = new string("EAI_MEMORY");
-  const string *strEAI_NODATA     = new string("EAI_NODATA");
-  const string *strEAI_NONAME     = new string("EAI_NONAME");
-  const string *strEAI_SERVICE    = new string("EAI_SERVICE");
-  const string *strEAI_SOCKTYPE   = new string("EAI_SOCKTYPE");
-  const string *strEAI_SYSTEM     = new string("EAI_SYSTEM");
-  const string *strEAI_BADHINTS   = new string("EAI_BADHINTS");
-  const string *strEAI_PROTOCOL   = new string("EAI_PROTOCOL");
-  const string *strEAI_OVERFLOW   = new string("EAI_OVERFLOW");
+  const string strEAI_ADDRFAMILY = "EAI_ADDRFAMILY";
+  const string strEAI_AGAIN      = "EAI_AGAIN";
+  const string strEAI_BADFLAGS   = "EAI_BADFLAGS";
+  const string strEAI_FAIL       = "EAI_FAIL";
+  const string strEAI_FAMILY     = "EAI_FAMILY";
+  const string strEAI_MEMORY     = "EAI_MEMORY";
+  const string strEAI_NODATA     = "EAI_NODATA";
+  const string strEAI_NONAME     = "EAI_NONAME";
+  const string strEAI_SERVICE    = "EAI_SERVICE";
+  const string strEAI_SOCKTYPE   = "EAI_SOCKTYPE";
+  const string strEAI_SYSTEM     = "EAI_SYSTEM";
+  const string strEAI_BADHINTS   = "EAI_BADHINTS";
+  const string strEAI_PROTOCOL   = "EAI_PROTOCOL";
+  const string strEAI_OVERFLOW   = "EAI_OVERFLOW";
 
   static auto get_is_error() -> bool {
-    return last_error != 0;
+    return (last_error_gai | last_error) != 0;
   }
 
   // get last error as a standardized code string:
-  static auto get_error_code() -> const string* {
+  static auto get_error_code() -> string {
     if (last_error_gai != 0) {
       switch (last_error_gai) {
         case EAI_AGAIN: return strEAI_AGAIN;
@@ -51,29 +64,54 @@ namespace Net {
         case EAI_BADHINTS: return strEAI_BADHINTS;
         case EAI_PROTOCOL: return strEAI_PROTOCOL;
 #endif
-        default: return strUnknown;
+        default: return string("(eai={0})").format({last_error_gai});
       }
     }
 
 #if !defined(PLATFORM_WINDOWS)
     if (last_error == EWOULDBLOCK || last_error == EAGAIN) return strEWOULDBLOCK;
-    //switch (last_error) {
-    //}
+    switch (last_error) {
+      case EINVAL: return strEINVAL;
+      case EBADF: return strEBADF;
+      case ENOTSOCK: return strENOTSOCK;
+      case EADDRNOTAVAIL: return strEADDRNOTAVAIL;
+      case EAFNOSUPPORT: return strEAFNOSUPPORT;
+      case EISCONN: return strEISCONN;
+      case ETIMEDOUT: return strETIMEDOUT;
+      case ECONNREFUSED: return strECONNREFUSED;
+      case ENETUNREACH: return strENETUNREACH;
+      case EADDRINUSE: return strEADDRINUSE;
+      case EINPROGRESS: return strEINPROGRESS;
+      case EALREADY: return strEALREADY;
+    }
 #else
     switch (last_error) {
       case WSAEWOULDBLOCK: return strEWOULDBLOCK;
+      case WSAEINVAL: return strEINVAL;
+      case WSAEBADF: return strEBADF;
+      case WSAENOTSOCK: return strENOTSOCK;
+      case WSAEADDRNOTAVAIL: return strEADDRNOTAVAIL;
+      case WSAEAFNOSUPPORT: return strEAFNOSUPPORT;
+      case WSAEISCONN: return strEISCONN;
+      case WSAETIMEDOUT: return strETIMEDOUT;
+      case WSAECONNREFUSED: return strECONNREFUSED;
+      case WSAENETUNREACH: return strENETUNREACH;
+      case WSAEADDRINUSE: return strEADDRINUSE;
+      case WSAEINPROGRESS: return strEINPROGRESS;
+      case WSAEALREADY: return strEALREADY;
     }
 #endif
-    return strUnknown;
+    return string("(err={0})").format({last_error});
   }
 
-  static auto get_error_text() -> const string* {
-    auto s = new string(sock_error_string(last_error));
-    s->trimRight("\r\n ");
+  static auto get_error_text() -> string {
+    string s = {sock_error_string(last_error)};
+    s.trimRight("\r\n ");
     return s;
   }
 
   static auto exception_thrown() -> bool {
+#if 0
     if (last_error_gai) {
       // throw script exception:
       asGetActiveContext()->SetException(string{last_error_location, ": ", gai_strerror(last_error_gai)}, true);
@@ -86,7 +124,7 @@ namespace Net {
     // Don't throw exception for EWOULDBLOCK:
     if (last_error == EWOULDBLOCK || last_error == EAGAIN) {
 #else
-      // Don't throw exception for WSAEWOULDBLOCK:
+    // Don't throw exception for WSAEWOULDBLOCK:
     if (last_error == WSAEWOULDBLOCK) {
 #endif
       last_error = 0;
@@ -98,6 +136,7 @@ namespace Net {
     asGetActiveContext()->SetException(string{last_error_location, "; err=", last_error, ", code=", *get_error_code(), ": ", *get_error_text()}, true);
     last_error = 0;
     last_error_location = "((FIXME: no location!))";
+#endif
     return true;
   }
 
@@ -1188,10 +1227,10 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   r = e->SetDefaultNamespace("net"); assert(r >= 0);
 
   // error reporting functions:
-  r = e->RegisterGlobalFunction("string get_is_error() property", asFUNCTION(Net::get_is_error), asCALL_CDECL); assert( r >= 0 );
+  r = e->RegisterGlobalFunction("bool get_is_error() property", asFUNCTION(Net::get_is_error), asCALL_CDECL); assert( r >= 0 );
   r = e->RegisterGlobalFunction("string get_error_code() property", asFUNCTION(Net::get_error_code), asCALL_CDECL); assert( r >= 0 );
   r = e->RegisterGlobalFunction("string get_error_text() property", asFUNCTION(Net::get_error_text), asCALL_CDECL); assert( r >= 0 );
-  r = e->RegisterGlobalFunction("bool throw_if_error()", asFUNCTION(Net::exception_thrown), asCALL_CDECL); assert(r >= 0 );
+  //r = e->RegisterGlobalFunction("bool throw_if_error()", asFUNCTION(Net::exception_thrown), asCALL_CDECL); assert(r >= 0 );
 
   // Address type:
   r = e->RegisterObjectType("Address", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
@@ -1205,14 +1244,44 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("Socket", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::Socket, addRef), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectBehaviour("Socket", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::Socket, release), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Socket", "bool get_is_valid() property", asMETHOD(Net::Socket, operator bool), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "void connect(Address@ addr)", asMETHOD(Net::Socket, connect), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "void bind(Address@ addr)", asMETHOD(Net::Socket, bind), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "void listen(int backlog)", asMETHOD(Net::Socket, listen), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "int connect(Address@ addr)", asMETHOD(Net::Socket, connect), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "int bind(Address@ addr)", asMETHOD(Net::Socket, bind), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("Socket", "int listen(int backlog)", asMETHOD(Net::Socket, listen), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Socket", "Socket@ accept()", asMETHOD(Net::Socket, accept), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Socket", "int recv(int offs, int size, array<uint8> &inout buffer)", asMETHOD(Net::Socket, recv), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Socket", "int send(int offs, int size, array<uint8> &inout buffer)", asMETHOD(Net::Socket, send), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Socket", "int recvfrom(int offs, int size, array<uint8> &inout buffer)", asMETHOD(Net::Socket, recvfrom), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("Socket", "int sendto(int offs, int size, array<uint8> &inout buffer, const Address@ addr)", asMETHOD(Net::Socket, sendto), asCALL_THISCALL); assert( r >= 0 );
+
+  r = e->RegisterGlobalFunction("bool is_writable(Socket@ sock)", asFUNCTION(+([](Net::Socket &sock) {
+    timeval zero {0, 0};
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(sock.fd, &fds);
+
+    Net::last_error = 0;
+    int rc = select(FD_SETSIZE, NULL, &fds, NULL, &zero);
+    if (rc < 0) {
+      Net::last_error = sock_capture_error();
+      return false;
+    }
+    return (bool) FD_ISSET(sock.fd, &fds);
+  })), asCALL_CDECL); assert( r >= 0 );
+
+  r = e->RegisterGlobalFunction("bool is_readable(Socket@ sock)", asFUNCTION(+([](Net::Socket &sock) {
+    timeval zero {0, 0};
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(sock.fd, &fds);
+
+    Net::last_error = 0;
+    int rc = select(FD_SETSIZE, &fds, NULL, NULL, &zero);
+    if (rc < 0) {
+      Net::last_error = sock_capture_error();
+      return false;
+    }
+    return (bool) FD_ISSET(sock.fd, &fds);
+  })), asCALL_CDECL); assert( r >= 0 );
 
   r = e->RegisterObjectType("WebSocketMessage", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_FACTORY, "WebSocketMessage@ f(uint8 opcode)", asFUNCTION(Net::create_web_socket_message), asCALL_CDECL); assert(r >= 0);
