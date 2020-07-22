@@ -47,6 +47,7 @@ auto mVerticalLayout::minimumSize() const -> Size {
   for(auto index : range(cellCount())) {
     auto cell = this->cell(index);
     if(cell.collapsible()) continue;
+    if(cell.layoutExcluded()) continue;
     if(cell.size().width() == Size::Minimum || cell.size().width() == Size::Maximum) {
       width = max(width, cell.sizable().minimumSize().width());
       continue;
@@ -59,6 +60,7 @@ auto mVerticalLayout::minimumSize() const -> Size {
   for(auto index : range(cellCount())) {
     auto cell = this->cell(index);
     if(cell.collapsible()) continue;
+    if(cell.layoutExcluded()) continue;
     if(cell.size().height() == Size::Minimum || cell.size().height() == Size::Maximum) {
       height += cell.sizable().minimumSize().height();
     } else {
@@ -134,6 +136,7 @@ auto mVerticalLayout::setGeometry(Geometry requestedGeometry) -> type& {
   for(uint index : range(cellCount())) {
     auto cell = this->cell(index);
     if(cell.collapsible()) continue;
+    if(cell.layoutExcluded()) continue;
     if(cell.size().width() == Size::Maximum) {
       width = geometry.width();
       break;
@@ -150,6 +153,7 @@ auto mVerticalLayout::setGeometry(Geometry requestedGeometry) -> type& {
   for(uint index : range(cellCount())) {
     auto cell = this->cell(index);
     if(cell.collapsible()) continue;
+    if(cell.layoutExcluded()) continue;
     float height = 0;
     if(cell.size().height() == Size::Maximum) {
       height = Size::Maximum;
@@ -167,6 +171,7 @@ auto mVerticalLayout::setGeometry(Geometry requestedGeometry) -> type& {
   for(uint index : range(cellCount())) {
     auto cell = this->cell(index);
     if(cell.collapsible()) continue;
+    if(cell.layoutExcluded()) continue;
     if(heights[index] != Size::Maximum) fixedHeight += heights[index];
     fixedHeight += spacing;
     spacing = cell.spacing();
@@ -182,6 +187,7 @@ auto mVerticalLayout::setGeometry(Geometry requestedGeometry) -> type& {
   for(uint index : range(cellCount())) {
     auto cell = this->cell(index);
     if(cell.collapsible()) continue;
+    if(cell.layoutExcluded()) continue;
     float geometryWidth  = width;
     float geometryHeight = heights[index];
     auto alignment = cell.alignment();
@@ -241,6 +247,11 @@ auto mVerticalLayoutCell::alignment() const -> maybe<float> {
 
 auto mVerticalLayoutCell::collapsible() const -> bool {
   if(state.sizable) return state.sizable->collapsible() && !state.sizable->visible();
+  return false;
+}
+
+auto mVerticalLayoutCell::layoutExcluded() const -> bool {
+  if(state.sizable) return state.sizable->layoutExcluded();
   return false;
 }
 

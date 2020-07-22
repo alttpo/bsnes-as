@@ -53,11 +53,13 @@
 #define DeclareSharedSizable(Name) \
   DeclareSharedObject(Name) \
   auto collapsible() const { return self().collapsible(); } \
+  auto layoutExcluded() const { return self().layoutExcluded(); } \
   auto doSize() const { return self().doSize(); } \
   auto geometry() const { return self().geometry(); } \
   auto minimumSize() const { return self().minimumSize(); } \
   auto onSize(const function<void ()>& callback = {}) { return self().onSize(callback), *this; } \
   auto setCollapsible(bool collapsible = true) { return self().setCollapsible(collapsible), *this; } \
+  auto setLayoutExcluded(bool layoutExcluded = true) { return self().setLayoutExcluded(layoutExcluded), *this; } \
   auto setGeometry(Geometry geometry) { return self().setGeometry(geometry), *this; } \
 
 #define DeclareSharedWidget(Name) \

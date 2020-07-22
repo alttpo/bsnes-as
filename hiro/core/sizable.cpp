@@ -8,6 +8,10 @@ auto mSizable::collapsible() const -> bool {
   return state.collapsible;
 }
 
+auto mSizable::layoutExcluded() const -> bool {
+  return state.layoutExcluded;
+}
+
 auto mSizable::doSize() const -> void {
   if(state.onSize) return state.onSize();
 }
@@ -28,6 +32,11 @@ auto mSizable::onSize(const function<void ()>& callback) -> type& {
 auto mSizable::setCollapsible(bool collapsible) -> type& {
   state.collapsible = collapsible;
   signal(setCollapsible, collapsible);
+  return *this;
+}
+
+auto mSizable::setLayoutExcluded(bool layoutExcluded) -> type& {
+  state.layoutExcluded = layoutExcluded;
   return *this;
 }
 

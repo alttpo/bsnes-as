@@ -176,11 +176,13 @@ struct GUI {
 
     // Sizable:
     auto collapsible() const { return self().collapsible(); }
+    auto layoutExcluded() const { return self().layoutExcluded(); }
     auto doSize() const { return self().doSize(); }
     auto geometry() const { return self().geometry(); }
     auto minimumSize() const { return self().minimumSize(); }
     auto onSize(const function<void ()>& callback = {}) { self().onSize(callback); }
     auto setCollapsible(bool collapsible = true) { self().setCollapsible(collapsible); }
+    auto setLayoutExcluded(bool layoutExcluded = true) { self().setLayoutExcluded(layoutExcluded); }
     auto setGeometry(hiro::Geometry geometry) { self().setGeometry(geometry); }
 
 
@@ -313,7 +315,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // Sizable:
 #define EXPOSE_SIZABLE(name, className) \
-  REG_LAMBDA(name, "bool get_collapsible() property",             ([](className* self) { return self->collapsible(); })); \
+  REG_LAMBDA(name, "bool get_collapsible() property",                            ([](className* self) { return self->collapsible(); })); \
+  REG_LAMBDA(name, "void set_collapsible(bool collapsible = true) property",     ([](className* self, bool collapsible) { self->setCollapsible(collapsible); })); \
+  REG_LAMBDA(name, "bool get_layoutExcluded() property",                         ([](className* self) { return self->layoutExcluded(); })); \
+  REG_LAMBDA(name, "void set_layoutExcluded(bool collapsible = true) property",  ([](className* self, bool layoutExcluded) { self->setLayoutExcluded(layoutExcluded); })); \
   REG_LAMBDA(name, "void doSize()",                               ([](className* self) { self->doSize(); })); \
   REG_LAMBDA(name, "Size get_minimumSize() property",             ([](className* self) { return self->minimumSize(); })); \
   REG_LAMBDA(name, "void onSize(Callback @callback)",             ([](className* self, asIScriptFunction *cb) { \
@@ -322,8 +327,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
       ctx->Prepare(cb); \
       executeScript(ctx); \
     }); \
-  })); \
-  REG_LAMBDA(name, "void set_collapsible(bool collapsible = true) property",  ([](className* self, bool collapsible) { self->setCollapsible(collapsible); }))
+  }));
 
 #define EXPOSE_HIRO_SIZABLE(name) EXPOSE_SIZABLE(name, hiro::name)
 

@@ -29,6 +29,7 @@ struct HorizontalLayoutCell : sHorizontalLayoutCell {
 
   auto alignment() const { return self().alignment(); }
   auto collapsible() const { return self().collapsible(); }
+  auto layoutExcluded() const { return self().layoutExcluded(); }
   auto setAlignment(maybe<float> alignment = {}) { return self().setAlignment(alignment), *this; }
   auto setSizable(sSizable sizable) { return self().setSizable(sizable), *this; }
   auto setSize(Size size) { return self().setSize(size), *this; }
@@ -65,6 +66,7 @@ struct VerticalLayoutCell : sVerticalLayoutCell {
 
   auto alignment() const { return self().alignment(); }
   auto collapsible() const { return self().collapsible(); }
+  auto layoutExcluded() const { return self().layoutExcluded(); }
   auto setAlignment(maybe<float> alignment = {}) { return self().setAlignment(alignment), *this; }
   auto setSizable(sSizable sizable) { return self().setSizable(sizable), *this; }
   auto setSize(Size size) { return self().setSize(size), *this; }
