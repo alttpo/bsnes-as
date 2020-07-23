@@ -307,13 +307,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(name, "void set_layoutExcluded(bool collapsible = true) property",  ([](className* self, bool layoutExcluded) { self->setLayoutExcluded(layoutExcluded); })); \
   REG_LAMBDA(name, "void doSize()",                               ([](className* self) { self->doSize(); })); \
   REG_LAMBDA(name, "Size@ get_minimumSize() property",            ([](className* self) { return new hiro::Size(self->minimumSize()); })); \
-  REG_LAMBDA(name, "void onSize(Callback @callback)",             ([](className* self, asIScriptFunction *cb) { \
-    self->onSize([=] { \
-      auto ctx = ::SuperFamicom::script.context; \
-      ctx->Prepare(cb); \
-      executeScript(ctx); \
-    }); \
-  }));
+  REG_LAMBDA(name, "void onSize(Callback @callback)",             ([](className* self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
 
 #define EXPOSE_HIRO_SIZABLE(name) EXPOSE_SIZABLE(name, hiro::name)
 
@@ -524,13 +518,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_WIDGET(LineEdit);
   REG_LAMBDA(LineEdit, "string get_text() property",                    ([](hiro::LineEdit* self){ return self->text(); }));
   REG_LAMBDA(LineEdit, "void set_text(const string &in text) property", ([](hiro::LineEdit* self, string &text){ self->setText(text); }));
-  REG_LAMBDA(LineEdit, "void onChange(Callback @cb)",                   ([](hiro::LineEdit* self, asIScriptFunction* cb){
-    self->onChange([=]{
-      auto ctx = ::SuperFamicom::script.context;
-      ctx->Prepare(cb);
-      executeScript(ctx);
-    });
-  }));
+  REG_LAMBDA(LineEdit, "void onChange(Callback @cb)",                   ([](hiro::LineEdit* self, asIScriptFunction* cb) { self->onChange(Callback(cb)); }));
 
   // Label
   EXPOSE_HIRO(Label);
@@ -553,13 +541,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_WIDGET(Button);
   REG_LAMBDA(Button, "string get_text() property",                    ([](hiro::Button* self){ return self->text(); }));
   REG_LAMBDA(Button, "void set_text(const string &in text) property", ([](hiro::Button* self, const string &text){ self->setText(text); }));
-  REG_LAMBDA(Button, "void onActivate(Callback @cb)",                 ([](hiro::Button* self, asIScriptFunction* cb){
-    self->onActivate([=]{
-      auto ctx = ::SuperFamicom::script.context;
-      ctx->Prepare(cb);
-      executeScript(ctx);
-    });
-  }));
+  REG_LAMBDA(Button, "void onActivate(Callback @cb)",                 ([](hiro::Button* self, asIScriptFunction* cb){ self->onActivate(Callback(cb)); }));
 
   // SNESCanvas
   r = e->RegisterObjectBehaviour("SNESCanvas", asBEHAVE_FACTORY, "SNESCanvas@ f()", asFUNCTION( +([]{ return new GUI::SNESCanvas(); }) ), asCALL_CDECL); assert(r >= 0);
