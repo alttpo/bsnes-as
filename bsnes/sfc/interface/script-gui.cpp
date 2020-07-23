@@ -194,6 +194,14 @@ struct GUI {
       self().setAlignment(hiro::Alignment{horizontal, vertical});
     }
 
+    auto alignment() -> hiro::Alignment* {
+      return new hiro::Alignment(self().alignment());
+    }
+
+    auto setAlignment(hiro::Alignment& alignment) -> void {
+      self().setAlignment(alignment);
+    }
+
     auto setSize(hiro::Size &size) -> void {
       self().setSize(size);
     }
@@ -300,13 +308,14 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // Sizable:
 #define EXPOSE_SIZABLE(name, className) \
-  REG_LAMBDA(name, "Geometry@ get_geometry() property",           ([](className* self) { return new hiro::Geometry(self->geometry()); })); \
-  REG_LAMBDA(name, "bool get_collapsible() property",                            ([](className* self) { return self->collapsible(); })); \
-  REG_LAMBDA(name, "void set_collapsible(bool collapsible = true) property",     ([](className* self, bool collapsible) { self->setCollapsible(collapsible); })); \
-  REG_LAMBDA(name, "bool get_layoutExcluded() property",                         ([](className* self) { return self->layoutExcluded(); })); \
-  REG_LAMBDA(name, "void set_layoutExcluded(bool collapsible = true) property",  ([](className* self, bool layoutExcluded) { self->setLayoutExcluded(layoutExcluded); })); \
-  REG_LAMBDA(name, "void doSize()",                               ([](className* self) { self->doSize(); })); \
+  REG_LAMBDA(name, "Geometry@ get_geometry() property",              ([](className* self) { return new hiro::Geometry(self->geometry()); })); \
+  REG_LAMBDA(name, "void set_geometry(const Geometry &in) property", ([](className* self, hiro::Geometry& geometry) { self->setGeometry(geometry); })); \
+  REG_LAMBDA(name, "bool get_collapsible() property",                           ([](className* self) { return self->collapsible(); })); \
+  REG_LAMBDA(name, "void set_collapsible(bool collapsible = true) property",    ([](className* self, bool collapsible) { self->setCollapsible(collapsible); })); \
+  REG_LAMBDA(name, "bool get_layoutExcluded() property",                        ([](className* self) { return self->layoutExcluded(); })); \
+  REG_LAMBDA(name, "void set_layoutExcluded(bool collapsible = true) property", ([](className* self, bool layoutExcluded) { self->setLayoutExcluded(layoutExcluded); })); \
   REG_LAMBDA(name, "Size@ get_minimumSize() property",            ([](className* self) { return new hiro::Size(self->minimumSize()); })); \
+  REG_LAMBDA(name, "void doSize()",                               ([](className* self) { self->doSize(); })); \
   REG_LAMBDA(name, "void onSize(Callback @callback)",             ([](className* self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
 
 #define EXPOSE_HIRO_SIZABLE(name) EXPOSE_SIZABLE(name, hiro::name)
@@ -486,11 +495,11 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_SIZABLE(VerticalLayout);
   REG_LAMBDA(VerticalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
     ([](hiro::VerticalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){ self->append(*sizable, *size, spacing); }));
-  REG_LAMBDA(VerticalLayout, "void resize()",                        ([](hiro::VerticalLayout* self){ self->resize(); }));
-  REG_LAMBDA(VerticalLayout, "void setAlignment(float alignment)",   ([](hiro::VerticalLayout *p, float alignment) { p->setAlignment(alignment); }));
-  REG_LAMBDA(VerticalLayout, "void resetAlignment()",                ([](hiro::VerticalLayout *p) { p->setAlignment(); }));
-  REG_LAMBDA(VerticalLayout, "void setPadding(float x, float y)",    ([](hiro::VerticalLayout *p, float x, float y) { p->setPadding(x, y); }));
-  REG_LAMBDA(VerticalLayout, "void setSpacing(float spacing = 5.0)", ([](hiro::VerticalLayout *p, float spacing) { p->setSpacing(spacing); }));
+  REG_LAMBDA(VerticalLayout, "void resize()",                           ([](hiro::VerticalLayout* p) { p->resize(); }));
+  REG_LAMBDA(VerticalLayout, "void setAlignment(float alignment)",      ([](hiro::VerticalLayout* p, float alignment) { p->setAlignment(alignment); }));
+  REG_LAMBDA(VerticalLayout, "void resetAlignment()",                   ([](hiro::VerticalLayout* p) { p->setAlignment(); }));
+  REG_LAMBDA(VerticalLayout, "void setPadding(float x, float y)",       ([](hiro::VerticalLayout* p, float x, float y) { p->setPadding(x, y); }));
+  REG_LAMBDA(VerticalLayout, "void setSpacing(float spacing = 5.0)",    ([](hiro::VerticalLayout* p, float spacing) { p->setSpacing(spacing); }));
 
   // HorizontalLayout
   EXPOSE_HIRO(HorizontalLayout);
@@ -498,11 +507,11 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_SIZABLE(HorizontalLayout);
   REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
     ([](hiro::HorizontalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){ self->append(*sizable, *size, spacing); }));
-  REG_LAMBDA(HorizontalLayout, "void resize()",                        ([](hiro::HorizontalLayout* self){ self->resize(); }));
-  REG_LAMBDA(HorizontalLayout, "void setAlignment(float alignment)",   ([](hiro::HorizontalLayout *p, float alignment) { p->setAlignment(alignment); }));
-  REG_LAMBDA(HorizontalLayout, "void resetAlignment()",                ([](hiro::HorizontalLayout *p) { p->setAlignment(); }));
-  REG_LAMBDA(HorizontalLayout, "void setPadding(float x, float y)",    ([](hiro::HorizontalLayout *p, float x, float y) { p->setPadding(x, y); }));
-  REG_LAMBDA(HorizontalLayout, "void setSpacing(float spacing = 5.0)", ([](hiro::HorizontalLayout *p, float spacing) { p->setSpacing(spacing); }));
+  REG_LAMBDA(HorizontalLayout, "void resize()",                           ([](hiro::HorizontalLayout* p) { p->resize(); }));
+  REG_LAMBDA(HorizontalLayout, "void setAlignment(float alignment)",      ([](hiro::HorizontalLayout* p, float alignment) { p->setAlignment(alignment); }));
+  REG_LAMBDA(HorizontalLayout, "void resetAlignment()",                   ([](hiro::HorizontalLayout* p) { p->setAlignment(); }));
+  REG_LAMBDA(HorizontalLayout, "void setPadding(float x, float y)",       ([](hiro::HorizontalLayout* p, float x, float y) { p->setPadding(x, y); }));
+  REG_LAMBDA(HorizontalLayout, "void setSpacing(float spacing = 5.0)",    ([](hiro::HorizontalLayout* p, float spacing) { p->setSpacing(spacing); }));
 
   // Group
   EXPOSE_HIRO(Group);
@@ -525,14 +534,14 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(Label);
   EXPOSE_HIRO_SIZABLE(Label);
   EXPOSE_HIRO_WIDGET(Label);
-  REG_LAMBDA(Label, "Alignment@ get_alignment() property",                         ([](hiro::Label* self){ return new hiro::Alignment(self->alignment()); }));
-  REG_LAMBDA(Label, "Color@ get_backgroundColor() property",                       ([](hiro::Label* self){ return new hiro::Color(self->backgroundColor()); }));
-  REG_LAMBDA(Label, "Color@ get_foregroundColor() property",                       ([](hiro::Label* self){ return new hiro::Color(self->foregroundColor()); }));
-  REG_LAMBDA(Label, "string get_text() property",                                 ([](hiro::Label* self){ return self->text(); }));
-  REG_LAMBDA(Label, "void set_alignment(const Alignment &in alignment) property", ([](hiro::Label* self, const hiro::Alignment &alignment){ self->setAlignment(alignment); }));
-  REG_LAMBDA(Label, "void set_backgroundColor(const Color &in color) property",   ([](hiro::Label* self, const hiro::Color &color){ self->setBackgroundColor(color); }));
-  REG_LAMBDA(Label, "void set_foregroundColor(const Color &in color) property",   ([](hiro::Label* self, const hiro::Color &color){ self->setForegroundColor(color); }));
-  REG_LAMBDA(Label, "void set_text(const string &in text) property",              ([](hiro::Label* self, string &text){ self->setText(text); }));
+  REG_LAMBDA(Label, "Alignment@ get_alignment() property",                ([](hiro::Label* self){ return new hiro::Alignment(self->alignment()); }));
+  REG_LAMBDA(Label, "Color@ get_backgroundColor() property",              ([](hiro::Label* self){ return new hiro::Color(self->backgroundColor()); }));
+  REG_LAMBDA(Label, "Color@ get_foregroundColor() property",              ([](hiro::Label* self){ return new hiro::Color(self->foregroundColor()); }));
+  REG_LAMBDA(Label, "string get_text() property",                         ([](hiro::Label* self){ return self->text(); }));
+  REG_LAMBDA(Label, "void set_alignment(const Alignment &in) property",   ([](hiro::Label* self, const hiro::Alignment &alignment){ self->setAlignment(alignment); }));
+  REG_LAMBDA(Label, "void set_backgroundColor(const Color &in) property", ([](hiro::Label* self, const hiro::Color &color){ self->setBackgroundColor(color); }));
+  REG_LAMBDA(Label, "void set_foregroundColor(const Color &in) property", ([](hiro::Label* self, const hiro::Color &color){ self->setForegroundColor(color); }));
+  REG_LAMBDA(Label, "void set_text(const string &in) property",           ([](hiro::Label* self, string &text){ self->setText(text); }));
 
   // Button
   EXPOSE_HIRO(Button);
@@ -552,7 +561,9 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("SNESCanvas", "uint8 get_luma() property", asMETHOD(GUI::SNESCanvas, luma), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("SNESCanvas", "void set_luma(uint8 luma) property", asMETHOD(GUI::SNESCanvas, set_luma), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("SNESCanvas", "void setPosition(float x, float y)", asMETHOD(GUI::SNESCanvas, setPosition), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "void setAlignment(float horizontal, float vertical)", asMETHOD(GUI::SNESCanvas, setAlignment), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "Alignment@ get_alignment() property", asMETHOD(GUI::SNESCanvas, alignment), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "void set_alignment(const Alignment &in) property", asMETHODPR(GUI::SNESCanvas, setAlignment, (hiro::Alignment&), void), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("SNESCanvas", "void setAlignment(float horizontal, float vertical)", asMETHODPR(GUI::SNESCanvas, setAlignment, (float, float), void), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("SNESCanvas", "void setCollapsible(bool collapsible)", asMETHOD(GUI::SNESCanvas, setCollapsible), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("SNESCanvas", "void update()", asMETHOD(GUI::SNESCanvas, update), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("SNESCanvas", "void fill(uint16 color)", asMETHOD(GUI::SNESCanvas, fill), asCALL_THISCALL); assert( r >= 0 );
