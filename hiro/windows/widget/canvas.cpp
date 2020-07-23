@@ -99,21 +99,35 @@ auto pCanvas::_paint() -> void {
   auto geometry = self().geometry();
   auto alignment = state().alignment ? state().alignment : Alignment{0.5, 0.5};
 
-  if(width <= geometry.width()) {
-    sx = 0;
-    dx = (geometry.width() - width) * alignment.horizontal();
+  // [jsd] scale destination image proportionally up or down:
+  int dwidth = geometry.width();
+  int dheight = geometry.height();
+  float scale = 1.0;
+  if (dwidth <= dheight) {
+    scale = (float)dwidth / (float)width;
   } else {
-    sx = (width - geometry.width()) * alignment.horizontal();
+    scale = (float)dheight / (float)height;
+  }
+  dwidth  = width * scale;
+  dheight = height * scale;
+
+  if(dwidth <= geometry.width()) {
+    sx = 0;
+    dx = (geometry.width() - dwidth) * alignment.horizontal();
+  } else {
+    sx = (dwidth - geometry.width()) * alignment.horizontal();
     dx = 0;
+    // [jsd] crop the source image:
     width = geometry.width();
   }
 
-  if(height <= geometry.height()) {
+  if(dheight <= geometry.height()) {
     sy = 0;
-    dy = (geometry.height() - height) * alignment.vertical();
+    dy = (geometry.height() - dheight) * alignment.vertical();
   } else {
-    sy = (height - geometry.height()) * alignment.vertical();
+    sy = (dheight - geometry.height()) * alignment.vertical();
     dy = 0;
+    // [jsd] crop the source image:
     height = geometry.height();
   }
 
@@ -129,6 +143,7 @@ auto pCanvas::_paint() -> void {
   void* bits = nullptr;
   HBITMAP bitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
   if(bits) {
+    // [jsd] this loop crops the image and pre-multiplies the alpha channel into the RGB components:
     for(uint y : range(height)) {
       auto source = (const uint8_t*)pixels.data() + (sy + y) * this->width * sizeof(uint32_t) + sx * sizeof(uint32_t);
       auto target = (uint8_t*)bits + y * width * sizeof(uint32_t);
@@ -147,8 +162,31 @@ auto pCanvas::_paint() -> void {
   //GetClientRect(hwnd, &rc);
   //DrawThemeParentBackground(hwnd, ps.hdc, &rc);
 
+  // fill in the outside spaces to clear up any remnants:
+  RECT rc;
+  if (dx > 0) {
+    // left bar:
+    SetRect(&rc, 0, 0, dx-1, geometry.height() - 1);
+    DrawThemeParentBackground(hwnd, ps.hdc, &rc);
+  }
+  if (dy > 0) {
+    // top bar:
+    SetRect(&rc, dx, 0, geometry.width() - 1, dy - 1);
+    DrawThemeParentBackground(hwnd, ps.hdc, &rc);
+  }
+  if (dx + dwidth < geometry.width()) {
+    // right bar:
+    SetRect(&rc, dx + dwidth, dy, geometry.width(), geometry.height());
+    DrawThemeParentBackground(hwnd, ps.hdc, &rc);
+  }
+  if (dy + dheight < geometry.height()) {
+    // bottom bar:
+    SetRect(&rc, dx, dy + dheight, geometry.width(), geometry.height());
+    DrawThemeParentBackground(hwnd, ps.hdc, &rc);
+  }
+
   BLENDFUNCTION bf{AC_SRC_OVER, 0, (BYTE)255, AC_SRC_ALPHA};
-  AlphaBlend(ps.hdc, dx, dy, width, height, hdc, 0, 0, width, height, bf);
+  AlphaBlend(ps.hdc, dx, dy, dwidth, dheight, hdc, 0, 0, width, height, bf);
 
   DeleteObject(bitmap);
   DeleteDC(hdc);
