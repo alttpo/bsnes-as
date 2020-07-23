@@ -16,6 +16,10 @@ struct GUI {
     image img32;
 
     auto setSize(hiro::Size size) -> void {
+      setGeometry(hiro::Geometry(
+        geometry().position(),
+        size
+      ));
       //img16 = image(0, 16, 0x8000u, 0x7C00u, 0x03E0u, 0x001Fu);
       //img32 = image(0, 32, 0xFF000000u, 0x00FF0000u, 0x0000FF00u, 0x000000FFu);
       img16.allocate(size.width(), size.height());
@@ -444,6 +448,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "void set_title(const string &in title) property",          ([](hiro::Window* self, const string &title) { self->setTitle(title); }));
   REG_LAMBDA(Window, "void set_size(const Size &in size) property",              ([](hiro::Window* self, hiro::Size &size)    { self->setSize(size); }));
 
+  REG_LAMBDA(Window, "void onSize(Callback @cb)",             ([](hiro::Window *self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
+
 #if 0
   // more Window properties and functions to add:
 
@@ -487,7 +493,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   auto onKeyPress(const function<void (signed)>& callback = {}) { return self().onKeyPress(callback), *this; }
   auto onKeyRelease(const function<void (signed)>& callback = {}) { return self().onKeyRelease(callback), *this; }
   auto onMove(const function<void ()>& callback = {}) { return self().onMove(callback), *this; }
-  auto onSize(const function<void ()>& callback = {}) { return self().onSize(callback), *this; }
   auto remove(sSizable sizable) { return self().remove(sizable), *this; }
   auto reset() { return self().reset(), *this; }
 #endif
