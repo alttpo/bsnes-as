@@ -422,9 +422,11 @@ namespace ScriptInterface {
     }
 
     auto operator()() -> void {
-      auto ctx = ::SuperFamicom::script.context;
+      //auto ctx = ::SuperFamicom::script.context;
+      auto ctx = ::SuperFamicom::script.engine->CreateContext();
       ctx->Prepare(cb);
       executeScript(ctx);
+      ctx->Release();
     }
   };
 
