@@ -122,8 +122,25 @@ auto pCanvas::minimumSize() const -> Size {
   return {0, 0};
 }
 
-auto pCanvas::setAlignment(Alignment) -> void {
-  update();
+auto pCanvas::setAlignment(Alignment alignment) -> void {
+  //update();
+  @autoreleasepool {
+    NSImageAlignment imageAlignment = NSImageAlignCenter;
+    if (alignment.vertical() < 1.0/3.0) {
+           if (alignment.horizontal() < 1.0/3.0) [cocoaView setImageAlignment:NSImageAlignTopLeft];
+      else if (alignment.horizontal() < 2.0/3.0) [cocoaView setImageAlignment:NSImageAlignTop];
+      else                                       [cocoaView setImageAlignment:NSImageAlignTopRight];
+    } else if (alignment.vertical() < 2.0/3.0) {
+           if (alignment.horizontal() < 1.0/3.0) [cocoaView setImageAlignment:NSImageAlignLeft];
+      else if (alignment.horizontal() < 2.0/3.0) [cocoaView setImageAlignment:NSImageAlignCenter];
+      else                                       [cocoaView setImageAlignment:NSImageAlignRight];
+    } else {
+           if (alignment.horizontal() < 1.0/3.0) [cocoaView setImageAlignment:NSImageAlignBottomLeft];
+      else if (alignment.horizontal() < 2.0/3.0) [cocoaView setImageAlignment:NSImageAlignBottom];
+      else                                       [cocoaView setImageAlignment:NSImageAlignBottomRight];
+    }
+    [cocoaView setNeedsDisplay:YES];
+  }
 }
 
 auto pCanvas::setColor(Color color) -> void {
