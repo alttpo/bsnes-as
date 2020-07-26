@@ -329,11 +329,11 @@ auto QtWindow::keyPressEvent(QKeyEvent* event) -> void {
 //Keyboard::Keycode sym = Keysym(event->nativeVirtualKey());
 //if(sym != Keyboard::Keycode::None && self.window.onKeyPress) self.window.onKeyPress(sym);
 
-  if(p.state().dismissable && event->key() == Qt::Key_Escape) {
-    if(p.state().onClose) p.self().doClose();
-    else p.self().setVisible(false);
-    if(p.state().modal && !p.self().visible()) p.self().setModal(false);
-  }
+  //if(p.state().dismissable && event->key() == Qt::Key_Escape) {
+  //  if(p.state().onClose) p.self().doClose();
+  //  else p.self().setVisible(false);
+  //  if(p.state().modal && !p.self().visible()) p.self().setModal(false);
+  //}
 }
 
 auto QtWindow::keyReleaseEvent(QKeyEvent* event) -> void {

@@ -267,7 +267,7 @@ auto pWindow::modalDecrement() -> void {
 }
 
 auto pWindow::windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> maybe<LRESULT> {
-  if(msg == WM_CLOSE || (msg == WM_KEYDOWN && wparam == VK_ESCAPE && state().dismissable)) {
+  if(msg == WM_CLOSE) {
     if(state().onClose) {
       self().doClose();
       //doClose() may end up destroying the window when terminating the application ...

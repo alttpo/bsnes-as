@@ -162,10 +162,11 @@ static auto Application_keyboardProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM 
             window->doKeyRelease(code);
           }
         }
-        //TODO: does this really need to be hooked here?
-        if(msg == WM_KEYDOWN && wparam == VK_ESCAPE && window->state.dismissable) {
-          if(auto result = self->windowProc(self->hwnd, WM_CLOSE, wparam, lparam)) return result();
-        }
+        // [jsd] in response to the below comment, it does not.
+        ////TODO: does this really need to be hooked here?
+        //if(msg == WM_KEYDOWN && wparam == VK_ESCAPE && window->state.dismissable) {
+        //  if(auto result = self->windowProc(self->hwnd, WM_CLOSE, wparam, lparam)) return result();
+        //}
       }
     }
   }

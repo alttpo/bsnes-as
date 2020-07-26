@@ -81,14 +81,14 @@ static auto Window_keyPress(GtkWidget* widget, GdkEventKey* event, pWindow* p) -
   if(auto key = pKeyboard::_translate(event->keyval)) {
     p->self().doKeyPress(key);
   }
-  if(p->state().dismissable && event->keyval == GDK_KEY_Escape) {
-    if(p->state().onClose) {
-      p->self().doClose();
-    } else {
-      p->self().setVisible(false);
-    }
-    if(p->state().modal && !p->pObject::state().visible) p->self().setModal(false);
-  }
+  //if(p->state().dismissable && event->keyval == GDK_KEY_Escape) {
+  //  if(p->state().onClose) {
+  //    p->self().doClose();
+  //  } else {
+  //    p->self().setVisible(false);
+  //  }
+  //  if(p->state().modal && !p->pObject::state().visible) p->self().setModal(false);
+  //}
   return false;
 }
 
