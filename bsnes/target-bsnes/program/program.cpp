@@ -70,6 +70,16 @@ auto Program::create() -> void {
   driverSettings.audioDriverChanged();
   driverSettings.inputDriverChanged();
 
+  // find all escape keys on all keyboards:
+  for (auto& device : inputManager.devices) {
+    if (!device->isKeyboard()) continue;
+
+    auto maybeKey = device->group(HID::Keyboard::GroupID::Button).find("Escape");
+    if (!maybeKey) continue;
+
+    escapeKeys.append(std::make_tuple(device, maybeKey.get()));
+  }
+
   if(gameQueue) load();
   if(startFullScreen && emulator->loaded()) {
     toggleVideoFullScreen();
@@ -89,6 +99,29 @@ auto Program::main() -> void {
 
   inputManager.poll();
   inputManager.pollHotkeys();
+
+  // check if escape key triggered:
+  for (auto& pair : escapeKeys) {
+    auto device = std::get<0>(pair);
+    auto id = std::get<1>(pair);
+
+    // escape key pressed:
+    if (device->group(HID::Keyboard::GroupID::Button).input(id).value() != 0) {
+      if(!video.hasFullScreen()) continue;
+      if(presentation.fullScreen()) {
+        // disable pseudo full screen:
+        if(input.acquired()) input.release();
+        presentation.menuBar.setVisible(true);
+        presentation.setFullScreen(false);
+      } else if(video.hasFullScreen() && video.fullScreen()) {
+        // disable full screen:
+        video.clear();
+        if(input.acquired()) input.release();
+        video.setFullScreen(false);
+        presentation.viewport.setFocused();
+      }
+    }
+  }
 
   if(inactive()) {
     audio.clear();

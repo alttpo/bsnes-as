@@ -224,6 +224,8 @@ public:
     string location;
     string console;
   } script;
+
+  vector<tuple<shared_pointer<HID::Device>, uint>> escapeKeys;
 };
 
 extern Program program;
