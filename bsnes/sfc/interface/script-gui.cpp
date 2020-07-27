@@ -240,6 +240,18 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // GUI
   r = e->SetDefaultNamespace("GUI"); assert(r >= 0);
 
+  r = e->RegisterGlobalFunction("float get_dpiX() property", asFUNCTION(+([]() -> float {
+    // round DPI scalar to increments of 0.5 (eg 1.0, 1.5, 2.0, ...)
+    auto scale = round(hiro::Monitor::dpi().x() / 96.0 * 2.0) / 2.0;
+    return scale;
+  })), asCALL_CDECL); assert(r >= 0);
+
+  r = e->RegisterGlobalFunction("float get_dpiY() property", asFUNCTION(+([]() -> float {
+    // round DPI scalar to increments of 0.5 (eg 1.0, 1.5, 2.0, ...)
+    auto scale = round(hiro::Monitor::dpi().y() / 96.0 * 2.0) / 2.0;
+    return scale;
+  })), asCALL_CDECL); assert(r >= 0);
+
   // function types:
   r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
 
