@@ -37,8 +37,21 @@ ifeq ($(platform),)
 endif
 
 ifeq ($(arch),)
-  # default to x86_64 arch for most builds:
-  arch := x86_64
+  ifeq ($(platform),windows)
+    # default to x86_64 arch for most builds:
+    arch := x86_64
+  else
+    unamem := $(shell uname -m)
+    ifeq ($(unamem),x86_64)
+      arch := x86_64
+    else ifeq ($(unamem),i686)
+      arch := x86
+    else ifeq ($(unamem),aarch64)
+      arch := aarch64
+    else
+      arch := $(unamem)
+    endif
+  endif
   # support 'arch=x86' for 32-bit builds on windows
 endif
 

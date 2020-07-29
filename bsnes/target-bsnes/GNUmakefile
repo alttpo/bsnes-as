@@ -29,7 +29,7 @@ all: $(objects) $(hiro.objects) $(ruby.objects) $(angel.objects) $(discord.objec
 	$(info Linking out/$(name) ...)
 	+@$(compiler) -o out/$(name) $(hiro.objects) $(ruby.objects) $(angel.objects) $(discord.objects) $(objects) $(hiro.options) $(ruby.options) $(angel.options) $(discord.options) $(options)
 ifeq ($(platform),windows)
-	cp ../lib/$(arch)/discord_game_sdk.dll out/
+	cp ../lib/$(arch)/discord_game_sdk.dll out/ || true
 else ifeq ($(platform),macos)
 	rm -rf out/$(name).app
 	mkdir -p out/$(name).app/Contents/MacOS/
@@ -45,7 +45,7 @@ else ifeq ($(platform),macos)
 	cp $(ui)/resource/$(name).plist out/$(name).app/Contents/Info.plist
 	sips -s format icns $(ui)/resource/$(name).png --out out/$(name).app/Contents/Resources/$(name).icns
 else ifeq ($(platform),linux)
-	cp ../lib/$(arch)/discord_game_sdk.so out/
+	cp ../lib/$(arch)/discord_game_sdk.so out/ || true
 endif
 
 verbose: hiro.verbose ruby.verbose angel.verbose nall.verbose all;
