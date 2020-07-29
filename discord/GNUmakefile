@@ -1,9 +1,9 @@
 
-ifeq ($(platform),macos)
-  discord.flags := $(flags.objcpp)
-else
-  discord.flags := $(flags.cpp)
-endif
+#ifeq ($(platform),macos)
+#  discord.flags := $(flags.objcpp)
+#else
+#  discord.flags := $(flags.cpp)
+#endif
 
 ifeq ($(platform),windows)
   # arch is 'x86_64' or 'x86'
@@ -11,7 +11,11 @@ ifeq ($(platform),windows)
 else ifeq ($(platform),macos)
   discord.options := ../lib/x86_64/discord_game_sdk.bundle
 else ifeq ($(platform),linux)
-  discord.options := ../lib/x86_64/discord_game_sdk.so
+  ifeq ($(arch),x86_64)
+    discord.options := ../lib/x86_64/discord_game_sdk.so
+  else
+    discord.flags += -DDISCORD_DISABLE=1
+  endif
 else ifeq ($(platform),bsd)
   # TODO: unsupported
   discord.options := -L../lib/x86_64
@@ -20,7 +24,7 @@ else
   discord.options := -L../lib/x86_64
 endif
 
-discord.flags += -fPIC -fno-strict-aliasing -I$(discord.path)
+discord.flags += -I$(discord.path)
 
 discord.objects := achievement_manager \
                    activity_manager \
@@ -54,7 +58,7 @@ obj/user_manager.o: $(discord.path)/user_manager.cpp
 obj/voice_manager.o: $(discord.path)/voice_manager.cpp
 
 # for global flags
-flags += -I$(discord.path)
+flags += -I$(discord.path) $(discord.flags)
 
 discord.verbose:
 	$(info discord Compiler Flags:)

@@ -7,6 +7,17 @@
 #include <cstring>
 #include <memory>
 
+#ifdef DISCORD_DISABLE
+extern "C"
+enum EDiscordResult DiscordCreate(DiscordVersion version,
+                                  struct DiscordCreateParams* params,
+                                  struct IDiscordCore** result)
+{
+  *result = nullptr;
+  return DiscordResult_ServiceUnavailable;
+}
+#endif
+
 namespace discord {
 
 Result Core::Create(ClientId clientId, std::uint64_t flags, Core** instance)
