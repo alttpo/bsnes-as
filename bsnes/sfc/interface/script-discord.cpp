@@ -4,6 +4,11 @@ namespace DiscordInterface {
 discord::Result result;
 discord::Core* core{};
 discord::LogLevel minLevel = discord::LogLevel::Debug;
+#ifdef DISCORD_DISABLE
+bool enabled = false;
+#else
+bool enabled = true;
+#endif
 
 auto reset() -> void {
   delete core;
@@ -63,8 +68,10 @@ auto Register(asIScriptEngine *e) -> void {
     // Callback funcdef:
     r = e->RegisterFuncdef("void Callback(int result)"); assert( r >= 0 );
 
-    REG_GLOBAL("int result", &result);
+    REG_GLOBAL("const int result", &result);
     REG_GLOBAL("const bool created", &core); // implicit nullptr -> false
+    // check `enabled` before attempting `create()`:
+    REG_GLOBAL("const bool enabled", &enabled);
 
     // create():
     REG_LAMBDA_GLOBAL("int create(uint64 clientId, bool requireDiscordClient = false)", ([](uint64_t clientId, bool requireDiscordClient) {

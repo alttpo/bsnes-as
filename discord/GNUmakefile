@@ -14,7 +14,7 @@ else ifeq ($(platform),linux)
   ifeq ($(arch),x86_64)
     discord.options := ../lib/x86_64/discord_game_sdk.so
   else
-    discord.flags += -DDISCORD_DISABLE=1
+    discord = false
   endif
 else ifeq ($(platform),bsd)
   # TODO: unsupported
@@ -22,6 +22,11 @@ else ifeq ($(platform),bsd)
 else
   # TODO: unsupported
   discord.options := -L../lib/x86_64
+endif
+
+ifeq ($(discord),false)
+  discord.flags += -DDISCORD_DISABLE=1
+  discord.options :=
 endif
 
 discord.flags += -I$(discord.path)
