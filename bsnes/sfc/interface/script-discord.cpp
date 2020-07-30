@@ -234,10 +234,10 @@ auto Register(asIScriptEngine *e) -> void {
 
     // PartySize:
     REG_REF_NOHANDLE(PartySize);
-    REG_METHOD_THISCALL(PartySize, "void   set_CurrentSize(int32) property", asMETHOD(discord::PartySize, SetCurrentSize));
-    REG_METHOD_THISCALL(PartySize, "int32  get_CurrentSize() property",      asMETHOD(discord::PartySize, GetCurrentSize));
-    REG_METHOD_THISCALL(PartySize, "void   set_MaxSize(int32) property",     asMETHOD(discord::PartySize, SetMaxSize));
-    REG_METHOD_THISCALL(PartySize, "int32  get_MaxSize() property",          asMETHOD(discord::PartySize, GetMaxSize));
+    REG_LAMBDA(PartySize, "void   set_CurrentSize(int32) property", ([](discord::PartySize& self, int size) { self.SetCurrentSize(size); }));
+    REG_LAMBDA(PartySize, "int32  get_CurrentSize() property",      ([](discord::PartySize& self) { return self.GetCurrentSize(); }));
+    REG_LAMBDA(PartySize, "void   set_MaxSize(int32) property",     ([](discord::PartySize& self, int size) { self.SetMaxSize(size); }));
+    REG_LAMBDA(PartySize, "int32  get_MaxSize() property",          ([](discord::PartySize& self) { return self.GetMaxSize(); }));
 
     // ActivityParty:
     REG_REF_NOHANDLE(ActivityParty);
@@ -245,7 +245,7 @@ auto Register(asIScriptEngine *e) -> void {
     REG_LAMBDA_GENERIC (ActivityParty, "string get_Id() property",                 ([](asIScriptGeneric *g) {
       (new(g->GetAddressOfReturnLocation()) string())->assign(reinterpret_cast<discord::ActivityParty *>(g->GetObject())->GetId());
     }));
-    REG_METHOD_THISCALL(ActivityParty, "PartySize& get_Size() property",      asMETHODPR(discord::ActivityParty, GetSize, (void), discord::PartySize&));
+    REG_LAMBDA(ActivityParty, "PartySize& get_Size() property", ([](discord::ActivityParty& self) -> discord::PartySize& { return self.GetSize(); }));
 
     // ActivitySecrets:
     REG_REF_NOHANDLE(ActivitySecrets);
@@ -264,10 +264,10 @@ auto Register(asIScriptEngine *e) -> void {
 
     // Activity:
     REG_REF_SCOPED (Activity, discord::Activity);
-    REG_METHOD_THISCALL(Activity, "void   set_Type(int) property", asMETHOD(discord::Activity, SetType));
-    REG_METHOD_THISCALL(Activity, "int    get_Type() property",    asMETHOD(discord::Activity, GetType));
-    REG_METHOD_THISCALL(Activity, "void   set_ApplicationId(int64) property", asMETHOD(discord::Activity, SetApplicationId));
-    REG_METHOD_THISCALL(Activity, "int64  get_ApplicationId() property",      asMETHOD(discord::Activity, GetApplicationId));
+    REG_LAMBDA(Activity, "void   set_Type(int) property", ([](discord::Activity& self, int type) { self.SetType(static_cast<discord::ActivityType>(type)); }));
+    REG_LAMBDA(Activity, "int    get_Type() property",    ([](discord::Activity& self) { return self.GetType(); }));
+    REG_LAMBDA(Activity, "void   set_ApplicationId(int64) property", ([](discord::Activity& self, int64 id) { self.SetApplicationId(id); }));
+    REG_LAMBDA(Activity, "int64  get_ApplicationId() property",      ([](discord::Activity& self) { return self.GetApplicationId(); }));
     REG_LAMBDA         (Activity, "void   set_Name(const string &in) property", ([](discord::Activity &self, string &value) { self.SetName(value.data()); }));
     REG_LAMBDA_GENERIC (Activity, "string get_Name() property",                 ([](asIScriptGeneric *g) {
       (new(g->GetAddressOfReturnLocation()) string())->assign(reinterpret_cast<discord::Activity *>(g->GetObject())->GetName());
@@ -280,12 +280,12 @@ auto Register(asIScriptEngine *e) -> void {
     REG_LAMBDA_GENERIC (Activity, "string get_Details() property",                 ([](asIScriptGeneric *g) {
       (new(g->GetAddressOfReturnLocation()) string())->assign(reinterpret_cast<discord::Activity *>(g->GetObject())->GetDetails());
     }));
-    REG_METHOD_THISCALL(Activity, "ActivityTimestamps& get_Timestamps() property", asMETHODPR(discord::Activity, GetTimestamps, (void), discord::ActivityTimestamps&));
-    REG_METHOD_THISCALL(Activity, "ActivityAssets&     get_Assets() property",     asMETHODPR(discord::Activity, GetAssets, (void), discord::ActivityAssets&));
-    REG_METHOD_THISCALL(Activity, "ActivityParty&      get_Party() property",      asMETHODPR(discord::Activity, GetParty, (void), discord::ActivityParty&));
-    REG_METHOD_THISCALL(Activity, "ActivitySecrets&    get_Secrets() property",    asMETHODPR(discord::Activity, GetSecrets, (void), discord::ActivitySecrets&));
-    REG_METHOD_THISCALL(Activity, "void  set_Instance(bool) property", asMETHOD(discord::Activity, SetInstance));
-    REG_METHOD_THISCALL(Activity, "bool  get_Instance() property",     asMETHOD(discord::Activity, GetInstance));
+    REG_LAMBDA(Activity, "ActivityTimestamps& get_Timestamps() property", ([](discord::Activity& self) -> discord::ActivityTimestamps& { return self.GetTimestamps(); }));
+    REG_LAMBDA(Activity, "ActivityAssets&     get_Assets() property",     ([](discord::Activity& self) -> discord::ActivityAssets& { return self.GetAssets(); }));
+    REG_LAMBDA(Activity, "ActivityParty&      get_Party() property",      ([](discord::Activity& self) -> discord::ActivityParty& { return self.GetParty(); }));
+    REG_LAMBDA(Activity, "ActivitySecrets&    get_Secrets() property",    ([](discord::Activity& self) -> discord::ActivitySecrets& { return self.GetSecrets(); }));
+    REG_LAMBDA(Activity, "void  set_Instance(bool) property", ([](discord::Activity& self, bool value) { self.SetInstance(value); }));
+    REG_LAMBDA(Activity, "bool  get_Instance() property",     ([](discord::Activity& self) { return self.GetInstance(); }));
 
     // ActivityManager:
     REG_LAMBDA(
