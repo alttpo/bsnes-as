@@ -289,19 +289,22 @@ auto RegisterPPUExtra(asIScriptEngine *e) -> void {
   // text drawing function:
   r = e->RegisterObjectMethod("ExtraTile", "int text(int x, int y, const string &in text)", asFUNCTION(ExtraLayer::tile_text), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-  r = e->RegisterObjectMethod("Extra", "uint16 get_color() property", asMETHOD(ExtraLayer, get_color), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "void set_color(uint16 color) property", asMETHOD(ExtraLayer, set_color), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "uint16 get_outline_color() property", asMETHOD(ExtraLayer, get_outline_color), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "void set_outline_color(uint16 color) property", asMETHOD(ExtraLayer, set_outline_color), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectProperty("Extra", "Font @font", asOFFSET(ExtraLayer, font)); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "bool get_text_shadow() property", asMETHOD(ExtraLayer, get_text_shadow), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "void set_text_shadow(bool color) property", asMETHOD(ExtraLayer, set_text_shadow), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "bool get_text_outline() property", asMETHOD(ExtraLayer, get_text_outline), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "void set_text_outline(bool color) property", asMETHOD(ExtraLayer, set_text_outline), asCALL_THISCALL); assert(r >= 0);
 
-  r = e->RegisterObjectMethod("Extra", "void reset()", asMETHOD(ExtraLayer, reset), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "uint get_count() property", asMETHOD(ExtraLayer, get_tile_count), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Extra", "void set_count(uint count) property", asMETHOD(ExtraLayer, set_tile_count), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(Extra, "uint16 get_color() property",         ([](ExtraLayer& self) { return self.get_color(); }));
+  REG_LAMBDA(Extra, "uint16 get_outline_color() property", ([](ExtraLayer& self) { return self.get_outline_color(); }));
+  REG_LAMBDA(Extra, "bool get_text_shadow() property",     ([](ExtraLayer& self) { return self.get_text_shadow(); }));
+  REG_LAMBDA(Extra, "bool get_text_outline() property",    ([](ExtraLayer& self) { return self.get_text_outline(); }));
+  REG_LAMBDA(Extra, "uint get_count() property",           ([](ExtraLayer& self) { return self.get_tile_count(); }));
+
+  REG_LAMBDA(Extra, "void set_color(uint16 color) property",         ([](ExtraLayer& self, uint16 value) { self.set_color(value); }));
+  REG_LAMBDA(Extra, "void set_outline_color(uint16 color) property", ([](ExtraLayer& self, uint16 value) { self.set_outline_color(value); }));
+  REG_LAMBDA(Extra, "void set_text_shadow(bool color) property",     ([](ExtraLayer& self, bool value) { self.set_text_shadow(value); }));
+  REG_LAMBDA(Extra, "void set_text_outline(bool color) property",    ([](ExtraLayer& self, bool value) { self.set_text_outline(value); }));
+  REG_LAMBDA(Extra, "void set_count(uint count) property",           ([](ExtraLayer& self, uint value) { self.set_tile_count(value); }));
+
+  REG_LAMBDA(Extra, "void reset()", ([](ExtraLayer& self) { self.reset(); }));
+
   r = e->RegisterObjectMethod("Extra", "ExtraTile @get_opIndex(uint i) property", asFUNCTION(ExtraLayer::get_tile), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = e->RegisterGlobalProperty("Extra extra", &extraLayer); assert(r >= 0);
 }

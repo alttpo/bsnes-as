@@ -255,15 +255,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // function types:
   r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
 
-#define REG_REF_TYPE(name) r = e->RegisterObjectType(#name, 0, asOBJ_REF); assert( r >= 0 )
-#define REG_REF_NOCOUNT(name) r = e->RegisterObjectType(#name, 0, asOBJ_REF | asOBJ_NOCOUNT); assert( r >= 0 )
-
-#define REG_VALUE_TYPE(name) \
-  r = e->RegisterObjectType(#name, 0, asOBJ_REF | asOBJ_SCOPED); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION(+([]() { return new hiro::name(); })), asCALL_CDECL); assert(r >= 0); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](hiro::name* self) { delete self; })), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
-  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asMETHODPR(hiro::name, operator =, (const hiro::name&), hiro::name&), asCALL_THISCALL); assert(r >= 0)
-
   // Register reference types:
   REG_REF_NOCOUNT(Attributes);
   REG_REF_TYPE(Window);
@@ -279,19 +270,27 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_TYPE(ComboButton);
   REG_REF_TYPE(HorizontalSlider);
 
+#define REG_SCOPED_REF(name) \
+  r = e->RegisterObjectType(#name, 0, asOBJ_REF | asOBJ_SCOPED); assert( r >= 0 ); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION(+([]() { return new hiro::name(); })), asCALL_CDECL); assert(r >= 0); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](hiro::name* self) { delete self; })), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
+  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asMETHODPR(hiro::name, operator =, (const hiro::name&), hiro::name&), asCALL_THISCALL); assert(r >= 0)
+
+  //// value types:
+  //REG_SCOPED_REF(Alignment);
+  //REG_SCOPED_REF(Color);
+  //REG_SCOPED_REF(Font);
+  //REG_SCOPED_REF(Position);
+  //REG_SCOPED_REF(Size);
+  //REG_SCOPED_REF(Geometry);
+
   // value types:
-  REG_VALUE_TYPE(Alignment);
-  REG_VALUE_TYPE(Color);
-  REG_VALUE_TYPE(Font);
-  REG_VALUE_TYPE(Position);
-  REG_VALUE_TYPE(Size);
-  REG_VALUE_TYPE(Geometry);
-
-#define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
-
-#define EXPOSE_SHARED_PTR(name, className, mClassName) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(sharedPtrAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ sharedPtrRelease<mClassName>(self); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+  REG_REF_SCOPED(Alignment, hiro::Alignment);
+  REG_REF_SCOPED(Color, hiro::Color);
+  REG_REF_SCOPED(Font, hiro::Font);
+  REG_REF_SCOPED(Position, hiro::Position);
+  REG_REF_SCOPED(Size, hiro::Size);
+  REG_REF_SCOPED(Geometry, hiro::Geometry);
 
 #define EXPOSE_HIRO(name) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
