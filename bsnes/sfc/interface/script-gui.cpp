@@ -270,20 +270,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_TYPE(ComboButton);
   REG_REF_TYPE(HorizontalSlider);
 
-#define REG_SCOPED_REF(name) \
-  r = e->RegisterObjectType(#name, 0, asOBJ_REF | asOBJ_SCOPED); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION(+([]() { return new hiro::name(); })), asCALL_CDECL); assert(r >= 0); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](hiro::name* self) { delete self; })), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
-  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asMETHODPR(hiro::name, operator =, (const hiro::name&), hiro::name&), asCALL_THISCALL); assert(r >= 0)
-
-  //// value types:
-  //REG_SCOPED_REF(Alignment);
-  //REG_SCOPED_REF(Color);
-  //REG_SCOPED_REF(Font);
-  //REG_SCOPED_REF(Position);
-  //REG_SCOPED_REF(Size);
-  //REG_SCOPED_REF(Geometry);
-
   // value types:
   REG_REF_SCOPED(Alignment, hiro::Alignment);
   REG_REF_SCOPED(Color, hiro::Color);
@@ -344,35 +330,35 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     ([](hiro::Object* self, const string &name, const string &value) { self->setAttribute(name, value); }));
 
   // Alignment value type:
-  r = e->RegisterObjectBehaviour("Alignment", asBEHAVE_FACTORY, "Alignment@ f(float horizontal, float vertical)", asFUNCTION(+([](float h, float v){ return new hiro::Alignment(h, v); })), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Alignment", "float get_horizontal() property", asMETHOD(hiro::Alignment, horizontal), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Alignment", "void  set_horizontal(float horizontal) property", asMETHOD(hiro::Alignment, setHorizontal), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Alignment", "float get_vertical() property", asMETHOD(hiro::Alignment, vertical), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Alignment", "void  set_vertical(float vertical) property", asMETHOD(hiro::Alignment, setVertical), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA_BEHAVIOUR(Alignment, asBEHAVE_FACTORY, "Alignment@ f(float, float)", ([](float h, float v) { return new hiro::Alignment(h, v); }));
+  REG_LAMBDA(Alignment, "float get_horizontal() property",      ([](hiro::Alignment& self) -> float { return self.horizontal(); }));
+  REG_LAMBDA(Alignment, "void  set_horizontal(float) property", ([](hiro::Alignment& self, float value)    { self.setHorizontal(value); }));
+  REG_LAMBDA(Alignment, "float get_vertical() property",        ([](hiro::Alignment& self) -> float { return self.vertical(); }));
+  REG_LAMBDA(Alignment, "void  set_vertical(float) property",   ([](hiro::Alignment& self, float value)    { self.setVertical(value); }));
 
   // Position value type:
-  r = e->RegisterObjectBehaviour("Position", asBEHAVE_FACTORY, "Position@ f(float x, float y)", asFUNCTION(+([](float x, float y){ return new hiro::Position(x, y); })), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Position", "float get_x() property",      asMETHOD(hiro::Position, x), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Position", "void  set_x(float) property", asMETHOD(hiro::Position, setX), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Position", "float get_y() property",      asMETHOD(hiro::Position, y), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Position", "void  set_y(float) property", asMETHOD(hiro::Position, setY), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA_BEHAVIOUR(Position, asBEHAVE_FACTORY, "Position@ f(float, float)", ([](float x, float y){ return new hiro::Position(x, y); }));
+  REG_LAMBDA(Position, "float get_x() property",      ([](hiro::Position& self) -> float { return self.x(); }));
+  REG_LAMBDA(Position, "void  set_x(float) property", ([](hiro::Position& self, float value)    { self.setX(value); }));
+  REG_LAMBDA(Position, "float get_y() property",      ([](hiro::Position& self) -> float { return self.y(); }));
+  REG_LAMBDA(Position, "void  set_y(float) property", ([](hiro::Position& self, float value)    { self.setY(value); }));
 
   // Size value type:
-  r = e->RegisterObjectBehaviour("Size", asBEHAVE_FACTORY, "Size@ f(float width, float height)", asFUNCTION(+([](float width, float height){ return new hiro::Size(width, height); })), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Size", "float get_width() property",       asMETHOD(hiro::Size, width), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Size", "void  set_width(float) property",  asMETHOD(hiro::Size, setWidth), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Size", "float get_height() property",      asMETHOD(hiro::Size, height), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Size", "void  set_height(float) property", asMETHOD(hiro::Size, setHeight), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA_BEHAVIOUR(Size, asBEHAVE_FACTORY, "Size@ f(float, float)", ([](float width, float height){ return new hiro::Size(width, height); }));
+  REG_LAMBDA(Size, "float get_width() property",       ([](hiro::Size& self) -> float { return self.width(); }));
+  REG_LAMBDA(Size, "void  set_width(float) property",  ([](hiro::Size& self, float value)    { self.setWidth(value); }));
+  REG_LAMBDA(Size, "float get_height() property",      ([](hiro::Size& self) -> float { return self.height(); }));
+  REG_LAMBDA(Size, "void  set_height(float) property", ([](hiro::Size& self, float value)    { self.setHeight(value); }));
 
   // Geometry value type:
-  r = e->RegisterObjectBehaviour("Geometry", asBEHAVE_FACTORY, "Geometry@ f(const Position &in, const Size &in)", asFUNCTION(+([](hiro::Position &position, hiro::Size &size){ return new hiro::Geometry(position, size); })), asCALL_CDECL); assert(r >= 0);
-  REG_LAMBDA(Geometry, "Position@ get_position() property",                   ([](hiro::Geometry* self){ return new hiro::Position(self->position()); }));
-  REG_LAMBDA(Geometry, "void      set_position(const Position &in) property", ([](hiro::Geometry* self, hiro::Position& position){ self->setPosition(position); }));
-  REG_LAMBDA(Geometry, "Size@ get_size() property",                           ([](hiro::Geometry* self){ return new hiro::Size(self->size()); }));
-  REG_LAMBDA(Geometry, "void  set_size(const Size &in) property",             ([](hiro::Geometry* self, hiro::Size& size){ self->setSize(size); }));
+  REG_LAMBDA_BEHAVIOUR(Geometry, asBEHAVE_FACTORY, "Geometry@ f(const Position &in, const Size &in)", ([](hiro::Position &position, hiro::Size &size){ return new hiro::Geometry(position, size); }));
+  REG_LAMBDA(Geometry, "Position@ get_position() property",                   ([](hiro::Geometry* self) { return new hiro::Position(self->position()); }));
+  REG_LAMBDA(Geometry, "void      set_position(const Position &in) property", ([](hiro::Geometry* self, hiro::Position& position) { self->setPosition(position); }));
+  REG_LAMBDA(Geometry, "Size@ get_size() property",                           ([](hiro::Geometry* self) { return new hiro::Size(self->size()); }));
+  REG_LAMBDA(Geometry, "void  set_size(const Size &in) property",             ([](hiro::Geometry* self, hiro::Size& size)     { self->setSize(size); }));
 
   // Color value type:
-  r = e->RegisterObjectBehaviour("Color", asBEHAVE_FACTORY, "Color@ f(int red, int green, int blue, int alpha = 255)", asFUNCTION(+([](int r, int g, int b, int a){ return new hiro::Color(r,g,b,a); })), asCALL_CDECL); assert(r >= 0);
+  REG_LAMBDA_BEHAVIOUR(Color, asBEHAVE_FACTORY, "Color@ f(int red, int green, int blue, int alpha = 255)", ([](int r, int g, int b, int a){ return new hiro::Color(r,g,b,a); }));
   //r = e->RegisterObjectMethod("Color", "Color@ setColor(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
   //r = e->RegisterObjectMethod("Color", "Color@ setValue(uint32 value)", asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
   //r = e->RegisterObjectMethod("Color", "uint8 get_alpha() property",    asMETHOD(hiro::Color, alpha), asCALL_THISCALL); assert(r >= 0);
@@ -385,7 +371,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   //r = e->RegisterObjectMethod("Color", "Color@ set_red(int red)",       asMETHOD(hiro::Color, setRed), asCALL_THISCALL); assert(r >= 0);
 
   // Font value type:
-  r = e->RegisterObjectBehaviour("Font", asBEHAVE_FACTORY, "Font@ f(const string &in family, float size = 0.0)", asFUNCTION(+([](string &family, float size){ return new hiro::Font(family, size); })), asCALL_CDECL); assert(r >= 0);
+  REG_LAMBDA_BEHAVIOUR(Font, asBEHAVE_FACTORY, "Font@ f(const string &in family, float size = 0.0)", ([](string &family, float size){ return new hiro::Font(family, size); }));
   REG_LAMBDA(Font, "bool   get_bold() property",                          ([](hiro::Font* self) { return self->bold(); }));
   REG_LAMBDA(Font, "string get_family() property",                        ([](hiro::Font* self) { return self->family(); }));
   REG_LAMBDA(Font, "bool   get_italic() property",                        ([](hiro::Font* self) { return self->italic(); }));
@@ -568,18 +554,23 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_SHARED_PTR(SNESCanvas, GUI::SNESCanvas, GUI::mSNESCanvas);
   EXPOSE_OBJECT(SNESCanvas, GUI::SNESCanvas);
   EXPOSE_SIZABLE(SNESCanvas, GUI::SNESCanvas);
-  r = e->RegisterObjectMethod("SNESCanvas", "void set_size(Size &in size) property", asMETHOD(GUI::SNESCanvas, setSize), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "uint8 get_luma() property", asMETHOD(GUI::SNESCanvas, luma), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "void set_luma(uint8 luma) property", asMETHOD(GUI::SNESCanvas, set_luma), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "void setPosition(float x, float y)", asMETHOD(GUI::SNESCanvas, setPosition), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "Alignment@ get_alignment() property", asMETHOD(GUI::SNESCanvas, alignment), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "void set_alignment(const Alignment &in) property", asMETHODPR(GUI::SNESCanvas, setAlignment, (hiro::Alignment&), void), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "void setAlignment(float horizontal, float vertical)", asMETHODPR(GUI::SNESCanvas, setAlignment, (float, float), void), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "void setCollapsible(bool collapsible)", asMETHOD(GUI::SNESCanvas, setCollapsible), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "void update()", asMETHOD(GUI::SNESCanvas, update), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "void fill(uint16 color)", asMETHOD(GUI::SNESCanvas, fill), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "void pixel(int x, int y, uint16 color)", asMETHOD(GUI::SNESCanvas, pixel), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("SNESCanvas", "void draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const array<uint16> &in tiledata, const array<uint16> &in palette)", asMETHOD(GUI::SNESCanvas, draw_sprite_4bpp), asCALL_THISCALL); assert( r >= 0 );
+  REG_LAMBDA(SNESCanvas, "void set_size(Size &in size) property",               ([](GUI::SNESCanvas& self, hiro::Size &size) { self.setSize(size); }));
+  REG_LAMBDA(SNESCanvas, "uint8 get_luma() property",                           ([](GUI::SNESCanvas& self) { return self.luma(); }));
+  REG_LAMBDA(SNESCanvas, "void set_luma(uint8 luma) property",                  ([](GUI::SNESCanvas& self, uint8 value) { self.set_luma(value); }));
+  REG_LAMBDA(SNESCanvas, "void setPosition(float, float)",                      ([](GUI::SNESCanvas& self, float x, float y) { self.setPosition(x, y); }));
+  REG_LAMBDA(SNESCanvas, "Alignment@ get_alignment() property",                 ([](GUI::SNESCanvas& self) { return self.alignment(); }));
+  REG_LAMBDA(SNESCanvas, "void set_alignment(const Alignment &in) property",    ([](GUI::SNESCanvas& self, hiro::Alignment &alignment) { self.setAlignment(alignment); }));
+  REG_LAMBDA(SNESCanvas, "void setAlignment(float horizontal, float vertical)", ([](GUI::SNESCanvas& self, float horizontal, float vertical) { self.setAlignment(horizontal, vertical); }));
+  REG_LAMBDA(SNESCanvas, "void setCollapsible(bool)",    ([](GUI::SNESCanvas& self, bool value) { self.setCollapsible(value); }));
+  REG_LAMBDA(SNESCanvas, "void update()",                ([](GUI::SNESCanvas& self) { self.update(); }));
+  REG_LAMBDA(SNESCanvas, "void fill(uint16)",            ([](GUI::SNESCanvas& self, uint16 color) { self.fill(color); }));
+  REG_LAMBDA(SNESCanvas, "void pixel(int, int, uint16)", ([](GUI::SNESCanvas& self, int x, int y, uint16 color) { self.pixel(x, y, color); }));
+  REG_LAMBDA(SNESCanvas, "void draw_sprite_4bpp(int, int, uint, uint, uint, const array<uint16> &in, const array<uint16> &in)",
+    ([](GUI::SNESCanvas& self, int x, int y, uint c, uint width, uint height, const CScriptArray *tile_data, const CScriptArray *palette_data) {
+      self.draw_sprite_4bpp(x, y, c, width, height, tile_data, palette_data);
+    })
+  );
+  // TODO: draw_sprite_8bpp
 
   // CheckLabel
   EXPOSE_HIRO(CheckLabel);
