@@ -243,37 +243,42 @@ auto RegisterPPU(asIScriptEngine *e) -> void {
 
   // Font
   r = e->RegisterObjectType("Font", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
-  r = e->RegisterObjectMethod("Font", "string get_displayName() property", asMETHOD(PixelFonts::Font, displayName), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Font", "uint measureText(const string &in)", asMETHOD(PixelFonts::Font, measureText), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Font", "uint get_height() property", asMETHOD(PixelFonts::Font, height), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Font", "uint get_width(uint r) property", asMETHOD(PixelFonts::Font, width), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(Font, "string get_displayName() property",  ([](PixelFonts::Font& self) { return self.displayName(); }));
+  REG_LAMBDA(Font, "uint measureText(const string &in)", ([](PixelFonts::Font& self, const string& text) { return self.measureText(text); }));
+  REG_LAMBDA(Font, "uint get_height() property",         ([](PixelFonts::Font& self) { return self.height(); }));
+  REG_LAMBDA(Font, "uint get_width(uint) property",      ([](PixelFonts::Font& self, uint r) { return self.width(r); }));
 
-  r = e->RegisterGlobalFunction("uint get_fonts_count() property", asFUNCTION(+([]{ return PixelFonts::fonts.count(); })), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("Font @get_fonts(uint i) property", asFUNCTION(+([](uint i){ return PixelFonts::fonts[i]; })), asCALL_CDECL); assert(r >= 0);
+  REG_LAMBDA_GLOBAL("uint get_fonts_count() property", ([]{ return PixelFonts::fonts.count(); }));
+  REG_LAMBDA_GLOBAL("Font @get_fonts(uint) property",  ([](uint i){ return PixelFonts::fonts[i]; }));
 
   r = e->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(PPUAccess::ppu_rgb), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterGlobalFunction("uint8 get_luma() property", asFUNCTION(PPUAccess::ppu_get_luma), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("uint8 get_luma() property",             asFUNCTION(PPUAccess::ppu_get_luma), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("uint8 sprite_width(uint8 baseSize, uint8 size)", asFUNCTION(PPUAccess::ppu_sprite_width), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("uint8 sprite_height(uint8 baseSize, uint8 size)", asFUNCTION(PPUAccess::ppu_sprite_height), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("uint8 sprite_base_size()", asFUNCTION(PPUAccess::ppu_sprite_base_size), asCALL_CDECL); assert(r >= 0);
 
   // define ppu::VRAM object type for opIndex convenience:
   r = e->RegisterObjectType("VRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = e->RegisterObjectMethod("VRAM", "uint16 get_opIndex(uint16 addr) property", asMETHOD(PPUAccess, vram_read), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("VRAM", "void set_opIndex(uint16 addr, uint16 value) property", asMETHOD(PPUAccess, vram_write), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("VRAM", "uint16 chr_address(uint16 chr)", asMETHOD(PPUAccess, vram_chr_address), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("VRAM", "void read_block(uint16 addr, uint offs, uint16 size, array<uint16> &inout output)", asMETHOD(PPUAccess, vram_read_block), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("VRAM", "void write_block(uint16 addr, uint offs, uint16 size, const array<uint16> &in data)", asMETHOD(PPUAccess, vram_write_block), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(VRAM, "uint16 get_opIndex(uint16 addr) property",             ([](PPUAccess& self, uint16 addr) { return self.vram_read(addr); }));
+  REG_LAMBDA(VRAM, "void set_opIndex(uint16 addr, uint16 value) property", ([](PPUAccess& self, uint16 addr, uint16 value) { self.vram_write(addr, value); }));
+  REG_LAMBDA(VRAM, "uint16 chr_address(uint16 chr)",                       ([](PPUAccess& self, uint16 chr) { return self.vram_chr_address(chr); }));
+  REG_LAMBDA(VRAM, "void read_block(uint16 addr, uint offs, uint16 size, array<uint16> &inout output)",
+    ([](PPUAccess& self, uint16 addr, uint offs, uint16 size, CScriptArray* output) {
+      self.vram_read_block(addr, offs, size, output);
+    }));
+  REG_LAMBDA(VRAM, "void write_block(uint16 addr, uint offs, uint16 size, const array<uint16> &in data)",
+    ([](PPUAccess& self, uint16 addr, uint offs, uint16 size, CScriptArray* data) {
+      self.vram_write_block(addr, offs, size, data);
+    }));
   r = e->RegisterGlobalProperty("VRAM vram", &ppuAccess); assert(r >= 0);
 
   // define ppu::CGRAM object type for opIndex convenience:
   r = e->RegisterObjectType("CGRAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
-  r = e->RegisterObjectMethod("CGRAM", "uint16 get_opIndex(uint8 addr) property", asMETHOD(PPUAccess, cgram_read), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("CGRAM", "void set_opIndex(uint8 addr, uint16 value) property", asMETHOD(PPUAccess, cgram_write), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(CGRAM, "uint16 get_opIndex(uint8) property",       ([](PPUAccess& self, uint8 addr) { return self.cgram_read(addr); }));
+  REG_LAMBDA(CGRAM, "void set_opIndex(uint8, uint16) property", ([](PPUAccess& self, uint8 addr, uint16 value) { self.cgram_write(addr, value); }));
   r = e->RegisterGlobalProperty("CGRAM cgram", &ppuAccess); assert(r >= 0);
 
   r = e->RegisterObjectType    ("OAMSprite", sizeof(PPUAccess::OAMObject), asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
-  r = e->RegisterObjectMethod  ("OAMSprite", "bool   get_is_enabled() property", asMETHOD(PPUAccess::OAMObject, get_is_enabled), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectProperty("OAMSprite", "uint16 x", asOFFSET(PPUAccess::OAMObject, x)); assert(r >= 0);
   r = e->RegisterObjectProperty("OAMSprite", "uint8  y", asOFFSET(PPUAccess::OAMObject, y)); assert(r >= 0);
   r = e->RegisterObjectProperty("OAMSprite", "uint16 character", asOFFSET(PPUAccess::OAMObject, character)); assert(r >= 0);
@@ -282,13 +287,17 @@ auto RegisterPPU(asIScriptEngine *e) -> void {
   r = e->RegisterObjectProperty("OAMSprite", "uint8  priority", asOFFSET(PPUAccess::OAMObject, priority)); assert(r >= 0);
   r = e->RegisterObjectProperty("OAMSprite", "uint8  palette", asOFFSET(PPUAccess::OAMObject, palette)); assert(r >= 0);
   r = e->RegisterObjectProperty("OAMSprite", "uint8  size", asOFFSET(PPUAccess::OAMObject, size)); assert(r >= 0);
-  r = e->RegisterObjectMethod  ("OAMSprite", "uint8  get_width() property", asMETHOD(PPUAccess::OAMObject, get_width), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod  ("OAMSprite", "uint8  get_height() property", asMETHOD(PPUAccess::OAMObject, get_height), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(OAMSprite, "bool   get_is_enabled() property", ([](PPUAccess::OAMObject& self) { return self.get_is_enabled(); }));
+  REG_LAMBDA(OAMSprite, "uint8  get_width() property",      ([](PPUAccess::OAMObject& self) { return self.get_width(); }));
+  REG_LAMBDA(OAMSprite, "uint8  get_height() property",     ([](PPUAccess::OAMObject& self) { return self.get_height(); }));
 
   r = e->RegisterObjectType  ("OAM", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
   r = e->RegisterObjectMethod("OAM", "OAMSprite @get_opIndex(uint8 chr) property", asFUNCTION(PPUAccess::oam_get_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = e->RegisterObjectMethod("OAM", "void set_opIndex(uint8 chr, OAMSprite @sprite) property", asFUNCTION(PPUAccess::oam_set_object), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = e->RegisterObjectMethod("OAM", "void read_block_u8(uint16 addr, uint offs, uint16 size, const array<uint8> &in output)", asMETHOD(PPUAccess, oam_read_block_u8), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(OAM, "void read_block_u8(uint16 addr, uint offs, uint16 size, const array<uint8> &in output)",
+    ([](PPUAccess& self, uint16 addr, uint offs, uint16 size, CScriptArray *output) {
+      self.oam_read_block_u8(addr, offs, size, output);
+    }));
 
   r = e->RegisterGlobalProperty("OAM oam", &ppuAccess); assert(r >= 0);
 }
