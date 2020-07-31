@@ -186,8 +186,8 @@ struct PostFrame {
   }
 
   // draw a line of text (currently ASCII only due to font restrictions)
-  auto text(int x, int y, const string *msg) -> int {
-    const char *c = msg->data();
+  auto text(int x, int y, string &msg) -> int {
+    const char *c = msg.data();
 
     auto len = 0;
 
@@ -278,33 +278,33 @@ auto RegisterPPUFrame(asIScriptEngine *e) -> void {
   r = e->RegisterObjectType("Frame", 0, asOBJ_REF | asOBJ_NOHANDLE); assert(r >= 0);
 
   // define width and height properties:
-  r = e->RegisterObjectMethod("Frame", "uint get_width() property", asMETHOD(PostFrame, get_width), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "uint get_height() property", asMETHOD(PostFrame, get_height), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(Frame, "uint get_width() property",  ([](PostFrame& self) -> uint { return self.get_width(); }));
+  REG_LAMBDA(Frame, "uint get_height() property", ([](PostFrame& self) -> uint { return self.get_height(); }));
 
   // define x_scale and y_scale properties:
-  r = e->RegisterObjectMethod("Frame", "int get_x_scale() property", asMETHOD(PostFrame, get_x_scale), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void set_x_scale(int x_scale) property", asMETHOD(PostFrame, set_x_scale), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "int get_y_scale() property", asMETHOD(PostFrame, get_y_scale), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void set_y_scale(int y_scale) property", asMETHOD(PostFrame, set_y_scale), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(Frame, "int  get_x_scale() property",    ([](PostFrame& self) -> int { return self.get_x_scale(); }));
+  REG_LAMBDA(Frame, "void set_x_scale(int) property", ([](PostFrame& self, int value)    { self.set_x_scale(value); }));
+  REG_LAMBDA(Frame, "int  get_y_scale() property",    ([](PostFrame& self) -> int { return self.get_y_scale(); }));
+  REG_LAMBDA(Frame, "void set_y_scale(int) property", ([](PostFrame& self, int value)    { self.set_y_scale(value); }));
 
   // adjust y_offset of drawing functions (default 8):
   r = e->RegisterObjectProperty("Frame", "int y_offset", asOFFSET(PostFrame, y_offset)); assert(r >= 0);
 
   // set color to use for drawing functions (15-bit RGB):
-  r = e->RegisterObjectMethod("Frame", "uint16 get_color() property", asMETHOD(PostFrame, get_color), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void set_color(uint16 color) property", asMETHOD(PostFrame, set_color), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(Frame, "uint16 get_color() property",      ([](PostFrame& self) -> uint16 { return self.get_color(); }));
+  REG_LAMBDA(Frame, "void  set_color(uint16) property", ([](PostFrame& self, uint16 value)    { self.set_color(value); }));
 
   // set luma (paired with color) to use for drawing functions (0..15):
-  r = e->RegisterObjectMethod("Frame", "uint8 get_luma() property", asMETHOD(PostFrame, get_luma), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void set_luma(uint8 luma) property", asMETHOD(PostFrame, set_luma), asCALL_THISCALL); assert(r >= 0);
-
   // set alpha to use for drawing functions (0..31):
-  r = e->RegisterObjectMethod("Frame", "uint8 get_alpha() property", asMETHOD(PostFrame, get_alpha), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void set_alpha(uint8 alpha) property", asMETHOD(PostFrame, set_alpha), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(Frame, "uint8 get_luma() property",      ([](PostFrame& self) -> uint8 { return self.get_luma(); }));
+  REG_LAMBDA(Frame, "void  set_luma(uint8) property", ([](PostFrame& self, uint8 value)    { self.set_luma(value); }));
 
+  REG_LAMBDA(Frame, "uint8 get_alpha() property",      ([](PostFrame& self) -> uint8 { return self.get_alpha(); }));
+  REG_LAMBDA(Frame, "void  set_alpha(uint8) property", ([](PostFrame& self, uint8 value)    { self.set_alpha(value); }));
+
+  // TODO: replace with Font handling!
   // set font_height to use for text (8 or 16):
   r = e->RegisterObjectProperty("Frame", "int font_height", asOFFSET(PostFrame, font_height)); assert(r >= 0);
-
   // set text_shadow to draw shadow behind text:
   r = e->RegisterObjectProperty("Frame", "bool text_shadow", asOFFSET(PostFrame, text_shadow)); assert(r >= 0);
 
@@ -318,20 +318,24 @@ auto RegisterPPUFrame(asIScriptEngine *e) -> void {
   r = e->RegisterObjectProperty("Frame", "draw_op draw_op", asOFFSET(PostFrame, draw_op)); assert(r >= 0);
 
   // pixel access functions:
-  r = e->RegisterObjectMethod("Frame", "uint16 read_pixel(int x, int y)", asMETHOD(PostFrame, read_pixel), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void pixel(int x, int y)", asMETHOD(PostFrame, pixel), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(Frame, "uint16 read_pixel(int x, int y)", ([](PostFrame& self, int x, int y) -> uint16 { return self.read_pixel(x, y); }));
+  REG_LAMBDA(Frame, "void pixel(int x, int y)",        ([](PostFrame& self, int x, int y)                       { self.pixel(x, y); }));
 
   // primitive drawing functions:
-  r = e->RegisterObjectMethod("Frame", "void hline(int lx, int ty, int w)", asMETHOD(PostFrame, hline), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void vline(int lx, int ty, int h)", asMETHOD(PostFrame, vline), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void rect(int x, int y, int w, int h)", asMETHOD(PostFrame, rect), asCALL_THISCALL); assert(r >= 0);
-  r = e->RegisterObjectMethod("Frame", "void fill(int x, int y, int w, int h)", asMETHOD(PostFrame, fill), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(Frame, "void hline(int lx, int ty, int w)",     ([](PostFrame& self, int lx, int ty, int w) { self.hline(lx, ty, w); }));
+  REG_LAMBDA(Frame, "void vline(int lx, int ty, int h)",     ([](PostFrame& self, int lx, int ty, int h) { self.vline(lx, ty, h); }));
+  REG_LAMBDA(Frame, "void rect(int x, int y, int w, int h)", ([](PostFrame& self, int x, int y, int w, int h) { self.rect(x, y, w, h); }));
+  REG_LAMBDA(Frame, "void fill(int x, int y, int w, int h)", ([](PostFrame& self, int x, int y, int w, int h) { self.fill(x, y, w, h); }));
 
   // text drawing function:
-  r = e->RegisterObjectMethod("Frame", "int text(int x, int y, const string &in text)", asMETHOD(PostFrame, text), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(Frame, "int text(int x, int y, const string &in text)", ([](PostFrame& self, int x, int y, string &text) { self.text(x, y, text); }));
 
   // draw 4bpp paletted 8x1 row:
-  r = e->RegisterObjectMethod("Frame", "int draw_4bpp_8x8(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)", asMETHOD(PostFrame, draw_4bpp_8x8), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(Frame, "int draw_4bpp_8x8(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)",
+    ([](PostFrame& self, int x, int y, const CScriptArray *tiledata, const CScriptArray *palette) {
+      self.draw_4bpp_8x8(x, y, tiledata, palette);
+    })
+  );
 
   // global property to access current frame:
   r = e->RegisterGlobalProperty("Frame frame", &postFrame); assert(r >= 0);
