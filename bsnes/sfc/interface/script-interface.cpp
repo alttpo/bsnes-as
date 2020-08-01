@@ -487,7 +487,7 @@ auto Interface::registerScriptDefs() -> void {
   auto defaultNamespace = script.engine->GetDefaultNamespace();
 
   // register array type:
-  RegisterScriptArray(script.engine, true /* bool defaultArrayType */);
+  RegisterScriptArray(script.engine, true /* bool defaultArrayType */, false /* useNative */);
 
   // register string type:
   registerScriptString();

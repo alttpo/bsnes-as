@@ -135,7 +135,7 @@ protected:
 	bool  Equals(const void *a, const void *b, asIScriptContext *ctx, SArrayCache *cache) const;
 };
 
-void RegisterScriptArray(asIScriptEngine *engine, bool defaultArray);
+void RegisterScriptArray(asIScriptEngine *engine, bool defaultArray, bool useNative = true);
 
 END_AS_NAMESPACE
 

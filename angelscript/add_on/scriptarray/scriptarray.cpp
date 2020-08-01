@@ -243,12 +243,19 @@ static bool ScriptArrayTemplateCallback(asITypeInfo *ti, bool &dontGarbageCollec
 }
 
 // Registers the template array type
-void RegisterScriptArray(asIScriptEngine *engine, bool defaultArray)
+void RegisterScriptArray(asIScriptEngine *engine, bool defaultArray, bool useNative)
 {
-	if( strstr(asGetLibraryOptions(), "AS_MAX_PORTABILITY") == 0 )
-		RegisterScriptArray_Native(engine);
-	else
-		RegisterScriptArray_Generic(engine);
+  if (!useNative)
+  {
+    RegisterScriptArray_Generic(engine);
+  }
+  else
+  {
+    if ((strstr(asGetLibraryOptions(), "AS_MAX_PORTABILITY") == 0))
+      RegisterScriptArray_Native(engine);
+    else
+      RegisterScriptArray_Generic(engine);
+  }
 
 	if( defaultArray )
 	{
