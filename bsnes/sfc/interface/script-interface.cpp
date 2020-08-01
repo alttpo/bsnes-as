@@ -212,7 +212,8 @@ namespace ScriptInterface {
 
       enabled = true;
       thrProfiler = nall::thread::create({&Profiler::samplingThread, this});
-      ctx->SetLineCallback(asMETHOD(ScriptInterface::Profiler, lineCallback), this, asCALL_THISCALL);
+      //ctx->SetLineCallback(asMETHOD(ScriptInterface::Profiler, lineCallback), this, asCALL_THISCALL);
+      ctx->SetLineCallback(asFUNCTION(+([](asIScriptContext *ctx, ScriptInterface::Profiler& self) { self.lineCallback(ctx); })), this, asCALL_CDECL);
 
       mtx.unlock();
     }
@@ -547,7 +548,8 @@ auto Interface::registerScriptDefs() -> void {
   // create context:
   script.context = script.engine->CreateContext();
 
-  script.context->SetExceptionCallback(asMETHOD(ScriptInterface::ExceptionHandler, exceptionCallback), &ScriptInterface::exceptionHandler, asCALL_THISCALL);
+  //script.context->SetExceptionCallback(asMETHOD(ScriptInterface::ExceptionHandler, exceptionCallback), &ScriptInterface::exceptionHandler, asCALL_THISCALL);
+  script.context->SetExceptionCallback(asFUNCTION(+([](asIScriptContext* ctx, ScriptInterface::ExceptionHandler& self){ self.exceptionCallback(ctx); })), &ScriptInterface::exceptionHandler, asCALL_CDECL);
 }
 
 auto Interface::loadScript(string location) -> void {

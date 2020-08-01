@@ -1,12 +1,4 @@
 
-ifeq ($(platform),macos)
-  angel.flags := $(flags.objcpp) -DAS_X64_GCC
-else
-  angel.flags := $(flags.cpp) -DAS_X64_GCC
-endif
-
-angel.flags += -fPIC -fno-strict-aliasing -I$(angel.path)/source
-
 angel.options :=
 
 angel.objects := as_atomic \
@@ -84,6 +76,8 @@ angel.objects += $(angel.addons:%=obj/as_addon_%.o)
 obj/as_addon_scriptarray.o: $(angel.path)/add_on/scriptarray/scriptarray.cpp
 
 flags += -I$(angel.path)/include $(angel.addons:%=-I$(angel.path)/add_on/%)
+# NOTE(jsd): enabling this causes internal build breaks in angelscript source (as_builder.cpp) and add-ons:
+#flags += -DAS_NO_CLASS_METHODS
 
 angel.verbose:
 	$(info angelscript Compiler Flags:)
