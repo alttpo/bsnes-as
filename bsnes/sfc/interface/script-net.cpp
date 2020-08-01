@@ -1247,22 +1247,35 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   r = e->RegisterGlobalFunction("Address@ resolve_tcp(const string &in host, const string &in port)", asFUNCTION(Net::resolve_tcp), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("Address@ resolve_udp(const string &in host, const string &in port)", asFUNCTION(Net::resolve_udp), asCALL_CDECL); assert(r >= 0);
   // TODO: try opImplCast
-  r = e->RegisterObjectMethod("Address", "bool get_is_valid() property", asMETHOD(Net::Address, operator bool), asCALL_THISCALL); assert( r >= 0 );
+  //r = e->RegisterObjectMethod("Address", "bool get_is_valid() property", asMETHOD(Net::Address, operator bool), asCALL_THISCALL); assert( r >= 0 );
+  REG_LAMBDA(Address, "bool get_is_valid() property", ([](Net::Address& self) { return self.operator bool(); }));
 
   r = e->RegisterObjectType("Socket", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectBehaviour("Socket", asBEHAVE_FACTORY, "Socket@ f(Address @addr)", asFUNCTION(Net::create_socket), asCALL_CDECL); assert(r >= 0);
-  r = e->RegisterObjectBehaviour("Socket", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::Socket, addRef), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectBehaviour("Socket", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::Socket, release), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "bool get_is_valid() property", asMETHOD(Net::Socket, operator bool), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "int close()", asMETHOD(Net::Socket, close), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "int connect(Address@ addr)", asMETHOD(Net::Socket, connect), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "int bind(Address@ addr)", asMETHOD(Net::Socket, bind), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "int listen(int backlog)", asMETHOD(Net::Socket, listen), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "Socket@ accept()", asMETHOD(Net::Socket, accept), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "int recv(int offs, int size, array<uint8> &inout buffer)", asMETHOD(Net::Socket, recv), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "int send(int offs, int size, array<uint8> &inout buffer)", asMETHOD(Net::Socket, send), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "int recvfrom(int offs, int size, array<uint8> &inout buffer)", asMETHOD(Net::Socket, recvfrom), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("Socket", "int sendto(int offs, int size, array<uint8> &inout buffer, const Address@ addr)", asMETHOD(Net::Socket, sendto), asCALL_THISCALL); assert( r >= 0 );
+  REG_LAMBDA_BEHAVIOUR(Socket, asBEHAVE_ADDREF, "void f()", ([](Net::Socket& self){ self.addRef(); }));
+  //r = e->RegisterObjectBehaviour("Socket", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::Socket, addRef), asCALL_THISCALL); assert( r >= 0 );
+  REG_LAMBDA_BEHAVIOUR(Socket, asBEHAVE_RELEASE, "void f()", ([](Net::Socket& self){ self.release(); }));
+  //r = e->RegisterObjectBehaviour("Socket", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::Socket, release), asCALL_THISCALL); assert( r >= 0 );
+
+  REG_LAMBDA(Socket, "bool get_is_valid() property", ([](Net::Socket& self) { return self.operator bool(); }));
+  REG_LAMBDA(Socket, "int close()",                  ([](Net::Socket& self) { return self.close(); }));
+  REG_LAMBDA(Socket, "int connect(Address@ addr)",   ([](Net::Socket& self, const Net::Address* addr) { return self.connect(addr); }));
+  REG_LAMBDA(Socket, "int bind(Address@ addr)",      ([](Net::Socket& self, const Net::Address* addr) { return self.bind(addr); }));
+  REG_LAMBDA(Socket, "int listen(int backlog)",      ([](Net::Socket& self, int backlog) { return self.listen(backlog); }));
+  REG_LAMBDA(Socket, "Socket@ accept()",             ([](Net::Socket& self) -> Net::Socket* { return self.accept(); }));
+
+  REG_LAMBDA(Socket, "int recv(int offs, int size, array<uint8> &inout buffer)",
+    ([](Net::Socket& self, int offs, int size, CScriptArray* buffer) { return self.recv(offs, size, buffer); })
+  );
+  REG_LAMBDA(Socket, "int send(int offs, int size, array<uint8> &inout buffer)",
+    ([](Net::Socket& self, int offs, int size, CScriptArray* buffer) { return self.send(offs, size, buffer); })
+  );
+  REG_LAMBDA(Socket, "int recvfrom(int offs, int size, array<uint8> &inout buffer)",
+    ([](Net::Socket& self, int offs, int size, CScriptArray* buffer) { return self.recvfrom(offs, size, buffer); })
+  );
+  REG_LAMBDA(Socket, "int sendto(int offs, int size, array<uint8> &inout buffer, const Address@ addr)",
+    ([](Net::Socket& self, int offs, int size, CScriptArray* buffer, const Net::Address* addr) { return self.sendto(offs, size, buffer, addr); })
+  );
 
   r = e->RegisterGlobalFunction("bool is_writable(Socket@ sock)", asFUNCTION(+([](Net::Socket &sock) {
     timeval zero {0, 0};
@@ -1294,10 +1307,13 @@ auto RegisterNet(asIScriptEngine *e) -> void {
     return (bool) FD_ISSET(sock.fd, &fds);
   })), asCALL_CDECL); assert( r >= 0 );
 
+  // TODO(jsd): disable websockets for now since nothing uses it. Too lazy to remove THISCALLs here.
+#ifdef SCRIPT_WEBSOCKETS
   r = e->RegisterObjectType("WebSocketMessage", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_FACTORY, "WebSocketMessage@ f(uint8 opcode)", asFUNCTION(Net::create_web_socket_message), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::WebSocketMessage, addRef), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::WebSocketMessage, release), asCALL_THISCALL); assert( r >= 0 );
+
   r = e->RegisterObjectMethod("WebSocketMessage", "uint8 get_opcode() property", asMETHOD(Net::WebSocketMessage, get_opcode), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocketMessage", "void set_opcode(uint8 value) property", asMETHOD(Net::WebSocketMessage, set_opcode), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocketMessage", "string &as_string()", asMETHOD(Net::WebSocketMessage, as_string), asCALL_THISCALL); assert( r >= 0 );
@@ -1325,4 +1341,5 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::WebSocketServer, release), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocketServer", "array<WebSocket@> &get_clients() property", asMETHOD(Net::WebSocketServer, get_clients), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocketServer", "int process()", asMETHOD(Net::WebSocketServer, process), asCALL_THISCALL); assert( r >= 0 );
+#endif
 }
