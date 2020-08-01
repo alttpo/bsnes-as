@@ -67,6 +67,28 @@ bool sock_has_error(int err) {
 #define S2(x) S1(x)
 #define LOCATION __FILE__ ":" S2(__LINE__)
 
+#define REG_TYPE_FLAGS(name, flags) r = e->RegisterObjectType(#name, 0, flags); assert( r >= 0 )
+#define REG_REF_TYPE(name) REG_TYPE_FLAGS(name, asOBJ_REF)
+#define REG_REF_NOCOUNT(name) REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_NOCOUNT)
+#define REG_REF_NOHANDLE(name) REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_NOHANDLE)
+
+#define REG_VALUE_TYPE(name, className, flags) \
+  r = e->RegisterObjectType(#name, sizeof(className), asOBJ_VALUE | flags | asGetTypeTraits<className>()); assert( r >= 0 )
+
+#define REG_GLOBAL(defn, ptr) r = e->RegisterGlobalProperty(defn, ptr); assert( r >= 0 )
+
+#define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+#define REG_LAMBDA_GENERIC(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_GENERIC); assert( r >= 0 )
+#define REG_LAMBDA_BEHAVIOUR(name, bhvr, defn, lambda) r = e->RegisterObjectBehaviour(#name, bhvr, defn, asFUNCTION(+lambda), (bhvr == asBEHAVE_RELEASE ? asCALL_CDECL_OBJLAST : asCALL_CDECL)); assert( r >= 0 )
+
+#define REG_LAMBDA_GLOBAL(defn, lambda) r = e->RegisterGlobalFunction(defn, asFUNCTION(+lambda), asCALL_CDECL); assert( r >= 0 )
+
+#define REG_REF_SCOPED(name, className) \
+REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_SCOPED); \
+REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_FACTORY, #name " @f()", ([](){ return new className(); })); \
+REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_RELEASE, "void f()", ([](className *p){ delete p; })); \
+  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asMETHODPR(className, operator =, (const className&), className&), asCALL_THISCALL); assert(r >= 0)
+
 #include "script-string.cpp"
 
 // R5G5B5 is what ends up on the final PPU frame buffer (R and B are swapped from SNES)
@@ -429,28 +451,6 @@ namespace ScriptInterface {
       ctx->Release();
     }
   };
-
-#define REG_TYPE_FLAGS(name, flags) r = e->RegisterObjectType(#name, 0, flags); assert( r >= 0 )
-#define REG_REF_TYPE(name) REG_TYPE_FLAGS(name, asOBJ_REF)
-#define REG_REF_NOCOUNT(name) REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_NOCOUNT)
-#define REG_REF_NOHANDLE(name) REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_NOHANDLE)
-
-#define REG_VALUE_TYPE(name, className, flags) \
-  r = e->RegisterObjectType(#name, sizeof(className), asOBJ_VALUE | flags | asGetTypeTraits<className>()); assert( r >= 0 )
-
-#define REG_GLOBAL(defn, ptr) r = e->RegisterGlobalProperty(defn, ptr); assert( r >= 0 )
-
-#define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
-#define REG_LAMBDA_GENERIC(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_GENERIC); assert( r >= 0 )
-#define REG_LAMBDA_BEHAVIOUR(name, bhvr, defn, lambda) r = e->RegisterObjectBehaviour(#name, bhvr, defn, asFUNCTION(+lambda), (bhvr == asBEHAVE_RELEASE ? asCALL_CDECL_OBJLAST : asCALL_CDECL)); assert( r >= 0 )
-
-#define REG_LAMBDA_GLOBAL(defn, lambda) r = e->RegisterGlobalFunction(defn, asFUNCTION(+lambda), asCALL_CDECL); assert( r >= 0 )
-
-#define REG_REF_SCOPED(name, className) \
-  REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_SCOPED); \
-  REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_FACTORY, #name " @f()", ([](){ return new className(); })); \
-  REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_RELEASE, "void f()", ([](className *p){ delete p; })); \
-  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asMETHODPR(className, operator =, (const className&), className&), asCALL_THISCALL); assert(r >= 0)
 
 #define EXPOSE_SHARED_PTR(name, className, mClassName) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(sharedPtrAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
