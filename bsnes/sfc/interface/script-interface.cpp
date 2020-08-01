@@ -84,10 +84,10 @@ bool sock_has_error(int err) {
 #define REG_LAMBDA_GLOBAL(defn, lambda) r = e->RegisterGlobalFunction(defn, asFUNCTION(+lambda), asCALL_CDECL); assert( r >= 0 )
 
 #define REG_REF_SCOPED(name, className) \
-REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_SCOPED); \
-REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_FACTORY, #name " @f()", ([](){ return new className(); })); \
-REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_RELEASE, "void f()", ([](className *p){ delete p; })); \
-  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asMETHODPR(className, operator =, (const className&), className&), asCALL_THISCALL); assert(r >= 0)
+  REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_SCOPED); \
+  REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_FACTORY, #name " @f()", ([](){ return new className(); })); \
+  REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_RELEASE, "void f()", ([](className *p){ delete p; }));      \
+  REG_LAMBDA(name, #name " &opAssign(const " #name " &in)", ([](className& self, const className& other) -> className& { return self.operator=(other); }))
 
 #include "script-string.cpp"
 
