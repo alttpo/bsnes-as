@@ -120,7 +120,7 @@ auto Interface::registerScriptString() -> void {
   r = e->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f(const string &in)",       asFUNCTION(stringCopyConstruct), asCALL_CDECL_OBJLAST); assert(r >= 0);
   r = e->RegisterObjectBehaviour("string", asBEHAVE_DESTRUCT,   "void f()",                       asFUNCTION(stringDestruct),  asCALL_CDECL_OBJLAST); assert(r >= 0);
 
-  REG_LAMBDA(string, "string &opAssign(const string &in)", ([](string& self, const string& other){ return self.operator=(other); }));
+  REG_LAMBDA(string, "string &opAssign(const string &in)", ([](string& self, const string& other) -> string& { return self.operator=(other); }));
   //r = e->RegisterObjectMethod("string", "string &opAssign(const string &in)", asMETHODPR(string, operator =, (const string&), string&), asCALL_THISCALL); assert(r >= 0);
   r = e->RegisterObjectMethod("string", "string &opAddAssign(const string &in)", asFUNCTION(stringAddAssign), asCALL_CDECL_OBJLAST); assert( r >= 0 );
   r = e->RegisterObjectMethod("string", "bool opEquals(const string &in) const", asFUNCTION(stringEquals), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
