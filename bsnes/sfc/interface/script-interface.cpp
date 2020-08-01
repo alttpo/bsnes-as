@@ -79,7 +79,7 @@ bool sock_has_error(int err) {
 
 #define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 #define REG_LAMBDA_GENERIC(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_GENERIC); assert( r >= 0 )
-#define REG_LAMBDA_BEHAVIOUR(name, bhvr, defn, lambda) r = e->RegisterObjectBehaviour(#name, bhvr, defn, asFUNCTION(+lambda), (bhvr == asBEHAVE_RELEASE ? asCALL_CDECL_OBJLAST : asCALL_CDECL)); assert( r >= 0 )
+#define REG_LAMBDA_BEHAVIOUR(name, bhvr, defn, lambda) r = e->RegisterObjectBehaviour(#name, bhvr, defn, asFUNCTION(+lambda), ((bhvr == asBEHAVE_RELEASE || bhvr == asBEHAVE_ADDREF) ? asCALL_CDECL_OBJLAST : asCALL_CDECL)); assert( r >= 0 )
 
 #define REG_LAMBDA_GLOBAL(defn, lambda) r = e->RegisterGlobalFunction(defn, asFUNCTION(+lambda), asCALL_CDECL); assert( r >= 0 )
 
