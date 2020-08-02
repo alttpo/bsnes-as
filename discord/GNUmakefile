@@ -9,15 +9,11 @@ ifeq ($(platform),windows)
   # arch is 'x86_64' or 'x86'
   discord.options := -L../lib/$(arch) -ldiscord_game_sdk.dll
 else ifeq ($(platform),macos)
-  discord.options := ../lib/x86_64/discord_game_sdk.bundle
+  discord.options := discord_game_sdk.bundle
 else ifeq ($(platform),linux)
-  discord.options := ../lib/x86_64/discord_game_sdk.so
-else ifeq ($(platform),bsd)
-  # TODO: unsupported
-  discord.options := -L../lib/x86_64
+  discord.options := discord_game_sdk.so
 else
   # TODO: unsupported
-  discord.options := -L../lib/x86_64
 endif
 
 discord.flags += -fPIC -fno-strict-aliasing -I$(discord.path)

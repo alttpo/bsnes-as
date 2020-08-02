@@ -27,9 +27,17 @@ obj/ui-resource.o: $(ui)/resource/resource.cpp
 
 all: $(objects) $(hiro.objects) $(ruby.objects) $(angel.objects) $(discord.objects)
 	$(info Linking out/$(name) ...)
+ifeq ($(platform),windows)
+	cp ../lib/$(arch)/discord_game_sdk.dll* .
+else ifeq ($(platform),macos)
+	cp ../lib/$(arch)/discord_game_sdk.bundle .
+	cp ../lib/$(arch)/discord_game_sdk.dylib .
+else ifeq ($(platform),linux)
+	cp ../lib/$(arch)/discord_game_sdk.so .
+endif
 	+@$(compiler) -o out/$(name) $(hiro.objects) $(ruby.objects) $(angel.objects) $(discord.objects) $(objects) $(hiro.options) $(ruby.options) $(angel.options) $(discord.options) $(options)
 ifeq ($(platform),windows)
-	cp ../lib/$(arch)/discord_game_sdk.dll out/
+	cp discord_game_sdk.dll out/
 else ifeq ($(platform),macos)
 	rm -rf out/$(name).app
 	mkdir -p out/$(name).app/Contents/MacOS/
@@ -39,13 +47,13 @@ else ifeq ($(platform),macos)
 	mkdir -p out/$(name).app/Contents/Resources/
 	mv out/$(name) out/$(name).app/Contents/MacOS/$(name)
 	install_name_tool -add_rpath @executable_path/ out/$(name).app/Contents/MacOS/bsnes
-	cp ../lib/x86_64/discord_game_sdk.dylib out/$(name).app/Contents/MacOS/
+	cp discord_game_sdk.dylib out/$(name).app/Contents/MacOS/
 	cp Database/* out/$(name).app/Contents/MacOS/Database/
 	cp -r ../shaders/* out/$(name).app/Contents/MacOS/Shaders/
 	cp $(ui)/resource/$(name).plist out/$(name).app/Contents/Info.plist
 	sips -s format icns $(ui)/resource/$(name).png --out out/$(name).app/Contents/Resources/$(name).icns
 else ifeq ($(platform),linux)
-	cp ../lib/$(arch)/discord_game_sdk.so out/
+	cp discord_game_sdk.so out/
 endif
 
 verbose: hiro.verbose ruby.verbose angel.verbose nall.verbose all;
