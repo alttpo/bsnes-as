@@ -7,11 +7,11 @@ endif
 
 ifeq ($(platform),windows)
   # arch is 'x86_64' or 'x86'
-  discord.options := -L../lib/$(arch) -ldiscord_game_sdk.dll
+  discord.options := -ldiscord_game_sdk.dll
 else ifeq ($(platform),macos)
   discord.options := discord_game_sdk.bundle
 else ifeq ($(platform),linux)
-  discord.options := discord_game_sdk.so
+  discord.options := -Wl,-rpath='${ORIGIN}' discord_game_sdk.so
 else
   # TODO: unsupported
 endif
