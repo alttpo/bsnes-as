@@ -47,10 +47,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
   addExtra:
     // inject extra items:
     for (uint k : range(extraItemCount)) {
-      // skip tile if not the right source:
       const auto& extra = ppu.extraTiles[k];
-      if (extra.source < Source::OBJ1) continue;
-      if (extra.source > Source::OBJ2) continue;
 
       // inject extra tile at this OAM index:
       if (extra.index == item.index) {
@@ -170,7 +167,13 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
         // make sure color is opaque:
         if (color & 0x8000) {
           source[extra.x + tx] = extra.source;
-          priority[extra.x + tx] = self.priority[extra.priority];
+          uint8_t p;
+          if ((extra.priority & 0x100) == 0x100) {
+            p = extra.priority & 0xFF;
+          } else {
+            p = self.priority[extra.priority];
+          }
+          priority[extra.x + tx] = p;
           colors[extra.x + tx] = color & 0x7fff;
         }
       }
