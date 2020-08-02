@@ -9,27 +9,21 @@ ifeq ($(platform),windows)
   # arch is 'x86_64' or 'x86'
   discord.options := -L../lib/$(arch) -ldiscord_game_sdk.dll
 else ifeq ($(platform),macos)
-  discord.options := ../lib/x86_64/discord_game_sdk.bundle
+  discord.options := discord_game_sdk.bundle
 else ifeq ($(platform),linux)
   ifeq ($(arch),x86_64)
-    discord.options := ../lib/x86_64/discord_game_sdk.so
+    discord.options := -Wl,-rpath,'${ORIGIN}':./ discord_game_sdk.so
   else
     discord = false
   endif
-else ifeq ($(platform),bsd)
-  # TODO: unsupported
-  discord.options := -L../lib/x86_64
 else
   # TODO: unsupported
-  discord.options := -L../lib/x86_64
 endif
 
 ifeq ($(discord),false)
   discord.flags += -DDISCORD_DISABLE=1
   discord.options :=
 endif
-
-discord.flags += -I$(discord.path)
 
 discord.objects := achievement_manager \
                    activity_manager \
