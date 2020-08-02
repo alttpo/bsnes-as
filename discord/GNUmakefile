@@ -11,7 +11,7 @@ ifeq ($(platform),windows)
 else ifeq ($(platform),macos)
   discord.options := discord_game_sdk.bundle
 else ifeq ($(platform),linux)
-  discord.options := -Wl,-rpath='${ORIGIN}' discord_game_sdk.so
+  discord.options := -Wl,-rpath,'${ORIGIN}':./ discord_game_sdk.so
 else
   # TODO: unsupported
 endif
