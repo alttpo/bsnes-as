@@ -308,11 +308,14 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #define EXPOSE_SIZABLE(name, className) \
   REG_LAMBDA(name, "Geometry@ get_geometry() property",              ([](className* self) { return new hiro::Geometry(self->geometry()); })); \
   REG_LAMBDA(name, "void set_geometry(const Geometry &in) property", ([](className* self, hiro::Geometry& geometry) { self->setGeometry(geometry); })); \
-  REG_LAMBDA(name, "bool get_collapsible() property",                           ([](className* self) { return self->collapsible(); })); \
-  REG_LAMBDA(name, "void set_collapsible(bool collapsible = true) property",    ([](className* self, bool collapsible) { self->setCollapsible(collapsible); })); \
-  REG_LAMBDA(name, "bool get_layoutExcluded() property",                        ([](className* self) { return self->layoutExcluded(); })); \
-  REG_LAMBDA(name, "void set_layoutExcluded(bool collapsible = true) property", ([](className* self, bool layoutExcluded) { self->setLayoutExcluded(layoutExcluded); })); \
-  REG_LAMBDA(name, "Size@ get_minimumSize() property",            ([](className* self) { return new hiro::Size(self->minimumSize()); })); \
+  REG_LAMBDA(name, "bool get_collapsible() property",                ([](className* self) { return self->collapsible(); })); \
+  REG_LAMBDA(name, "void set_collapsible(bool) property",            ([](className* self, bool collapsible) { self->setCollapsible(collapsible); })); \
+  REG_LAMBDA(name, "bool get_layoutExcluded() property",             ([](className* self) { return self->layoutExcluded(); })); \
+  REG_LAMBDA(name, "void set_layoutExcluded(bool) property",         ([](className* self, bool layoutExcluded) { self->setLayoutExcluded(layoutExcluded); })); \
+  REG_LAMBDA(name, "Size@ get_minimumSize() property",               ([](className* self) { return new hiro::Size(self->minimumSize()); })); \
+  REG_LAMBDA(name, "void setPosition(float, float)",                 ([](className& self, float x, float y) { \
+    self->setGeometry(hiro::Geometry(hiro::Position(x, y), self->geometry().size())); \
+  })); \
   REG_LAMBDA(name, "void doSize()",                               ([](className* self) { self->doSize(); })); \
   REG_LAMBDA(name, "void onSize(Callback @callback)",             ([](className* self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
 
@@ -569,6 +572,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   }));
   REG_LAMBDA(Canvas, "Alignment@ get_alignment() property",              ([](hiro::Canvas& self){ return new hiro::Alignment(self.alignment()); }));
   REG_LAMBDA(Canvas, "Color@ get_color() property",                      ([](hiro::Canvas& self){ return new hiro::Color(self.color()); }));
+  REG_LAMBDA(Canvas, "void setAlignment(float, float)",                  ([](hiro::Canvas& self, float h, float v) { self.setAlignment(hiro::Alignment(h, v)); }));
   REG_LAMBDA(Canvas, "void set_alignment(const Alignment &in) property", ([](hiro::Canvas& self, hiro::Alignment* value){ self.setAlignment(*value); }));
   REG_LAMBDA(Canvas, "void set_color(const Color &in) property",         ([](hiro::Canvas& self, hiro::Color* value){ self.setColor(*value); }));
   // allocates a new icon:
@@ -582,7 +586,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(SNESCanvas, "void set_size(Size &in size) property",               ([](GUI::SNESCanvas& self, hiro::Size &size) { self.setSize(size); }));
   REG_LAMBDA(SNESCanvas, "uint8 get_luma() property",                           ([](GUI::SNESCanvas& self) { return self.luma(); }));
   REG_LAMBDA(SNESCanvas, "void set_luma(uint8 luma) property",                  ([](GUI::SNESCanvas& self, uint8 value) { self.set_luma(value); }));
-  REG_LAMBDA(SNESCanvas, "void setPosition(float, float)",                      ([](GUI::SNESCanvas& self, float x, float y) { self.setPosition(x, y); }));
   REG_LAMBDA(SNESCanvas, "Alignment@ get_alignment() property",                 ([](GUI::SNESCanvas& self) { return self.alignment(); }));
   REG_LAMBDA(SNESCanvas, "void set_alignment(const Alignment &in) property",    ([](GUI::SNESCanvas& self, hiro::Alignment &alignment) { self.setAlignment(alignment); }));
   REG_LAMBDA(SNESCanvas, "void setAlignment(float horizontal, float vertical)", ([](GUI::SNESCanvas& self, float horizontal, float vertical) { self.setAlignment(horizontal, vertical); }));
