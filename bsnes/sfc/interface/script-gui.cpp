@@ -264,6 +264,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_TYPE(LineEdit);
   REG_REF_TYPE(Label);
   REG_REF_TYPE(Button);
+  REG_REF_TYPE(Canvas);
   REG_REF_TYPE(SNESCanvas);
   REG_REF_TYPE(CheckLabel);
   REG_REF_TYPE(ComboButtonItem);
@@ -548,6 +549,21 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Button, "string get_text() property",                    ([](hiro::Button* self){ return self->text(); }));
   REG_LAMBDA(Button, "void set_text(const string &in text) property", ([](hiro::Button* self, const string &text){ self->setText(text); }));
   REG_LAMBDA(Button, "void onActivate(Callback @cb)",                 ([](hiro::Button* self, asIScriptFunction* cb){ self->onActivate(Callback(cb)); }));
+
+  // Canvas
+  EXPOSE_HIRO(Canvas);
+  EXPOSE_HIRO_OBJECT(Canvas);
+  EXPOSE_HIRO_SIZABLE(Canvas);
+  EXPOSE_HIRO_WIDGET(Canvas);
+  REG_LAMBDA(Canvas, "void loadImageFromFile(const string &in)", ([](hiro::Canvas& self, const string &filename) {
+    self.moveIcon(nall::image(filename));
+  }));
+  REG_LAMBDA(Canvas, "Alignment@ get_alignment() property",              ([](hiro::Canvas& self){ return new hiro::Alignment(self.alignment()); }));
+  REG_LAMBDA(Canvas, "Color@ get_color() property",                      ([](hiro::Canvas& self){ return new hiro::Color(self.color()); }));
+  REG_LAMBDA(Canvas, "void set_alignment(const Alignment &in) property", ([](hiro::Canvas& self, hiro::Alignment* value){ self.setAlignment(*value); }));
+  REG_LAMBDA(Canvas, "void set_color(const Color &in) property",         ([](hiro::Canvas& self, hiro::Color* value){ self.setColor(*value); }));
+  // allocates a new icon:
+  //REG_LAMBDA(Canvas, "void set_size(Size &in) property",         ([](hiro::Canvas& self, hiro::Size* size) { self.setSize(*size); }));
 
   // SNESCanvas
   r = e->RegisterObjectBehaviour("SNESCanvas", asBEHAVE_FACTORY, "SNESCanvas@ f()", asFUNCTION( +([]{ return new GUI::SNESCanvas(); }) ), asCALL_CDECL); assert(r >= 0);

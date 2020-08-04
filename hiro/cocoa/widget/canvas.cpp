@@ -123,7 +123,6 @@ auto pCanvas::minimumSize() const -> Size {
 }
 
 auto pCanvas::setAlignment(Alignment alignment) -> void {
-  //update();
   @autoreleasepool {
     NSImageAlignment imageAlignment = NSImageAlignCenter;
     if (alignment.vertical() < 1.0/3.0) {
@@ -144,6 +143,7 @@ auto pCanvas::setAlignment(Alignment alignment) -> void {
 }
 
 auto pCanvas::setColor(Color color) -> void {
+  _rasterize();
   update();
 }
 
@@ -167,15 +167,16 @@ auto pCanvas::setGeometry(Geometry geometry) -> void {
 }
 
 auto pCanvas::setGradient(Gradient gradient) -> void {
+  _rasterize();
   update();
 }
 
 auto pCanvas::setIcon(const image& icon) -> void {
+  _rasterize();
   update();
 }
 
 auto pCanvas::update() -> void {
-  _rasterize();
   @autoreleasepool {
     [cocoaView setNeedsDisplay:YES];
   }

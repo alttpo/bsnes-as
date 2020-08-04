@@ -239,6 +239,7 @@ struct Canvas : sCanvas {
   auto setColor(Color color) { return self().setColor(color), *this; }
   auto setGradient(Gradient gradient = {}) { return self().setGradient(gradient), *this; }
   auto setIcon(const image& icon = {}) { return self().setIcon(icon), *this; }
+  auto moveIcon(image&& icon) { return self().moveIcon(std::move(icon)), *this; }
   auto setSize(Size size = {}) { return self().setSize(size), *this; }
   auto update() { return self().update(), *this; }
 };

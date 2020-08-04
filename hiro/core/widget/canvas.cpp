@@ -60,6 +60,14 @@ auto mCanvas::setIcon(const image& icon) -> type& {
   return *this;
 }
 
+auto mCanvas::moveIcon(image&& icon) -> type& {
+  state.color = {};
+  state.gradient = {};
+  state.icon = std::move(icon);
+  signal(setIcon, icon);
+  return *this;
+}
+
 auto mCanvas::setSize(Size size) -> type& {
   image icon;
   icon.allocate(size.width(), size.height());

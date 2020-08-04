@@ -17,6 +17,7 @@ struct mCanvas : mWidget {
 
   // [jsd]
   auto iconRef() -> image&;
+  auto moveIcon(image&& icon) -> type&;
 
 //private:
   struct State {
