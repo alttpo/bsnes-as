@@ -555,8 +555,17 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(Canvas);
   EXPOSE_HIRO_SIZABLE(Canvas);
   EXPOSE_HIRO_WIDGET(Canvas);
-  REG_LAMBDA(Canvas, "void loadImageFromFile(const string &in)", ([](hiro::Canvas& self, const string &filename) {
-    self.moveIcon(nall::image(filename));
+  REG_LAMBDA(Canvas, "bool loadPNG(const string &in)", ([](hiro::Canvas& self, const string &filename) -> bool {
+    string path;
+    path.append(::SuperFamicom::script.directory);
+    path.append(filename);
+
+    auto img = nall::image();
+    if (!img.loadPNG(path)) {
+      return false;
+    }
+    self.moveIcon(std::move(img));
+    return true;
   }));
   REG_LAMBDA(Canvas, "Alignment@ get_alignment() property",              ([](hiro::Canvas& self){ return new hiro::Alignment(self.alignment()); }));
   REG_LAMBDA(Canvas, "Color@ get_color() property",                      ([](hiro::Canvas& self){ return new hiro::Color(self.color()); }));

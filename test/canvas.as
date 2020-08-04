@@ -27,7 +27,9 @@ class SettingsWindow {
       vl.append(cv, GUI::Size(-1, -1), spacing);
       cv.alignment = GUI::Alignment(0, 0);
       auto start = chrono::monotonic::millisecond;
-      cv.loadImageFromFile("test.png");
+      if (!cv.loadPNG("test.png")) {
+        message("failed to load png");
+      }
       auto end = chrono::monotonic::millisecond;
       message(fmtInt(end - start) + " ms");
     }

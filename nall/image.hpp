@@ -63,11 +63,17 @@ struct image {
   inline auto write(uint8_t* data, uint64_t value) const -> void;
 
   inline auto free() -> void;
-  inline auto load(const string& filename) -> bool;
   inline auto copy(const void* data, uint pitch, uint width, uint height) -> void;
   inline auto allocate(uint width, uint height) -> void;
   // [jsd]
   inline auto use(uint8_t *data, uint width, uint height) -> void;
+
+  //load.hpp
+  inline auto load(const string& filename) -> bool;
+  inline auto loadBMP(const string& filename) -> bool;
+  inline auto loadBMP(const uint8_t* data, uint size) -> bool;
+  inline auto loadPNG(const string& filename) -> bool;
+  inline auto loadPNG(const uint8_t* data, uint size) -> bool;
 
   //fill.hpp
   inline auto fill(uint64_t color = 0) -> void;
@@ -129,12 +135,6 @@ private:
   inline auto scaleLinearHeight(uint height) -> void;
   inline auto scaleLinear(uint width, uint height) -> void;
   inline auto scaleNearest(uint width, uint height) -> void;
-
-  //load.hpp
-  inline auto loadBMP(const string& filename) -> bool;
-  inline auto loadBMP(const uint8_t* data, uint size) -> bool;
-  inline auto loadPNG(const string& filename) -> bool;
-  inline auto loadPNG(const uint8_t* data, uint size) -> bool;
 
   //interpolation.hpp
   alwaysinline auto isplit(uint64_t* component, uint64_t color) -> void;

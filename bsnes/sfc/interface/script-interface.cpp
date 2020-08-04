@@ -564,6 +564,10 @@ auto Interface::loadScript(string location) -> void {
   // create a main module:
   script.main_module = script.engine->GetModule("main", asGM_ALWAYS_CREATE);
 
+  // (/parent/child.type/)
+  // (/parent/child.type/)name.type
+  script.directory = Location::path(location);
+
   if (directory::exists(location)) {
     // add all *.as files in root directory to main module:
     for (auto scriptLocation : directory::files(location, "*.as")) {
