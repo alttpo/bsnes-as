@@ -18,11 +18,12 @@ auto pCanvas::minimumSize() const -> Size {
 }
 
 auto pCanvas::setAlignment(Alignment) -> void {
-  update();
+  _redraw();
 }
 
 auto pCanvas::setColor(Color color) -> void {
-  update();
+  _rasterize();
+  _redraw();
 }
 
 auto pCanvas::setDroppable(bool droppable) -> void {
@@ -35,15 +36,17 @@ auto pCanvas::setFocusable(bool focusable) -> void {
 
 auto pCanvas::setGeometry(Geometry geometry) -> void {
   pWidget::setGeometry(geometry);
-  update();
+  _redraw();
 }
 
 auto pCanvas::setGradient(Gradient gradient) -> void {
-  update();
+  _rasterize();
+  _redraw();
 }
 
 auto pCanvas::setIcon(const image& icon) -> void {
-  update();
+  _rasterize();
+  _redraw();
 }
 
 auto pCanvas::update() -> void {
@@ -103,10 +106,12 @@ auto pCanvas::_paint() -> void {
   int dwidth = geometry.width();
   int dheight = geometry.height();
   float scale = 1.0;
-  if (dwidth <= dheight) {
-    scale = (float)dwidth / (float)width;
+  float wscale = (float)dwidth / (float)width;
+  float hscale = (float)dheight / (float)height;
+  if (wscale <= hscale) {
+    scale = wscale;
   } else {
-    scale = (float)dheight / (float)height;
+    scale = hscale;
   }
   dwidth  = width * scale;
   dheight = height * scale;
@@ -117,8 +122,6 @@ auto pCanvas::_paint() -> void {
   } else {
     sx = (dwidth - geometry.width()) * alignment.horizontal();
     dx = 0;
-    // [jsd] crop the source image:
-    width = geometry.width();
   }
 
   if(dheight <= geometry.height()) {
@@ -127,36 +130,7 @@ auto pCanvas::_paint() -> void {
   } else {
     sy = (dheight - geometry.height()) * alignment.vertical();
     dy = 0;
-    // [jsd] crop the source image:
-    height = geometry.height();
   }
-
-  HDC hdc = CreateCompatibleDC(ps.hdc);
-  BITMAPINFO bmi{};
-  bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-  bmi.bmiHeader.biPlanes = 1;
-  bmi.bmiHeader.biBitCount = 32;
-  bmi.bmiHeader.biCompression = BI_RGB;
-  bmi.bmiHeader.biWidth = width;
-  bmi.bmiHeader.biHeight = -height;  //GDI stores bitmaps upside now; negative height flips bitmap
-  bmi.bmiHeader.biSizeImage = width * height * sizeof(uint32_t);
-  void* bits = nullptr;
-  HBITMAP bitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
-  if(bits) {
-    // [jsd] this loop crops the image and pre-multiplies the alpha channel into the RGB components:
-    for(uint y : range(height)) {
-      auto source = (const uint8_t*)pixels.data() + (sy + y) * this->width * sizeof(uint32_t) + sx * sizeof(uint32_t);
-      auto target = (uint8_t*)bits + y * width * sizeof(uint32_t);
-      for(uint x : range(width)) {
-        target[0] = (source[0] * source[3]) / 255;
-        target[1] = (source[1] * source[3]) / 255;
-        target[2] = (source[2] * source[3]) / 255;
-        target[3] = (source[3]);
-        source += 4, target += 4;
-      }
-    }
-  }
-  SelectObject(hdc, bitmap);
 
   //RECT rc;
   //GetClientRect(hwnd, &rc);
@@ -186,10 +160,7 @@ auto pCanvas::_paint() -> void {
   }
 
   BLENDFUNCTION bf{AC_SRC_OVER, 0, (BYTE)255, AC_SRC_ALPHA};
-  AlphaBlend(ps.hdc, dx, dy, dwidth, dheight, hdc, 0, 0, width, height, bf);
-
-  DeleteObject(bitmap);
-  DeleteDC(hdc);
+  AlphaBlend(ps.hdc, dx, dy, dwidth, dheight, bitmapDC, 0, 0, width, height, bf);
 
   EndPaint(hwnd, &ps);
 }
@@ -204,27 +175,65 @@ auto pCanvas::_rasterize() -> void {
   }
   if(width <= 0 || height <= 0) return;
 
-  pixels.reset();
-  pixels.resize(width * height);
+  bool recreateBitmap = false;
+  if (width != bmi.bmiHeader.biWidth || height != -bmi.bmiHeader.biHeight || bitmapDC == 0 || bitmap == 0 || bits == nullptr) {
+    recreateBitmap = true;
+    if (bitmap) {
+      DeleteObject(bitmap);
+      bitmap = 0;
+    }
+    if (bitmapDC) {
+      DeleteDC(bitmapDC);
+      bitmapDC = 0;
+    }
+    bits = nullptr;
+  }
 
+  if (recreateBitmap) {
+    //bitmapDC = CreateCompatibleDC(ps.hdc);
+    bitmapDC = CreateCompatibleDC(GetDC(hwnd));
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+    bmi.bmiHeader.biWidth = width;
+    bmi.bmiHeader.biHeight = -height;  //GDI stores bitmaps upside now; negative height flips bitmap
+    bmi.bmiHeader.biSizeImage = width * height * sizeof(uint32_t);
+    bits = nullptr;
+    bitmap = CreateDIBSection(bitmapDC, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
+    SelectObject(bitmapDC, bitmap);
+  }
+
+  // [jsd] update the contents of the HBITMAP from the image (icon):
   if(auto& icon = state().icon) {
-#if 0
-    memory::copy<uint32_t>(pixels.data(), icon.data(), width * height);
-#else
     // [jsd] optimized to avoid allocation
     image fakeTarget(0, 32, 255u << 24, 255u << 16, 255u << 8, 255u << 0);  // Windows uses ARGB format
-    fakeTarget.use((uint8_t*)pixels.data(), width, height);
+    fakeTarget.use((uint8_t*)bits, width, height);
     icon.transformTo(fakeTarget);
-#endif
   } else if(auto& gradient = state().gradient) {
     auto& colors = gradient.state.colors;
     image fill;
     fill.allocate(width, height);
     fill.gradient(colors[0].value(), colors[1].value(), colors[2].value(), colors[3].value());
-    memory::copy(pixels.data(), fill.data(), fill.size());
+    memory::copy(bits, fill.data(), fill.size());
   } else {
     uint32_t color = state().color.value();
-    for(auto& pixel : pixels) pixel = color;
+    memory::fill<uint32_t>(bits, width * height, color);
+  }
+
+  if(bits) {
+    // [jsd] this loop crops the image and pre-multiplies the alpha channel into the RGB components:
+    for(uint y : range(height)) {
+      auto source = (const uint8_t*)bits + y * width * sizeof(uint32_t);
+      auto target = (uint8_t*)bits + y * width * sizeof(uint32_t);
+      for(uint x : range(width)) {
+        target[0] = (source[0] * source[3]) / 255;
+        target[1] = (source[1] * source[3]) / 255;
+        target[2] = (source[2] * source[3]) / 255;
+        target[3] = (source[3]);
+        source += 4, target += 4;
+      }
+    }
   }
 }
 

@@ -23,9 +23,14 @@ struct pCanvas : pWidget {
   auto _rasterize() -> void;
   auto _redraw() -> void;
 
-  vector<uint32_t> pixels;
   signed width = 0;
   signed height = 0;
+
+  // [jsd]
+  HDC         bitmapDC = 0;
+  BITMAPINFO  bmi;
+  HBITMAP     bitmap = 0;
+  void*       bits = nullptr;
 };
 
 }
