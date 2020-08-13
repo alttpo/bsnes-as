@@ -267,6 +267,14 @@ auto pWindow::modalDecrement() -> void {
 }
 
 auto pWindow::windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> maybe<LRESULT> {
+  // [jsd] manage buffered painting lifecycle:
+  if(msg == WM_CREATE) {
+    BufferedPaintInit();
+  }
+  if(msg == WM_NCDESTROY) {
+    BufferedPaintUnInit();
+  }
+
   if(msg == WM_CLOSE) {
     if(state().onClose) {
       self().doClose();

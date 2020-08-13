@@ -96,6 +96,13 @@ auto pCanvas::_paint() -> void {
   PAINTSTRUCT ps;
   BeginPaint(hwnd, &ps);
 
+  //////////
+  RECT crc;
+  GetClientRect(hwnd, &crc);
+  HDC hNewDC; // = ps.hdc;
+  HPAINTBUFFER hBufferedPaint = BeginBufferedPaint(ps.hdc, &crc, BPBF_COMPATIBLEBITMAP, nullptr, &hNewDC);
+  //////////
+
   int sx = 0, sy = 0, dx = 0, dy = 0;
   int width = this->width;
   int height = this->height;
@@ -132,35 +139,33 @@ auto pCanvas::_paint() -> void {
     dy = 0;
   }
 
-  //RECT rc;
-  //GetClientRect(hwnd, &rc);
-  //DrawThemeParentBackground(hwnd, ps.hdc, &rc);
-
   // fill in the outside spaces to clear up any remnants:
   RECT rc;
   if (dx > 0) {
     // left bar:
     SetRect(&rc, 0, 0, dx-1, geometry.height() - 1);
-    DrawThemeParentBackground(hwnd, ps.hdc, &rc);
+    DrawThemeParentBackground(hwnd, hNewDC, &rc);
   }
   if (dy > 0) {
     // top bar:
     SetRect(&rc, dx, 0, geometry.width() - 1, dy - 1);
-    DrawThemeParentBackground(hwnd, ps.hdc, &rc);
+    DrawThemeParentBackground(hwnd, hNewDC, &rc);
   }
   if (dx + dwidth < geometry.width()) {
     // right bar:
     SetRect(&rc, dx + dwidth, dy, geometry.width(), geometry.height());
-    DrawThemeParentBackground(hwnd, ps.hdc, &rc);
+    DrawThemeParentBackground(hwnd, hNewDC, &rc);
   }
   if (dy + dheight < geometry.height()) {
     // bottom bar:
     SetRect(&rc, dx, dy + dheight, geometry.width(), geometry.height());
-    DrawThemeParentBackground(hwnd, ps.hdc, &rc);
+    DrawThemeParentBackground(hwnd, hNewDC, &rc);
   }
 
   BLENDFUNCTION bf{AC_SRC_OVER, 0, (BYTE)255, AC_SRC_ALPHA};
-  AlphaBlend(ps.hdc, dx, dy, dwidth, dheight, bitmapDC, 0, 0, width, height, bf);
+  AlphaBlend(hNewDC, dx, dy, dwidth, dheight, bitmapDC, 0, 0, width, height, bf);
+
+  EndBufferedPaint(hBufferedPaint, TRUE);
 
   EndPaint(hwnd, &ps);
 }
