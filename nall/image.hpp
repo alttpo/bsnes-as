@@ -102,6 +102,7 @@ struct image {
   inline auto transform(const image& source = {}) -> void;
   inline auto transform(bool endian, uint depth, uint64_t alphaMask, uint64_t redMask, uint64_t greenMask, uint64_t blueMask) -> void;
   inline auto transformTo(image& output) const -> void;
+  inline auto alphaMultiplyTransformTo(image& output) const -> void;
 
   //static.hpp
   static inline auto bitDepth(uint64_t color) -> uint;

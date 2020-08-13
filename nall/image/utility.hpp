@@ -180,4 +180,35 @@ auto image::transformTo(image& output) const -> void {
   }
 }
 
+auto image::alphaMultiplyTransformTo(image& output) const -> void {
+  unsigned divisor = (1 << output._alpha.depth()) - 1;
+
+  for(unsigned y = 0; y < _height; y++) {
+    const uint8_t* sp = _data + pitch() * y;
+    uint8_t* dp = output._data + output.pitch() * y;
+    for(unsigned x = 0; x < _width; x++) {
+      uint64_t color = read(sp);
+      sp += stride();
+
+      uint64_t a = (color & _alpha.mask()) >> _alpha.shift();
+      uint64_t r = (color & _red.mask()  ) >> _red.shift();
+      uint64_t g = (color & _green.mask()) >> _green.shift();
+      uint64_t b = (color & _blue.mask() ) >> _blue.shift();
+
+      a = normalize(a, _alpha.depth(), output._alpha.depth());
+      r = normalize(r, _red.depth(),   output._red.depth());
+      g = normalize(g, _green.depth(), output._green.depth());
+      b = normalize(b, _blue.depth(),  output._blue.depth());
+
+      // multiply alpha:
+      r = (r * a) / divisor;
+      g = (g * a) / divisor;
+      b = (b * a) / divisor;
+
+      output.write(dp, (a << output._alpha.shift()) | (r << output._red.shift()) | (g << output._green.shift()) | (b << output._blue.shift()));
+      dp += output.stride();
+    }
+  }
+}
+
 }

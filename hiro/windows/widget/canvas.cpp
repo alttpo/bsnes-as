@@ -209,7 +209,7 @@ auto pCanvas::_rasterize() -> void {
     // [jsd] optimized to avoid allocation
     image fakeTarget(0, 32, 255u << 24, 255u << 16, 255u << 8, 255u << 0);  // Windows uses ARGB format
     fakeTarget.use((uint8_t*)bits, width, height);
-    icon.transformTo(fakeTarget);
+    icon.alphaMultiplyTransformTo(fakeTarget);
   } else if(auto& gradient = state().gradient) {
     auto& colors = gradient.state.colors;
     image fill;
@@ -221,6 +221,7 @@ auto pCanvas::_rasterize() -> void {
     memory::fill<uint32_t>(bits, width * height, color);
   }
 
+#if 0
   if(bits) {
     // [jsd] this loop crops the image and pre-multiplies the alpha channel into the RGB components:
     for(uint y : range(height)) {
@@ -235,6 +236,7 @@ auto pCanvas::_rasterize() -> void {
       }
     }
   }
+#endif
 }
 
 auto pCanvas::_redraw() -> void {
