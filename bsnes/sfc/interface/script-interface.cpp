@@ -465,7 +465,156 @@ namespace ScriptInterface {
   #include "script-gui.cpp"
   #include "script-bml.cpp"
   #include "script-discord.cpp"
+
 };
+
+auto string_format_list_factory(void *initList) -> string_format* {
+  auto f = new string_format();
+
+  asUINT length = *(asUINT *) initList;
+  initList = (void *) ((asUINT *) initList + 1);
+
+  for (asUINT i = 0; i < length; i++) {
+    // angelscript gives us a typeId paired with the value for each '?' value in the initializer list:
+    asUINT typeId = *((asUINT *) initList);
+    initList = (void *) ((asUINT *) initList + 1);
+
+    // grab value:
+    void *value = initList;
+
+    //asTYPEID_OBJHANDLE      = 0x40000000,
+    //asTYPEID_HANDLETOCONST  = 0x20000000,
+    //asTYPEID_MASK_OBJECT    = 0x1C000000,
+    //asTYPEID_APPOBJECT      = 0x04000000,
+    //asTYPEID_SCRIPTOBJECT   = 0x08000000,
+    //asTYPEID_TEMPLATE       = 0x10000000,
+    //asTYPEID_MASK_SEQNBR    = 0x03FFFFFF
+    if (typeId & asTYPEID_APPOBJECT) {
+      // app-defined object:
+      const char *declaration = script.engine->GetTypeDeclaration(typeId);
+      //printf("typeId=%d, decl=`%s`\n", typeId, declaration);
+
+      if (strcmp("string", declaration) != 0) {
+        asIScriptContext *ctx = asGetActiveContext();
+        if (ctx) {
+          ctx->SetException(
+            string("Unsupported app class `{0}` at list index {1}").format({declaration, i}).data()
+          );
+          delete f;
+          return nullptr;
+        }
+      }
+
+      f->append(*(string *) value);
+
+      initList = (void *) ((string *) initList + 1);
+    } else if (typeId & asTYPEID_OBJHANDLE) {
+      // script-defined object:
+      initList = (void *) ((void **) initList + 1);
+      asITypeInfo *ti = script.engine->GetTypeInfoById(typeId);
+
+      // look up a toString() method:
+      auto func = ti->GetMethodByDecl("string toString() const");
+      if (func == nullptr) {
+        asIScriptContext *ctx = asGetActiveContext();
+        if (ctx) {
+          ctx->SetException(
+            string("Unsupported script class `{0}` at list index {1}; class does not define a `{2}` method").format(
+              {
+                ti->GetName(),
+                i,
+                "string toString() const"
+              }).data());
+          delete f;
+          return nullptr;
+        }
+      }
+
+      // execute the toString() method:
+      bool isNested = false;
+      asIScriptContext *ctx = asGetActiveContext();
+      if (ctx) {
+        if (ctx->GetEngine() == script.engine && ctx->PushState() >= 0)
+          isNested = true;
+        else
+          ctx = nullptr;
+      }
+      if (ctx == nullptr) {
+        ctx = script.engine->RequestContext();
+      }
+
+      int r;
+      r = ctx->Prepare(func);
+      assert(r >= 0);
+      r = ctx->SetObject(*((void **) value));
+      assert(r >= 0);
+      r = ctx->Execute();
+      if (r == asEXECUTION_FINISHED) {
+        // grab the returned string:
+        string *s = (string *) ctx->GetReturnObject();
+        f->append(*s);
+      }
+
+      if (isNested) {
+        asEContextState state = ctx->GetState();
+        ctx->PopState();
+        if (state == asEXECUTION_ABORTED) {
+          ctx->Abort();
+        }
+      } else {
+        script.engine->ReturnContext(ctx);
+      }
+    } else {
+      int size = max(4, script.engine->GetSizeOfPrimitiveType(typeId));
+      initList = (void *) ((uint8_t *) initList + size);
+      switch (typeId) {
+        case asTYPEID_BOOL:
+          f->append(*(bool *) value);
+          break;
+        case asTYPEID_INT8:
+          f->append(*(int8_t *) value);
+          break;
+        case asTYPEID_INT16:
+          f->append(*(int16_t *) value);
+          break;
+        case asTYPEID_INT32:
+          f->append(*(int32_t *) value);
+          break;
+        case asTYPEID_INT64:
+          f->append(*(int64_t *) value);
+          break;
+        case asTYPEID_UINT8:
+          f->append(*(uint8_t *) value);
+          break;
+        case asTYPEID_UINT16:
+          f->append(*(uint16_t *) value);
+          break;
+        case asTYPEID_UINT32:
+          f->append(*(uint32_t *) value);
+          break;
+        case asTYPEID_UINT64:
+          f->append(*(uint64_t *) value);
+          break;
+        case asTYPEID_FLOAT:
+          f->append(*(float *) value);
+          break;
+        case asTYPEID_DOUBLE:
+          f->append(*(double *) value);
+          break;
+        default:
+          asIScriptContext *ctx = asGetActiveContext();
+          if (ctx) {
+            ctx->SetException(string("Unsupported primitive typeId {0} at list index {1}").format({typeId, i}).data());
+            delete f;
+            return nullptr;
+          }
+          break;
+      }
+    }
+  }
+
+  return f;
+}
 
 auto Interface::paletteUpdated(uint32_t *palette, uint depth) -> void {
   //printf("Interface::paletteUpdated(%p, %d)\n", palette, depth);
@@ -482,6 +631,7 @@ auto Interface::registerScriptDefs() -> void {
   int r;
 
   script.engine = platform->scriptEngine();
+  auto e = script.engine;
 
   // register global functions for the script to use:
   auto defaultNamespace = script.engine->GetDefaultNamespace();
@@ -501,6 +651,26 @@ auto Interface::registerScriptDefs() -> void {
   r = script.engine->RegisterObjectMethod("array<T>", "void write_str(const string &in other)", asFUNCTION(ScriptInterface::uint8_array_append_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   r = script.engine->RegisterObjectMethod("array<T>", "string &toString(uint offs, uint size) const", asFUNCTION(ScriptInterface::array_to_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+  {
+    // string_format scoped ref type:
+    REG_TYPE_FLAGS(string_format, asOBJ_REF | asOBJ_SCOPED);
+    REG_LAMBDA_BEHAVIOUR(string_format, asBEHAVE_FACTORY, "string_format @f()", ([](){ return new string_format(); }));
+    r = e->RegisterObjectBehaviour(
+      "string_format",
+      asBEHAVE_LIST_FACTORY,
+      "string_format @f(int &in) {repeat ?}",
+      asFUNCTION(string_format_list_factory),
+      asCALL_CDECL
+    ); assert(r >= 0);
+    REG_LAMBDA_BEHAVIOUR(string_format, asBEHAVE_RELEASE, "void f()", ([](string_format *p){ delete p; }));
+    REG_LAMBDA(string_format, "string_format &opAssign(const string_format &in)", ([](string_format& self, const string_format& other) -> string_format& { return self.operator=(other); }));
+
+    // string.format:
+    REG_LAMBDA(string, "string format(const string_format &in) const", ([](const string &self, string_format &fmt) -> string {
+      return string(self).format(fmt);
+    }));
+  }
 
   // global function to write debug messages:
   r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(ScriptInterface::message), asCALL_CDECL); assert(r >= 0);
