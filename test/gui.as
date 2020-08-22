@@ -2,56 +2,56 @@
 SettingsWindow @settings;
 
 class SettingsWindow {
-  private gui::Window @window;
-  private gui::LineEdit @txtServerIP;
-  private gui::LineEdit @txtClientIP;
-  private gui::Button @ok;
+  private GUI::Window @window;
+  private GUI::LineEdit @txtServerIP;
+  private GUI::LineEdit @txtClientIP;
+  private GUI::Button @ok;
 
   string clientIP;
   string serverIP;
   bool started;
 
   SettingsWindow() {
-    @window = gui::Window();
+    @window = GUI::Window();
     window.visible = true;
     window.title = "Connect to IP address";
-    window.size = gui::Size(256, 24*3);
+    window.size = GUI::Size(256, 24*3);
 
-    auto vl = gui::VerticalLayout();
+    auto vl = GUI::VerticalLayout();
     {
-      auto @hz = gui::HorizontalLayout();
+      auto @hz = GUI::HorizontalLayout();
       {
-        auto @lbl = gui::Label();
+        auto @lbl = GUI::Label();
         lbl.text = "Server IP:";
-        hz.append(lbl, gui::Size(80, 0));
+        hz.append(lbl, GUI::Size(80, 0));
 
-        @txtServerIP = gui::LineEdit();
+        @txtServerIP = GUI::LineEdit();
         //txtServerIP.visible = true;
-        hz.append(txtServerIP, gui::Size(128, 20));
+        hz.append(txtServerIP, GUI::Size(128, 20));
       }
-      vl.append(hz, gui::Size(0, 0));
+      vl.append(hz, GUI::Size(0, 0));
 
-      @hz = gui::HorizontalLayout();
+      @hz = GUI::HorizontalLayout();
       {
-        auto @lbl = gui::Label();
+        auto @lbl = GUI::Label();
         lbl.text = "Client IP:";
-        hz.append(lbl, gui::Size(80, 0));
+        hz.append(lbl, GUI::Size(80, 0));
 
-        @txtClientIP = gui::LineEdit();
+        @txtClientIP = GUI::LineEdit();
         //txtClientIP.visible = true;
-        hz.append(txtClientIP, gui::Size(128, 20));
+        hz.append(txtClientIP, GUI::Size(128, 20));
       }
-      vl.append(hz, gui::Size(0, 0));
+      vl.append(hz, GUI::Size(0, 0));
 
-      @ok = gui::Button();
+      @ok = GUI::Button();
       ok.text = "Start";
-      @ok.on_activate = @gui::ButtonCallback(this.startClicked);
-      vl.append(ok, gui::Size(0, 0));
+      ok.onActivate(@GUI::Callback(this.startClicked));
+      vl.append(ok, GUI::Size(0, 0));
     }
     window.append(vl);
   }
 
-  private void startClicked(gui::Button @self) {
+  private void startClicked() {
     message("Start!");
     clientIP = txtClientIP.text;
     serverIP = txtServerIP.text;
