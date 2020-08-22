@@ -127,31 +127,6 @@ namespace SuperFamicom {
     static inline auto PAL() -> bool;
   };
 
-  struct Script {
-    asIScriptEngine  *engine = nullptr;
-    asIScriptContext *context = nullptr;
-
-    vector<asIScriptModule *> modules;
-    asIScriptModule          *main_module = nullptr;
-
-    string directory;
-
-    vector<hiro::Window> windows;
-
-    struct {
-      asIScriptFunction *init = nullptr;
-      asIScriptFunction *unload = nullptr;
-      asIScriptFunction *post_power = nullptr;
-      asIScriptFunction *cartridge_loaded = nullptr;
-      asIScriptFunction *cartridge_unloaded = nullptr;
-      asIScriptFunction *pre_nmi = nullptr;
-      asIScriptFunction *pre_frame = nullptr;
-      asIScriptFunction *post_frame = nullptr;
-      asIScriptFunction *palette_updated = nullptr;
-    } funcs;
-  };
-  extern Script script;
-
   // used for scripts to read/write to PPU frame:
   struct PPUFrame {
     uint16_t *output = nullptr;
@@ -167,8 +142,37 @@ namespace SuperFamicom {
     struct PPUAccess;
     struct GUI;
     struct PostFrame;
+    namespace Net {
+      struct Socket;
+    }
     auto executeScript(asIScriptContext *ctx) -> void;
   }
+
+  struct Script {
+    asIScriptEngine  *engine = nullptr;
+    asIScriptContext *context = nullptr;
+
+    vector<asIScriptModule *> modules;
+    asIScriptModule          *main_module = nullptr;
+
+    string directory;
+
+    vector<hiro::Window> windows;
+    vector<ScriptInterface::Net::Socket*> sockets;
+
+    struct {
+      asIScriptFunction *init = nullptr;
+      asIScriptFunction *unload = nullptr;
+      asIScriptFunction *post_power = nullptr;
+      asIScriptFunction *cartridge_loaded = nullptr;
+      asIScriptFunction *cartridge_unloaded = nullptr;
+      asIScriptFunction *pre_nmi = nullptr;
+      asIScriptFunction *pre_frame = nullptr;
+      asIScriptFunction *post_frame = nullptr;
+      asIScriptFunction *palette_updated = nullptr;
+    } funcs;
+  };
+  extern Script script;
 
   #include <sfc/system/system.hpp>
   #include <sfc/memory/memory.hpp>

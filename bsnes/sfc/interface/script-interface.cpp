@@ -656,6 +656,12 @@ auto Interface::unloadScript() -> void {
   }
   script.windows.reset();
 
+  for (auto socket : script.sockets) {
+    // release all script handles to the socket and close it but do not remove it from the script.sockets vector:
+    while (!socket->release(false)) {}
+  }
+  script.sockets.reset();
+
   // unload script:
   if (script.funcs.unload) {
     script.context->Prepare(script.funcs.unload);
