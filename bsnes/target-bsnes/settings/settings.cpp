@@ -145,6 +145,8 @@ auto Settings::process(bool load) -> void {
   bind(boolean, "General/Crashed",           general.crashed);
   bind(boolean, "General/NativeFileDialogs", general.nativeFileDialogs);
 
+  bind(text,    "Script/AutoLoadLocation",  script.autoLoadLocation);
+
   #undef bind
 }
 

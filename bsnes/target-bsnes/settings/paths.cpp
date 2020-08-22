@@ -2,7 +2,7 @@ auto PathSettings::create() -> void {
   setCollapsible();
   setVisible(false);
 
-  layout.setSize({4, 6});
+  layout.setSize({4, 7});
   layout.column(0).setAlignment(1.0);
 
   gamesLabel.setText("Games:");
@@ -83,6 +83,19 @@ auto PathSettings::create() -> void {
     refreshPaths();
   });
 
+  scriptAutoLoadLabel.setText("Auto-Load Script:");
+  scriptAutoLoadPath.setEditable(false);
+  scriptAutoLoadAssign.setText("Assign ...").onActivate([&] {
+    if(auto location = program.selectPath()) {
+      settings.script.autoLoadLocation = location;
+      refreshPaths();
+    }
+  });
+  scriptAutoLoadReset.setText("Reset").onActivate([&] {
+    settings.script.autoLoadLocation = "";
+    refreshPaths();
+  });
+
   refreshPaths();
 }
 
@@ -116,5 +129,10 @@ auto PathSettings::refreshPaths() -> void {
     screenshotsPath.setText(location).setForegroundColor();
   } else {
     screenshotsPath.setText("(same as loaded game)").setForegroundColor({128, 128, 128});
+  }
+  if(auto location = settings.script.autoLoadLocation) {
+    scriptAutoLoadPath.setText(location).setForegroundColor();
+  } else {
+    scriptAutoLoadPath.setText("(none)").setForegroundColor({128, 128, 128});
   }
 }

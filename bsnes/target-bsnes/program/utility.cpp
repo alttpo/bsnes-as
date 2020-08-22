@@ -40,12 +40,12 @@ auto Program::saveFile(BrowserDialog& dialog) -> string {
 auto Program::selectPath() -> string {
   if(!settings.general.nativeFileDialogs) {
     BrowserDialog dialog;
-    dialog.setPath(Path::desktop());
+    dialog.setPath(Path::program());
     return dialog.selectFolder();
   }
 
   BrowserWindow window;
-  window.setPath(Path::desktop());
+  window.setPath(Path::program());
   return window.directory();
 }
 

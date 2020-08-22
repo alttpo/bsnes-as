@@ -85,6 +85,10 @@ auto Program::create() -> void {
     toggleVideoFullScreen();
   }
   if(script.location) scriptReload();
+  else if(settings.script.autoLoadLocation) {
+    script.location = settings.script.autoLoadLocation;
+    scriptReload();
+  }
   Application::onMain({&Program::main, this});
 }
 

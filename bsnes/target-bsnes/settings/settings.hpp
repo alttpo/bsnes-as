@@ -150,6 +150,10 @@ struct Settings : Markup::Node {
     bool crashed = false;
     bool nativeFileDialogs = false;
   } general;
+
+  struct Script {
+    string autoLoadLocation;
+  } script;
 };
 
 struct VideoSettings : VerticalLayout {
@@ -299,6 +303,11 @@ public:
     LineEdit screenshotsPath{&layout, Size{~0, 0}};
     Button screenshotsAssign{&layout, Size{80_sx, 0}};
     Button screenshotsReset{&layout, Size{80_sx, 0}};
+  //
+    Label scriptAutoLoadLabel{&layout, Size{0, 0}};
+    LineEdit scriptAutoLoadPath{&layout, Size{~0, 0}};
+    Button scriptAutoLoadAssign{&layout, Size{80_sx, 0}};
+    Button scriptAutoLoadReset{&layout, Size{80_sx, 0}};
 };
 
 struct EmulatorSettings : VerticalLayout {

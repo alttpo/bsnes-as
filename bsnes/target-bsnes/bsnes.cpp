@@ -41,7 +41,7 @@ auto nall::main(Arguments arguments) -> void {
   }
 
   settings.load();
-  Application::setName("bsnes-angelscript");
+  Application::setName("bsnes-as");
   Application::setScreenSaver(settings.general.screenSaver);
   Application::setToolTips(settings.general.toolTips);
 
