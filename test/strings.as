@@ -5,6 +5,10 @@ class testMe {
   }
 }
 
+class badTest {
+  // no `string toString() const` method
+}
+
 void init() {
   string f = "Hello, {0}! {1} {2} {3} {4} {5} {6} {7} {8} {9} {10}";
   for (int i = 0; i < 100; i++) {
@@ -12,4 +16,10 @@ void init() {
     message(m);
   }
   message("{0}".format({testMe()}));
+  try {
+    message("{0}".format({badTest()}));
+  } catch {
+  }
+
+  message(hex(1023, 15));
 }

@@ -153,11 +153,17 @@ auto Interface::registerScriptString() -> void {
   r = e->RegisterObjectMethod("string", "uint64 hex()", asFUNCTION(+([](string &value) { return (uint64_t)value.hex(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = e->RegisterObjectMethod("string", "float real()", asFUNCTION(+([](string &value) { return (double)value.real(); })), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-  // Register global functions
+  // [deprecated] format functions:
   r = e->RegisterGlobalFunction("string fmtHex(uint64 value, int precision = 0)", asFUNCTION(fmtHex), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("string fmtBinary(uint64 value, int precision = 0)", asFUNCTION(fmtBinary), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("string fmtInt(int64 value)", asFUNCTION(fmtInt), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("string fmtUint(uint64 value)", asFUNCTION(fmtUint), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("string fmtFloat(float value)", asFUNCTION(+([](float value) { return string(value); })), asCALL_CDECL); assert(r >= 0);
 
+  // format functions:
+  REG_LAMBDA_GLOBAL("string pad(int64 value, int64 precision = 0, int padchar = ' ')", ([](int64_t value, int64_t precision, int padchar) -> string { return pad(value, precision, padchar); })); assert(r >= 0);
+  REG_LAMBDA_GLOBAL("string padu(uint64 value, int64 precision = 0, int padchar = ' ')", ([](uint64_t value, int64_t precision, int padchar) -> string { return pad(value, precision, padchar); })); assert(r >= 0);
+  REG_LAMBDA_GLOBAL("string hex(uint64 value, int64 precision = 0, int padchar = '0')", ([](uint64_t value, int64_t precision, int padchar) -> string { return hex(value, precision, padchar); })); assert(r >= 0);
+  REG_LAMBDA_GLOBAL("string octal(uint64 value, int64 precision = 0, int padchar = '0')", ([](uint64_t value, int64_t precision, int padchar) -> string { return octal(value, precision, padchar); })); assert(r >= 0);
+  REG_LAMBDA_GLOBAL("string binary(uint64 value, int64 precision = 0, int padchar = '0')", ([](uint64_t value, int64_t precision, int padchar) -> string { return binary(value, precision, padchar); })); assert(r >= 0);
 }
