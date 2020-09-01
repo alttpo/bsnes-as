@@ -111,6 +111,21 @@ namespace hiro {
   using s##Name = shared_pointer<m##Name>; \
   using w##Name = shared_pointer_weak<m##Name>;
 
+#define Define(Name) \
+  using type = m##Name; \
+  m##Name() {} \
+  template<typename T, typename... P> m##Name(T* parent, P&&... p) : m##Name() { \
+  }
+
+#define DefineShared(Name) \
+  using type = Name; \
+  using internalType = m##Name; \
+  Name() {} \
+  template<typename T, typename... P> Name(T* parent, P&&... p) : Name() {} \
+  Name(const s##Name& source) { (void)source; } \
+  template<typename T> Name(const T& source, \
+  std::enable_if_t<std::is_base_of<internalType, typename T::internalType>::value>* = 0) { (void)source; } \
+
   Declare(Object)
   struct mObject {
     using type = mObject;
@@ -149,7 +164,7 @@ namespace hiro {
 
   Declare(Sizable)
   struct mSizable : mObject {
-    using type = mSizable;
+    Define(Sizable);
 
     auto collapsible() const -> bool { return false; }
     auto layoutExcluded() const -> bool { return false; }
@@ -163,9 +178,60 @@ namespace hiro {
   };
   struct Sizable : sSizable, mSizable {};
 
+  struct MouseCursor {
+    using type = MouseCursor;
+
+    MouseCursor(const string& name = "");
+
+    explicit operator bool() const { return false; }
+    auto operator==(const MouseCursor& source) const -> bool { return false; }
+    auto operator!=(const MouseCursor& source) const -> bool { return false; }
+
+    auto name() const -> string { return {}; }
+    auto setName(const string& name = "") -> type& { return *this; }
+
+    static const string Default;
+    static const string Hand;
+    static const string HorizontalResize;
+    static const string VerticalResize;
+  };
+
+  const string MouseCursor::Default = "";
+  const string MouseCursor::Hand = "{hand}";
+  const string MouseCursor::HorizontalResize = "{horizontal-resize}";
+  const string MouseCursor::VerticalResize = "{vertical-resize}";
+
+  Declare(Widget)
+  struct mWidget : mSizable {
+    Define(Widget);
+
+    auto doDrop(vector<string> names) const -> void {}
+    //auto doMouseEnter() const -> void {}
+    //auto doMouseLeave() const -> void {}
+    //auto doMouseMove(Position position) const -> void {}
+    //auto doMousePress(Mouse::Button button) const -> void {}
+    //auto doMouseRelease(Mouse::Button button) const -> void {}
+    auto droppable() const -> bool { return false; }
+    auto focusable() const -> bool { return false; }
+    auto mouseCursor() const -> MouseCursor { return {}; }
+    auto onDrop(const function<void (vector<string>)>& callback = {}) -> type& { return *this; }
+    //auto onMouseEnter(const function<void ()>& callback = {}) -> type& { return *this; }
+    //auto onMouseLeave(const function<void ()>& callback = {}) -> type& { return *this; }
+    //auto onMouseMove(const function<void (Position position)>& callback = {}) -> type& { return *this; }
+    //auto onMousePress(const function<void (Mouse::Button)>& callback = {}) -> type& { return *this; }
+    //auto onMouseRelease(const function<void (Mouse::Button)>& callback = {}) -> type& { return *this; }
+    //auto remove() -> type& override;
+    auto setDroppable(bool droppable = true) -> type& { return *this; }
+    auto setFocusable(bool focusable = true) -> type& { return *this; }
+    auto setMouseCursor(const MouseCursor& mouseCursor = {}) -> type& { return *this; }
+    auto setToolTip(const string& toolTip = "") -> type& { return *this; }
+    auto toolTip() const -> string { return {}; }
+  };
+  struct Widget : sWidget, mWidget {};
+
   Declare(Window)
   struct mWindow : mObject {
-    using type = mWindow;
+    Define(Window);
 
     auto append(sSizable sizable) -> type& { (void)sizable; return *this; }
     auto backgroundColor() const -> Color { return {}; }
@@ -206,7 +272,7 @@ namespace hiro {
 
   Declare(VerticalLayoutCell)
   struct mVerticalLayoutCell : mObject {
-    using type = mVerticalLayoutCell;
+    Define(VerticalLayoutCell);
 
     auto alignment() const -> maybe<float> { return {}; }
     auto collapsible() const -> bool { return false; }
@@ -228,7 +294,7 @@ namespace hiro {
 
   Declare(VerticalLayout)
   struct mVerticalLayout : mSizable {
-    using type = mVerticalLayout;
+    Define(VerticalLayout);
     using mSizable::remove;
 
     auto alignment() const -> maybe<float> { return {}; }
@@ -260,7 +326,7 @@ namespace hiro {
 
   Declare(HorizontalLayoutCell)
   struct mHorizontalLayoutCell : mObject {
-    using type = mHorizontalLayoutCell;
+    Define(HorizontalLayoutCell);
 
     auto alignment() const -> maybe<float> { return {}; }
     auto collapsible() const -> bool { return false; }
@@ -282,7 +348,7 @@ namespace hiro {
 
   Declare(HorizontalLayout)
   struct mHorizontalLayout : mSizable {
-    using type = mHorizontalLayout;
+    Define(HorizontalLayout);
     using mSizable::remove;
 
     auto alignment() const -> maybe<float> { return {}; }
@@ -312,4 +378,53 @@ namespace hiro {
   };
   struct HorizontalLayout : sHorizontalLayout, mHorizontalLayout {};
 
+  Declare(Group)
+  struct mGroup : mObject {
+    Define(Group);
+
+    auto append(sObject object) -> type& { return *this; }
+    auto object(uint offset) const -> Object { return {}; }
+    auto objectCount() const -> uint { return 0; }
+    auto objects() const -> vector<Object> { return {}; }
+    auto remove(sObject object) -> type& { return *this; }
+  };
+  struct Group : sGroup, mGroup {};
+
+  Declare(ComboButtonItem)
+  struct mComboButtonItem : mObject {
+    Define(ComboButtonItem);
+
+    auto icon() const -> image { return {}; }
+    //auto remove() -> type& override;
+    auto selected() const -> bool { return false; }
+    auto setIcon(const image& icon = {}) -> type& { return *this; }
+    auto setSelected() -> type& { return *this; }
+    auto setText(const string& text = "") -> type& { return *this; }
+    auto text() const -> string { return {}; }
+  };
+  struct ComboButtonItem : sComboButtonItem, mComboButtonItem {
+    DefineShared(ComboButtonItem);
+  };
+
+  Declare(ComboButton)
+  struct mComboButton : mWidget {
+    Define(ComboButton);
+    using mObject::remove;
+
+    auto append(sComboButtonItem item) -> type& { return *this; }
+    auto doChange() const -> void { }
+    auto item(uint position) const -> ComboButtonItem { return {}; }
+    auto itemCount() const -> uint { return 0; }
+    auto items() const -> vector<ComboButtonItem> { return {}; }
+    auto onChange(const function<void ()>& callback = {}) -> type& { return *this; }
+    auto remove(sComboButtonItem item) -> type& { return *this; }
+    auto reset() -> type& { return *this; }
+    auto selected() const -> ComboButtonItem { return {}; }
+    //auto setParent(mObject* parent = nullptr, int offset = -1) -> type& override;
+
+    //auto destruct() -> void override;
+  };
+  struct ComboButton : sComboButton, mComboButton {
+    DefineShared(ComboButton);
+  };
 }
