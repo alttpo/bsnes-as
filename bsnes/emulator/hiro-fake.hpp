@@ -105,6 +105,8 @@ namespace hiro {
     static auto dpi(maybe<uint> monitor = nothing) -> Position { return Position{}; }
   };
 
+  enum class Orientation : uint { Horizontal, Vertical };
+
 #define Declare(Name) \
   struct Name; \
   struct m##Name; \
@@ -464,5 +466,24 @@ namespace hiro {
   };
   struct Label : sLabel, mLabel {
     DefineShared(Label);
+  };
+
+  Declare(Button)
+  struct mButton : mWidget {
+    Define(Button);
+
+    auto bordered() const -> bool { return false; }
+    auto doActivate() const -> void { }
+    auto icon() const -> image { return {}; }
+    auto onActivate(const function<void ()>& callback = {}) -> type& { return *this; }
+    auto orientation() const -> Orientation { return {}; }
+    auto setBordered(bool bordered = true) -> type& { return *this; }
+    auto setIcon(const image& icon = {}) -> type& { return *this; }
+    auto setOrientation(Orientation orientation = Orientation::Horizontal) -> type& { return *this; }
+    auto setText(const string& text = "") -> type& { return *this; }
+    auto text() const -> string { return {}; }
+  };
+  struct Button : sButton, mButton {
+    DefineShared(Button);
   };
 }
