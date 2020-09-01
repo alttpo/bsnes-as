@@ -241,7 +241,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // GUI
   r = e->SetDefaultNamespace("GUI"); assert(r >= 0);
 
-#ifndef DISABLE_HIRO
   REG_LAMBDA_GLOBAL("float get_dpiX() property", ([]() -> float {
     // round DPI scalar to increments of 0.5 (eg 1.0, 1.5, 2.0, ...)
     auto scale = round(hiro::Monitor::dpi().x() / 96.0 * 2.0) / 2.0;
@@ -253,10 +252,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     auto scale = round(hiro::Monitor::dpi().y() / 96.0 * 2.0) / 2.0;
     return scale;
   }));
-#else
-  REG_LAMBDA_GLOBAL("float get_dpiX() property", ([]() -> float { return 1.0f; }));
-  REG_LAMBDA_GLOBAL("float get_dpiY() property", ([]() -> float { return 1.0f; }));
-#endif
 
   // function types:
   r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
@@ -324,6 +319,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   })); \
   REG_LAMBDA(name, "void doSize()",                               ([](className* self) { self->doSize(); })); \
   REG_LAMBDA(name, "void onSize(Callback @callback)",             ([](className* self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
+
 
 #define EXPOSE_HIRO_SIZABLE(name) EXPOSE_SIZABLE(name, hiro::name)
 
