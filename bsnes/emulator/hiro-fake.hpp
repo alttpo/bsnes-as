@@ -130,8 +130,7 @@ namespace hiro {
 #define Define(Name) \
   using type = m##Name; \
   m##Name() {} \
-  template<typename T, typename... P> m##Name(T* parent, P&&... p) : m##Name() { \
-  }
+  template<typename T, typename... P> m##Name(T* parent, P&&... p) : m##Name() {}
 
 #define DefineShared(Name) \
   using type = Name; \
@@ -442,6 +441,8 @@ namespace hiro {
   };
   struct ComboButton : sComboButton, mComboButton {
     DefineShared(ComboButton);
+
+    auto reset() { return *this; }
   };
 
   Declare(LineEdit)
@@ -529,5 +530,20 @@ namespace hiro {
   };
   struct Canvas : sCanvas, mCanvas {
     DefineShared(Canvas);
+  };
+
+  Declare(CheckLabel)
+  struct mCheckLabel : mWidget {
+    Define(CheckLabel);
+
+    auto checked() const -> bool { return false; }
+    auto doToggle() const -> void {}
+    auto onToggle(const function<void ()>& callback = {}) -> type& { return *this; };
+    auto setChecked(bool checked = true) -> type& { return *this; }
+    auto setText(const string& text = "") -> type& { return *this; }
+    auto text() const -> string { return {}; }
+  };
+  struct CheckLabel : sCheckLabel, mCheckLabel {
+    DefineShared(CheckLabel);
   };
 }
