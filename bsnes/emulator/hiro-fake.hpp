@@ -448,4 +448,21 @@ namespace hiro {
   struct LineEdit : sLineEdit, mLineEdit {
     DefineShared(LineEdit);
   };
+
+  Declare(Label)
+  struct mLabel : mWidget {
+    Define(Label);
+
+    auto alignment() const -> Alignment { return {}; }
+    auto backgroundColor() const -> Color { return {}; }
+    auto foregroundColor() const -> Color { return {}; }
+    auto setAlignment(Alignment alignment = {}) -> type& { return *this; }
+    auto setBackgroundColor(Color color = {}) -> type& { return *this; }
+    auto setForegroundColor(Color color = {}) -> type& { return *this; }
+    auto setText(const string& text = "") -> type& { return *this; }
+    auto text() const -> string { return {}; }
+  };
+  struct Label : sLabel, mLabel {
+    DefineShared(Label);
+  };
 }
