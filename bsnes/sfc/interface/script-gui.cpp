@@ -584,28 +584,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // allocates a new icon:
   //REG_LAMBDA(Canvas, "void set_size(Size &in) property",         ([](hiro::Canvas& self, hiro::Size* size) { self.setSize(*size); }));
 
-  // SNESCanvas
-  r = e->RegisterObjectBehaviour("SNESCanvas", asBEHAVE_FACTORY, "SNESCanvas@ f()", asFUNCTION( +([]{ return new GUI::SNESCanvas(); }) ), asCALL_CDECL); assert(r >= 0);
-  EXPOSE_SHARED_PTR(SNESCanvas, GUI::SNESCanvas, GUI::mSNESCanvas);
-  EXPOSE_OBJECT(SNESCanvas, GUI::SNESCanvas);
-  EXPOSE_SIZABLE(SNESCanvas, GUI::SNESCanvas);
-  REG_LAMBDA(SNESCanvas, "void set_size(Size &in size) property",               ([](GUI::SNESCanvas& self, hiro::Size &size) { self.setSize(size); }));
-  REG_LAMBDA(SNESCanvas, "uint8 get_luma() property",                           ([](GUI::SNESCanvas& self) { return self.luma(); }));
-  REG_LAMBDA(SNESCanvas, "void set_luma(uint8 luma) property",                  ([](GUI::SNESCanvas& self, uint8 value) { self.set_luma(value); }));
-  REG_LAMBDA(SNESCanvas, "Alignment@ get_alignment() property",                 ([](GUI::SNESCanvas& self) { return self.alignment(); }));
-  REG_LAMBDA(SNESCanvas, "void set_alignment(const Alignment &in) property",    ([](GUI::SNESCanvas& self, hiro::Alignment &alignment) { self.setAlignment(alignment); }));
-  REG_LAMBDA(SNESCanvas, "void setAlignment(float horizontal, float vertical)", ([](GUI::SNESCanvas& self, float horizontal, float vertical) { self.setAlignment(horizontal, vertical); }));
-  REG_LAMBDA(SNESCanvas, "void setCollapsible(bool)",    ([](GUI::SNESCanvas& self, bool value) { self.setCollapsible(value); }));
-  REG_LAMBDA(SNESCanvas, "void update()",                ([](GUI::SNESCanvas& self) { self.update(); }));
-  REG_LAMBDA(SNESCanvas, "void fill(uint16)",            ([](GUI::SNESCanvas& self, uint16 color) { self.fill(color); }));
-  REG_LAMBDA(SNESCanvas, "void pixel(int, int, uint16)", ([](GUI::SNESCanvas& self, int x, int y, uint16 color) { self.pixel(x, y, color); }));
-  REG_LAMBDA(SNESCanvas, "void draw_sprite_4bpp(int, int, uint, uint, uint, const array<uint16> &in, const array<uint16> &in)",
-    ([](GUI::SNESCanvas& self, int x, int y, uint c, uint width, uint height, const CScriptArray *tile_data, const CScriptArray *palette_data) {
-      self.draw_sprite_4bpp(x, y, c, width, height, tile_data, palette_data);
-    })
-  );
-  // TODO: draw_sprite_8bpp
-
   // CheckLabel
   EXPOSE_HIRO(CheckLabel);
   EXPOSE_HIRO_OBJECT(CheckLabel);
@@ -653,4 +631,26 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(HorizontalSlider, "void set_position(uint position) property", ([](hiro::HorizontalSlider *p, uint length) { p->setPosition(length); }));
   REG_LAMBDA(HorizontalSlider, "void doChange()",                           ([](hiro::HorizontalSlider *p) { p->doChange(); }));
   REG_LAMBDA(HorizontalSlider, "void onChange(Callback @cb)",               ([](hiro::HorizontalSlider *p, asIScriptFunction *cb) { p->onChange(Callback(cb)); }));
+
+  // SNESCanvas
+  r = e->RegisterObjectBehaviour("SNESCanvas", asBEHAVE_FACTORY, "SNESCanvas@ f()", asFUNCTION( +([]{ return new GUI::SNESCanvas(); }) ), asCALL_CDECL); assert(r >= 0);
+  EXPOSE_SHARED_PTR(SNESCanvas, GUI::SNESCanvas, GUI::mSNESCanvas);
+  EXPOSE_OBJECT(SNESCanvas, GUI::SNESCanvas);
+  EXPOSE_SIZABLE(SNESCanvas, GUI::SNESCanvas);
+  REG_LAMBDA(SNESCanvas, "void set_size(Size &in size) property",               ([](GUI::SNESCanvas& self, hiro::Size &size) { self.setSize(size); }));
+  REG_LAMBDA(SNESCanvas, "uint8 get_luma() property",                           ([](GUI::SNESCanvas& self) { return self.luma(); }));
+  REG_LAMBDA(SNESCanvas, "void set_luma(uint8 luma) property",                  ([](GUI::SNESCanvas& self, uint8 value) { self.set_luma(value); }));
+  REG_LAMBDA(SNESCanvas, "Alignment@ get_alignment() property",                 ([](GUI::SNESCanvas& self) { return self.alignment(); }));
+  REG_LAMBDA(SNESCanvas, "void set_alignment(const Alignment &in) property",    ([](GUI::SNESCanvas& self, hiro::Alignment &alignment) { self.setAlignment(alignment); }));
+  REG_LAMBDA(SNESCanvas, "void setAlignment(float horizontal, float vertical)", ([](GUI::SNESCanvas& self, float horizontal, float vertical) { self.setAlignment(horizontal, vertical); }));
+  REG_LAMBDA(SNESCanvas, "void setCollapsible(bool)",    ([](GUI::SNESCanvas& self, bool value) { self.setCollapsible(value); }));
+  REG_LAMBDA(SNESCanvas, "void update()",                ([](GUI::SNESCanvas& self) { self.update(); }));
+  REG_LAMBDA(SNESCanvas, "void fill(uint16)",            ([](GUI::SNESCanvas& self, uint16 color) { self.fill(color); }));
+  REG_LAMBDA(SNESCanvas, "void pixel(int, int, uint16)", ([](GUI::SNESCanvas& self, int x, int y, uint16 color) { self.pixel(x, y, color); }));
+  REG_LAMBDA(SNESCanvas, "void draw_sprite_4bpp(int, int, uint, uint, uint, const array<uint16> &in, const array<uint16> &in)",
+             ([](GUI::SNESCanvas& self, int x, int y, uint c, uint width, uint height, const CScriptArray *tile_data, const CScriptArray *palette_data) {
+               self.draw_sprite_4bpp(x, y, c, width, height, tile_data, palette_data);
+             })
+  );
+  // TODO: draw_sprite_8bpp
 }
