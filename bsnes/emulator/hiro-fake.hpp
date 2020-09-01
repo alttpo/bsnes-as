@@ -115,6 +115,10 @@ namespace hiro {
   struct mObject {
     using type = mObject;
 
+    mObject() {}
+    template<typename T, typename... P> mObject(T* parent, P&&... p) : mObject() {
+    }
+
     template<typename T = string> auto attribute(const string& name) const -> T {
       return {};
     }
