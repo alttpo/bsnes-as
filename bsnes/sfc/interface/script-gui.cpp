@@ -1,4 +1,4 @@
-
+#ifndef DISABLE_HIRO
 struct GUI {
   struct mSNESCanvas : hiro::mCanvas {
     mSNESCanvas() :
@@ -233,6 +233,7 @@ struct GUI {
     }
   };
 };
+#endif
 
 auto RegisterGUI(asIScriptEngine *e) -> void {
   int r;
@@ -240,17 +241,22 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // GUI
   r = e->SetDefaultNamespace("GUI"); assert(r >= 0);
 
-  r = e->RegisterGlobalFunction("float get_dpiX() property", asFUNCTION(+([]() -> float {
+#ifndef DISABLE_HIRO
+  REG_LAMBDA_GLOBAL("float get_dpiX() property", ([]() -> float {
     // round DPI scalar to increments of 0.5 (eg 1.0, 1.5, 2.0, ...)
     auto scale = round(hiro::Monitor::dpi().x() / 96.0 * 2.0) / 2.0;
     return scale;
-  })), asCALL_CDECL); assert(r >= 0);
+  }));
 
-  r = e->RegisterGlobalFunction("float get_dpiY() property", asFUNCTION(+([]() -> float {
+  REG_LAMBDA_GLOBAL("float get_dpiY() property", ([]() -> float {
     // round DPI scalar to increments of 0.5 (eg 1.0, 1.5, 2.0, ...)
     auto scale = round(hiro::Monitor::dpi().y() / 96.0 * 2.0) / 2.0;
     return scale;
-  })), asCALL_CDECL); assert(r >= 0);
+  }));
+#else
+  REG_LAMBDA_GLOBAL("float get_dpiX() property", ([]() -> float { return 1.0f; }));
+  REG_LAMBDA_GLOBAL("float get_dpiY() property", ([]() -> float { return 1.0f; }));
+#endif
 
   // function types:
   r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);

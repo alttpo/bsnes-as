@@ -157,7 +157,10 @@ namespace SuperFamicom {
 
     string directory;
 
+#ifndef DISABLE_HIRO
     vector<hiro::Window> windows;
+#endif
+
     vector<ScriptInterface::Net::Socket*> sockets;
 
     struct {

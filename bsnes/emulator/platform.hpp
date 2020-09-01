@@ -1,6 +1,8 @@
 #pragma once
 
+#ifndef DISABLE_HIRO
 #include <hiro/hiro.hpp>
+#endif
 
 namespace Emulator {
 
@@ -25,7 +27,9 @@ struct Platform {
   virtual auto dipSettings(Markup::Node node) -> uint { return 0; }
   virtual auto notify(string text) -> void {}
 
+#ifndef DISABLE_HIRO
   virtual auto presentationWindow() -> hiro::Window { return {}; };
+#endif
   virtual auto scriptEngine() -> asIScriptEngine* { return nullptr; };
   virtual auto scriptMessage(const string& msg, bool alert = false) -> void { printf("script: %.*s\n", msg.size(), msg.data()); };
 };
