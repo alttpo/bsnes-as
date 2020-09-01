@@ -2,6 +2,13 @@
 #include <bsnes/sfc/sfc.hpp>
 
 // [jsd] for scripts
+
+#ifndef DISABLE_HIRO
+#  include <hiro/hiro.hpp>
+#else
+#  include <emulator/hiro-fake.hpp>
+#endif
+
 #include <nall/encode/base64.hpp>
 #include <nall/thread.hpp>
 #include "sha1.hpp"

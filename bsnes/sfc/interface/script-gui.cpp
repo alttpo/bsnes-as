@@ -398,14 +398,17 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // Window
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION( +([]{
     auto window = new hiro::Window;
+#ifndef DISABLE_HIRO
     // keep a reference for later destruction when unloading script:
     ::SuperFamicom::script.windows.append(*window);
+#endif
     return window;
   }) ), asCALL_CDECL); assert(r >= 0);
   EXPOSE_SHARED_PTR(Window, hiro::Window, hiro::mWindow);
 
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f(float rx, float ry, bool relative)", asFUNCTION(+([](float x, float y, bool relative) {
     auto window = new hiro::Window;
+#ifndef DISABLE_HIRO
     // keep a reference for later destruction when unloading script:
     ::SuperFamicom::script.windows.append(*window);
     if (relative) {
@@ -413,6 +416,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     } else {
       window->setPosition(hiro::Position{x, y});
     }
+#endif
     return window;
   })), asCALL_CDECL); assert(r >= 0);
   EXPOSE_HIRO_OBJECT(Window);

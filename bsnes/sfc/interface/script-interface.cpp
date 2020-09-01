@@ -816,6 +816,7 @@ auto Interface::unloadScript() -> void {
   ::SuperFamicom::cpu.reset_dma_interceptor();
   ::SuperFamicom::cpu.reset_pc_callbacks();
 
+#ifndef DISABLE_HIRO
   // Close any GUI windows:
   for (auto window : script.windows) {
     if (!window) continue;
@@ -825,6 +826,7 @@ auto Interface::unloadScript() -> void {
     window.reset();
   }
   script.windows.reset();
+#endif
 
   for (auto socket : script.sockets) {
     // release all script handles to the socket and close it but do not remove it from the script.sockets vector:
