@@ -138,6 +138,8 @@ namespace hiro {
     auto setFocused() -> type& { return *this; }
     auto setFont(const Font& font = {}) -> type& { return (void)font, *this; };
     auto setVisible(bool visible = true) -> type& { return (void)visible, *this; }
+
+    auto setParent(mObject* parent = nullptr, int offset = -1) -> type& { return (void)parent, (void)offset, *this; };
   };
   struct Object : sObject, mObject {};
 
@@ -197,4 +199,113 @@ namespace hiro {
     auto setTitle(const string& title = "") -> type& { return (void)title, *this; }
   };
   struct Window : sWindow, mWindow {};
+
+  Declare(VerticalLayoutCell)
+  struct mVerticalLayoutCell : mObject {
+    using type = mVerticalLayoutCell;
+
+    auto alignment() const -> maybe<float> { return {}; }
+    auto collapsible() const -> bool { return false; }
+    auto layoutExcluded() const -> bool { return false; }
+    auto setAlignment(maybe<float> alignment) -> type& { return *this; }
+    //auto setEnabled(bool enabled) -> type& override;
+    //auto setFont(const Font& font) -> type& override;
+    //auto setParent(mObject* parent = nullptr, int offset = -1) -> type& override;
+    auto setSizable(sSizable sizable) -> type& { return *this; }
+    auto setSize(Size size) -> type& { return *this; }
+    auto setSpacing(float spacing) -> type& { return *this; }
+    //auto setVisible(bool visible) -> type& override;
+    auto sizable() const -> Sizable { return {}; }
+    auto size() const -> Size { return {}; }
+    auto spacing() const -> float { return 0.f; }
+    auto synchronize() -> type& { return *this; }
+  };
+  struct VerticalLayoutCell : sVerticalLayoutCell, mVerticalLayoutCell {};
+
+  Declare(VerticalLayout)
+  struct mVerticalLayout : mSizable {
+    using type = mVerticalLayout;
+    using mSizable::remove;
+
+    auto alignment() const -> maybe<float> { return {}; }
+    auto append(sSizable sizable, Size size, float spacing = 5.f) -> type& { return *this; }
+    auto cell(uint position) const -> VerticalLayoutCell { return {}; }
+    auto cell(sSizable sizable) const -> VerticalLayoutCell { return {}; }
+    auto cells() const -> vector<VerticalLayoutCell> { return {}; }
+    auto cellCount() const -> uint { return 0; }
+    //auto minimumSize() const -> Size override;
+    auto padding() const -> Geometry { return {}; }
+    auto remove(sSizable sizable) -> type& { return *this; }
+    auto remove(sVerticalLayoutCell cell) -> type& { return *this; }
+    //auto reset() -> type& override;
+    auto resize() -> type& { return *this; }
+    auto setAlignment(maybe<float> alignment = {}) -> type& { return *this; }
+    //auto setEnabled(bool enabled) -> type& override;
+    //auto setFont(const Font& font) -> type& override;
+    //auto setGeometry(Geometry geometry) -> type& override;
+    auto setPadding(Geometry padding) -> type& { return *this; }
+    auto setPadding(float padding) { return setPadding({padding, padding, padding, padding}), *this; }
+    auto setPadding(float x, float y) { return setPadding({x, y, x, y}), *this; }
+    //auto setParent(mObject* parent = nullptr, int offset = -1) -> type& override;
+    auto setSpacing(float spacing) -> type& { return *this; }
+    //auto setVisible(bool visible) -> type& override;
+    auto spacing() const -> float { return 0.f; }
+    auto synchronize() -> type& { return *this; }
+  };
+  struct VerticalLayout : sVerticalLayout, mVerticalLayout {};
+
+  Declare(HorizontalLayoutCell)
+  struct mHorizontalLayoutCell : mObject {
+    using type = mHorizontalLayoutCell;
+
+    auto alignment() const -> maybe<float> { return {}; }
+    auto collapsible() const -> bool { return false; }
+    auto layoutExcluded() const -> bool { return false; }
+    auto setAlignment(maybe<float> alignment) -> type& { return *this; }
+    //auto setEnabled(bool enabled) -> type& override;
+    //auto setFont(const Font& font) -> type& override;
+    //auto setParent(mObject* parent = nullptr, int offset = -1) -> type& override;
+    auto setSizable(sSizable sizable) -> type& { return *this; }
+    auto setSize(Size size) -> type& { return *this; }
+    auto setSpacing(float spacing) -> type& { return *this; }
+    //auto setVisible(bool visible) -> type& override;
+    auto sizable() const -> Sizable { return {}; }
+    auto size() const -> Size { return {}; }
+    auto spacing() const -> float { return 0.f; }
+    auto synchronize() -> type& { return *this; }
+  };
+  struct HorizontalLayoutCell : sHorizontalLayoutCell, mHorizontalLayoutCell {};
+
+  Declare(HorizontalLayout)
+  struct mHorizontalLayout : mSizable {
+    using type = mHorizontalLayout;
+    using mSizable::remove;
+
+    auto alignment() const -> maybe<float> { return {}; }
+    auto append(sSizable sizable, Size size, float spacing = 5.f) -> type&;
+    auto cell(uint position) const -> HorizontalLayoutCell { return {}; }
+    auto cell(sSizable sizable) const -> HorizontalLayoutCell { return {}; }
+    auto cells() const -> vector<HorizontalLayoutCell> { return {}; }
+    auto cellCount() const -> uint { return 0; }
+    //auto minimumSize() const -> Size override;
+    auto padding() const -> Geometry { return {}; }
+    auto remove(sSizable sizable) -> type& { return *this; }
+    auto remove(sHorizontalLayoutCell cell) -> type& { return *this; }
+    //auto reset() -> type& override;
+    auto resize() -> type& { return *this; }
+    auto setAlignment(maybe<float> alignment = {}) -> type& { return *this; }
+    //auto setEnabled(bool enabled) -> type& override;
+    //auto setFont(const Font& font) -> type& override;
+    //auto setGeometry(Geometry geometry) -> type& override;
+    auto setPadding(Geometry padding) -> type& { return *this; }
+    auto setPadding(float padding) { return setPadding({padding, padding, padding, padding}), *this; }
+    auto setPadding(float x, float y) { return setPadding({x, y, x, y}), *this; }
+    auto setParent(mObject* parent = nullptr, int offset = -11) -> type& { return *this; }
+    auto setSpacing(float spacing) -> type& { return *this; }
+    //auto setVisible(bool visible) -> type& override;
+    auto spacing() const -> float { return 0.f; }
+    auto synchronize() -> type& { return *this; }
+  };
+  struct HorizontalLayout : sHorizontalLayout, mHorizontalLayout {};
+
 }
