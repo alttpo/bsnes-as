@@ -367,7 +367,7 @@ namespace hiro {
     using mSizable::remove;
 
     auto alignment() const -> maybe<float> { return {}; }
-    auto append(sSizable sizable, Size size, float spacing = 5.f) -> type&;
+    auto append(sSizable sizable, Size size, float spacing = 5.f) -> type& { return *this; }
     auto cell(uint position) const -> HorizontalLayoutCell { return {}; }
     auto cell(sSizable sizable) const -> HorizontalLayoutCell { return {}; }
     auto cells() const -> vector<HorizontalLayoutCell> { return {}; }

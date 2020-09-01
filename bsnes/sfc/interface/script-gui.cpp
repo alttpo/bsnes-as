@@ -233,6 +233,31 @@ struct GUI {
     }
   };
 };
+#else
+struct GUI {
+  struct mSNESCanvas : hiro::mCanvas {
+    mSNESCanvas() {}
+
+    auto setSize(hiro::Size size) -> void {}
+    auto setPosition(float x, float y) -> void {}
+    auto update() -> void {}
+    auto luma() -> uint8 { return 0; }
+    auto set_luma(uint8 luma) -> void { }
+    auto luma_adjust(uint16 color) -> uint16 { return 0; }
+    auto fill(uint16 color) -> void {}
+    static auto luma_adjust(uint16 color, uint8 luma) -> uint16 { return 0; }
+    auto pixel(int x, int y, uint16 color) -> void {}
+    auto draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {}
+  };
+
+  // shared pointer interface to mSNESCanvas:
+  struct SNESCanvas : shared_pointer<mSNESCanvas>, mSNESCanvas {
+    using type = SNESCanvas;
+
+    auto setAlignment(hiro::Alignment alignment = {}) -> type& { return *this; }
+    auto setAlignment(float horizontal, float vertical) -> void {}
+  };
+};
 #endif
 
 auto RegisterGUI(asIScriptEngine *e) -> void {
