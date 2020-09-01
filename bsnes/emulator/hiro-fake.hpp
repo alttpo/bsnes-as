@@ -101,6 +101,20 @@ namespace hiro {
   const string Font::Serif = "{serif}";
   const string Font::Mono  = "{mono}";
 
+  struct Gradient {
+    using type = Gradient;
+
+    Gradient() {}
+
+    explicit operator bool() const { return false; }
+    auto operator==(const Gradient& source) const -> bool { return false; }
+    auto operator!=(const Gradient& source) const -> bool { return false; }
+
+    auto setBilinear(Color topLeft, Color topRight, Color bottomLeft, Color bottomRight) -> type& { return *this; }
+    auto setHorizontal(Color left, Color right) -> type& { return *this; }
+    auto setVertical(Color top, Color bottom) -> type& { return *this; }
+  };
+
   struct Monitor {
     static auto dpi(maybe<uint> monitor = nothing) -> Position { return Position{}; }
   };
@@ -485,5 +499,35 @@ namespace hiro {
   };
   struct Button : sButton, mButton {
     DefineShared(Button);
+  };
+
+  Declare(Canvas)
+  struct mCanvas : mWidget {
+    Define(Canvas);
+
+    auto alignment() const -> Alignment { return {}; }
+    auto color() const -> Color { return {}; }
+    auto data() -> uint32_t* { return nullptr; }
+    auto gradient() const -> Gradient { return {}; }
+    auto icon() const -> image { return {}; }
+    auto setAlignment(Alignment alignment = {}) -> type& { return *this; }
+    auto setColor(Color color = {}) -> type& { return *this; }
+    auto setGradient(Gradient gradient = {}) -> type& { return *this; }
+    auto setIcon(const image& icon = {}) -> type& { return *this; }
+    auto setSize(Size size = {}) -> type& { return *this; }
+    auto size() const -> Size { return {}; }
+    auto update() -> type& { return *this; }
+
+    // [jsd]
+    auto iconRef() -> image& { return state.icon; }
+    auto moveIcon(image&& icon) -> type& { return *this; }
+
+  private:
+    struct State {
+      image icon;
+    } state;
+  };
+  struct Canvas : sCanvas, mCanvas {
+    DefineShared(Canvas);
   };
 }
