@@ -427,4 +427,25 @@ namespace hiro {
   struct ComboButton : sComboButton, mComboButton {
     DefineShared(ComboButton);
   };
+
+  Declare(LineEdit)
+  struct mLineEdit : mWidget {
+    Define(LineEdit);
+
+    auto backgroundColor() const -> Color { return {}; }
+    auto doActivate() const -> void { }
+    auto doChange() const -> void { }
+    auto editable() const -> bool { return false; }
+    auto foregroundColor() const -> Color { return {}; }
+    auto onActivate(const function<void ()>& callback = {}) -> type& { return *this; }
+    auto onChange(const function<void ()>& callback = {}) -> type& { return *this; }
+    auto setBackgroundColor(Color color = {}) -> type& { return *this; }
+    auto setEditable(bool editable = true) -> type& { return *this; }
+    auto setForegroundColor(Color color = {}) -> type& { return *this; }
+    auto setText(const string& text = "") -> type& { return *this; }
+    auto text() const -> string { return {}; }
+  };
+  struct LineEdit : sLineEdit, mLineEdit {
+    DefineShared(LineEdit);
+  };
 }
