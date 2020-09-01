@@ -538,12 +538,28 @@ namespace hiro {
 
     auto checked() const -> bool { return false; }
     auto doToggle() const -> void {}
-    auto onToggle(const function<void ()>& callback = {}) -> type& { return *this; };
+    auto onToggle(const function<void ()>& callback = {}) -> type& { return *this; }
     auto setChecked(bool checked = true) -> type& { return *this; }
     auto setText(const string& text = "") -> type& { return *this; }
     auto text() const -> string { return {}; }
   };
   struct CheckLabel : sCheckLabel, mCheckLabel {
     DefineShared(CheckLabel);
+  };
+
+  Declare(HorizontalSlider)
+  struct mHorizontalSlider : mWidget {
+    Define(HorizontalSlider);
+
+    auto doChange() const -> void {}
+    auto length() const -> uint { return 0; }
+    auto onChange(const function<void ()>& callback = {}) -> type& { return *this; }
+    auto position() const -> uint { return 0; }
+    auto setLength(uint length = 101) -> type& { return *this; }
+    auto setPosition(uint position = 0) -> type& { return *this; }
+
+  };
+  struct HorizontalSlider : sHorizontalSlider, mHorizontalSlider {
+    DefineShared(HorizontalSlider);
   };
 }
