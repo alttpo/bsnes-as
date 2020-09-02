@@ -48,6 +48,13 @@ struct Program : Emulator::Platform
 
 	bool overscan = false;
 
+  //script.cpp
+  auto scriptEngine() -> asIScriptEngine* override;
+  auto scriptMessage(const string& msg, bool alert = false) -> void override;
+  auto scriptInit() -> void;
+  auto scriptReload() -> void;
+  auto scriptUnload() -> void;
+
 public:	
 	struct Game {
 		explicit operator bool() const { return (bool)location; }
@@ -72,6 +79,13 @@ public:
 	struct GameBoy : Game {
 		vector<uint8_t> program;
 	} gameBoy;
+
+  // [jsd] add support for AngelScript
+  struct Script {
+    asIScriptEngine *engine;
+
+    string location;
+  } script;
 };
 
 static Program *program = nullptr;
@@ -79,6 +93,8 @@ static Program *program = nullptr;
 Program::Program()
 {
 	Emulator::platform = this;
+
+  scriptInit();
 }
 
 Program::~Program()
@@ -198,6 +214,8 @@ auto Program::load() -> void {
 		//Frisky Tom attract sequence sometimes hangs when WRAM is initialized to pseudo-random patterns
 		if (title == "ニチブツ・アーケード・クラシックス") emulator->configure("Hacks/Entropy", "None");
 	}
+
+  if(script.location) scriptReload();
 
 	emulator->power();
 }
@@ -690,3 +708,5 @@ auto decodeGB(string& code) -> bool {
   //unrecognized code format
   return false;
 }
+
+#include "script.cpp"
