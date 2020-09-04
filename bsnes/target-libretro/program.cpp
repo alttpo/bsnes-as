@@ -93,8 +93,6 @@ static Program *program = nullptr;
 Program::Program()
 {
 	Emulator::platform = this;
-
-  scriptInit();
 }
 
 Program::~Program()
