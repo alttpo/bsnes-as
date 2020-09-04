@@ -512,8 +512,6 @@ RETRO_API void retro_init()
   libretro_print(RETRO_LOG_DEBUG, "scriptInit()\n");
   program->scriptInit();
   program->script.location = "/Users/jamesd/Developer/me/alttp/alttpo/alttpo/";
-  libretro_print(RETRO_LOG_DEBUG, "scriptReload()\n");
-	program->scriptReload();
 }
 
 RETRO_API void retro_deinit()
