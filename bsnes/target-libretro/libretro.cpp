@@ -472,12 +472,6 @@ static void set_environment_info(retro_environment_t cb)
 RETRO_API void retro_set_environment(retro_environment_t cb)
 {
 	environ_cb = cb;
-
-	retro_log_callback log = {};
-	if (environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log) && log.log)
-		libretro_print = log.log;
-
-	set_environment_info(cb);
 }
 
 RETRO_API void retro_set_video_refresh(retro_video_refresh_t cb)
@@ -507,11 +501,21 @@ RETRO_API void retro_set_input_state(retro_input_state_t cb)
 
 RETRO_API void retro_init()
 {
+  retro_log_callback log = {};
+  if (environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log) && log.log)
+    libretro_print = log.log;
+
 	emulator = new SuperFamicom::Interface;
 	program = new Program;
   libretro_print(RETRO_LOG_DEBUG, "scriptInit()\n");
   program->scriptInit();
+
   program->script.location = "/Users/jamesd/Developer/me/alttp/alttpo/alttpo/";
+  if(program->script.location) {
+    program->scriptReload();
+  }
+
+  set_environment_info(environ_cb);
 }
 
 RETRO_API void retro_deinit()

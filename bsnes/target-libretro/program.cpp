@@ -213,8 +213,6 @@ auto Program::load() -> void {
 		if (title == "ニチブツ・アーケード・クラシックス") emulator->configure("Hacks/Entropy", "None");
 	}
 
-  if(script.location) scriptReload();
-
 	emulator->power();
 }
 
