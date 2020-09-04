@@ -518,7 +518,6 @@ RETRO_API void retro_init()
 
 RETRO_API void retro_deinit()
 {
-  program->scriptUnload();
 	delete program;
 }
 
@@ -705,7 +704,8 @@ RETRO_API bool retro_load_game_special(unsigned game_type,
 
 RETRO_API void retro_unload_game()
 {
-	program->save();
+  program->scriptUnload();
+  program->save();
 	emulator->unload();
 }
 
