@@ -121,33 +121,40 @@ namespace hiro {
 
   enum class Orientation : uint { Horizontal, Vertical };
 
+  struct RefCounted {
+    int _count;
+    RefCounted() {
+      _count = 1;
+    }
+
+    void _addRef() {
+      ++_count;
+    }
+    void _releaseRef() {
+      if (--_count == 0) {
+        delete this;
+      }
+    }
+  };
+
 #define Declare(Name) \
   struct Name; \
-  struct m##Name; \
-  using s##Name = shared_pointer<m##Name>; \
-  using w##Name = shared_pointer_weak<m##Name>;
+  using m##Name = Name; \
+  using s##Name = Name;
 
 #define Define(Name) \
-  using type = m##Name; \
-  m##Name() {} \
-  template<typename T, typename... P> m##Name(T* parent, P&&... p) : m##Name() {}
-
-#define DefineShared(Name) \
   using type = Name; \
-  using internalType = m##Name; \
+  using internalType = Name; \
   Name() {} \
   template<typename T, typename... P> Name(T* parent, P&&... p) : Name() {} \
-  Name(const s##Name& source) { (void)source; } \
+  Name(const s##Name& source) { assert(source); } \
   template<typename T> Name(const T& source, \
-  std::enable_if_t<std::is_base_of<internalType, typename T::internalType>::value>* = 0) { (void)source; } \
+  std::enable_if_t<std::is_base_of<internalType, typename T::internalType>::value>* = 0) : \
+  Name((Name&)source) { assert(source); }
 
   Declare(Object)
-  struct mObject {
-    using type = mObject;
-
-    mObject() {}
-    template<typename T, typename... P> mObject(T* parent, P&&... p) : mObject() {
-    }
+  struct Object : RefCounted {
+    Define(Object)
 
     template<typename T = string> auto attribute(const string& name) const -> T {
       return {};
@@ -173,12 +180,12 @@ namespace hiro {
     auto setFont(const Font& font = {}) -> type& { return (void)font, *this; };
     auto setVisible(bool visible = true) -> type& { return (void)visible, *this; }
 
-    auto setParent(mObject* parent = nullptr, int offset = -1) -> type& { return (void)parent, (void)offset, *this; };
+    //auto setParent(mObject* parent = nullptr, int offset = -1) -> type& { return (void)parent, (void)offset, *this; };
   };
-  struct Object : sObject, mObject {};
+  //struct Object : sObject, mObject {};
 
   Declare(Sizable)
-  struct mSizable : mObject {
+  struct Sizable : Object {
     Define(Sizable);
 
     auto collapsible() const -> bool { return false; }
@@ -191,7 +198,7 @@ namespace hiro {
     auto setLayoutExcluded(bool layoutExcluded = true) -> type& { return (void)layoutExcluded, *this; }
     auto setGeometry(Geometry geometry) -> type& { return (void)geometry, *this; }
   };
-  struct Sizable : sSizable, mSizable {};
+  //struct Sizable : sSizable, mSizable {};
 
   struct MouseCursor {
     using type = MouseCursor;
@@ -217,7 +224,7 @@ namespace hiro {
   const string MouseCursor::VerticalResize = "{vertical-resize}";
 
   Declare(Widget)
-  struct mWidget : mSizable {
+  struct Widget : Sizable {
     Define(Widget);
 
     auto doDrop(vector<string> names) const -> void {}
@@ -242,10 +249,10 @@ namespace hiro {
     auto setToolTip(const string& toolTip = "") -> type& { return *this; }
     auto toolTip() const -> string { return {}; }
   };
-  struct Widget : sWidget, mWidget {};
+  //struct Widget : sWidget, mWidget {};
 
   Declare(Window)
-  struct mWindow : mObject {
+  struct Window : Object {
     Define(Window);
 
     auto append(sSizable sizable) -> type& { (void)sizable; return *this; }
@@ -278,15 +285,15 @@ namespace hiro {
     auto setMinimumSize(Size size = {}) -> type& { return (void)size, *this; }
     auto setModal(bool modal = true) -> type& { return (void)modal, *this; }
     auto setPosition(Position position) -> type& { return (void)position, *this; }
-    auto setPosition(sWindow relativeTo, Position position) -> type& { return (void)relativeTo, (void)position, *this; }
+    //auto setPosition(sWindow relativeTo, Position position) -> type& { return (void)relativeTo, (void)position, *this; }
     auto setResizable(bool resizable = true) -> type& { return (void)resizable, *this; }
     auto setSize(Size size) -> type& { return (void)size, *this; }
     auto setTitle(const string& title = "") -> type& { return (void)title, *this; }
   };
-  struct Window : sWindow, mWindow {};
+  //struct Window : sWindow, mWindow {};
 
   Declare(VerticalLayoutCell)
-  struct mVerticalLayoutCell : mObject {
+  struct VerticalLayoutCell : Object {
     Define(VerticalLayoutCell);
 
     auto alignment() const -> maybe<float> { return {}; }
@@ -305,10 +312,10 @@ namespace hiro {
     auto spacing() const -> float { return 0.f; }
     auto synchronize() -> type& { return *this; }
   };
-  struct VerticalLayoutCell : sVerticalLayoutCell, mVerticalLayoutCell {};
+  //struct VerticalLayoutCell : sVerticalLayoutCell, mVerticalLayoutCell {};
 
   Declare(VerticalLayout)
-  struct mVerticalLayout : mSizable {
+  struct VerticalLayout : Sizable {
     Define(VerticalLayout);
     using mSizable::remove;
 
@@ -337,10 +344,10 @@ namespace hiro {
     auto spacing() const -> float { return 0.f; }
     auto synchronize() -> type& { return *this; }
   };
-  struct VerticalLayout : sVerticalLayout, mVerticalLayout {};
+  //struct VerticalLayout : sVerticalLayout, mVerticalLayout {};
 
   Declare(HorizontalLayoutCell)
-  struct mHorizontalLayoutCell : mObject {
+  struct HorizontalLayoutCell : Object {
     Define(HorizontalLayoutCell);
 
     auto alignment() const -> maybe<float> { return {}; }
@@ -359,12 +366,12 @@ namespace hiro {
     auto spacing() const -> float { return 0.f; }
     auto synchronize() -> type& { return *this; }
   };
-  struct HorizontalLayoutCell : sHorizontalLayoutCell, mHorizontalLayoutCell {};
+  //struct HorizontalLayoutCell : sHorizontalLayoutCell, mHorizontalLayoutCell {};
 
   Declare(HorizontalLayout)
-  struct mHorizontalLayout : mSizable {
+  struct HorizontalLayout : Sizable {
     Define(HorizontalLayout);
-    using mSizable::remove;
+    using Sizable::remove;
 
     auto alignment() const -> maybe<float> { return {}; }
     auto append(sSizable sizable, Size size, float spacing = 5.f) -> type& { return *this; }
@@ -391,10 +398,12 @@ namespace hiro {
     auto spacing() const -> float { return 0.f; }
     auto synchronize() -> type& { return *this; }
   };
-  struct HorizontalLayout : sHorizontalLayout, mHorizontalLayout {};
+  //struct HorizontalLayout : sHorizontalLayout, mHorizontalLayout {
+  //  DefineShared(HorizontalLayout);
+  //};
 
   Declare(Group)
-  struct mGroup : mObject {
+  struct Group : Object {
     Define(Group);
 
     auto append(sObject object) -> type& { return *this; }
@@ -403,10 +412,12 @@ namespace hiro {
     auto objects() const -> vector<Object> { return {}; }
     auto remove(sObject object) -> type& { return *this; }
   };
-  struct Group : sGroup, mGroup {};
+  //struct Group : sGroup, mGroup {
+  //  DefineShared(Group);
+  //};
 
   Declare(ComboButtonItem)
-  struct mComboButtonItem : mObject {
+  struct ComboButtonItem : Object {
     Define(ComboButtonItem);
 
     auto icon() const -> image { return {}; }
@@ -417,14 +428,14 @@ namespace hiro {
     auto setText(const string& text = "") -> type& { return *this; }
     auto text() const -> string { return {}; }
   };
-  struct ComboButtonItem : sComboButtonItem, mComboButtonItem {
-    DefineShared(ComboButtonItem);
-  };
+  //struct ComboButtonItem : sComboButtonItem, mComboButtonItem {
+  //  DefineShared(ComboButtonItem);
+  //};
 
   Declare(ComboButton)
-  struct mComboButton : mWidget {
+  struct ComboButton : Widget {
     Define(ComboButton);
-    using mObject::remove;
+    using Object::remove;
 
     auto append(sComboButtonItem item) -> type& { return *this; }
     auto doChange() const -> void { }
@@ -439,14 +450,14 @@ namespace hiro {
 
     //auto destruct() -> void override;
   };
-  struct ComboButton : sComboButton, mComboButton {
-    DefineShared(ComboButton);
-
-    auto reset() { return *this; }
-  };
+  //struct ComboButton : sComboButton, mComboButton {
+  //  DefineShared(ComboButton);
+  //
+  //  auto reset() { return *this; }
+  //};
 
   Declare(LineEdit)
-  struct mLineEdit : mWidget {
+  struct LineEdit : Widget {
     Define(LineEdit);
 
     auto backgroundColor() const -> Color { return {}; }
@@ -462,12 +473,12 @@ namespace hiro {
     auto setText(const string& text = "") -> type& { return *this; }
     auto text() const -> string { return {}; }
   };
-  struct LineEdit : sLineEdit, mLineEdit {
-    DefineShared(LineEdit);
-  };
+  //struct LineEdit : sLineEdit, mLineEdit {
+  //  DefineShared(LineEdit);
+  //};
 
   Declare(Label)
-  struct mLabel : mWidget {
+  struct Label : Widget {
     Define(Label);
 
     auto alignment() const -> Alignment { return {}; }
@@ -479,12 +490,12 @@ namespace hiro {
     auto setText(const string& text = "") -> type& { return *this; }
     auto text() const -> string { return {}; }
   };
-  struct Label : sLabel, mLabel {
-    DefineShared(Label);
-  };
+  //struct Label : sLabel, mLabel {
+  //  DefineShared(Label);
+  //};
 
   Declare(Button)
-  struct mButton : mWidget {
+  struct Button : Widget {
     Define(Button);
 
     auto bordered() const -> bool { return false; }
@@ -498,12 +509,12 @@ namespace hiro {
     auto setText(const string& text = "") -> type& { return *this; }
     auto text() const -> string { return {}; }
   };
-  struct Button : sButton, mButton {
-    DefineShared(Button);
-  };
+  //struct Button : sButton, mButton {
+  //  DefineShared(Button);
+  //};
 
   Declare(Canvas)
-  struct mCanvas : mWidget {
+  struct Canvas : Widget {
     Define(Canvas);
 
     auto alignment() const -> Alignment { return {}; }
@@ -528,12 +539,12 @@ namespace hiro {
       image icon;
     } state;
   };
-  struct Canvas : sCanvas, mCanvas {
-    DefineShared(Canvas);
-  };
+  //struct Canvas : sCanvas, mCanvas {
+  //  DefineShared(Canvas);
+  //};
 
   Declare(CheckLabel)
-  struct mCheckLabel : mWidget {
+  struct CheckLabel : Widget {
     Define(CheckLabel);
 
     auto checked() const -> bool { return false; }
@@ -543,12 +554,12 @@ namespace hiro {
     auto setText(const string& text = "") -> type& { return *this; }
     auto text() const -> string { return {}; }
   };
-  struct CheckLabel : sCheckLabel, mCheckLabel {
-    DefineShared(CheckLabel);
-  };
+  //struct CheckLabel : sCheckLabel, mCheckLabel {
+  //  DefineShared(CheckLabel);
+  //};
 
   Declare(HorizontalSlider)
-  struct mHorizontalSlider : mWidget {
+  struct HorizontalSlider : Widget {
     Define(HorizontalSlider);
 
     auto doChange() const -> void {}
@@ -559,7 +570,7 @@ namespace hiro {
     auto setPosition(uint position = 0) -> type& { return *this; }
 
   };
-  struct HorizontalSlider : sHorizontalSlider, mHorizontalSlider {
-    DefineShared(HorizontalSlider);
-  };
+  //struct HorizontalSlider : sHorizontalSlider, mHorizontalSlider {
+  //  DefineShared(HorizontalSlider);
+  //};
 }

@@ -266,6 +266,14 @@ bool isGuiEnabled = true;
 bool isGuiEnabled = false;
 #endif
 
+#ifndef DISABLE_HIRO
+#  define GUI_EXPOSE_SHARED_PTR(name, className, mClassName) EXPOSE_SHARED_PTR(name, className, mClassName)
+#else
+#  define GUI_EXPOSE_SHARED_PTR(name, className, mClassName) \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(+([](className& self){ self._addRef(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ self._releaseRef(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+#endif
+
 auto RegisterGUI(asIScriptEngine *e) -> void {
   int r;
 
@@ -316,7 +324,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define EXPOSE_HIRO(name) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
-  EXPOSE_SHARED_PTR(name, hiro::name, hiro::m##name)
+  GUI_EXPOSE_SHARED_PTR(name, hiro::name, hiro::m##name)
 
   // Object:
 #define EXPOSE_OBJECT(name, className) \
@@ -348,7 +356,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(name, "bool get_layoutExcluded() property",             ([](className* self) { return self->layoutExcluded(); })); \
   REG_LAMBDA(name, "void set_layoutExcluded(bool) property",         ([](className* self, bool layoutExcluded) { self->setLayoutExcluded(layoutExcluded); })); \
   REG_LAMBDA(name, "Size@ get_minimumSize() property",               ([](className* self) { return new hiro::Size(self->minimumSize()); })); \
-  REG_LAMBDA(name, "void setPosition(float, float)",                 ([](className& self, float x, float y) { \
+  REG_LAMBDA(name, "void setPosition(float, float)",                 ([](className* self, float x, float y) { \
     self->setGeometry(hiro::Geometry(hiro::Position(x, y), self->geometry().size())); \
   })); \
   REG_LAMBDA(name, "void doSize()",                               ([](className* self) { self->doSize(); })); \
@@ -438,7 +446,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #endif
     return window;
   }) ), asCALL_CDECL); assert(r >= 0);
-  EXPOSE_SHARED_PTR(Window, hiro::Window, hiro::mWindow);
+  GUI_EXPOSE_SHARED_PTR(Window, hiro::Window, hiro::mWindow);
 
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f(float rx, float ry, bool relative)", asFUNCTION(+([](float x, float y, bool relative) {
     auto window = new hiro::Window;
@@ -558,7 +566,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO(Group);
   REG_LAMBDA(Group, "void append(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->append(*object); }));
   REG_LAMBDA(Group, "void remove(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->remove(*object); }));
-  REG_LAMBDA(Group, "Group@ get_opIndex(uint i) property",  ([](hiro::Group *p, uint i) { return new hiro::ComboButtonItem(p->object(i)); }));
+  //REG_LAMBDA(Group, "Group@ get_opIndex(uint i) property",  ([](hiro::Group *p, uint i) { return new hiro::ComboButtonItem(p->object(i)); }));
   REG_LAMBDA(Group, "uint count()",                         ([](hiro::Group *p) { return p->objectCount(); }));
 
   // LineEdit
@@ -668,7 +676,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // SNESCanvas
   r = e->RegisterObjectBehaviour("SNESCanvas", asBEHAVE_FACTORY, "SNESCanvas@ f()", asFUNCTION( +([]{ return new GUI::SNESCanvas(); }) ), asCALL_CDECL); assert(r >= 0);
-  EXPOSE_SHARED_PTR(SNESCanvas, GUI::SNESCanvas, GUI::mSNESCanvas);
+  GUI_EXPOSE_SHARED_PTR(SNESCanvas, GUI::SNESCanvas, GUI::mSNESCanvas);
   EXPOSE_OBJECT(SNESCanvas, GUI::SNESCanvas);
   EXPOSE_SIZABLE(SNESCanvas, GUI::SNESCanvas);
   REG_LAMBDA(SNESCanvas, "void set_size(Size &in size) property",               ([](GUI::SNESCanvas& self, hiro::Size &size) { self.setSize(size); }));
