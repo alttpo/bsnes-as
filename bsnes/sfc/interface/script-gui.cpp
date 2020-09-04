@@ -260,11 +260,20 @@ struct GUI {
 };
 #endif
 
+#ifndef DISABLE_HIRO
+bool isGuiEnabled = true;
+#else
+bool isGuiEnabled = false;
+#endif
+
 auto RegisterGUI(asIScriptEngine *e) -> void {
   int r;
 
   // GUI
   r = e->SetDefaultNamespace("GUI"); assert(r >= 0);
+
+  // GUI::enabled
+  r = e->RegisterGlobalProperty("bool enabled", (void*) &isGuiEnabled);
 
   REG_LAMBDA_GLOBAL("float get_dpiX() property", ([]() -> float {
     // round DPI scalar to increments of 0.5 (eg 1.0, 1.5, 2.0, ...)
