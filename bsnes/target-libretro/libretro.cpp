@@ -507,10 +507,19 @@ RETRO_API void retro_init()
 
 	emulator = new SuperFamicom::Interface;
 	program = new Program;
+
   libretro_print(RETRO_LOG_DEBUG, "scriptInit()\n");
   program->scriptInit();
 
-  program->script.location = "/Users/jamesd/Developer/me/alttp/alttpo/alttpo/";
+  const char *dir;
+  if (environ_cb(RETRO_ENVIRONMENT_GET_CORE_ASSETS_DIRECTORY, &dir) && dir) {
+    program->script.location = string(dir, "/scripts/");
+    libretro_print(RETRO_LOG_DEBUG, "Searching for scripts in core assets directory '%.*s'\n", program->script.location.size(), program->script.location.data());
+  } else if (environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir) {
+    program->script.location = string(dir, "/scripts/");
+    libretro_print(RETRO_LOG_DEBUG, "Searching for scripts in system directory '%.*s'\n", program->script.location.size(), program->script.location.data());
+  }
+
   if(program->script.location) {
     program->scriptReload();
   }
