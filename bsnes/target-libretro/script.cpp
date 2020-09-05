@@ -4,17 +4,42 @@ auto Program::scriptEngine() -> asIScriptEngine * {
 }
 
 auto Program::scriptMessage(const string& msg, bool alert) -> void {
-  libretro_print(alert ? RETRO_LOG_ERROR : RETRO_LOG_INFO, "%.*s\n", msg.size(), msg.data());
+  libretro_print(RETRO_LOG_INFO, "%.*s\n", msg.size(), msg.data());
+
+  if (alert) {
+    if (environ_cb) {
+      retro_message rmsg = {
+        msg.data(), // msg
+        180         // frames: 3 seconds
+      };
+      environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &rmsg);
+    }
+  }
 }
 
-// Implement a simple message callback function
+// Implement a simple message callback function for script compiler warnings/errors
 void scriptMessageCallback(const asSMessageInfo *msg, void *param) {
-  const char *type = "ERR ";
-  if (msg->type == asMSGTYPE_WARNING)
-    type = "WARN";
+  // translate angelscript log level to libretro log level:
+  enum retro_log_level level;
+  if (msg->type == asMSGTYPE_ERROR)
+    level = RETRO_LOG_ERROR;
+  else if (msg->type == asMSGTYPE_WARNING)
+    level = RETRO_LOG_WARN;
   else if (msg->type == asMSGTYPE_INFORMATION)
-    type = "INFO";
-  program->scriptMessage(string("{0} ({1}, {2}) : {3} : {4}").format({msg->section, msg->row, msg->col, type, msg->message}), true);
+    level = RETRO_LOG_INFO;
+
+  // format message:
+  const string &text = string("{0} ({1}, {2}) : {3}").format({msg->section, msg->row, msg->col, msg->message});
+  libretro_print(level, "%.*s\n", text.size(), text.data());
+
+  // alert:
+  if (environ_cb) {
+    retro_message rmsg = {
+      text.data(), // msg
+      180         // frames: 3 seconds
+    };
+    environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &rmsg);
+  }
 }
 
 auto Program::scriptInit() -> void {
