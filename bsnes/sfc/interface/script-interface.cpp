@@ -465,6 +465,7 @@ namespace ScriptInterface {
   #include "script-gui.cpp"
   #include "script-bml.cpp"
   #include "script-discord.cpp"
+  #include "script-menu.cpp"
 
 };
 
@@ -627,6 +628,10 @@ auto Interface::paletteUpdated(uint32_t *palette, uint depth) -> void {
   }
 }
 
+auto Interface::menuOptionUpdated(const string& menuName, const string& key, const string& value) -> void {
+  // TODO
+}
+
 auto Interface::registerScriptDefs() -> void {
   int r;
 
@@ -712,6 +717,8 @@ auto Interface::registerScriptDefs() -> void {
   ScriptInterface::RegisterBML(script.engine);
 
   ScriptInterface::DiscordInterface::Register(script.engine);
+
+  ScriptInterface::RegisterMenu(script.engine);
 
   r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 

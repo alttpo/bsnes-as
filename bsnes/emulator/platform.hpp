@@ -32,6 +32,11 @@ struct Platform {
 #endif
   virtual auto scriptEngine() -> asIScriptEngine* { return nullptr; };
   virtual auto scriptMessage(const string& msg, bool alert = false) -> void { printf("script: %.*s\n", msg.size(), msg.data()); };
+
+  virtual auto registerMenu(const string& menuName, const string& display, const string& desc) -> void {};
+  virtual auto registerMenuOption(const string& menuName, const string& key, const string& desc, const string& info, const vector<string>& values) -> void {};
+  virtual auto setMenuOption(const string& menuName, const string& key, const string& value) -> void {};
+  virtual auto getMenuOption(const string& menuName, const string& key) -> string { return {}; };
 };
 
 extern Platform* platform;

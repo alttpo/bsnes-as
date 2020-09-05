@@ -80,6 +80,7 @@ struct Interface : Emulator::Interface {
   auto loadScript(string location) -> void override;
   auto unloadScript() -> void override;
   auto paletteUpdated(uint32_t *palette, uint depth) -> void override;
+  auto menuOptionUpdated(const string& menuName, const string& key, const string& value) -> void override;
 private:
   auto registerScriptString() -> void;
 };

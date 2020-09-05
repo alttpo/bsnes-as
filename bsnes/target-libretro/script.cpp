@@ -71,3 +71,57 @@ auto Program::scriptUnload() -> void {
   emulator->unloadScript();
   scriptMessage("All scripts unloaded", true);
 }
+
+auto Program::registerMenu(const string& menuName, const string& display, const string& desc) -> void {
+  script.menus.insert(menuName, {menuName, display, desc});
+}
+
+auto Program::registerMenuOption(const string& menuName, const string& key, const string& desc, const string& info, const vector<string>& values) -> void {
+  auto maybeMenu = script.menus.find(menuName);
+  if (!maybeMenu) {
+    return;
+  }
+
+  auto& menu = *maybeMenu;
+  menu.options.append({key, desc, info, values, values[0]});
+}
+
+auto Program::setMenuOption(const string& menuName, const string& key, const string& value) -> void {
+  auto maybeMenu = script.menus.find(menuName);
+  if (!maybeMenu) {
+    // no such menu:
+    return;
+  }
+
+  auto& menu = *maybeMenu;
+  for (auto& option : menu.options) {
+    if (option.key != key) {
+      continue;
+    }
+
+    // set the option's value and return:
+    option.value = value;
+    return;
+  }
+}
+
+auto Program::getMenuOption(const string& menuName, const string& key) -> string {
+  auto maybeMenu = script.menus.find(menuName);
+  if (!maybeMenu) {
+    // no such menu:
+    return {};
+  }
+
+  auto &menu = *maybeMenu;
+  for (auto &option : menu.options) {
+    if (option.key != key) {
+      continue;
+    }
+
+    // return the option's value:
+    return option.value;
+  }
+
+  // no such option key:
+  return {};
+}

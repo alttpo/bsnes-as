@@ -51,6 +51,11 @@ struct Program : Emulator::Platform
   //script.cpp
   auto scriptEngine() -> asIScriptEngine* override;
   auto scriptMessage(const string& msg, bool alert = false) -> void override;
+  auto registerMenu(const string& menuName, const string& display, const string& desc) -> void override;
+  auto registerMenuOption(const string& menuName, const string& key, const string& desc, const string& info, const vector<string>& values) -> void override;
+  auto setMenuOption(const string& menuName, const string& key, const string& value) -> void override;
+  auto getMenuOption(const string& menuName, const string& key) -> string override;
+
   auto scriptInit() -> void;
   auto scriptReload() -> void;
   auto scriptUnload() -> void;
@@ -85,6 +90,23 @@ public:
     asIScriptEngine *engine;
 
     string location;
+
+    struct Menu {
+      string name;
+      string display;
+      string desc;
+
+      struct Option {
+        string key;
+        string desc;
+        string info;
+        vector<string> values;
+        string value;
+      };
+
+      vector<Option> options;
+    };
+    map<string, Menu> menus;
   } script;
 };
 
