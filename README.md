@@ -4,7 +4,7 @@ I have embedded the [AngelScript v2.34.0](https://www.angelcode.com/angelscript/
 some rudimentary script function bindings between the bsnes emulator and AngelScript scripts.
 
 Download nightly binary builds here:
-https://dev.azure.com/ALttPO/alttpo/_build?definitionId=1
+https://dev.azure.com/ALttPO/alttpo/_build?definitionId=3&_a=summary&repositoryFilter=3
 
 Screenshots
 ---
@@ -86,3 +86,9 @@ AngelScript Interface
 =====================
 
 Refer to [this document](angelscript.md) for details on the AngelScript interface to bsnes.
+
+Troubleshooting
+===
+
+For users of MacOS Catalina (10.15), be sure to extract the download archive using https://www.keka.io/en/ file
+archiver. DO NOT use the built-in "Archive Utility.app".
