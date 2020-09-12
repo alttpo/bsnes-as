@@ -24,7 +24,7 @@ auto Program::scriptInit() -> void {
   scriptCreateEngine();
 
   // Let the emulator register its script definitions:
-  emulator->registerScriptDefs();
+  emulator->registerScriptDefs(this);
 
   // Determine "recent" script folder:
   if (inode::exists(scriptHostState.location)) {

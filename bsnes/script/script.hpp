@@ -49,10 +49,7 @@ public:
 // the interface that sfc implements:
 struct Interface {
 
-  //virtual auto registerScriptDefs(Platform *platform) -> void {}
-  //
-  //virtual auto onModuleLoaded(asIScriptModule *module) -> void {}
-  //virtual auto onModuleUnloaded(asIScriptModule *module) -> void {}
+  virtual auto registerScriptDefs(Platform *platform) -> void {}
 
 };
 

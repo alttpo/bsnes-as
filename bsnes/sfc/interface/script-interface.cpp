@@ -632,7 +632,7 @@ auto Interface::menuOptionUpdated(const string& menuName, const string& key, con
   // TODO
 }
 
-auto Interface::registerScriptDefs() -> void {
+auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
   int r;
 
   script.engine = platform->scriptEngine();
