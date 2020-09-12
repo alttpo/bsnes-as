@@ -1,17 +1,13 @@
 
 //#include <bsnes/target-bsnes/bsnes.hpp>
 
-auto Program::scriptEngine() -> asIScriptEngine * {
-  return script.engine;
-}
-
 auto Program::scriptMessage(const string& msg, bool alert) -> void {
   // append to stdout:
   printf("%.*s\n", msg.size(), msg.data());
 
   // append to script console:
-  script.console.append(msg);
-  script.console.append("\n");
+  scriptHostState.console.append(msg);
+  scriptHostState.console.append("\n");
   scriptConsole.update();
 
   // alert in status bar:
@@ -24,35 +20,17 @@ auto Program::presentationWindow() -> hiro::Window {
   return presentation;
 }
 
-// Implement a simple message callback function
-void MessageCallback(const asSMessageInfo *msg, void *param) {
-  const char *type = "ERR ";
-  if (msg->type == asMSGTYPE_WARNING)
-    type = "WARN";
-  else if (msg->type == asMSGTYPE_INFORMATION)
-    type = "INFO";
-  program.scriptMessage(string("{0} ({1}, {2}) : {3} : {4}").format({msg->section, msg->row, msg->col, type, msg->message}), true);
-}
-
 auto Program::scriptInit() -> void {
-  // initialize angelscript once on emulator startup:
-  script.engine = asCreateScriptEngine();
-
-  // use single-quoted character literals:
-  script.engine->SetEngineProperty(asEP_USE_CHARACTER_LITERALS, true);
-
-  // Set the message callback to receive information on errors in human readable form.
-  int r = script.engine->SetMessageCallback(asFUNCTION(MessageCallback), 0, asCALL_CDECL);
-  assert(r >= 0);
+  scriptCreateEngine();
 
   // Let the emulator register its script definitions:
   emulator->registerScriptDefs();
 
   // Determine "recent" script folder:
-  if (inode::exists(script.location)) {
+  if (inode::exists(scriptHostState.location)) {
     // from script path specified on command line (--script=xyz):
-    script.location = Path::realfilepath(script.location);
-    settings.path.recent.script = script.location;
+    scriptHostState.location = Path::realfilepath(scriptHostState.location);
+    settings.path.recent.script = scriptHostState.location;
   }
   if (!inode::exists(settings.path.recent.script)) {
     // set to current folder:
@@ -85,26 +63,26 @@ auto Program::scriptLoad(bool loadDirectory) -> void {
     return;
   }
 
-  script.location = location;
-  if (directory::exists(script.location)) {
-    settings.path.recent.script = Path::real(script.location);
+  scriptHostState.location = location;
+  if (directory::exists(scriptHostState.location)) {
+    settings.path.recent.script = Path::real(scriptHostState.location);
   } else {
-    settings.path.recent.script = Location::dir(Path::real(script.location));
+    settings.path.recent.script = Location::dir(Path::real(scriptHostState.location));
   }
 
-  scriptMessage({"Compiling script file '", (script.location), "'"}, true);
-  emulator->loadScript(script.location);
-  scriptMessage({"Script file '", (script.location), "' loaded"}, true);
+  scriptMessage({"Compiling script file '", (scriptHostState.location), "'"}, true);
+  emulator->loadScript(scriptHostState.location);
+  scriptMessage({"Script file '", (scriptHostState.location), "' loaded"}, true);
 }
 
 auto Program::scriptReload() -> void {
-  if (!inode::exists(script.location)) {
-    scriptMessage({"Script file '", (script.location), "' not found"}, true);
+  if (!inode::exists(scriptHostState.location)) {
+    scriptMessage({"Script file '", (scriptHostState.location), "' not found"}, true);
     return;
   }
 
-  emulator->loadScript(script.location);
-  scriptMessage({"Script file '", (script.location), "' loaded"}, true);
+  emulator->loadScript(scriptHostState.location);
+  scriptMessage({"Script file '", (scriptHostState.location), "' loaded"}, true);
 }
 
 auto Program::scriptUnload() -> void {

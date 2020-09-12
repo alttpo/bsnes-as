@@ -6,7 +6,7 @@
 
 namespace Emulator {
 
-struct Platform {
+struct Platform : Script::Platform {
   struct Load {
     Load() = default;
     Load(uint pathID, string option = "") : valid(true), pathID(pathID), option(option) {}
@@ -28,11 +28,10 @@ struct Platform {
   virtual auto notify(string text) -> void {}
 
 #ifndef DISABLE_HIRO
-  virtual auto presentationWindow() -> hiro::Window { return {}; };
+  virtual auto presentationWindow() -> hiro::Window { return {}; }
 #endif
-  virtual auto scriptEngine() -> asIScriptEngine* { return nullptr; };
-  virtual auto scriptMessage(const string& msg, bool alert = false) -> void { printf("script: %.*s\n", msg.size(), msg.data()); };
 
+  // scripting for libretro:
   virtual auto registerMenu(const string& menuName, const string& display, const string& desc) -> void {};
   virtual auto registerMenuOption(const string& menuName, const string& key, const string& desc, const string& info, const vector<string>& values) -> void {};
   virtual auto setMenuOption(const string& menuName, const string& key, const string& value) -> void {};

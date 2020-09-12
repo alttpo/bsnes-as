@@ -29,7 +29,7 @@ auto nall::main(Arguments arguments) -> void {
     } else if(argument.beginsWith("--settings=")) {
       settings.location = argument.trimLeft("--settings=", 1L);
     } else if(argument.beginsWith("--script=")) {
-      program.script.location = argument.trimLeft("--script=", 1L);
+      program.scriptHostState.location = argument.trimLeft("--script=", 1L);
     } else if(inode::exists(argument)) {
       //game without option
       program.gameQueue.append({"Auto;", argument});

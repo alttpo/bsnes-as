@@ -30,8 +30,7 @@ using namespace nall;
 #include <emulator/audio/audio.hpp>
 
 // [jsd] add support for AngelScript
-#include <angelscript.h>
-#include <scriptarray.h>
+#include <script/script.hpp>
 
 #include "version.generated.hpp"
 
