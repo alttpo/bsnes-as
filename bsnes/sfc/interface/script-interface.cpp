@@ -445,8 +445,7 @@ namespace ScriptInterface {
     }
 
     auto operator()() -> void {
-      //auto ctx = ::SuperFamicom::script.context;
-      auto ctx = ::SuperFamicom::script.engine->CreateContext();
+      auto ctx = platform->scriptEngine()->CreateContext();
       ctx->Prepare(cb);
       executeScript(ctx);
       ctx->Release();
@@ -470,6 +469,8 @@ namespace ScriptInterface {
 };
 
 auto string_format_list_factory(void *initList) -> string_format* {
+  auto e = platform->scriptEngine();
+
   auto f = new string_format();
 
   asUINT length = *(asUINT *) initList;
@@ -492,7 +493,7 @@ auto string_format_list_factory(void *initList) -> string_format* {
     //asTYPEID_MASK_SEQNBR    = 0x03FFFFFF
     if (typeId & asTYPEID_APPOBJECT) {
       // app-defined object:
-      const char *declaration = script.engine->GetTypeDeclaration(typeId);
+      const char *declaration = e->GetTypeDeclaration(typeId);
       //printf("typeId=%d, decl=`%s`\n", typeId, declaration);
 
       if (strcmp("string", declaration) != 0) {
@@ -512,7 +513,7 @@ auto string_format_list_factory(void *initList) -> string_format* {
     } else if (typeId & asTYPEID_OBJHANDLE) {
       // script-defined object:
       initList = (void *) ((void **) initList + 1);
-      asITypeInfo *ti = script.engine->GetTypeInfoById(typeId);
+      asITypeInfo *ti = e->GetTypeInfoById(typeId);
 
       // look up a toString() method:
       auto func = ti->GetMethodByDecl("string toString() const");
@@ -535,13 +536,13 @@ auto string_format_list_factory(void *initList) -> string_format* {
       bool isNested = false;
       asIScriptContext *ctx = asGetActiveContext();
       if (ctx) {
-        if (ctx->GetEngine() == script.engine && ctx->PushState() >= 0)
+        if (ctx->GetEngine() == e && ctx->PushState() >= 0)
           isNested = true;
         else
           ctx = nullptr;
       }
       if (ctx == nullptr) {
-        ctx = script.engine->RequestContext();
+        ctx = e->RequestContext();
       }
 
       int r;
@@ -563,10 +564,10 @@ auto string_format_list_factory(void *initList) -> string_format* {
           ctx->Abort();
         }
       } else {
-        script.engine->ReturnContext(ctx);
+        e->ReturnContext(ctx);
       }
     } else {
-      int size = max(4, script.engine->GetSizeOfPrimitiveType(typeId));
+      int size = max(4, e->GetSizeOfPrimitiveType(typeId));
       initList = (void *) ((uint8_t *) initList + size);
       switch (typeId) {
         case asTYPEID_BOOL:
@@ -635,27 +636,26 @@ auto Interface::menuOptionUpdated(const string& menuName, const string& key, con
 auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
   int r;
 
-  script.engine = platform->scriptEngine();
-  auto e = script.engine;
+  auto e = platform->scriptEngine();
 
   // register global functions for the script to use:
-  auto defaultNamespace = script.engine->GetDefaultNamespace();
+  auto defaultNamespace = e->GetDefaultNamespace();
 
   // register array type:
-  RegisterScriptArray(script.engine, true /* bool defaultArrayType */, false /* useNative */);
+  RegisterScriptArray(e, true /* bool defaultArrayType */, false /* useNative */);
 
   // register string type:
   registerScriptString();
 
   // additional array functions for serialization purposes:
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_u8(const uint8 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint8), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_u16(const uint16 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint16), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_u24(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint24), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_u32(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint32), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_arr(const ? &in array)", asFUNCTION(ScriptInterface::uint8_array_append_array), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_str(const string &in other)", asFUNCTION(ScriptInterface::uint8_array_append_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_u8(const uint8 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint8), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_u16(const uint16 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint16), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_u24(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint24), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_u32(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint32), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_arr(const ? &in array)", asFUNCTION(ScriptInterface::uint8_array_append_array), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_str(const string &in other)", asFUNCTION(ScriptInterface::uint8_array_append_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-  r = script.engine->RegisterObjectMethod("array<T>", "string &toString(uint offs, uint size) const", asFUNCTION(ScriptInterface::array_to_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "string &toString(uint offs, uint size) const", asFUNCTION(ScriptInterface::array_to_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   {
     // string_format scoped ref type:
@@ -678,52 +678,52 @@ auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
   }
 
   // global function to write debug messages:
-  r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(ScriptInterface::message), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(ScriptInterface::message), asCALL_CDECL); assert(r >= 0);
 
   // chrono namespace to get system timestamp and monotonic time:
   {
-    r = script.engine->SetDefaultNamespace("chrono::monotonic"); assert(r >= 0);
+    r = e->SetDefaultNamespace("chrono::monotonic"); assert(r >= 0);
 
-    r = script.engine->RegisterGlobalFunction("uint64 get_nanosecond() property", asFUNCTION(chrono::nanosecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_microsecond() property", asFUNCTION(chrono::microsecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_millisecond() property", asFUNCTION(chrono::millisecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_second() property", asFUNCTION(chrono::second), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_nanosecond() property", asFUNCTION(chrono::nanosecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_microsecond() property", asFUNCTION(chrono::microsecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_millisecond() property", asFUNCTION(chrono::millisecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_second() property", asFUNCTION(chrono::second), asCALL_CDECL); assert(r >= 0);
   }
 
   {
-    r = script.engine->SetDefaultNamespace("chrono::realtime"); assert(r >= 0);
+    r = e->SetDefaultNamespace("chrono::realtime"); assert(r >= 0);
 
-    r = script.engine->RegisterGlobalFunction("uint64 get_nanosecond() property", asFUNCTION(chrono::realtime::nanosecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_microsecond() property", asFUNCTION(chrono::realtime::microsecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_millisecond() property", asFUNCTION(chrono::realtime::millisecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_second() property", asFUNCTION(chrono::realtime::second), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_nanosecond() property", asFUNCTION(chrono::realtime::nanosecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_microsecond() property", asFUNCTION(chrono::realtime::microsecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_millisecond() property", asFUNCTION(chrono::realtime::millisecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_second() property", asFUNCTION(chrono::realtime::second), asCALL_CDECL); assert(r >= 0);
 
     // timestamp() calls the old ::time() API; should be identical to get_second but not tested that yet:
-    //r = script.engine->RegisterGlobalFunction("uint64 get_timestamp() property", asFUNCTIONPR(chrono::timestamp, (), uint64_t), asCALL_CDECL); assert(r >= 0);
+    //r = e->RegisterGlobalFunction("uint64 get_timestamp() property", asFUNCTIONPR(chrono::timestamp, (), uint64_t), asCALL_CDECL); assert(r >= 0);
   }
 
-  ScriptInterface::RegisterBus(script.engine);
+  ScriptInterface::RegisterBus(e);
 
   {
     // Order here is important as RegisterPPU sets namespace to 'ppu' and the following functions expect that.
-    ScriptInterface::RegisterPPU(script.engine);
-    ScriptInterface::RegisterPPUFrame(script.engine);
-    ScriptInterface::RegisterPPUExtra(script.engine);
+    ScriptInterface::RegisterPPU(e);
+    ScriptInterface::RegisterPPUFrame(e);
+    ScriptInterface::RegisterPPUExtra(e);
   }
 
-  ScriptInterface::RegisterNet(script.engine);
-  ScriptInterface::RegisterGUI(script.engine);
+  ScriptInterface::RegisterNet(e);
+  ScriptInterface::RegisterGUI(e);
 
-  ScriptInterface::RegisterBML(script.engine);
+  ScriptInterface::RegisterBML(e);
 
-  ScriptInterface::DiscordInterface::Register(script.engine);
+  ScriptInterface::DiscordInterface::Register(e);
 
-  ScriptInterface::RegisterMenu(script.engine);
+  ScriptInterface::RegisterMenu(e);
 
-  r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
+  r = e->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 
   // create context:
-  script.context = script.engine->CreateContext();
+  script.context = e->CreateContext();
 
   //script.context->SetExceptionCallback(asMETHOD(ScriptInterface::ExceptionHandler, exceptionCallback), &ScriptInterface::exceptionHandler, asCALL_THISCALL);
   script.context->SetExceptionCallback(asFUNCTION(+([](asIScriptContext* ctx, ScriptInterface::ExceptionHandler& self){ self.exceptionCallback(ctx); })), &ScriptInterface::exceptionHandler, asCALL_CDECL);
@@ -738,8 +738,10 @@ auto Interface::loadScript(string location) -> void {
     unloadScript();
   }
 
+  auto e = platform->scriptEngine();
+
   // create a main module:
-  script.main_module = script.engine->GetModule("main", asGM_ALWAYS_CREATE);
+  script.main_module = e->GetModule("main", asGM_ALWAYS_CREATE);
 
   // (/parent/child.type/)
   // (/parent/child.type/)name.type

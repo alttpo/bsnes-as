@@ -102,7 +102,7 @@ static auto stringSlice(const string *self, int offset, int length) -> string {
 
 auto Interface::registerScriptString() -> void {
   int r;
-  asIScriptEngine *e = script.engine;
+  auto e = platform->scriptEngine();
 
   // register string type:
   r = e->RegisterObjectType("string", sizeof(string), asOBJ_VALUE | asOBJ_APP_CLASS_CDAK); assert( r >= 0 );
