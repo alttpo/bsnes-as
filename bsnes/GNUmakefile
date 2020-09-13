@@ -51,13 +51,14 @@ else ifneq ($(filter $(platform),linux bsd),)
   endif
 endif
 
-objects := libco emulator filter lzma script-platform
+objects := libco emulator filter lzma script-platform script-profiler
 
 obj/libco.o: ../libco/libco.c
 obj/emulator.o: emulator/emulator.cpp
 obj/filter.o: filter/filter.cpp
 obj/lzma.o: lzma/lzma.cpp
 obj/script-platform.o: script/script-platform.cpp
+obj/script-profiler.o: script/script-profiler.cpp
 
 include sfc/GNUmakefile
 include gb/GNUmakefile

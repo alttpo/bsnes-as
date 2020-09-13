@@ -59,10 +59,6 @@ bool sock_has_error(int err) {
 }
 #endif
 
-#if !defined(AS_PROFILER_PERIOD_MICROSECONDS)
-#  define AS_PROFILER_PERIOD_MICROSECONDS 101
-#endif
-
 #define S1(x) #x
 #define S2(x) S1(x)
 #define LOCATION __FILE__ ":" S2(__LINE__)
@@ -97,147 +93,6 @@ typedef uint16 r5g5b5;
 typedef uint16 b5g5r5;
 
 namespace ScriptInterface {
-
-  struct Profiler {
-    ~Profiler() {
-      enabled = false;
-      thrProfiler.join();
-    }
-
-    struct node_t {
-      // key:
-      string section;
-      int line;
-      // value:
-      uint64 samples;
-
-      node_t() = default;
-      node_t(const string &section, int line) : section(section), line(line) {}
-      node_t(const string &section, int line, uint64 samples) : section(section), line(line), samples(samples) {}
-
-      auto operator< (const node_t& source) const -> bool {
-        int c = strcmp(section, source.section);
-        if (c < 0) return true;
-        if (c > 0) return false;
-        return line <  source.line;
-      }
-      auto operator==(const node_t& source) const -> bool {
-        int c = section.compare(source.section);
-        if (c != 0) return false;
-        return line == source.line;
-      }
-    };
-
-    // red-black tree acting as a map storing sample counts by file:line key:
-    set< node_t > sectionLineSamples;
-    uint64 last_time = 0;
-    uint64 last_save = 0;
-    nall::thread thrProfiler;
-    volatile bool enabled = false;
-
-    auto samplingThread(uintptr p) -> void {
-      while (enabled) {
-        // sleep until next period (in microseconds):
-        usleep(AS_PROFILER_PERIOD_MICROSECONDS);
-
-        // wake up and record last sampled script location:
-        recordSample();
-
-        // auto-save every 5 seconds:
-        auto time = chrono::microsecond();
-        if (time - last_save >= 5'000'000) {
-          save();
-          last_save = time;
-        }
-      }
-    }
-
-    auto lineCallback(asIScriptContext *ctx) -> void {
-      sampleLocation(ctx);
-    }
-
-    auto enable(asIScriptContext *ctx) -> void {
-      mtx.lock();
-
-      enabled = true;
-      thrProfiler = nall::thread::create({&Profiler::samplingThread, this});
-      //ctx->SetLineCallback(asMETHOD(ScriptInterface::Profiler, lineCallback), this, asCALL_THISCALL);
-      ctx->SetLineCallback(asFUNCTION(+([](asIScriptContext *ctx, ScriptInterface::Profiler& self) { self.lineCallback(ctx); })), this, asCALL_CDECL);
-
-      mtx.unlock();
-    }
-
-    auto disable(asIScriptContext *ctx) -> void {
-      mtx.lock();
-
-      ctx->ClearLineCallback();
-      enabled = false;
-
-      mtx.unlock();
-    }
-
-    void reset() {
-      sectionLineSamples.reset();
-    }
-
-    void save() {
-      mtx.lock();
-
-      auto fb = file_buffer({"perf-",getpid(),".csv"}, file_buffer::mode::write);
-      fb.truncate(0);
-      fb.writes({"section,line,samples\n"});
-      for (auto &node : sectionLineSamples) {
-        fb.writes({node.section, ",", node.line, ",", node.samples, "\n"});
-      }
-
-      mtx.unlock();
-    }
-
-    string scriptSection = "<not in script>";
-    int line, column;
-    std::mutex mtx;
-
-    auto sampleLocation(asIScriptContext *ctx) -> void {
-      mtx.lock();
-
-      // sample where we are:
-      const char *section;
-      line = ctx->GetLineNumber(0, &column, &section);
-
-      if (section == nullptr) {
-        scriptSection = "<not in script>";
-        line = 0;
-      } else {
-        scriptSection = section;
-      }
-
-      mtx.unlock();
-    }
-
-    auto resetLocation() -> void {
-      mtx.lock();
-
-      scriptSection = "<not in script>";
-      line = 0;
-      column = 0;
-
-      mtx.unlock();
-    }
-
-    auto recordSample() -> void {
-      mtx.lock();
-
-      // increment sample counter for the section/line:
-      auto node = sectionLineSamples.find({scriptSection, line});
-      if (!node) {
-        sectionLineSamples.insert({{scriptSection}, line, 1});
-      } else {
-        node->samples++;
-      }
-
-      mtx.unlock();
-    }
-  } profiler;
 
   static auto message(const string *msg) -> void {
     platform->scriptMessage(*msg);
@@ -374,9 +229,9 @@ namespace ScriptInterface {
     }
   }
 
+  // TODO: remove this method
   auto executeScript(asIScriptContext *ctx) -> void {
-    ctx->Execute();
-    profiler.resetLocation();
+    platform->scriptExecute(ctx);
   }
 
   struct Callback {
@@ -742,9 +597,8 @@ auto Interface::loadScript(string location) -> void {
   script.funcs.post_frame = script.main_module->GetFunctionByDecl("void post_frame()");
   script.funcs.palette_updated = script.main_module->GetFunctionByDecl("void palette_updated()");
 
-#if defined(AS_PROFILER_ENABLE)
-  ScriptInterface::profiler.enable(platform->scriptPrimaryContext());
-#endif
+  // enable profiler:
+  platform->scriptProfilerEnable(platform->scriptPrimaryContext());
 
   if (script.funcs.init) {
     auto ctx = platform->scriptPrimaryContext();
@@ -799,9 +653,7 @@ auto Interface::unloadScript() -> void {
 
   ScriptInterface::DiscordInterface::reset();
 
-#if defined(AS_PROFILER_ENABLE)
-  ScriptInterface::profiler.disable(platform->scriptPrimaryContext());
-#endif
+  platform->scriptProfilerDisable(platform->scriptPrimaryContext());
 
   // discard all loaded modules:
   for (auto module : script.modules) {

@@ -111,4 +111,37 @@ auto Platform::scriptPrimaryContext() -> asIScriptContext* {
   return scriptEngineState.context;
 }
 
+auto Platform::scriptExecute(asIScriptContext *ctx) -> asUINT {
+  auto r = ctx->Execute();
+  scriptEngineState.profiler.resetLocation();
+  return r;
+}
+
+auto Platform::scriptInvokeFunction(asIScriptFunction *func, function<void (asIScriptContext*)> prepareArgs) -> asUINT {
+  if (!func) {
+    return 0;
+  }
+
+  auto ctx = scriptPrimaryContext();
+
+  ctx->Prepare(func);
+  if (prepareArgs) {
+    prepareArgs(ctx);
+  }
+
+  return scriptExecute(ctx);
+}
+
+auto Platform::scriptProfilerEnable(asIScriptContext *ctx) -> void {
+#if defined(AS_PROFILER_ENABLE)
+  scriptEngineState.profiler.enable(ctx);
+#endif
+}
+
+auto Platform::scriptProfilerDisable(asIScriptContext *ctx) -> void {
+#if defined(AS_PROFILER_ENABLE)
+  scriptEngineState.profiler.disable(ctx);
+#endif
+}
+
 }
