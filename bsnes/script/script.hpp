@@ -34,6 +34,16 @@ using uint64 = uint64_t;
 
 namespace Script {
 
+enum MessageLevel {
+  MSG_DEBUG = 0,
+  MSG_INFO,
+  MSG_WARN,
+  MSG_ERROR
+};
+
+auto convertMessageLevel(asEMsgType msgType) -> MessageLevel;
+auto nameMessageLevel(MessageLevel level) -> const char *;
+
 struct Profiler {
   ~Profiler();
 
@@ -83,7 +93,7 @@ public:
   // functions the interface calls:
   virtual auto scriptEngine() -> asIScriptEngine*;
   virtual auto scriptPrimaryContext() -> asIScriptContext*;
-  virtual auto scriptMessage(const string& msg, bool alert = false) -> void;
+  virtual auto scriptMessage(const string& msg, bool alert = false, MessageLevel level = MSG_INFO) -> void;
   virtual auto scriptCreateContext() -> asIScriptContext*;
 
   virtual auto scriptInvokeFunction(asIScriptFunction *func, function<void (asIScriptContext*)> prepareArgs = {}) -> asUINT;
@@ -98,6 +108,8 @@ public:
   virtual auto scriptProfilerEnable(asIScriptContext*) -> void;
   virtual auto scriptProfilerDisable(asIScriptContext*) -> void;
 
+  virtual auto scriptMessageCallback(const asSMessageInfo *) -> void;
+
   struct ScriptEngineState {
     asIScriptEngine   *engine   = nullptr;
     asIScriptContext  *context  = nullptr;
@@ -105,8 +117,8 @@ public:
     Profiler profiler;
   } scriptEngineState;
 
-private:
-  // private functions used for script callbacks:
+protected:
+  // utility functions:
   auto getStackTrace(asIScriptContext *ctx) -> vector<string>;
   auto exceptionCallback(asIScriptContext *ctx) -> void;
 };

@@ -142,7 +142,7 @@ struct Program : Lock, Emulator::Platform {
   auto viewportRefresh() -> void;
 
   //script.cpp
-  auto scriptMessage(const string& msg, bool alert = false) -> void override;
+  auto scriptMessage(const string& msg, bool alert = false, ::Script::MessageLevel level = ::Script::MSG_INFO) -> void override;
   auto presentationWindow() -> hiro::Window override;
 
   auto scriptInit() -> void;

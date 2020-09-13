@@ -1,18 +1,23 @@
 
 //#include <bsnes/target-bsnes/bsnes.hpp>
 
-auto Program::scriptMessage(const string& msg, bool alert) -> void {
+auto Program::scriptMessage(const string& msg, bool alert, ::Script::MessageLevel level) -> void {
+  auto levelName = ::Script::nameMessageLevel(level);
+
   // append to stdout:
-  printf("%.*s\n", msg.size(), msg.data());
+  printf("[%s] %.*s\n", levelName, msg.size(), msg.data());
 
   // append to script console:
+  scriptHostState.console.append("[");
+  scriptHostState.console.append(levelName);
+  scriptHostState.console.append("] ");
   scriptHostState.console.append(msg);
   scriptHostState.console.append("\n");
   scriptConsole.update();
 
   // alert in status bar:
   if (alert) {
-    showMessage({"[scr] ", msg});
+    showMessage({"[scr] [", levelName, "] ", msg});
   }
 }
 

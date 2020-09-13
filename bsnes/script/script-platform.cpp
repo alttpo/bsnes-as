@@ -3,34 +3,62 @@
 
 namespace Script {
 
-auto Platform::scriptMessage(const string& msg, bool alert) -> void {
-  printf("script: %.*s\n", msg.size(), msg.data());
+auto convertMessageLevel(asEMsgType msgType) -> MessageLevel {
+  switch (msgType) {
+    case asMSGTYPE_ERROR:       return MSG_ERROR;
+    case asMSGTYPE_WARNING:     return MSG_WARN;
+    case asMSGTYPE_INFORMATION: return MSG_INFO;
+    default: return MSG_DEBUG;
+  }
 }
 
-// Implement a simple message callback function
-void ScriptMessageCallback(const asSMessageInfo *msg, void *param) {
-  Platform *platform = (Platform *)param;
+auto nameMessageLevel(MessageLevel level) -> const char * {
+  const char *type = "DEBUG";
+  if (level == MSG_WARN)
+    type = "WARN ";
+  else if (level == MSG_INFO)
+    type = "INFO ";
+  else if (level == MSG_ERROR)
+    type = "ERROR";
 
-  const char *type = "ERR ";
-  if (msg->type == asMSGTYPE_WARNING)
-    type = "WARN";
-  else if (msg->type == asMSGTYPE_INFORMATION)
-    type = "INFO";
+  return type;
+}
 
-  platform->scriptMessage(string("{0} ({1}, {2}) : {3} : {4}").format({msg->section, msg->row, msg->col, type, msg->message}), true);
+auto Platform::scriptMessage(const string& msg, bool alert, MessageLevel level) -> void {
+  printf("script: [%s] %.*s\n", nameMessageLevel(level), msg.size(), msg.data());
+}
+
+auto Platform::scriptMessageCallback(const asSMessageInfo *msg) -> void {
+  auto level = convertMessageLevel(msg->type);
+
+  scriptMessage(
+    string("{0} ({1}, {2}) : {3}").format({
+      msg->section,
+      msg->row,
+      msg->col,
+      msg->message
+    }),
+    true,
+    level
+  );
 }
 
 auto Platform::scriptCreateEngine() -> void {
   // initialize angelscript once on emulator startup:
   auto e = asCreateScriptEngine();
-
   scriptEngineState.engine = e;
 
   // use single-quoted character literals:
   e->SetEngineProperty(asEP_USE_CHARACTER_LITERALS, true);
 
   // Set the message callback to receive information on errors in human readable form.
-  int r = e->SetMessageCallback(asFUNCTION(ScriptMessageCallback), (void*)this, asCALL_CDECL);
+  int r = e->SetMessageCallback(
+    asFUNCTION(+([](const asSMessageInfo *msg, void *param) {
+      ((Platform *) param)->scriptMessageCallback(msg);
+    })),
+    (void*)this,
+    asCALL_CDECL
+  );
   assert(r >= 0);
 }
 
