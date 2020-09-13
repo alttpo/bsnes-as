@@ -209,10 +209,9 @@ struct Bus {
     }
 
     auto operator()(const CPU::DMAIntercept &dma) -> void {
-      auto ctx = platform->scriptPrimaryContext();
-      ctx->Prepare(cb);
-      ctx->SetArgObject(0, (void *)&dma);
-      executeScript(ctx);
+      platform->scriptInvokeFunction(cb, [=](auto ctx) {
+        ctx->SetArgObject(0, (void *)&dma);
+      });
     }
   };
 
@@ -236,10 +235,9 @@ struct Bus {
     }
 
     auto operator()(uint32 addr) -> void {
-      auto ctx = platform->scriptPrimaryContext();
-      ctx->Prepare(cb);
-      ctx->SetArgDWord(0, addr);
-      executeScript(ctx);
+      platform->scriptInvokeFunction(cb, [=](auto ctx) {
+        ctx->SetArgDWord(0, addr);
+      });
     }
   };
 

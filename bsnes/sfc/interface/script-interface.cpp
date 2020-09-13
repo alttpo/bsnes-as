@@ -250,8 +250,7 @@ namespace ScriptInterface {
 
     auto operator()() -> void {
       auto ctx = platform->scriptEngine()->CreateContext();
-      ctx->Prepare(cb);
-      executeScript(ctx);
+      platform->scriptInvokeFunctionWithContext(cb, ctx);
       ctx->Release();
     }
   };

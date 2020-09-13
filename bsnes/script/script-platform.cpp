@@ -118,11 +118,17 @@ auto Platform::scriptExecute(asIScriptContext *ctx) -> asUINT {
 }
 
 auto Platform::scriptInvokeFunction(asIScriptFunction *func, function<void (asIScriptContext*)> prepareArgs) -> asUINT {
+  return scriptInvokeFunctionWithContext(func, nullptr, prepareArgs);
+}
+
+auto Platform::scriptInvokeFunctionWithContext(asIScriptFunction *func, asIScriptContext *ctx, function<void (asIScriptContext*)> prepareArgs) -> asUINT {
   if (!func) {
     return 0;
   }
 
-  auto ctx = scriptPrimaryContext();
+  if (!ctx) {
+    ctx = scriptPrimaryContext();
+  }
 
   ctx->Prepare(func);
   if (prepareArgs) {

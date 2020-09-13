@@ -87,6 +87,7 @@ public:
   virtual auto scriptCreateContext() -> asIScriptContext*;
 
   virtual auto scriptInvokeFunction(asIScriptFunction *func, function<void (asIScriptContext*)> prepareArgs = {}) -> asUINT;
+  virtual auto scriptInvokeFunctionWithContext(asIScriptFunction *func, asIScriptContext *ctx, function<void (asIScriptContext*)> prepareArgs = {}) -> asUINT;
   virtual auto scriptExecute(asIScriptContext *ctx) -> asUINT;
 
 public:
