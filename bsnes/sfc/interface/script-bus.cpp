@@ -180,13 +180,12 @@ struct Bus {
     }
 
     auto operator()(uint addr, uint8 new_value, const function<uint8()> &get_old_value) -> void {
-      auto ctx = platform->scriptPrimaryContext();
-      //printf("call() this=%p ctx=%p cb=%p\n", this, ctx, cb);
-      ctx->Prepare(cb);
-      ctx->SetArgDWord(0, addr);
-      ctx->SetArgByte(1, get_old_value());
-      ctx->SetArgByte(2, new_value);
-      executeScript(ctx);
+      platform->scriptInvokeFunction(cb, [=](auto ctx) {
+        //printf("call() this=%p ctx=%p cb=%p\n", this, ctx, cb);
+        ctx->SetArgDWord(0, addr);
+        ctx->SetArgByte(1, get_old_value());
+        ctx->SetArgByte(2, new_value);
+      });
     }
   };
 
