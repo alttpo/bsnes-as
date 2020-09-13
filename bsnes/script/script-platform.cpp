@@ -32,7 +32,7 @@ auto Platform::scriptMessageCallback(const asSMessageInfo *msg) -> void {
   auto level = convertMessageLevel(msg->type);
 
   scriptMessage(
-    string("{0} ({1}, {2}) : {3}").format({
+    string("({0}:{1},{2}) {3}").format({
       msg->section,
       msg->row,
       msg->col,
@@ -77,7 +77,7 @@ auto Platform::getStackTrace(asIScriptContext *ctx) -> vector<string> {
     func = ctx->GetFunction(n);
     line = ctx->GetLineNumber(n, &column, &scriptSection);
 
-    frames.append(string("  `{0}` {1}:{2}:{3}").format({
+    frames.append(string("  ({1}:{2},{3}) `{0}`").format({
                                                          func->GetDeclaration(),
                                                          scriptSection,
                                                          line,
@@ -98,7 +98,7 @@ auto Platform::exceptionCallback(asIScriptContext *ctx) -> void {
   line = ctx->GetExceptionLineNumber(&column, &scriptSection);
 
   // format main message:
-  auto message = string("EXCEPTION `{0}`\n  `{1}` {2}:{3}:{4}\n")
+  auto message = string("!!! {0}\n  ({2}:{3},{4}) `{1}`\n")
     .format({
               ctx->GetExceptionString(),
               function->GetDeclaration(),
