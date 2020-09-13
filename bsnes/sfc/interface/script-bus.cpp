@@ -1,10 +1,24 @@
 
 struct Bus {
+  static auto bus_valid() -> bool {
+    if (!::SuperFamicom::bus) {
+      asGetActiveContext()->SetException("SFC system not initialized yet", false);
+      return false;
+    }
+    return true;
+  }
+
   static auto read_u8(uint32 addr) -> uint8 {
+    if (!bus_valid()) {
+      return 0xFF;
+    }
     return ::SuperFamicom::bus.read(addr, 0);
   }
 
   static auto read_block_u8(uint32 addr, uint offs, uint16 size, CScriptArray *output) -> void {
+    if (!bus_valid()) {
+      return;
+    }
     if (output == nullptr) {
       asGetActiveContext()->SetException("output array cannot be null", true);
       return;
@@ -29,6 +43,9 @@ struct Bus {
   }
 
   static auto read_block_u16(uint32 addr, uint offs, uint16 size, CScriptArray *output) -> void {
+    if (!bus_valid()) {
+      return;
+    }
     if (output == nullptr) {
       asGetActiveContext()->SetException("output array cannot be null", true);
       return;
@@ -55,14 +72,24 @@ struct Bus {
   }
 
   static auto read_u16(uint32 addr) -> uint16 {
+    if (!bus_valid()) {
+      return 0xFF;
+    }
     return ::SuperFamicom::bus.read(addr & 0xFFFFFF, 0) | (::SuperFamicom::bus.read((addr + 1) & 0xFFFFFF,0) << 8u);
   }
 
   static auto read_u16_ext(uint32 addr0, uint32 addr1) -> uint16 {
+    if (!bus_valid()) {
+      return 0xFF;
+    }
     return ::SuperFamicom::bus.read(addr0 & 0xFFFFFF, 0) | (::SuperFamicom::bus.read(addr1 & 0xFFFFFF, 0) << 8u);
   }
 
   static auto write_u8(uint32 addr, uint8 data) -> void {
+    if (!bus_valid()) {
+      return;
+    }
+
     Memory::GlobalWriteEnable = true;
     {
       // prevent scripts from intercepting their own writes:
@@ -72,6 +99,10 @@ struct Bus {
   }
 
   static auto write_u16(uint32 addr, uint16 data) -> void {
+    if (!bus_valid()) {
+      return;
+    }
+
     Memory::GlobalWriteEnable = true;
     {
       // prevent scripts from intercepting their own writes:
@@ -82,6 +113,9 @@ struct Bus {
   }
 
   static auto write_block_u8(uint32 addr, uint offs, uint16 size, CScriptArray *input) -> void {
+    if (!bus_valid()) {
+      return;
+    }
     if (input == nullptr) {
       asGetActiveContext()->SetException("input array cannot be null", true);
       return;
@@ -110,6 +144,9 @@ struct Bus {
   }
 
   static auto write_block_u16(uint32 addr, uint offs, uint16 size, CScriptArray *input) -> void {
+    if (!bus_valid()) {
+      return;
+    }
     if (input == nullptr) {
       asGetActiveContext()->SetException("input array cannot be null", true);
       return;
@@ -141,6 +178,10 @@ struct Bus {
   }
 
   static auto map_array(const string *addr, uint32 size, uint32 mask, uint32 offset, CScriptArray *memory) -> void {
+    if (!bus_valid()) {
+      return;
+    }
+
     // this never gets released because the map read/write functions are also never released:
     memory->AddRef();
 
@@ -190,6 +231,10 @@ struct Bus {
   };
 
   static auto add_write_interceptor(const string *addr, asIScriptFunction *cb) -> void {
+    if (!bus_valid()) {
+      return;
+    }
+
     ::SuperFamicom::bus.add_write_interceptor(*addr, write_interceptor(cb));
   }
 
@@ -216,6 +261,10 @@ struct Bus {
   };
 
   static auto register_dma_interceptor(asIScriptFunction *cb) -> void {
+    if (!bus_valid()) {
+      return;
+    }
+
     ::SuperFamicom::cpu.register_dma_interceptor(dma_interceptor(cb));
   }
 
@@ -242,10 +291,18 @@ struct Bus {
   };
 
   static auto register_pc_interceptor(uint32 addr, asIScriptFunction *cb) -> void {
+    if (!bus_valid()) {
+      return;
+    }
+
     ::SuperFamicom::cpu.register_pc_callback(addr, pc_interceptor(cb));
   }
 
   static auto unregister_pc_interceptor(uint32 addr) -> void {
+    if (!bus_valid()) {
+      return;
+    }
+
     ::SuperFamicom::cpu.unregister_pc_callback(addr);
   }
 } bus;
