@@ -523,18 +523,19 @@ auto Interface::loadScript(string location) -> void {
 
   if (!inode::exists(location)) return;
 
-  if (script.modules) {
+  if (platform->scriptEngineState.modules) {
     unloadScript();
   }
 
   auto e = platform->scriptEngine();
 
   // create a main module:
-  script.main_module = e->GetModule("main", asGM_ALWAYS_CREATE);
+  auto main_module = e->GetModule("main", asGM_ALWAYS_CREATE);
+  platform->scriptEngineState.main_module = main_module;
 
   // (/parent/child.type/)
   // (/parent/child.type/)name.type
-  script.directory = Location::path(location);
+  platform->scriptEngineState.directory = Location::path(location);
 
   if (directory::exists(location)) {
     // add all *.as files in root directory to main module:
@@ -552,7 +553,7 @@ auto Interface::loadScript(string location) -> void {
       }
 
       // add script section into module:
-      r = script.main_module->AddScriptSection(filename, scriptSource.begin(), scriptSource.length());
+      r = main_module->AddScriptSection(filename, scriptSource.begin(), scriptSource.length());
       if (r < 0) {
         platform->scriptMessage({"Loading ", filename, " failed"});
         return;
@@ -565,27 +566,27 @@ auto Interface::loadScript(string location) -> void {
     string scriptSource = string::read(location);
 
     // add script into main module:
-    r = script.main_module->AddScriptSection(Location::file(location), scriptSource.begin(), scriptSource.length());
+    r = main_module->AddScriptSection(Location::file(location), scriptSource.begin(), scriptSource.length());
     assert(r >= 0);
   }
 
   // compile module:
-  r = script.main_module->Build();
+  r = main_module->Build();
   assert(r >= 0);
 
   // track main module:
-  script.modules.append(script.main_module);
+  platform->scriptEngineState.modules.append(main_module);
 
   // bind to functions in the main module:
-  script.funcs.init = script.main_module->GetFunctionByDecl("void init()");
-  script.funcs.unload = script.main_module->GetFunctionByDecl("void unload()");
-  script.funcs.post_power = script.main_module->GetFunctionByDecl("void post_power(bool reset)");
-  script.funcs.cartridge_loaded = script.main_module->GetFunctionByDecl("void cartridge_loaded()");
-  script.funcs.cartridge_unloaded = script.main_module->GetFunctionByDecl("void cartridge_unloaded()");
-  script.funcs.pre_nmi = script.main_module->GetFunctionByDecl("void pre_nmi()");
-  script.funcs.pre_frame = script.main_module->GetFunctionByDecl("void pre_frame()");
-  script.funcs.post_frame = script.main_module->GetFunctionByDecl("void post_frame()");
-  script.funcs.palette_updated = script.main_module->GetFunctionByDecl("void palette_updated()");
+  script.funcs.init = main_module->GetFunctionByDecl("void init()");
+  script.funcs.unload = main_module->GetFunctionByDecl("void unload()");
+  script.funcs.post_power = main_module->GetFunctionByDecl("void post_power(bool reset)");
+  script.funcs.cartridge_loaded = main_module->GetFunctionByDecl("void cartridge_loaded()");
+  script.funcs.cartridge_unloaded = main_module->GetFunctionByDecl("void cartridge_unloaded()");
+  script.funcs.pre_nmi = main_module->GetFunctionByDecl("void pre_nmi()");
+  script.funcs.pre_frame = main_module->GetFunctionByDecl("void pre_frame()");
+  script.funcs.post_frame = main_module->GetFunctionByDecl("void post_frame()");
+  script.funcs.palette_updated = main_module->GetFunctionByDecl("void palette_updated()");
 
   // enable profiler:
   platform->scriptProfilerEnable(platform->scriptPrimaryContext());
@@ -631,11 +632,11 @@ auto Interface::unloadScript() -> void {
   platform->scriptProfilerDisable(platform->scriptPrimaryContext());
 
   // discard all loaded modules:
-  for (auto module : script.modules) {
+  for (auto module : platform->scriptEngineState.modules) {
     module->Discard();
   }
-  script.modules.reset();
-  script.main_module = nullptr;
+  platform->scriptEngineState.modules.reset();
+  platform->scriptEngineState.main_module = nullptr;
 
   script.funcs.init = nullptr;
   script.funcs.unload = nullptr;

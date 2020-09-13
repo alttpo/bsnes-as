@@ -608,7 +608,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_WIDGET(Canvas);
   REG_LAMBDA(Canvas, "bool loadPNG(const string &in)", ([](hiro::Canvas& self, const string &filename) -> bool {
     string path;
-    path.append(::SuperFamicom::script.directory);
+    path.append(platform->scriptEngineState.directory);
     path.append(filename);
 
     auto img = nall::image();

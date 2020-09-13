@@ -115,6 +115,11 @@ public:
     asIScriptContext  *context  = nullptr;
 
     Profiler profiler;
+
+    vector<asIScriptModule *> modules;
+    asIScriptModule          *main_module = nullptr;
+
+    string directory;
   } scriptEngineState;
 
 protected:

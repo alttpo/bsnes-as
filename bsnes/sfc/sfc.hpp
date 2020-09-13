@@ -148,11 +148,6 @@ namespace SuperFamicom {
   }
 
   struct Script {
-    vector<asIScriptModule *> modules;
-    asIScriptModule          *main_module = nullptr;
-
-    string directory;
-
 #ifndef DISABLE_HIRO
     vector<hiro::Window> windows;
 #endif
