@@ -97,57 +97,6 @@ typedef uint16 r5g5b5;
 typedef uint16 b5g5r5;
 
 namespace ScriptInterface {
-  struct ExceptionHandler {
-    auto getStackTrace(asIScriptContext *ctx) -> vector<string> {
-      vector<string> frames;
-
-      for (asUINT n = 1; n < ctx->GetCallstackSize(); n++) {
-        asIScriptFunction *func;
-        const char *scriptSection;
-        int line, column;
-
-        func = ctx->GetFunction(n);
-        line = ctx->GetLineNumber(n, &column, &scriptSection);
-
-        frames.append(string("  `{0}` {1}:{2}:{3}").format({
-          func->GetDeclaration(),
-          scriptSection,
-          line,
-          column
-        }));
-      }
-
-      return frames;
-    }
-
-    void exceptionCallback(asIScriptContext *ctx) {
-      asIScriptEngine *engine = ctx->GetEngine();
-
-      // Determine the exception that occurred
-      const asIScriptFunction *function = ctx->GetExceptionFunction();
-      const char *scriptSection;
-      int line, column;
-      line = ctx->GetExceptionLineNumber(&column, &scriptSection);
-
-      // format main message:
-      auto message = string("EXCEPTION `{0}`\n  `{1}` {2}:{3}:{4}\n")
-        .format({
-          ctx->GetExceptionString(),
-          function->GetDeclaration(),
-          scriptSection,
-          line,
-          column
-        });
-
-      // append stack trace:
-      message.append(getStackTrace(ctx).merge("\n"));
-
-      platform->scriptMessage(
-        message,
-        true
-      );
-    }
-  } exceptionHandler;
 
   struct Profiler {
     ~Profiler() {
@@ -624,8 +573,9 @@ auto Interface::paletteUpdated(uint32_t *palette, uint depth) -> void {
   ScriptInterface::emulatorDepth = depth;
 
   if (script.funcs.palette_updated) {
-    script.context->Prepare(script.funcs.palette_updated);
-    ScriptInterface::executeScript(script.context);
+    auto ctx = platform->scriptPrimaryContext();
+    ctx->Prepare(script.funcs.palette_updated);
+    ScriptInterface::executeScript(ctx);
   }
 }
 
@@ -721,12 +671,6 @@ auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
   ScriptInterface::RegisterMenu(e);
 
   r = e->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
-
-  // create context:
-  script.context = e->CreateContext();
-
-  //script.context->SetExceptionCallback(asMETHOD(ScriptInterface::ExceptionHandler, exceptionCallback), &ScriptInterface::exceptionHandler, asCALL_THISCALL);
-  script.context->SetExceptionCallback(asFUNCTION(+([](asIScriptContext* ctx, ScriptInterface::ExceptionHandler& self){ self.exceptionCallback(ctx); })), &ScriptInterface::exceptionHandler, asCALL_CDECL);
 }
 
 auto Interface::loadScript(string location) -> void {
@@ -799,22 +743,25 @@ auto Interface::loadScript(string location) -> void {
   script.funcs.palette_updated = script.main_module->GetFunctionByDecl("void palette_updated()");
 
 #if defined(AS_PROFILER_ENABLE)
-  ScriptInterface::profiler.enable(script.context);
+  ScriptInterface::profiler.enable(platform->scriptPrimaryContext());
 #endif
 
   if (script.funcs.init) {
-    script.context->Prepare(script.funcs.init);
-    ScriptInterface::executeScript(script.context);
+    auto ctx = platform->scriptPrimaryContext();
+    ctx->Prepare(script.funcs.init);
+    ScriptInterface::executeScript(ctx);
   }
   if (loaded()) {
     if (script.funcs.cartridge_loaded) {
-      script.context->Prepare(script.funcs.cartridge_loaded);
-      ScriptInterface::executeScript(script.context);
+      auto ctx = platform->scriptPrimaryContext();
+      ctx->Prepare(script.funcs.cartridge_loaded);
+      ScriptInterface::executeScript(ctx);
     }
     if (script.funcs.post_power) {
-      script.context->Prepare(script.funcs.post_power);
-      script.context->SetArgByte(0, false); // reset = false
-      ScriptInterface::executeScript(script.context);
+      auto ctx = platform->scriptPrimaryContext();
+      ctx->Prepare(script.funcs.post_power);
+      ctx->SetArgByte(0, false); // reset = false
+      ScriptInterface::executeScript(ctx);
     }
   }
 }
@@ -845,14 +792,15 @@ auto Interface::unloadScript() -> void {
 
   // unload script:
   if (script.funcs.unload) {
-    script.context->Prepare(script.funcs.unload);
-    ScriptInterface::executeScript(script.context);
+    auto ctx = platform->scriptPrimaryContext();
+    ctx->Prepare(script.funcs.unload);
+    ScriptInterface::executeScript(ctx);
   }
 
   ScriptInterface::DiscordInterface::reset();
 
 #if defined(AS_PROFILER_ENABLE)
-  ScriptInterface::profiler.disable(script.context);
+  ScriptInterface::profiler.disable(platform->scriptPrimaryContext());
 #endif
 
   // discard all loaded modules:

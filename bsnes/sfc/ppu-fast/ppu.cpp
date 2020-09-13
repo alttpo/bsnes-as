@@ -185,8 +185,9 @@ auto PPU::refresh() -> void {
       ppuFrame.height = height;
       ppuFrame.width_mult  = (width / 256u);
       ppuFrame.height_mult = (height / 240u);
-      script.context->Prepare(script.funcs.post_frame);
-      ScriptInterface::executeScript(script.context);
+      auto ctx = platform->scriptPrimaryContext();
+      ctx->Prepare(script.funcs.post_frame);
+      ScriptInterface::executeScript(ctx);
     }
 
     if(auto device = controllerPort2.device) device->draw(output, pitch * sizeof(uint16), width, height);

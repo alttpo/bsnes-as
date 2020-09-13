@@ -180,7 +180,7 @@ struct Bus {
     }
 
     auto operator()(uint addr, uint8 new_value, const function<uint8()> &get_old_value) -> void {
-      auto ctx = ::SuperFamicom::script.context;
+      auto ctx = platform->scriptPrimaryContext();
       //printf("call() this=%p ctx=%p cb=%p\n", this, ctx, cb);
       ctx->Prepare(cb);
       ctx->SetArgDWord(0, addr);
@@ -210,7 +210,7 @@ struct Bus {
     }
 
     auto operator()(const CPU::DMAIntercept &dma) -> void {
-      auto ctx = ::SuperFamicom::script.context;
+      auto ctx = platform->scriptPrimaryContext();
       ctx->Prepare(cb);
       ctx->SetArgObject(0, (void *)&dma);
       executeScript(ctx);
@@ -237,7 +237,7 @@ struct Bus {
     }
 
     auto operator()(uint32 addr) -> void {
-      auto ctx = ::SuperFamicom::script.context;
+      auto ctx = platform->scriptPrimaryContext();
       ctx->Prepare(cb);
       ctx->SetArgDWord(0, addr);
       executeScript(ctx);

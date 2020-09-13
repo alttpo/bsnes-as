@@ -34,16 +34,25 @@ namespace Script {
 struct Platform {
 public:
   // functions the interface calls:
-  virtual auto scriptEngine() -> asIScriptEngine* { return scriptEngineState.engine; }
-  virtual auto scriptMessage(const string& msg, bool alert = false) -> void { printf("script: %.*s\n", msg.size(), msg.data()); }
+  virtual auto scriptEngine() -> asIScriptEngine*;
+  virtual auto scriptPrimaryContext() -> asIScriptContext*;
+  virtual auto scriptMessage(const string& msg, bool alert = false) -> void;
+  virtual auto scriptCreateContext() -> asIScriptContext*;
 
 public:
   // functions the host calls:
-  auto scriptCreateEngine() -> void;
+  virtual auto scriptCreateEngine() -> void;
+  virtual auto scriptCreatePrimaryContext() -> void;
 
   struct ScriptEngineState {
-    asIScriptEngine *engine = nullptr;
+    asIScriptEngine   *engine   = nullptr;
+    asIScriptContext  *context  = nullptr;
   } scriptEngineState;
+
+private:
+  // private functions used for script callbacks:
+  auto getStackTrace(asIScriptContext *ctx) -> vector<string>;
+  auto exceptionCallback(asIScriptContext *ctx) -> void;
 };
 
 // the interface that sfc implements:

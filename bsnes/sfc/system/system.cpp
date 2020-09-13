@@ -106,16 +106,18 @@ auto System::runToSaveStrict() -> void {
 auto System::frameStartEvent() -> void {
   // [jsd] run AngelScript pre_frame() function if available:
   if (script.funcs.pre_frame) {
-    script.context->Prepare(script.funcs.pre_frame);
-    ScriptInterface::executeScript(script.context);
+    auto ctx = platform->scriptPrimaryContext();
+    ctx->Prepare(script.funcs.pre_frame);
+    ScriptInterface::executeScript(ctx);
   }
 }
 
 auto System::framePreNMIEvent() -> void {
   // [jsd] run AngelScript pre_nmi() function if available:
   if (script.funcs.pre_nmi) {
-    script.context->Prepare(script.funcs.pre_nmi);
-    ScriptInterface::executeScript(script.context);
+    auto ctx = platform->scriptPrimaryContext();
+    ctx->Prepare(script.funcs.pre_nmi);
+    ScriptInterface::executeScript(ctx);
   }
 }
 
@@ -167,8 +169,9 @@ auto System::load(Emulator::Interface* interface) -> bool {
 
   // [jsd] run AngelScript cartridge_loaded function if available:
   if (script.funcs.cartridge_loaded) {
-    script.context->Prepare(script.funcs.cartridge_loaded);
-    ScriptInterface::executeScript(script.context);
+    auto ctx = platform->scriptPrimaryContext();
+    ctx->Prepare(script.funcs.cartridge_loaded);
+    ScriptInterface::executeScript(ctx);
   }
 
   return information.loaded = true;
@@ -205,8 +208,9 @@ auto System::unload() -> void {
 
   // [jsd] run AngelScript cartridge_unloaded function if available:
   if (script.funcs.cartridge_unloaded) {
-    script.context->Prepare(script.funcs.cartridge_unloaded);
-    ScriptInterface::executeScript(script.context);
+    auto ctx = platform->scriptPrimaryContext();
+    ctx->Prepare(script.funcs.cartridge_unloaded);
+    ScriptInterface::executeScript(ctx);
   }
 
   information.loaded = false;
@@ -279,9 +283,10 @@ auto System::power(bool reset) -> void {
 
   // [jsd] run AngelScript post_power function if available:
   if (script.funcs.post_power) {
-    script.context->Prepare(script.funcs.post_power);
-    script.context->SetArgByte(0, reset);
-    ScriptInterface::executeScript(script.context);
+    auto ctx = platform->scriptPrimaryContext();
+    ctx->Prepare(script.funcs.post_power);
+    ctx->SetArgByte(0, reset);
+    ScriptInterface::executeScript(ctx);
   }
 }
 
