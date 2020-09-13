@@ -145,7 +145,6 @@ namespace SuperFamicom {
     namespace Net {
       struct Socket;
     }
-    auto executeScript(asIScriptContext *ctx) -> void;
   }
 
   struct Script {

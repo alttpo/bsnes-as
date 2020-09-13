@@ -229,11 +229,6 @@ namespace ScriptInterface {
     }
   }
 
-  // TODO: remove this method
-  auto executeScript(asIScriptContext *ctx) -> void {
-    platform->scriptExecute(ctx);
-  }
-
   struct Callback {
     asIScriptFunction *cb;
 

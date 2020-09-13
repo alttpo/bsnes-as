@@ -105,20 +105,12 @@ auto System::runToSaveStrict() -> void {
 
 auto System::frameStartEvent() -> void {
   // [jsd] run AngelScript pre_frame() function if available:
-  if (script.funcs.pre_frame) {
-    auto ctx = platform->scriptPrimaryContext();
-    ctx->Prepare(script.funcs.pre_frame);
-    ScriptInterface::executeScript(ctx);
-  }
+  platform->scriptInvokeFunction(script.funcs.pre_frame);
 }
 
 auto System::framePreNMIEvent() -> void {
   // [jsd] run AngelScript pre_nmi() function if available:
-  if (script.funcs.pre_nmi) {
-    auto ctx = platform->scriptPrimaryContext();
-    ctx->Prepare(script.funcs.pre_nmi);
-    ScriptInterface::executeScript(ctx);
-  }
+  platform->scriptInvokeFunction(script.funcs.pre_nmi);
 }
 
 auto System::frameEvent() -> void {
@@ -168,11 +160,7 @@ auto System::load(Emulator::Interface* interface) -> bool {
   this->interface = interface;
 
   // [jsd] run AngelScript cartridge_loaded function if available:
-  if (script.funcs.cartridge_loaded) {
-    auto ctx = platform->scriptPrimaryContext();
-    ctx->Prepare(script.funcs.cartridge_loaded);
-    ScriptInterface::executeScript(ctx);
-  }
+  platform->scriptInvokeFunction(script.funcs.cartridge_loaded);
 
   return information.loaded = true;
 }
@@ -207,11 +195,7 @@ auto System::unload() -> void {
   cartridge.unload();
 
   // [jsd] run AngelScript cartridge_unloaded function if available:
-  if (script.funcs.cartridge_unloaded) {
-    auto ctx = platform->scriptPrimaryContext();
-    ctx->Prepare(script.funcs.cartridge_unloaded);
-    ScriptInterface::executeScript(ctx);
-  }
+  platform->scriptInvokeFunction(script.funcs.cartridge_unloaded);
 
   information.loaded = false;
 }
@@ -282,12 +266,9 @@ auto System::power(bool reset) -> void {
   information.serializeSize[1] = serializeInit(1);
 
   // [jsd] run AngelScript post_power function if available:
-  if (script.funcs.post_power) {
-    auto ctx = platform->scriptPrimaryContext();
-    ctx->Prepare(script.funcs.post_power);
+  platform->scriptInvokeFunction(script.funcs.post_power, [=](auto ctx) {
     ctx->SetArgByte(0, reset);
-    ScriptInterface::executeScript(ctx);
-  }
+  });
 }
 
 }
