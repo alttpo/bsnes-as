@@ -66,9 +66,16 @@ auto Platform::scriptEngine() -> asIScriptEngine* {
   return scriptEngineState.engine;
 }
 
-auto Platform::getStackTrace(asIScriptContext *ctx) -> vector<string> {
-  vector<string> frames;
+auto Platform::formatStackFrame(const asIScriptFunction *func, const char *scriptSection, int line, int column) -> string {
+  return string("({0}:{1},{2}) `{3}`").format({
+    scriptSection,
+    line,
+    column,
+    func->GetDeclaration()
+  });
+}
 
+auto Platform::getStackTrace(asIScriptContext *ctx, vector<string> &frames) -> void {
   for (asUINT n = 1; n < ctx->GetCallstackSize(); n++) {
     asIScriptFunction *func;
     const char *scriptSection;
@@ -77,38 +84,29 @@ auto Platform::getStackTrace(asIScriptContext *ctx) -> vector<string> {
     func = ctx->GetFunction(n);
     line = ctx->GetLineNumber(n, &column, &scriptSection);
 
-    frames.append(string("  ({1}:{2},{3}) `{0}`").format({
-                                                         func->GetDeclaration(),
-                                                         scriptSection,
-                                                         line,
-                                                         column
-                                                       }));
+    frames.append(formatStackFrame(func, scriptSection, line, column));
   }
-
-  return frames;
 }
 
 auto Platform::exceptionCallback(asIScriptContext *ctx) -> void {
+  // Determine the exception that occurred
   asIScriptEngine *engine = ctx->GetEngine();
 
-  // Determine the exception that occurred
-  const asIScriptFunction *function = ctx->GetExceptionFunction();
+  // format main message:
+  auto message = string("!!! {0}").format({ ctx->GetExceptionString() });
+
+  // append stack trace:
+  vector<string> frames;
+
+  const asIScriptFunction *func = ctx->GetExceptionFunction();
   const char *scriptSection;
   int line, column;
   line = ctx->GetExceptionLineNumber(&column, &scriptSection);
+  frames.append(formatStackFrame(func, scriptSection, line, column));
+  getStackTrace(ctx, frames);
 
-  // format main message:
-  auto message = string("!!! {0}\n  ({2}:{3},{4}) `{1}`\n")
-    .format({
-              ctx->GetExceptionString(),
-              function->GetDeclaration(),
-              scriptSection,
-              line,
-              column
-            });
-
-  // append stack trace:
-  message.append(getStackTrace(ctx).merge("\n"));
+  message.append("\n  ");
+  message.append(frames.merge("\n  "));
 
   scriptMessage(message, true);
 }
