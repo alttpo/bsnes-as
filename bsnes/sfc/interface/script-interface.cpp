@@ -244,7 +244,7 @@ namespace ScriptInterface {
     }
 
     auto operator()() -> void {
-      auto ctx = platform->scriptEngine()->CreateContext();
+      auto ctx = platform->scriptCreateContext();
       platform->scriptInvokeFunctionWithContext(cb, ctx);
       ctx->Release();
     }
