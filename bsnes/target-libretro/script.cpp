@@ -11,19 +11,23 @@ auto convertMessageLevelToRetro(::Script::MessageLevel level) -> enum retro_log_
 };
 
 auto Program::scriptMessage(const string& msg, bool alert, ::Script::MessageLevel level) -> void {
-  enum retro_log_level rLevel = convertMessageLevelToRetro(level);
-
-  libretro_print(rLevel, "%.*s\n", msg.size(), msg.data());
-
   if (alert) {
     if (environ_cb) {
+      string lnmsg = msg;
+      lnmsg.replace("\n", " ").stripRight();
+
       retro_message rmsg = {
-        msg.data(), // msg
+        lnmsg.data(), // msg
         180         // frames: 3 seconds
       };
       environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &rmsg);
+      return;
     }
   }
+
+  enum retro_log_level rLevel = convertMessageLevelToRetro(level);
+
+  libretro_print(rLevel, "%.*s\n", msg.size(), msg.data());
 }
 
 // Implement a simple message callback function for script compiler warnings/errors
@@ -31,7 +35,7 @@ auto Program::scriptMessageCallback(const asSMessageInfo *msg) -> void {
   auto level = ::Script::convertMessageLevel(msg->type);
 
   // format message:
-  const string &text = string("{0} ({1}, {2}) : {3}").format({msg->section, msg->row, msg->col, msg->message});
+  string text = string("({0}:{1},{2}) {3}").format({msg->section, msg->row, msg->col, msg->message});
 
   scriptMessage(text, true, level);
 }
