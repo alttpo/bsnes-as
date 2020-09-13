@@ -426,11 +426,7 @@ auto Interface::paletteUpdated(uint32_t *palette, uint depth) -> void {
   ScriptInterface::emulatorPalette = palette;
   ScriptInterface::emulatorDepth = depth;
 
-  if (script.funcs.palette_updated) {
-    auto ctx = platform->scriptPrimaryContext();
-    ctx->Prepare(script.funcs.palette_updated);
-    ScriptInterface::executeScript(ctx);
-  }
+  platform->scriptInvokeFunction(script.funcs.palette_updated);
 }
 
 auto Interface::menuOptionUpdated(const string& menuName, const string& key, const string& value) -> void {
@@ -599,23 +595,12 @@ auto Interface::loadScript(string location) -> void {
   // enable profiler:
   platform->scriptProfilerEnable(platform->scriptPrimaryContext());
 
-  if (script.funcs.init) {
-    auto ctx = platform->scriptPrimaryContext();
-    ctx->Prepare(script.funcs.init);
-    ScriptInterface::executeScript(ctx);
-  }
+  platform->scriptInvokeFunction(script.funcs.init);
   if (loaded()) {
-    if (script.funcs.cartridge_loaded) {
-      auto ctx = platform->scriptPrimaryContext();
-      ctx->Prepare(script.funcs.cartridge_loaded);
-      ScriptInterface::executeScript(ctx);
-    }
-    if (script.funcs.post_power) {
-      auto ctx = platform->scriptPrimaryContext();
-      ctx->Prepare(script.funcs.post_power);
+    platform->scriptInvokeFunction(script.funcs.cartridge_loaded);
+    platform->scriptInvokeFunction(script.funcs.post_power, [](auto ctx) {
       ctx->SetArgByte(0, false); // reset = false
-      ScriptInterface::executeScript(ctx);
-    }
+    });
   }
 }
 
@@ -644,11 +629,7 @@ auto Interface::unloadScript() -> void {
   script.sockets.reset();
 
   // unload script:
-  if (script.funcs.unload) {
-    auto ctx = platform->scriptPrimaryContext();
-    ctx->Prepare(script.funcs.unload);
-    ScriptInterface::executeScript(ctx);
-  }
+  platform->scriptInvokeFunction(script.funcs.unload);
 
   ScriptInterface::DiscordInterface::reset();
 
