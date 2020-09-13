@@ -1,10 +1,19 @@
 
-auto Program::scriptEngine() -> asIScriptEngine * {
-  return script.engine;
-}
+auto convertMessageLevelToRetro(::Script::MessageLevel level) -> enum retro_log_level {
+  switch (level) {
+    case ::Script::MSG_DEBUG: return RETRO_LOG_DEBUG;
+    case ::Script::MSG_INFO:  return RETRO_LOG_INFO;
+    case ::Script::MSG_WARN:  return RETRO_LOG_WARN;
+    case ::Script::MSG_ERROR:
+    default:
+      return RETRO_LOG_ERROR;
+  }
+};
 
-auto Program::scriptMessage(const string& msg, bool alert) -> void {
-  libretro_print(RETRO_LOG_INFO, "%.*s\n", msg.size(), msg.data());
+auto Program::scriptMessage(const string& msg, bool alert, ::Script::MessageLevel level) -> void {
+  enum retro_log_level rLevel = convertMessageLevelToRetro(level);
+
+  libretro_print(rLevel, "%.*s\n", msg.size(), msg.data());
 
   if (alert) {
     if (environ_cb) {
@@ -18,43 +27,23 @@ auto Program::scriptMessage(const string& msg, bool alert) -> void {
 }
 
 // Implement a simple message callback function for script compiler warnings/errors
-void scriptMessageCallback(const asSMessageInfo *msg, void *param) {
-  // translate angelscript log level to libretro log level:
-  enum retro_log_level level;
-  if (msg->type == asMSGTYPE_ERROR)
-    level = RETRO_LOG_ERROR;
-  else if (msg->type == asMSGTYPE_WARNING)
-    level = RETRO_LOG_WARN;
-  else if (msg->type == asMSGTYPE_INFORMATION)
-    level = RETRO_LOG_INFO;
+auto Program::scriptMessageCallback(const asSMessageInfo *msg) -> void {
+  auto level = ::Script::convertMessageLevel(msg->type);
 
   // format message:
   const string &text = string("{0} ({1}, {2}) : {3}").format({msg->section, msg->row, msg->col, msg->message});
-  libretro_print(level, "%.*s\n", text.size(), text.data());
 
-  // alert:
-  if (environ_cb) {
-    retro_message rmsg = {
-      text.data(), // msg
-      180         // frames: 3 seconds
-    };
-    environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &rmsg);
-  }
+  scriptMessage(text, true, level);
 }
 
 auto Program::scriptInit() -> void {
   // initialize angelscript once on emulator startup:
-  script.engine = asCreateScriptEngine();
-
-  // use single-quoted character literals:
-  script.engine->SetEngineProperty(asEP_USE_CHARACTER_LITERALS, true);
-
-  // Set the message callback to receive information on errors in human readable form.
-  int r = script.engine->SetMessageCallback(asFUNCTION(scriptMessageCallback), 0, asCALL_CDECL);
-  assert(r >= 0);
+  scriptCreateEngine();
 
   // Let the emulator register its script definitions:
-  emulator->registerScriptDefs();
+  emulator->registerScriptDefs(this);
+
+  scriptCreatePrimaryContext();
 }
 
 auto Program::scriptReload() -> void {

@@ -49,8 +49,9 @@ struct Program : Emulator::Platform
 	bool overscan = false;
 
   //script.cpp
-  auto scriptEngine() -> asIScriptEngine* override;
-  auto scriptMessage(const string& msg, bool alert = false) -> void override;
+  auto scriptMessage(const string& msg, bool alert = false, ::Script::MessageLevel level = ::Script::MSG_INFO) -> void override;
+  auto scriptMessageCallback(const asSMessageInfo *msg) -> void override;
+
   auto registerMenu(const string& menuName, const string& display, const string& desc) -> void override;
   auto registerMenuOption(const string& menuName, const string& key, const string& desc, const string& info, const vector<string>& values) -> void override;
   auto setMenuOption(const string& menuName, const string& key, const string& value) -> void override;
