@@ -66,7 +66,15 @@ auto Platform::scriptEngine() -> asIScriptEngine* {
   return scriptEngineState.engine;
 }
 
-auto Platform::formatStackFrame(const asIScriptFunction *func, const char *scriptSection, int line, int column) -> string {
+auto Platform::formatStackFrame(const char *scriptSection, int line, int column, const asIScriptFunction *func) -> string {
+  if (func == nullptr) {
+    return string("({0}:{1},{2})").format({
+      scriptSection,
+      line,
+      column
+    });
+  }
+
   return string("({0}:{1},{2}) `{3}`").format({
     scriptSection,
     line,
@@ -84,7 +92,7 @@ auto Platform::getStackTrace(asIScriptContext *ctx, vector<string> &frames) -> v
     func = ctx->GetFunction(n);
     line = ctx->GetLineNumber(n, &column, &scriptSection);
 
-    frames.append(formatStackFrame(func, scriptSection, line, column));
+    frames.append(formatStackFrame(scriptSection, line, column, func));
   }
 }
 
@@ -102,7 +110,7 @@ auto Platform::exceptionCallback(asIScriptContext *ctx) -> void {
   const char *scriptSection;
   int line, column;
   line = ctx->GetExceptionLineNumber(&column, &scriptSection);
-  frames.append(formatStackFrame(func, scriptSection, line, column));
+  frames.append(formatStackFrame(scriptSection, line, column, func));
   getStackTrace(ctx, frames);
 
   message.append("\n  ");

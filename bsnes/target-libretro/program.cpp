@@ -51,6 +51,8 @@ struct Program : Emulator::Platform
   //script.cpp
   auto scriptMessage(const string& msg, bool alert = false, ::Script::MessageLevel level = ::Script::MSG_INFO) -> void override;
   auto scriptMessageCallback(const asSMessageInfo *msg) -> void override;
+  auto exceptionCallback(asIScriptContext *ctx) -> void override;
+  auto formatStackFrame(const char *scriptSection, int line, int column, const asIScriptFunction *func = nullptr) -> string override;
 
   auto registerMenu(const string& menuName, const string& display, const string& desc) -> void override;
   auto registerMenuOption(const string& menuName, const string& key, const string& desc, const string& info, const vector<string>& values) -> void override;

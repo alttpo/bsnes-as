@@ -119,9 +119,9 @@ public:
 
 protected:
   // utility functions:
-  auto getStackTrace(asIScriptContext *ctx, vector<string> &frames) -> void;
-  auto exceptionCallback(asIScriptContext *ctx) -> void;
-  auto formatStackFrame(const asIScriptFunction *func, const char *scriptSection, int line, int column) -> string;
+  virtual auto getStackTrace(asIScriptContext *ctx, vector<string> &frames) -> void;
+  virtual auto exceptionCallback(asIScriptContext *ctx) -> void;
+  virtual auto formatStackFrame(const char *scriptSection, int line, int column, const asIScriptFunction *func = nullptr) -> string;
 };
 
 // the interface that sfc implements:

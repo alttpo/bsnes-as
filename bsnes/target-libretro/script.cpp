@@ -40,6 +40,38 @@ auto Program::scriptMessageCallback(const asSMessageInfo *msg) -> void {
   scriptMessage(text, true, level);
 }
 
+auto Program::formatStackFrame(const char *scriptSection, int line, int column, const asIScriptFunction *func) -> string {
+  (void) func;
+  return string("({0}:{1},{2})").format({
+    scriptSection,
+    line,
+    column
+  });
+}
+
+auto Program::exceptionCallback(asIScriptContext *ctx) -> void {
+  // Determine the exception that occurred
+  asIScriptEngine *engine = ctx->GetEngine();
+
+  // format main message:
+  auto message = string("!!! {0}").format({ ctx->GetExceptionString() });
+
+  // append stack trace:
+  vector<string> frames;
+
+  const asIScriptFunction *func = ctx->GetExceptionFunction();
+  const char *scriptSection;
+  int line, column;
+  line = ctx->GetExceptionLineNumber(&column, &scriptSection);
+  frames.append(formatStackFrame(scriptSection, line, column, func));
+  getStackTrace(ctx, frames);
+
+  message.append(" ");
+  message.append(frames.merge(";"));
+
+  scriptMessage(message, true);
+}
+
 auto Program::scriptInit() -> void {
   // initialize angelscript once on emulator startup:
   scriptCreateEngine();
