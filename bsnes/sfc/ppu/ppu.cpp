@@ -208,8 +208,7 @@ auto PPU::refresh() -> void {
     ppuFrame.height = height;
     ppuFrame.width_mult  = (width / 256);
     ppuFrame.height_mult = (height / 240);
-    script.context->Prepare(script.funcs.post_frame);
-    ScriptInterface::executeScript(script.context);
+    platform->scriptInvokeFunction(script.funcs.post_frame);
   }
 
   if(configuration.video.blurEmulation) {

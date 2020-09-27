@@ -278,7 +278,19 @@ static void flush_variables()
 		else
 			run_ahead_frames = atoi(variable.value);
 	}
-	
+
+	// refresh script environment variables for `Menu::options` integration:
+	for (auto& pair : program->script.menus) {
+	  auto& menu = pair.value;
+	  for (auto& option : menu.options) {
+	    auto key = string("as_", menu.name, "_", option.key);
+      variable = { key.data(), nullptr};
+      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &variable) && variable.value) {
+        option.value = string(variable.value);
+      }
+    }
+	}
+
 	// Refresh Geometry
 	struct retro_system_av_info avinfo;
 	retro_get_system_av_info(&avinfo);
@@ -466,18 +478,77 @@ static void set_environment_info(retro_environment_t cb)
 		{ "bsnes_run_ahead_frames", "Amount of frames for run-ahead; OFF|1|2|3|4" },
 		{ nullptr },
 	};
-	cb(RETRO_ENVIRONMENT_SET_VARIABLES, const_cast<retro_variable *>(vars));
+	static const int vars_count = (sizeof(vars) / sizeof(retro_variable)) - 1;
+
+	// reuse a static buffer:
+	static retro_variable *dynamic_vars = nullptr;
+	if (dynamic_vars != nullptr) {
+    delete dynamic_vars;
+  }
+
+	static char **dynamic_vars_strs = nullptr;
+  if (dynamic_vars_strs != nullptr) {
+    delete[] dynamic_vars_strs;
+  }
+
+	// count dynamic menu options registered from script:
+	int dynamic_count = 0;
+  for (auto& pair : program->script.menus) {
+    auto& menu = pair.value;
+    // count one for the menu splitter:
+    dynamic_count++;
+    // count one for each menu option:
+    dynamic_count += menu.options.size();
+  }
+
+  // allocate storage for dynamic vars on top of static ones:
+  dynamic_vars = new retro_variable[vars_count + dynamic_count + 1];
+  dynamic_vars_strs = new char*[dynamic_count * 2];
+
+  char **str = dynamic_vars_strs;
+  auto copy_str = [&](const string& tmp) -> const char* {
+    *str = new char[tmp.size()+1];
+    memcpy(*str, tmp.data(), tmp.size());
+    (*str)[tmp.size()] = 0;
+    return *str++;
+  };
+
+  // copy in static data:
+  int j = 0;
+  for (int i = 0; i < vars_count; i++, j++) {
+    dynamic_vars[j].key   = vars[i].key;
+    dynamic_vars[j].value = vars[i].value;
+  }
+  for (auto& pair : program->script.menus) {
+    auto& menu = pair.value;
+
+    // create a splitter menu item:
+    dynamic_vars[j].key   = copy_str(string("as_", menu.name, "__splitter"));
+    dynamic_vars[j].value = copy_str(string(menu.desc, "; ---"));
+    j++;
+
+    for (auto& option : menu.options) {
+      auto key = string("as_", menu.name, "_", option.key);
+
+      dynamic_vars[j].key   = copy_str(key);
+      dynamic_vars[j].value = copy_str(string(option.desc, "; ", option.values.merge("|")));
+      j++;
+    }
+  }
+
+  // sentinel null value to mark end of list:
+  dynamic_vars[j].key   = nullptr;
+  dynamic_vars[j].value = nullptr;
+  j++;
+
+  assert(j == vars_count + dynamic_count + 1);;
+
+	cb(RETRO_ENVIRONMENT_SET_VARIABLES, const_cast<retro_variable *>(dynamic_vars));
 }
 
 RETRO_API void retro_set_environment(retro_environment_t cb)
 {
 	environ_cb = cb;
-
-	retro_log_callback log = {};
-	if (environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log) && log.log)
-		libretro_print = log.log;
-
-	set_environment_info(cb);
 }
 
 RETRO_API void retro_set_video_refresh(retro_video_refresh_t cb)
@@ -507,8 +578,30 @@ RETRO_API void retro_set_input_state(retro_input_state_t cb)
 
 RETRO_API void retro_init()
 {
+  retro_log_callback log = {};
+  if (environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log) && log.log)
+    libretro_print = log.log;
+
 	emulator = new SuperFamicom::Interface;
 	program = new Program;
+
+  libretro_print(RETRO_LOG_DEBUG, "scriptInit()\n");
+  program->scriptInit();
+
+  const char *dir;
+  if (environ_cb(RETRO_ENVIRONMENT_GET_CORE_ASSETS_DIRECTORY, &dir) && dir) {
+    program->script.location = string(dir, "/scripts/");
+    libretro_print(RETRO_LOG_DEBUG, "Searching for scripts in core assets directory '%.*s'\n", program->script.location.size(), program->script.location.data());
+  } else if (environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir) {
+    program->script.location = string(dir, "/scripts/");
+    libretro_print(RETRO_LOG_DEBUG, "Searching for scripts in system directory '%.*s'\n", program->script.location.size(), program->script.location.data());
+  }
+
+  if(program->script.location) {
+    program->scriptReload();
+  }
+
+  set_environment_info(environ_cb);
 }
 
 RETRO_API void retro_deinit()
@@ -523,7 +616,7 @@ RETRO_API unsigned retro_api_version()
 
 RETRO_API void retro_get_system_info(retro_system_info *info)
 {
-	info->library_name     = "bsnes";
+	info->library_name     = Emulator::Name;
 	info->library_version  = Emulator::Version;
 	info->need_fullpath    = true;
 	info->valid_extensions = "smc|sfc";
@@ -699,7 +792,8 @@ RETRO_API bool retro_load_game_special(unsigned game_type,
 
 RETRO_API void retro_unload_game()
 {
-	program->save();
+  program->scriptUnload();
+  program->save();
 	emulator->unload();
 }
 

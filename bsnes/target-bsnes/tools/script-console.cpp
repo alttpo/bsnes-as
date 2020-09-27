@@ -12,13 +12,13 @@ auto ScriptConsole::create() -> void {
 
   nameLabel.setText("no script loaded");
   loadButton.setText("Clear").onActivate([&] {
-    program.script.console = "";
+    program.scriptHostState.console = "";
     update();
   });
 }
 
 auto ScriptConsole::update() -> void {
-  nameLabel.setText(program.script.location);
-  consoleView.setText(program.script.console);
-  consoleView.setTextCursor(program.script.console.size());
+  nameLabel.setText(program.scriptHostState.location);
+  consoleView.setText(program.scriptHostState.console);
+  consoleView.setTextCursor(program.scriptHostState.console.size());
 }

@@ -145,19 +145,13 @@ namespace SuperFamicom {
     namespace Net {
       struct Socket;
     }
-    auto executeScript(asIScriptContext *ctx) -> void;
   }
 
   struct Script {
-    asIScriptEngine  *engine = nullptr;
-    asIScriptContext *context = nullptr;
-
-    vector<asIScriptModule *> modules;
-    asIScriptModule          *main_module = nullptr;
-
-    string directory;
-
+#ifndef DISABLE_HIRO
     vector<hiro::Window> windows;
+#endif
+
     vector<ScriptInterface::Net::Socket*> sockets;
 
     struct {

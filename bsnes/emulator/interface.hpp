@@ -2,7 +2,7 @@
 
 namespace Emulator {
 
-struct Interface {
+struct Interface : Script::Interface {
   struct Information {
     string manufacturer;
     string name;
@@ -106,10 +106,10 @@ struct Interface {
   virtual auto setRunAhead(bool runAhead) -> void {}
 
   //scripting
-  virtual auto registerScriptDefs() -> void {}
   virtual auto loadScript(string location) -> void {}
-  virtual auto unloadScript() -> void {};
-  virtual auto paletteUpdated(uint32_t *palette, uint depth) -> void {};
+  virtual auto unloadScript() -> void {}
+  virtual auto paletteUpdated(uint32_t *palette, uint depth) -> void {}
+  virtual auto menuOptionUpdated(const string& menuName, const string& key, const string& value) -> void {}
 };
 
 }

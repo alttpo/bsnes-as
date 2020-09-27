@@ -76,10 +76,12 @@ struct Interface : Emulator::Interface {
   auto setRunAhead(bool runAhead) -> void override;
 
   // script-interface.cpp
-  auto registerScriptDefs() -> void override;
+  auto registerScriptDefs(::Script::Platform *scriptPlatform) -> void override;
+
   auto loadScript(string location) -> void override;
   auto unloadScript() -> void override;
   auto paletteUpdated(uint32_t *palette, uint depth) -> void override;
+  auto menuOptionUpdated(const string& menuName, const string& key, const string& value) -> void override;
 private:
   auto registerScriptString() -> void;
 };

@@ -29,10 +29,9 @@ auto logCallback(discord::LogLevel level, const char* message) -> void {
 auto createScriptCallback(asIScriptFunction *cb) -> std::function<void(discord::Result)> {
   if (cb == nullptr) return std::function<void(discord::Result)>(nullptr);
   return [=](discord::Result result) -> void {
-    auto ctx = ::SuperFamicom::script.context;
-    ctx->Prepare(cb);
-    ctx->SetArgDWord(0, static_cast<int>(result));
-    executeScript(ctx);
+    platform->scriptInvokeFunction(cb, [=](auto ctx) {
+      ctx->SetArgDWord(0, static_cast<int>(result));
+    });
   };
 }
 

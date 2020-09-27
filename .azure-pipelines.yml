@@ -4,111 +4,114 @@ trigger:
   include:
     - '*'
 
-strategy:
-  matrix:
+jobs:
+  - job: "Build"
 
-    win64:
-      archName: 'win64'
-      imageName: 'ubuntu-18.04'
-      setupScript: |
-        echo 'win64'
-        set -e
-        sudo apt-get update
-        sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-x86-64
-      compileScript: |
-        echo '#define BSNES_BUILD_NUMBER "'"$(buildVersion)"'"' > bsnes/emulator/version.generated.hpp
-        make $(makeOptions) -C bsnes $(makeVariables) platform=windows compiler="x86_64-w64-mingw32-g++-posix" windres="x86_64-w64-mingw32-windres"
-      artifact: bsnes
-      packageScript: |
-        mkdir $(nightly)
-        mkdir $(nightly)/Database
-        mkdir $(nightly)/Firmware
-        cp -a bsnes/out/bsnes $(nightly)/bsnes.exe
-        cp -a bsnes/out/discord_game_sdk.dll $(nightly)/
-        cp -a bsnes/Database/* $(nightly)/Database
-        cp -a shaders $(nightly)/Shaders
-        cp -a scripts $(nightly)/scripts
-        cp -a GPLv3.txt $(nightly)
+    pool:
+      vmImage: $(imageName)
 
-    win32:
-      archName: 'win32'
-      imageName: 'ubuntu-18.04'
-      setupScript: |
-        echo 'win32'
-        set -e
-        sudo apt-get update
-        sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-i686
-      compileScript: |
-        echo '#define BSNES_BUILD_NUMBER "'"$(buildVersion)"'"' > bsnes/emulator/version.generated.hpp
-        make $(makeOptions) -C bsnes $(makeVariables) platform=windows arch=x86 compiler="i686-w64-mingw32-g++-posix" windres="i686-w64-mingw32-windres"
-      artifact: bsnes
-      packageScript: |
-        mkdir $(nightly)
-        mkdir $(nightly)/Database
-        mkdir $(nightly)/Firmware
-        cp -a bsnes/out/bsnes $(nightly)/bsnes.exe
-        cp -a bsnes/out/discord_game_sdk.dll $(nightly)/
-        cp -a bsnes/Database/* $(nightly)/Database
-        cp -a shaders $(nightly)/Shaders
-        cp -a scripts $(nightly)/scripts
-        cp -a GPLv3.txt $(nightly)
+    variables:
+      makeOptions: -j2
+      makeVariables: local=false build=performance
+      nightly: bsnes-angelscript-$(archName)-$(Build.BuildNumber)
+      buildVersion: $(Build.BuildId)
 
-    macOS:
-      archName: 'macOS'
-      imageName: 'macOS-10.14'
-      setupScript: |
-        echo 'macos'
-      compileScript: |
-        echo '#define BSNES_BUILD_NUMBER "'"$(buildVersion)"'"' > bsnes/emulator/version.generated.hpp
-        make $(makeOptions) -C bsnes $(makeVariables)
-      packageScript: |
-        mkdir $(nightly)
-        cp -a bsnes/out/bsnes.app $(nightly)/
-        cp -a scripts $(nightly)/scripts
-        cp -a GPLv3.txt $(nightly)/
+    steps:
+      - script: $(setupScript)
+        displayName: 'setup'
+      - script: |
+          echo '#define BSNES_BUILD_NUMBER "'"$(buildVersion)"'"' > bsnes/emulator/version.generated.hpp
+          make $(makeOptions) -C bsnes target=bsnes $(makeVariables) $(platformOptions)
+          rm -f bsnes/obj/sfc-*.o bsnes/obj/core.o bsnes/obj/emulator.o || true
+          make $(makeOptions) -C bsnes target=libretro $(makeVariables) $(platformOptions)
+        displayName: 'make'
+      - script: $(packageScript)
+        displayName: 'package'
 
-    linux:
-      archName: 'linux'
-      imageName: 'ubuntu-18.04'
-      setupScript: |
-        echo 'linux'
-        set -e
-        sudo apt-get update
-        sudo apt-get -y install --no-upgrade --no-install-recommends build-essential libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev
-      compileScript: |
-        echo '#define BSNES_BUILD_NUMBER "'"$(buildVersion)"'"' > bsnes/emulator/version.generated.hpp
-        make $(makeOptions) -C bsnes $(makeVariables)
-      artifact: bsnes
-      packageScript: |
-        mkdir $(nightly)
-        mkdir $(nightly)/Database
-        mkdir $(nightly)/Firmware
-        cp -a bsnes/out/bsnes $(nightly)/bsnes
-        cp -a bsnes/out/discord_game_sdk.so $(nightly)/
-        cp -a bsnes/Database/* $(nightly)/Database
-        cp -a shaders $(nightly)/Shaders
-        cp -a scripts $(nightly)/scripts
-        cp -a GPLv3.txt $(nightly)
+      - task: PublishPipelineArtifact@1
+        inputs:
+          targetPath: '$(nightly)'
+          artifact: '$(nightly)'
+          publishLocation: 'pipeline'
 
-variables:
-  makeOptions: -j4
-  makeVariables: local=false build=performance
-  nightly: bsnes-angelscript-$(archName)-$(Build.BuildNumber)
-  buildVersion: $(Build.BuildId)
+    strategy:
+      matrix:
 
-pool:
-  vmImage: $(imageName)
+        win64:
+          archName: 'win64'
+          imageName: 'ubuntu-18.04'
+          platformOptions: platform=windows compiler="x86_64-w64-mingw32-g++-posix" windres="x86_64-w64-mingw32-windres"
+          setupScript: |
+            echo 'win64'
+            set -e
+            sudo apt-get update
+            sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-x86-64
+          artifact: bsnes
+          packageScript: |
+            mkdir $(nightly)
+            mkdir $(nightly)/Database
+            mkdir $(nightly)/Firmware
+            cp -a bsnes/out/bsnes $(nightly)/bsnes.exe
+            cp -a bsnes/out/discord_game_sdk.dll $(nightly)/
+            cp -a bsnes/out/bsnes_libretro.dll $(nightly)/
+            cp -a bsnes/Database/* $(nightly)/Database
+            cp -a shaders $(nightly)/Shaders
+            cp -a scripts $(nightly)/scripts
+            cp -a GPLv3.txt $(nightly)
 
-steps:
-- script: $(setupScript)
-  displayName: 'setup'
-- script: $(compileScript)
-  displayName: 'make'
-- script: $(packageScript)
-  displayName: 'package'
+        win32:
+          archName: 'win32'
+          imageName: 'ubuntu-18.04'
+          platformOptions: platform=windows arch=x86 compiler="i686-w64-mingw32-g++-posix" windres="i686-w64-mingw32-windres"
+          setupScript: |
+            echo 'win32'
+            set -e
+            sudo apt-get update
+            sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-i686
+          artifact: bsnes
+          packageScript: |
+            mkdir $(nightly)
+            mkdir $(nightly)/Database
+            mkdir $(nightly)/Firmware
+            cp -a bsnes/out/bsnes $(nightly)/bsnes.exe
+            cp -a bsnes/out/discord_game_sdk.dll $(nightly)/
+            cp -a bsnes/out/bsnes_libretro.dll $(nightly)/
+            cp -a bsnes/Database/* $(nightly)/Database
+            cp -a shaders $(nightly)/Shaders
+            cp -a scripts $(nightly)/scripts
+            cp -a GPLv3.txt $(nightly)
 
-- task: PublishPipelineArtifact@1
-  inputs:
-    targetPath: '$(nightly)'
-    artifact: '$(nightly)'
-    publishLocation: 'pipeline'
+        macOS:
+          archName: 'macOS'
+          imageName: 'macOS-10.14'
+          platformOptions:
+          setupScript: |
+            echo 'macos'
+          packageScript: |
+            mkdir $(nightly)
+            cp -a bsnes/out/bsnes.app $(nightly)/
+            cp -a bsnes/out/bsnes_libretro.dylib $(nightly)/
+            cp -a scripts $(nightly)/scripts
+            cp -a GPLv3.txt $(nightly)/
+
+        linux:
+          archName: 'linux'
+          imageName: 'ubuntu-18.04'
+          platformOptions:
+          setupScript: |
+            echo 'linux'
+            set -e
+            sudo apt-get update
+            sudo apt-get -y install --no-upgrade --no-install-recommends build-essential libgtk2.0-dev libpulse-dev mesa-common-dev libgtksourceview2.0-dev libcairo2-dev libsdl2-dev libxv-dev libao-dev libopenal-dev libudev-dev
+          artifact: bsnes
+          packageScript: |
+            mkdir $(nightly)
+            mkdir $(nightly)/Database
+            mkdir $(nightly)/Firmware
+            cp -a bsnes/out/bsnes $(nightly)/bsnes
+            cp -a bsnes/out/bsnes_libretro.so $(nightly)/
+            cp -a bsnes/out/discord_game_sdk.so $(nightly)/
+            cp -a bsnes/Database/* $(nightly)/Database
+            cp -a shaders $(nightly)/Shaders
+            cp -a scripts $(nightly)/scripts
+            cp -a GPLv3.txt $(nightly)

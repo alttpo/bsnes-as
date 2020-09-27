@@ -105,18 +105,12 @@ auto System::runToSaveStrict() -> void {
 
 auto System::frameStartEvent() -> void {
   // [jsd] run AngelScript pre_frame() function if available:
-  if (script.funcs.pre_frame) {
-    script.context->Prepare(script.funcs.pre_frame);
-    ScriptInterface::executeScript(script.context);
-  }
+  platform->scriptInvokeFunction(script.funcs.pre_frame);
 }
 
 auto System::framePreNMIEvent() -> void {
   // [jsd] run AngelScript pre_nmi() function if available:
-  if (script.funcs.pre_nmi) {
-    script.context->Prepare(script.funcs.pre_nmi);
-    ScriptInterface::executeScript(script.context);
-  }
+  platform->scriptInvokeFunction(script.funcs.pre_nmi);
 }
 
 auto System::frameEvent() -> void {
@@ -166,10 +160,7 @@ auto System::load(Emulator::Interface* interface) -> bool {
   this->interface = interface;
 
   // [jsd] run AngelScript cartridge_loaded function if available:
-  if (script.funcs.cartridge_loaded) {
-    script.context->Prepare(script.funcs.cartridge_loaded);
-    ScriptInterface::executeScript(script.context);
-  }
+  platform->scriptInvokeFunction(script.funcs.cartridge_loaded);
 
   return information.loaded = true;
 }
@@ -204,10 +195,7 @@ auto System::unload() -> void {
   cartridge.unload();
 
   // [jsd] run AngelScript cartridge_unloaded function if available:
-  if (script.funcs.cartridge_unloaded) {
-    script.context->Prepare(script.funcs.cartridge_unloaded);
-    ScriptInterface::executeScript(script.context);
-  }
+  platform->scriptInvokeFunction(script.funcs.cartridge_unloaded);
 
   information.loaded = false;
 }
@@ -278,11 +266,9 @@ auto System::power(bool reset) -> void {
   information.serializeSize[1] = serializeInit(1);
 
   // [jsd] run AngelScript post_power function if available:
-  if (script.funcs.post_power) {
-    script.context->Prepare(script.funcs.post_power);
-    script.context->SetArgByte(0, reset);
-    ScriptInterface::executeScript(script.context);
-  }
+  platform->scriptInvokeFunction(script.funcs.post_power, [=](auto ctx) {
+    ctx->SetArgByte(0, reset);
+  });
 }
 
 }

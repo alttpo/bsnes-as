@@ -47,6 +47,10 @@ struct Bus {
   ) -> uint;
   auto reset_interceptors() -> void;
 
+  alwaysinline operator bool() const {
+    return lookup && target && interceptor_lookup;
+  }
+
 private:
   uint8* lookup = nullptr;
   uint32* target = nullptr;

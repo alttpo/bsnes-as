@@ -59,10 +59,6 @@ bool sock_has_error(int err) {
 }
 #endif
 
-#if !defined(AS_PROFILER_PERIOD_MICROSECONDS)
-#  define AS_PROFILER_PERIOD_MICROSECONDS 101
-#endif
-
 #define S1(x) #x
 #define S2(x) S1(x)
 #define LOCATION __FILE__ ":" S2(__LINE__)
@@ -97,198 +93,6 @@ typedef uint16 r5g5b5;
 typedef uint16 b5g5r5;
 
 namespace ScriptInterface {
-  struct ExceptionHandler {
-    auto getStackTrace(asIScriptContext *ctx) -> vector<string> {
-      vector<string> frames;
-
-      for (asUINT n = 1; n < ctx->GetCallstackSize(); n++) {
-        asIScriptFunction *func;
-        const char *scriptSection;
-        int line, column;
-
-        func = ctx->GetFunction(n);
-        line = ctx->GetLineNumber(n, &column, &scriptSection);
-
-        frames.append(string("  `{0}` {1}:{2}:{3}").format({
-          func->GetDeclaration(),
-          scriptSection,
-          line,
-          column
-        }));
-      }
-
-      return frames;
-    }
-
-    void exceptionCallback(asIScriptContext *ctx) {
-      asIScriptEngine *engine = ctx->GetEngine();
-
-      // Determine the exception that occurred
-      const asIScriptFunction *function = ctx->GetExceptionFunction();
-      const char *scriptSection;
-      int line, column;
-      line = ctx->GetExceptionLineNumber(&column, &scriptSection);
-
-      // format main message:
-      auto message = string("EXCEPTION `{0}`\n  `{1}` {2}:{3}:{4}\n")
-        .format({
-          ctx->GetExceptionString(),
-          function->GetDeclaration(),
-          scriptSection,
-          line,
-          column
-        });
-
-      // append stack trace:
-      message.append(getStackTrace(ctx).merge("\n"));
-
-      platform->scriptMessage(
-        message,
-        true
-      );
-    }
-  } exceptionHandler;
-
-  struct Profiler {
-    ~Profiler() {
-      enabled = false;
-      thrProfiler.join();
-    }
-
-    struct node_t {
-      // key:
-      string section;
-      int line;
-      // value:
-      uint64 samples;
-
-      node_t() = default;
-      node_t(const string &section, int line) : section(section), line(line) {}
-      node_t(const string &section, int line, uint64 samples) : section(section), line(line), samples(samples) {}
-
-      auto operator< (const node_t& source) const -> bool {
-        int c = strcmp(section, source.section);
-        if (c < 0) return true;
-        if (c > 0) return false;
-        return line <  source.line;
-      }
-      auto operator==(const node_t& source) const -> bool {
-        int c = section.compare(source.section);
-        if (c != 0) return false;
-        return line == source.line;
-      }
-    };
-
-    // red-black tree acting as a map storing sample counts by file:line key:
-    set< node_t > sectionLineSamples;
-    uint64 last_time = 0;
-    uint64 last_save = 0;
-    nall::thread thrProfiler;
-    volatile bool enabled = false;
-
-    auto samplingThread(uintptr p) -> void {
-      while (enabled) {
-        // sleep until next period (in microseconds):
-        usleep(AS_PROFILER_PERIOD_MICROSECONDS);
-
-        // wake up and record last sampled script location:
-        recordSample();
-
-        // auto-save every 5 seconds:
-        auto time = chrono::microsecond();
-        if (time - last_save >= 5'000'000) {
-          save();
-          last_save = time;
-        }
-      }
-    }
-
-    auto lineCallback(asIScriptContext *ctx) -> void {
-      sampleLocation(ctx);
-    }
-
-    auto enable(asIScriptContext *ctx) -> void {
-      mtx.lock();
-
-      enabled = true;
-      thrProfiler = nall::thread::create({&Profiler::samplingThread, this});
-      //ctx->SetLineCallback(asMETHOD(ScriptInterface::Profiler, lineCallback), this, asCALL_THISCALL);
-      ctx->SetLineCallback(asFUNCTION(+([](asIScriptContext *ctx, ScriptInterface::Profiler& self) { self.lineCallback(ctx); })), this, asCALL_CDECL);
-
-      mtx.unlock();
-    }
-
-    auto disable(asIScriptContext *ctx) -> void {
-      mtx.lock();
-
-      ctx->ClearLineCallback();
-      enabled = false;
-
-      mtx.unlock();
-    }
-
-    void reset() {
-      sectionLineSamples.reset();
-    }
-
-    void save() {
-      mtx.lock();
-
-      auto fb = file_buffer({"perf-",getpid(),".csv"}, file_buffer::mode::write);
-      fb.truncate(0);
-      fb.writes({"section,line,samples\n"});
-      for (auto &node : sectionLineSamples) {
-        fb.writes({node.section, ",", node.line, ",", node.samples, "\n"});
-      }
-
-      mtx.unlock();
-    }
-
-    string scriptSection = "<not in script>";
-    int line, column;
-    std::mutex mtx;
-
-    auto sampleLocation(asIScriptContext *ctx) -> void {
-      mtx.lock();
-
-      // sample where we are:
-      const char *section;
-      line = ctx->GetLineNumber(0, &column, &section);
-
-      if (section == nullptr) {
-        scriptSection = "<not in script>";
-        line = 0;
-      } else {
-        scriptSection = section;
-      }
-
-      mtx.unlock();
-    }
-
-    auto resetLocation() -> void {
-      mtx.lock();
-
-      scriptSection = "<not in script>";
-      line = 0;
-      column = 0;
-
-      mtx.unlock();
-    }
-
-    auto recordSample() -> void {
-      mtx.lock();
-
-      // increment sample counter for the section/line:
-      auto node = sectionLineSamples.find({scriptSection, line});
-      if (!node) {
-        sectionLineSamples.insert({{scriptSection}, line, 1});
-      } else {
-        node->samples++;
-      }
-
-      mtx.unlock();
-    }
-  } profiler;
 
   static auto message(const string *msg) -> void {
     platform->scriptMessage(*msg);
@@ -425,11 +229,6 @@ namespace ScriptInterface {
     }
   }
 
-  auto executeScript(asIScriptContext *ctx) -> void {
-    ctx->Execute();
-    profiler.resetLocation();
-  }
-
   struct Callback {
     asIScriptFunction *cb;
 
@@ -445,10 +244,8 @@ namespace ScriptInterface {
     }
 
     auto operator()() -> void {
-      //auto ctx = ::SuperFamicom::script.context;
-      auto ctx = ::SuperFamicom::script.engine->CreateContext();
-      ctx->Prepare(cb);
-      executeScript(ctx);
+      auto ctx = platform->scriptCreateContext();
+      platform->scriptInvokeFunctionWithContext(cb, ctx);
       ctx->Release();
     }
   };
@@ -465,10 +262,13 @@ namespace ScriptInterface {
   #include "script-gui.cpp"
   #include "script-bml.cpp"
   #include "script-discord.cpp"
+  #include "script-menu.cpp"
 
 };
 
 auto string_format_list_factory(void *initList) -> string_format* {
+  auto e = platform->scriptEngine();
+
   auto f = new string_format();
 
   asUINT length = *(asUINT *) initList;
@@ -491,7 +291,7 @@ auto string_format_list_factory(void *initList) -> string_format* {
     //asTYPEID_MASK_SEQNBR    = 0x03FFFFFF
     if (typeId & asTYPEID_APPOBJECT) {
       // app-defined object:
-      const char *declaration = script.engine->GetTypeDeclaration(typeId);
+      const char *declaration = e->GetTypeDeclaration(typeId);
       //printf("typeId=%d, decl=`%s`\n", typeId, declaration);
 
       if (strcmp("string", declaration) != 0) {
@@ -511,7 +311,7 @@ auto string_format_list_factory(void *initList) -> string_format* {
     } else if (typeId & asTYPEID_OBJHANDLE) {
       // script-defined object:
       initList = (void *) ((void **) initList + 1);
-      asITypeInfo *ti = script.engine->GetTypeInfoById(typeId);
+      asITypeInfo *ti = e->GetTypeInfoById(typeId);
 
       // look up a toString() method:
       auto func = ti->GetMethodByDecl("string toString() const");
@@ -534,13 +334,13 @@ auto string_format_list_factory(void *initList) -> string_format* {
       bool isNested = false;
       asIScriptContext *ctx = asGetActiveContext();
       if (ctx) {
-        if (ctx->GetEngine() == script.engine && ctx->PushState() >= 0)
+        if (ctx->GetEngine() == e && ctx->PushState() >= 0)
           isNested = true;
         else
           ctx = nullptr;
       }
       if (ctx == nullptr) {
-        ctx = script.engine->RequestContext();
+        ctx = e->RequestContext();
       }
 
       int r;
@@ -562,10 +362,10 @@ auto string_format_list_factory(void *initList) -> string_format* {
           ctx->Abort();
         }
       } else {
-        script.engine->ReturnContext(ctx);
+        e->ReturnContext(ctx);
       }
     } else {
-      int size = max(4, script.engine->GetSizeOfPrimitiveType(typeId));
+      int size = max(4, e->GetSizeOfPrimitiveType(typeId));
       initList = (void *) ((uint8_t *) initList + size);
       switch (typeId) {
         case asTYPEID_BOOL:
@@ -621,36 +421,36 @@ auto Interface::paletteUpdated(uint32_t *palette, uint depth) -> void {
   ScriptInterface::emulatorPalette = palette;
   ScriptInterface::emulatorDepth = depth;
 
-  if (script.funcs.palette_updated) {
-    script.context->Prepare(script.funcs.palette_updated);
-    ScriptInterface::executeScript(script.context);
-  }
+  platform->scriptInvokeFunction(script.funcs.palette_updated);
 }
 
-auto Interface::registerScriptDefs() -> void {
+auto Interface::menuOptionUpdated(const string& menuName, const string& key, const string& value) -> void {
+  // TODO
+}
+
+auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
   int r;
 
-  script.engine = platform->scriptEngine();
-  auto e = script.engine;
+  auto e = platform->scriptEngine();
 
   // register global functions for the script to use:
-  auto defaultNamespace = script.engine->GetDefaultNamespace();
+  auto defaultNamespace = e->GetDefaultNamespace();
 
   // register array type:
-  RegisterScriptArray(script.engine, true /* bool defaultArrayType */, false /* useNative */);
+  RegisterScriptArray(e, true /* bool defaultArrayType */, false /* useNative */);
 
   // register string type:
   registerScriptString();
 
   // additional array functions for serialization purposes:
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_u8(const uint8 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint8), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_u16(const uint16 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint16), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_u24(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint24), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_u32(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint32), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_arr(const ? &in array)", asFUNCTION(ScriptInterface::uint8_array_append_array), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-  r = script.engine->RegisterObjectMethod("array<T>", "void write_str(const string &in other)", asFUNCTION(ScriptInterface::uint8_array_append_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_u8(const uint8 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint8), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_u16(const uint16 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint16), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_u24(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint24), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_u32(const uint32 &in value)", asFUNCTION(ScriptInterface::uint8_array_append_uint32), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_arr(const ? &in array)", asFUNCTION(ScriptInterface::uint8_array_append_array), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "void write_str(const string &in other)", asFUNCTION(ScriptInterface::uint8_array_append_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-  r = script.engine->RegisterObjectMethod("array<T>", "string &toString(uint offs, uint size) const", asFUNCTION(ScriptInterface::array_to_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "string &toString(uint offs, uint size) const", asFUNCTION(ScriptInterface::array_to_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   {
     // string_format scoped ref type:
@@ -673,53 +473,67 @@ auto Interface::registerScriptDefs() -> void {
   }
 
   // global function to write debug messages:
-  r = script.engine->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(ScriptInterface::message), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(ScriptInterface::message), asCALL_CDECL); assert(r >= 0);
+
+  {
+    // integer math:
+    r = e->SetDefaultNamespace("mathi"); assert(r >= 0);
+
+    REG_LAMBDA_GLOBAL("int64 abs(int64)", ([](int64 x) -> int64 { return abs(x); }));
+    REG_LAMBDA_GLOBAL("int64 sqrt(int64)", ([](int64 x) -> int64 { return sqrt(x); }));
+    REG_LAMBDA_GLOBAL("int64 pow(int64, int64)", ([](int64 x, int64 y) -> int64 { return pow(x, y); }));
+  }
+
+  {
+    // float math:
+    r = e->SetDefaultNamespace("mathf"); assert(r >= 0);
+
+    REG_LAMBDA_GLOBAL("float abs(float)", ([](float x) -> float { return fabs(x); }));
+    REG_LAMBDA_GLOBAL("float sqrt(float)", ([](float x) -> float { return sqrt(x); }));
+    REG_LAMBDA_GLOBAL("float pow(float, float)", ([](float x, float y) -> int64 { return pow(x, y); }));
+  }
 
   // chrono namespace to get system timestamp and monotonic time:
   {
-    r = script.engine->SetDefaultNamespace("chrono::monotonic"); assert(r >= 0);
+    r = e->SetDefaultNamespace("chrono::monotonic"); assert(r >= 0);
 
-    r = script.engine->RegisterGlobalFunction("uint64 get_nanosecond() property", asFUNCTION(chrono::nanosecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_microsecond() property", asFUNCTION(chrono::microsecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_millisecond() property", asFUNCTION(chrono::millisecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_second() property", asFUNCTION(chrono::second), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_nanosecond() property", asFUNCTION(chrono::nanosecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_microsecond() property", asFUNCTION(chrono::microsecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_millisecond() property", asFUNCTION(chrono::millisecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_second() property", asFUNCTION(chrono::second), asCALL_CDECL); assert(r >= 0);
   }
 
   {
-    r = script.engine->SetDefaultNamespace("chrono::realtime"); assert(r >= 0);
+    r = e->SetDefaultNamespace("chrono::realtime"); assert(r >= 0);
 
-    r = script.engine->RegisterGlobalFunction("uint64 get_nanosecond() property", asFUNCTION(chrono::realtime::nanosecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_microsecond() property", asFUNCTION(chrono::realtime::microsecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_millisecond() property", asFUNCTION(chrono::realtime::millisecond), asCALL_CDECL); assert(r >= 0);
-    r = script.engine->RegisterGlobalFunction("uint64 get_second() property", asFUNCTION(chrono::realtime::second), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_nanosecond() property", asFUNCTION(chrono::realtime::nanosecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_microsecond() property", asFUNCTION(chrono::realtime::microsecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_millisecond() property", asFUNCTION(chrono::realtime::millisecond), asCALL_CDECL); assert(r >= 0);
+    r = e->RegisterGlobalFunction("uint64 get_second() property", asFUNCTION(chrono::realtime::second), asCALL_CDECL); assert(r >= 0);
 
     // timestamp() calls the old ::time() API; should be identical to get_second but not tested that yet:
-    //r = script.engine->RegisterGlobalFunction("uint64 get_timestamp() property", asFUNCTIONPR(chrono::timestamp, (), uint64_t), asCALL_CDECL); assert(r >= 0);
+    //r = e->RegisterGlobalFunction("uint64 get_timestamp() property", asFUNCTIONPR(chrono::timestamp, (), uint64_t), asCALL_CDECL); assert(r >= 0);
   }
 
-  ScriptInterface::RegisterBus(script.engine);
+  ScriptInterface::RegisterBus(e);
 
   {
     // Order here is important as RegisterPPU sets namespace to 'ppu' and the following functions expect that.
-    ScriptInterface::RegisterPPU(script.engine);
-    ScriptInterface::RegisterPPUFrame(script.engine);
-    ScriptInterface::RegisterPPUExtra(script.engine);
+    ScriptInterface::RegisterPPU(e);
+    ScriptInterface::RegisterPPUFrame(e);
+    ScriptInterface::RegisterPPUExtra(e);
   }
 
-  ScriptInterface::RegisterNet(script.engine);
-  ScriptInterface::RegisterGUI(script.engine);
+  ScriptInterface::RegisterNet(e);
+  ScriptInterface::RegisterGUI(e);
 
-  ScriptInterface::RegisterBML(script.engine);
+  ScriptInterface::RegisterBML(e);
 
-  ScriptInterface::DiscordInterface::Register(script.engine);
+  ScriptInterface::DiscordInterface::Register(e);
 
-  r = script.engine->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
+  ScriptInterface::RegisterMenu(e);
 
-  // create context:
-  script.context = script.engine->CreateContext();
-
-  //script.context->SetExceptionCallback(asMETHOD(ScriptInterface::ExceptionHandler, exceptionCallback), &ScriptInterface::exceptionHandler, asCALL_THISCALL);
-  script.context->SetExceptionCallback(asFUNCTION(+([](asIScriptContext* ctx, ScriptInterface::ExceptionHandler& self){ self.exceptionCallback(ctx); })), &ScriptInterface::exceptionHandler, asCALL_CDECL);
+  r = e->SetDefaultNamespace(defaultNamespace); assert(r >= 0);
 }
 
 auto Interface::loadScript(string location) -> void {
@@ -727,16 +541,19 @@ auto Interface::loadScript(string location) -> void {
 
   if (!inode::exists(location)) return;
 
-  if (script.modules) {
+  if (platform->scriptEngineState.modules) {
     unloadScript();
   }
 
+  auto e = platform->scriptEngine();
+
   // create a main module:
-  script.main_module = script.engine->GetModule("main", asGM_ALWAYS_CREATE);
+  auto main_module = e->GetModule("main", asGM_ALWAYS_CREATE);
+  platform->scriptEngineState.main_module = main_module;
 
   // (/parent/child.type/)
   // (/parent/child.type/)name.type
-  script.directory = Location::path(location);
+  platform->scriptEngineState.directory = Location::path(location);
 
   if (directory::exists(location)) {
     // add all *.as files in root directory to main module:
@@ -754,7 +571,7 @@ auto Interface::loadScript(string location) -> void {
       }
 
       // add script section into module:
-      r = script.main_module->AddScriptSection(filename, scriptSource.begin(), scriptSource.length());
+      r = main_module->AddScriptSection(filename, scriptSource.begin(), scriptSource.length());
       if (r < 0) {
         platform->scriptMessage({"Loading ", filename, " failed"});
         return;
@@ -767,46 +584,37 @@ auto Interface::loadScript(string location) -> void {
     string scriptSource = string::read(location);
 
     // add script into main module:
-    r = script.main_module->AddScriptSection(Location::file(location), scriptSource.begin(), scriptSource.length());
+    r = main_module->AddScriptSection(Location::file(location), scriptSource.begin(), scriptSource.length());
     assert(r >= 0);
   }
 
   // compile module:
-  r = script.main_module->Build();
+  r = main_module->Build();
   assert(r >= 0);
 
   // track main module:
-  script.modules.append(script.main_module);
+  platform->scriptEngineState.modules.append(main_module);
 
   // bind to functions in the main module:
-  script.funcs.init = script.main_module->GetFunctionByDecl("void init()");
-  script.funcs.unload = script.main_module->GetFunctionByDecl("void unload()");
-  script.funcs.post_power = script.main_module->GetFunctionByDecl("void post_power(bool reset)");
-  script.funcs.cartridge_loaded = script.main_module->GetFunctionByDecl("void cartridge_loaded()");
-  script.funcs.cartridge_unloaded = script.main_module->GetFunctionByDecl("void cartridge_unloaded()");
-  script.funcs.pre_nmi = script.main_module->GetFunctionByDecl("void pre_nmi()");
-  script.funcs.pre_frame = script.main_module->GetFunctionByDecl("void pre_frame()");
-  script.funcs.post_frame = script.main_module->GetFunctionByDecl("void post_frame()");
-  script.funcs.palette_updated = script.main_module->GetFunctionByDecl("void palette_updated()");
+  script.funcs.init = main_module->GetFunctionByDecl("void init()");
+  script.funcs.unload = main_module->GetFunctionByDecl("void unload()");
+  script.funcs.post_power = main_module->GetFunctionByDecl("void post_power(bool reset)");
+  script.funcs.cartridge_loaded = main_module->GetFunctionByDecl("void cartridge_loaded()");
+  script.funcs.cartridge_unloaded = main_module->GetFunctionByDecl("void cartridge_unloaded()");
+  script.funcs.pre_nmi = main_module->GetFunctionByDecl("void pre_nmi()");
+  script.funcs.pre_frame = main_module->GetFunctionByDecl("void pre_frame()");
+  script.funcs.post_frame = main_module->GetFunctionByDecl("void post_frame()");
+  script.funcs.palette_updated = main_module->GetFunctionByDecl("void palette_updated()");
 
-#if defined(AS_PROFILER_ENABLE)
-  ScriptInterface::profiler.enable(script.context);
-#endif
+  // enable profiler:
+  platform->scriptProfilerEnable(platform->scriptPrimaryContext());
 
-  if (script.funcs.init) {
-    script.context->Prepare(script.funcs.init);
-    ScriptInterface::executeScript(script.context);
-  }
+  platform->scriptInvokeFunction(script.funcs.init);
   if (loaded()) {
-    if (script.funcs.cartridge_loaded) {
-      script.context->Prepare(script.funcs.cartridge_loaded);
-      ScriptInterface::executeScript(script.context);
-    }
-    if (script.funcs.post_power) {
-      script.context->Prepare(script.funcs.post_power);
-      script.context->SetArgByte(0, false); // reset = false
-      ScriptInterface::executeScript(script.context);
-    }
+    platform->scriptInvokeFunction(script.funcs.cartridge_loaded);
+    platform->scriptInvokeFunction(script.funcs.post_power, [](auto ctx) {
+      ctx->SetArgByte(0, false); // reset = false
+    });
   }
 }
 
@@ -816,6 +624,7 @@ auto Interface::unloadScript() -> void {
   ::SuperFamicom::cpu.reset_dma_interceptor();
   ::SuperFamicom::cpu.reset_pc_callbacks();
 
+#ifndef DISABLE_HIRO
   // Close any GUI windows:
   for (auto window : script.windows) {
     if (!window) continue;
@@ -825,6 +634,7 @@ auto Interface::unloadScript() -> void {
     window.reset();
   }
   script.windows.reset();
+#endif
 
   for (auto socket : script.sockets) {
     // release all script handles to the socket and close it but do not remove it from the script.sockets vector:
@@ -833,23 +643,18 @@ auto Interface::unloadScript() -> void {
   script.sockets.reset();
 
   // unload script:
-  if (script.funcs.unload) {
-    script.context->Prepare(script.funcs.unload);
-    ScriptInterface::executeScript(script.context);
-  }
+  platform->scriptInvokeFunction(script.funcs.unload);
 
   ScriptInterface::DiscordInterface::reset();
 
-#if defined(AS_PROFILER_ENABLE)
-  ScriptInterface::profiler.disable(script.context);
-#endif
+  platform->scriptProfilerDisable(platform->scriptPrimaryContext());
 
   // discard all loaded modules:
-  for (auto module : script.modules) {
+  for (auto module : platform->scriptEngineState.modules) {
     module->Discard();
   }
-  script.modules.reset();
-  script.main_module = nullptr;
+  platform->scriptEngineState.modules.reset();
+  platform->scriptEngineState.main_module = nullptr;
 
   script.funcs.init = nullptr;
   script.funcs.unload = nullptr;

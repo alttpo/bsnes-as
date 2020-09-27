@@ -48,6 +48,21 @@ struct Program : Emulator::Platform
 
 	bool overscan = false;
 
+  //script.cpp
+  auto scriptMessage(const string& msg, bool alert = false, ::Script::MessageLevel level = ::Script::MSG_INFO) -> void override;
+  auto scriptMessageCallback(const asSMessageInfo *msg) -> void override;
+  auto exceptionCallback(asIScriptContext *ctx) -> void override;
+  auto formatStackFrame(const char *scriptSection, int line, int column, const asIScriptFunction *func = nullptr) -> string override;
+
+  auto registerMenu(const string& menuName, const string& display, const string& desc) -> void override;
+  auto registerMenuOption(const string& menuName, const string& key, const string& desc, const string& info, const vector<string>& values) -> void override;
+  auto setMenuOption(const string& menuName, const string& key, const string& value) -> void override;
+  auto getMenuOption(const string& menuName, const string& key) -> string override;
+
+  auto scriptInit() -> void;
+  auto scriptReload() -> void;
+  auto scriptUnload() -> void;
+
 public:	
 	struct Game {
 		explicit operator bool() const { return (bool)location; }
@@ -72,6 +87,30 @@ public:
 	struct GameBoy : Game {
 		vector<uint8_t> program;
 	} gameBoy;
+
+  // [jsd] add support for AngelScript
+  struct Script {
+    asIScriptEngine *engine;
+
+    string location;
+
+    struct Menu {
+      string name;
+      string display;
+      string desc;
+
+      struct Option {
+        string key;
+        string desc;
+        string info;
+        vector<string> values;
+        string value;
+      };
+
+      vector<Option> options;
+    };
+    map<string, Menu> menus;
+  } script;
 };
 
 static Program *program = nullptr;
@@ -690,3 +729,5 @@ auto decodeGB(string& code) -> bool {
   //unrecognized code format
   return false;
 }
+
+#include "script.cpp"
