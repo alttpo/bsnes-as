@@ -475,6 +475,24 @@ auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
   // global function to write debug messages:
   r = e->RegisterGlobalFunction("void message(const string &in msg)", asFUNCTION(ScriptInterface::message), asCALL_CDECL); assert(r >= 0);
 
+  {
+    // integer math:
+    r = e->SetDefaultNamespace("mathi"); assert(r >= 0);
+
+    REG_LAMBDA_GLOBAL("int64 abs(int64)", ([](int64 x) -> int64 { return abs(x); }));
+    REG_LAMBDA_GLOBAL("int64 sqrt(int64)", ([](int64 x) -> int64 { return sqrt(x); }));
+    REG_LAMBDA_GLOBAL("int64 pow(int64, int64)", ([](int64 x, int64 y) -> int64 { return pow(x, y); }));
+  }
+
+  {
+    // float math:
+    r = e->SetDefaultNamespace("mathf"); assert(r >= 0);
+
+    REG_LAMBDA_GLOBAL("float abs(float)", ([](float x) -> float { return fabs(x); }));
+    REG_LAMBDA_GLOBAL("float sqrt(float)", ([](float x) -> float { return sqrt(x); }));
+    REG_LAMBDA_GLOBAL("float pow(float, float)", ([](float x, float y) -> int64 { return pow(x, y); }));
+  }
+
   // chrono namespace to get system timestamp and monotonic time:
   {
     r = e->SetDefaultNamespace("chrono::monotonic"); assert(r >= 0);
