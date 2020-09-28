@@ -543,6 +543,12 @@ namespace Net {
   };
 
   static auto create_socket(Address *addr) -> Socket* {
+    if (!addr) {
+      return nullptr;
+    }
+    if (!addr->info) {
+      return nullptr;
+    }
     auto socket = new Socket(addr->info->ai_family, addr->info->ai_socktype, addr->info->ai_protocol);
     if (!*socket) {
       delete socket;
@@ -1163,6 +1169,7 @@ namespace Net {
 
       // create listening socket to accept TCP connections on:
       socket = create_socket(addr);
+      if (!socket) return;
       if (!*socket) return;
 
       // start listening for connections:
