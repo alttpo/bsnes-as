@@ -267,6 +267,7 @@ namespace hiro {
     auto minimumSize() const -> Size { return {}; }
     auto modal() const -> bool { return false; }
     auto resizable() const -> bool { return false; }
+    auto remove(sSizable sizable) -> type& { (void)sizable; return *this; }
     auto sizable() const -> Sizable { return {}; }
     auto title() const -> string { return {}; }
     auto onSize(const function<void ()>& callback = {}) -> type& { return (void)callback, *this; };
