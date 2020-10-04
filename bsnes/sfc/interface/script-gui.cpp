@@ -418,6 +418,17 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   //r = e->RegisterObjectMethod("Color", "Color@ set_green(int green)",   asMETHOD(hiro::Color, setGreen), asCALL_THISCALL); assert(r >= 0);
   //r = e->RegisterObjectMethod("Color", "Color@ set_red(int red)",       asMETHOD(hiro::Color, setRed), asCALL_THISCALL); assert(r >= 0);
 
+  REG_LAMBDA_GLOBAL("Color@ colorFromSNES(uint16 bgr)", ([](uint16_t bgr) -> hiro::Color* {
+    uint16 rgb = GUI::mSNESCanvas::luma_adjust(bgr, 0x0F);
+    uint64_t r = (rgb      ) & 0x1F;
+    uint64_t g = (rgb >>  5) & 0x1F;
+    uint64_t b = (rgb >> 10) & 0x1F;
+    r = image::normalize(r, 5, 8);
+    g = image::normalize(g, 5, 8);
+    b = image::normalize(b, 5, 8);
+    return new hiro::Color(r, g, b, 255);
+  }));
+
   // Font value type:
   REG_LAMBDA_BEHAVIOUR(Font, asBEHAVE_FACTORY, "Font@ f(const string &in family, float size = 0.0)", ([](string &family, float size){ return new hiro::Font(family, size); }));
   REG_LAMBDA(Font, "bool   get_bold() property",                          ([](hiro::Font* self) { return self->bold(); }));
