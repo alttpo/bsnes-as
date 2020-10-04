@@ -254,6 +254,7 @@ namespace hiro {
   Declare(Window)
   struct Window : Object {
     Define(Window);
+    using Object::remove;
 
     auto append(sSizable sizable) -> type& { (void)sizable; return *this; }
     auto backgroundColor() const -> Color { return {}; }
@@ -406,6 +407,7 @@ namespace hiro {
   Declare(Group)
   struct Group : Object {
     Define(Group);
+    using Object::remove;
 
     auto append(sObject object) -> type& { return *this; }
     auto object(uint offset) const -> Object { return {}; }

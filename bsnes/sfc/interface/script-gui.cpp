@@ -340,7 +340,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(name, "bool get_visible() property",                 ([](className* self) { return self->visible(false); })); \
   REG_LAMBDA(name, "bool get_visible_recursive() property",       ([](className* self) { return self->visible(true); })); \
   REG_LAMBDA(name, "void set_enabled(bool enabled) property",     ([](className* self, bool enabled) { self->setEnabled(enabled); })); \
-  REG_LAMBDA(name, "void remove()",         ([](className* self) { return self->remove(); })); \
+  REG_LAMBDA(name, "void remove()",         ([](className* self) { self->remove(); })); \
   REG_LAMBDA(name, "void setFocused()",     ([](className* self) { self->setFocused(); }))
 
   //REG_LAMBDA(name, "Object get_parent()",                        ([](className* self) { return self->parent(); })); \
