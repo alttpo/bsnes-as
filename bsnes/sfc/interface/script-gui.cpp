@@ -462,7 +462,9 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     return window;
   })), asCALL_CDECL); assert(r >= 0);
   EXPOSE_HIRO_OBJECT(Window);
-  REG_LAMBDA(Window, "void append(const ? &in sizable)",                   ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->append(*sizable); }));
+  REG_LAMBDA(Window, "void append(const ? &in sizable)", ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->append(*sizable); }));
+  REG_LAMBDA(Window, "void remove(const ? &in sizable)", ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->remove(*sizable); }));
+  REG_LAMBDA(Window, "void reset()",                     ([](hiro::Window* self){ self->reset(); }));
 
   REG_LAMBDA(Window, "Color@ get_backgroundColor() property", ([](hiro::Window* self) { return new hiro::Color(self->backgroundColor()); }));
   REG_LAMBDA(Window, "bool get_dismissable() property",       ([](hiro::Window* self) { return self->dismissable(); }));
@@ -504,7 +506,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   //auto statusBar() const { return self().statusBar(); }
 
   //auto append(sMenuBar menuBar) { return self().append(menuBar), *this; }
-  //auto append(sSizable sizable) { return self().append(sizable), *this; }
   //auto append(sStatusBar statusBar) { return self().append(statusBar), *this; }
   //auto doDrop(vector<string> names) const { return self().doDrop(names); }
   //auto doKeyPress(signed key) const { return self().doKeyPress(key); }
@@ -544,6 +545,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_SIZABLE(VerticalLayout);
   REG_LAMBDA(VerticalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
     ([](hiro::VerticalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){ self->append(*sizable, *size, spacing); }));
+  REG_LAMBDA(VerticalLayout, "void remove(const ? &in sizable)",        ([](hiro::VerticalLayout* p, hiro::Sizable* sizable, int sizableTypeId){ p->remove(*sizable); }));
   REG_LAMBDA(VerticalLayout, "void resize()",                           ([](hiro::VerticalLayout* p) { p->resize(); }));
   REG_LAMBDA(VerticalLayout, "void setAlignment(float alignment)",      ([](hiro::VerticalLayout* p, float alignment) { p->setAlignment(alignment); }));
   REG_LAMBDA(VerticalLayout, "void resetAlignment()",                   ([](hiro::VerticalLayout* p) { p->setAlignment(); }));
@@ -556,6 +558,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_SIZABLE(HorizontalLayout);
   REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
     ([](hiro::HorizontalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){ self->append(*sizable, *size, spacing); }));
+  REG_LAMBDA(HorizontalLayout, "void remove(const ? &in sizable)",        ([](hiro::HorizontalLayout* p, hiro::Sizable* sizable, int sizableTypeId){ p->remove(*sizable); }));
   REG_LAMBDA(HorizontalLayout, "void resize()",                           ([](hiro::HorizontalLayout* p) { p->resize(); }));
   REG_LAMBDA(HorizontalLayout, "void setAlignment(float alignment)",      ([](hiro::HorizontalLayout* p, float alignment) { p->setAlignment(alignment); }));
   REG_LAMBDA(HorizontalLayout, "void resetAlignment()",                   ([](hiro::HorizontalLayout* p) { p->setAlignment(); }));
