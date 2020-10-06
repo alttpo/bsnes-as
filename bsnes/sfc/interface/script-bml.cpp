@@ -39,6 +39,7 @@ auto RegisterBML(asIScriptEngine *e) -> void {
     REG_LAMBDA(Node, "float realOr(float fallback)",             ([](SharedNode &p, double fallback)   { return Node(p).real(fallback); }));
   }
 
+  // load/save *.bml files in user's settings folder:
   {
     r = e->SetDefaultNamespace("UserSettings"); assert(r >= 0);
 
@@ -49,6 +50,28 @@ auto RegisterBML(asIScriptEngine *e) -> void {
 
     REG_LAMBDA_GLOBAL("void save(const string &in path, BML::Node @document)", ([](string &path, SharedNode &p) {
       file::write({Path::userSettings(), "bsnes/", path}, BML::serialize(Node(p)));
+    }));
+  }
+
+  // load/save *.bml files in script folder:
+  {
+    r = e->SetDefaultNamespace("ScriptFiles"); assert(r >= 0);
+
+    REG_LAMBDA_GLOBAL("BML::Node @loadBML(const string &in path)", ([](string &relpath) {
+      string path;
+      path.append(platform->scriptEngineState.directory);
+      path.append(relpath);
+
+      auto document = BML::unserialize(file::read(path));
+      return new SharedNode( (SharedNode)document );
+    }));
+
+    REG_LAMBDA_GLOBAL("void saveBML(const string &in path, BML::Node @document)", ([](string &relpath, SharedNode &p) {
+      string path;
+      path.append(platform->scriptEngineState.directory);
+      path.append(relpath);
+
+      file::write(path, BML::serialize(Node(p)));
     }));
   }
 }
