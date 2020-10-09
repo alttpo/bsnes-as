@@ -273,6 +273,26 @@ bool isGuiEnabled = false;
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(+([](className& self){ self._addRef(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ self._releaseRef(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 #endif
+template <typename T>
+
+void value_construct(void * address) {
+  new (address) T;
+}
+
+template <typename T>
+void value_destroy(T * object) {
+  object->~T();
+}
+
+template <typename T>
+void value_copy_construct(void * address, T * other) {
+  new (address) T(*other);
+}
+
+template <typename T>
+void value_assign(T * lhs, T* rhs) {
+  *lhs = *rhs;
+}
 
 auto RegisterGUI(asIScriptEngine *e) -> void {
   int r;
@@ -310,7 +330,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_TYPE(Canvas);
   REG_REF_TYPE(SNESCanvas);
   REG_REF_TYPE(CheckLabel);
-  REG_REF_TYPE(ComboButtonItem);
+  //REG_REF_TYPE(ComboButtonItem);
+  REG_VALUE_TYPE(ComboButtonItem, hiro::ComboButtonItem, asOBJ_VALUE | asOBJ_APP_CLASS_CDAK);
   REG_REF_TYPE(ComboButton);
   REG_REF_TYPE(HorizontalSlider);
 
@@ -325,6 +346,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #define EXPOSE_HIRO(name) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
   GUI_EXPOSE_SHARED_PTR(name, hiro::name, hiro::m##name)
+
+#define EXPOSE_HIRO_VALUE(name) \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(value_construct<hiro::name>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f(const " #name " & in)", asFUNCTION(value_copy_construct<hiro::name>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<hiro::name>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
+  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asFUNCTION(value_assign<hiro::name>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   // Object:
 #define EXPOSE_OBJECT(name, className) \
@@ -653,7 +680,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(CheckLabel, "void onToggle(Callback @cb)",                   ([](hiro::CheckLabel *p, asIScriptFunction *cb) { p->onToggle(Callback(cb)); }));
 
   // ComboButtonItem
-  EXPOSE_HIRO(ComboButtonItem);
+  EXPOSE_HIRO_VALUE(ComboButtonItem);
   EXPOSE_HIRO_OBJECT(ComboButtonItem);
   REG_LAMBDA(ComboButtonItem, "void set_text(const string &in text) property", ([](hiro::ComboButtonItem *p, const string &text) { p->setText(text); }));
   REG_LAMBDA(ComboButtonItem, "string get_text() property",                    ([](hiro::ComboButtonItem *p) { return p->text(); }));
@@ -667,14 +694,14 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(ComboButton);
   EXPOSE_HIRO_SIZABLE(ComboButton);
   EXPOSE_HIRO_WIDGET(ComboButton);
-  REG_LAMBDA(ComboButton, "void append(ComboButtonItem@ item)",             ([](hiro::ComboButton *p, hiro::ComboButtonItem *item) { p->append(*item); }));
-  REG_LAMBDA(ComboButton, "ComboButtonItem@ get_opIndex(uint i) property",  ([](hiro::ComboButton *p, uint i) { return new hiro::ComboButtonItem(p->item(i)); }));
+  REG_LAMBDA(ComboButton, "void append(const ComboButtonItem &in item)",    ([](hiro::ComboButton *p, hiro::ComboButtonItem *item) { p->append(*item); }));
+  REG_LAMBDA(ComboButton, "ComboButtonItem get_opIndex(uint i) property",   ([](hiro::ComboButton *p, uint i) { return hiro::ComboButtonItem(p->item(i)); }));
   REG_LAMBDA(ComboButton, "uint count()",                                   ([](hiro::ComboButton *p) { return p->itemCount(); }));
   REG_LAMBDA(ComboButton, "void doChange()",                                ([](hiro::ComboButton *p) { p->doChange(); }));
-  REG_LAMBDA(ComboButton, "void remove(ComboButtonItem@ item)",             ([](hiro::ComboButton *p, hiro::ComboButtonItem *item) { p->remove(*item); }));
+  REG_LAMBDA(ComboButton, "void remove(const ComboButtonItem &in item)",    ([](hiro::ComboButton *p, hiro::ComboButtonItem *item) { p->remove(*item); }));
   REG_LAMBDA(ComboButton, "void onChange(Callback @cb)",                    ([](hiro::ComboButton *p, asIScriptFunction *cb) { p->onChange(Callback(cb)); }));
   REG_LAMBDA(ComboButton, "void reset()",                                   ([](hiro::ComboButton *p) { p->reset(); }));
-  REG_LAMBDA(ComboButton, "ComboButtonItem@ get_selected() property",       ([](hiro::ComboButton *p) { return new hiro::ComboButtonItem(p->selected()); }));
+  REG_LAMBDA(ComboButton, "ComboButtonItem get_selected() property",        ([](hiro::ComboButton *p) { return hiro::ComboButtonItem(p->selected()); }));
 
   // HorizontalSlider
   EXPOSE_HIRO(HorizontalSlider);

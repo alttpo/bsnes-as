@@ -69,7 +69,7 @@ bool sock_has_error(int err) {
 #define REG_REF_NOHANDLE(name) REG_TYPE_FLAGS(name, asOBJ_REF | asOBJ_NOHANDLE)
 
 #define REG_VALUE_TYPE(name, className, flags) \
-  r = e->RegisterObjectType(#name, sizeof(className), asOBJ_VALUE | flags | asGetTypeTraits<className>()); assert( r >= 0 )
+  r = e->RegisterObjectType(#name, sizeof(className), asOBJ_VALUE | flags); assert( r >= 0 )
 
 #define REG_GLOBAL(defn, ptr) r = e->RegisterGlobalProperty(defn, ptr); assert( r >= 0 )
 
