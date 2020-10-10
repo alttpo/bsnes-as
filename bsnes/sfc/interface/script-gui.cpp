@@ -273,26 +273,6 @@ bool isGuiEnabled = false;
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(+([](className& self){ self._addRef(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ self._releaseRef(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 #endif
-template <typename T>
-
-void value_construct(void * address) {
-  new (address) T;
-}
-
-template <typename T>
-void value_destroy(T * object) {
-  object->~T();
-}
-
-template <typename T>
-void value_copy_construct(void * address, T * other) {
-  new (address) T(*other);
-}
-
-template <typename T>
-void value_assign(T * lhs, T* rhs) {
-  *lhs = *rhs;
-}
 
 auto RegisterGUI(asIScriptEngine *e) -> void {
   int r;
@@ -330,8 +310,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_TYPE(Canvas);
   REG_REF_TYPE(SNESCanvas);
   REG_REF_TYPE(CheckLabel);
-  //REG_REF_TYPE(ComboButtonItem);
-  REG_VALUE_TYPE(ComboButtonItem, hiro::ComboButtonItem, asOBJ_VALUE | asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(ComboButtonItem, hiro::ComboButtonItem, asOBJ_APP_CLASS_CDAK);
   REG_REF_TYPE(ComboButton);
   REG_REF_TYPE(HorizontalSlider);
 

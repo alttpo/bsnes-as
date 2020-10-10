@@ -85,6 +85,26 @@ bool sock_has_error(int err) {
   REG_LAMBDA_BEHAVIOUR(name, asBEHAVE_RELEASE, "void f()", ([](className *p){ delete p; }));      \
   REG_LAMBDA(name, #name " &opAssign(const " #name " &in)", ([](className& self, const className& other) -> className& { return self.operator=(other); }))
 
+template <typename T>
+void value_construct(void * address) {
+  new (address) T;
+}
+
+template <typename T>
+void value_destroy(T * object) {
+  object->~T();
+}
+
+template <typename T>
+void value_copy_construct(void * address, T * other) {
+  new (address) T(*other);
+}
+
+template <typename T>
+void value_assign(T * lhs, T* rhs) {
+  *lhs = *rhs;
+}
+
 #include "script-string.cpp"
 
 // R5G5B5 is what ends up on the final PPU frame buffer (R and B are swapped from SNES)
