@@ -136,6 +136,10 @@ void init() {
   message(fmtInt(ppu::extra.font.height));
 }
 
+void unload() {
+  @settings = null;
+}
+
 void pre_frame() {
   //message(fmtInt(settings.dd.count()));
   //message(settings.dd.selected.text);

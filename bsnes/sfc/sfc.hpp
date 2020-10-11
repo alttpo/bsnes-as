@@ -148,10 +148,6 @@ namespace SuperFamicom {
   }
 
   struct Script {
-#ifndef DISABLE_HIRO
-    vector<hiro::Window> windows;
-#endif
-
     vector<ScriptInterface::Net::Socket*> sockets;
 
     struct {

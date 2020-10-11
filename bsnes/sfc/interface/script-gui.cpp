@@ -470,7 +470,9 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_VALUE_TYPE(Window, hiro::Window, asOBJ_APP_CLASS_CDAK);
   EXPOSE_VALUE_CAK(Window, hiro::Window);
   REG_LAMBDA_DTOR(Window, "void f()", ([](hiro::Window& self){
-    if (!self) return;
+    if (!self) {
+      return;
+    }
     self->setVisible(false);
     self->setDismissable(true);
     self->destruct();

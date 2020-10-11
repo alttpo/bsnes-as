@@ -253,22 +253,48 @@ namespace ScriptInterface {
   }
 
   struct Callback {
-    asIScriptFunction *cb;
+    asIScriptFunction *func = nullptr;
+    void              *obj  = nullptr;
 
-    Callback(asIScriptFunction *cb) : cb(cb) {
-      cb->AddRef();
+    Callback(asIScriptFunction *cb) {
+      //printf("cb[%p].ctor()\n", (void*)this);
+
+      // if dealing with a delegate, only take a reference to the method and not its object:
+      if (cb && cb->GetFuncType() == asFUNC_DELEGATE) {
+        obj  = cb->GetDelegateObject();
+        func = cb->GetDelegateFunction();
+
+        auto c = func->AddRef();
+        //printf("cb[%p].func[%p].addref -> %d\n", (void*)this, (void*)func, c);
+
+        // release the delegate:
+        c = cb->Release();
+        //printf("cb[%p].cb[%p].release -> %d\n", (void*)this, (void*)cb, c);
+      } else {
+        func = cb;
+      }
     }
-    Callback(const Callback& other) : cb(other.cb) {
-      cb->AddRef();
+    Callback(const Callback& other) : func(other.func), obj(other.obj) {
+      //printf("cb[%p].copy()\n", (void*)this);
+      auto c = func->AddRef();
+      //printf("cb[%p].func[%p].addref -> %d\n", (void*)this, (void*)func, c);
     }
+
     ~Callback() {
-      cb->Release();
-      cb = nullptr;
+      //printf("cb[%p].dtor()\n", (void*)this);
+      auto c = func->Release();
+      //printf("cb[%p].func[%p].release -> %d\n", (void*)this, (void*)func, c);
+      func = nullptr;
+      obj = nullptr;
     }
 
     auto operator()() -> void {
       auto ctx = platform->scriptCreateContext();
-      platform->scriptInvokeFunctionWithContext(cb, ctx);
+      platform->scriptInvokeFunctionWithContext(func, ctx, [=](asIScriptContext* ctx) {
+        // use the script object for which the delegate applies to:
+        // TODO: what if obj == nullptr?
+        ctx->SetObject(obj);
+      });
       ctx->Release();
     }
   };
@@ -646,18 +672,6 @@ auto Interface::unloadScript() -> void {
   ::SuperFamicom::bus.reset_interceptors();
   ::SuperFamicom::cpu.reset_dma_interceptor();
   ::SuperFamicom::cpu.reset_pc_callbacks();
-
-#ifndef DISABLE_HIRO
-  // Close any GUI windows:
-  for (auto window : script.windows) {
-    if (!window) continue;
-    window->setVisible(false);
-    window->setDismissable(true);
-    window->destruct();
-    window.reset();
-  }
-  script.windows.reset();
-#endif
 
   for (auto socket : script.sockets) {
     // release all script handles to the socket and close it but do not remove it from the script.sockets vector:
