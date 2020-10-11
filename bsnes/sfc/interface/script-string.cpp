@@ -19,7 +19,9 @@ struct CNallStringFactory : public asIStringFactory {
     if (str == nullptr)
       return asERROR;
 
-    const_cast<string *>(reinterpret_cast<const string*>(str))->reset();
+    string* s = const_cast<string *>(reinterpret_cast<const string*>(str));
+    s->reset();
+    delete s;
 
     return asSUCCESS;
   }
