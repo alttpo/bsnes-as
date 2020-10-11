@@ -722,9 +722,16 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     // experimental:
     REG_VALUE_TYPE(Window2, hiro::Window, asOBJ_APP_CLASS_CDAK);
     //EXPOSE_VALUE_CDAK(Window2, hiro::Window);
-    REG_LAMBDA_CTOR(Window2, "void f()",                             ([](void* address){ value_construct<hiro::Window>(address); }));
+    REG_LAMBDA_CTOR(Window2, "void f()",                             ([](void* address){
+      value_construct<hiro::Window>(address);
+    }));
     REG_LAMBDA_CTOR(Window2, "void f(const Window2 &in)",            ([](void* address, hiro::Window* other){ value_copy_construct(address, other); }));
-    REG_LAMBDA_DTOR(Window2, "void f()",                             ([](hiro::Window* self){ value_destroy(self); }));
+    REG_LAMBDA_DTOR(Window2, "void f()",                             ([](hiro::Window& self){
+      self->setVisible(false);
+      self->setDismissable(true);
+      self->destruct();
+      self.reset();
+    }));
     REG_LAMBDA     (Window2, "Window2 &opAssign(const Window2 &in)", ([](hiro::Window* self, hiro::Window* other){ value_assign(self, other); }));
 
     EXPOSE_OBJECT(Window2, hiro::Window);
