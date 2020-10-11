@@ -1,4 +1,4 @@
-GUI::Window2 w;
+GUI::Window w;
 
 void init() {
   w.size = GUI::Size(400, 400);
