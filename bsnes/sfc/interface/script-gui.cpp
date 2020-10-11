@@ -301,18 +301,18 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // Register reference types:
   REG_REF_NOCOUNT(Attributes);
   REG_VALUE_TYPE(Window, hiro::Window, asOBJ_APP_CLASS_CDAK);
-  REG_REF_TYPE(VerticalLayout);
-  REG_REF_TYPE(HorizontalLayout);
-  REG_REF_TYPE(Group);
-  REG_REF_TYPE(LineEdit);
-  REG_REF_TYPE(Label);
-  REG_REF_TYPE(Button);
-  REG_REF_TYPE(Canvas);
-  REG_REF_TYPE(SNESCanvas);
-  REG_REF_TYPE(CheckLabel);
+  REG_VALUE_TYPE(VerticalLayout, hiro::VerticalLayout, asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(HorizontalLayout, hiro::HorizontalLayout, asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(Group, hiro::Group, asOBJ_APP_CLASS_CDA);
+  REG_VALUE_TYPE(LineEdit, hiro::LineEdit, asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(Label, hiro::Label, asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(Button, hiro::Button, asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(Canvas, hiro::Canvas, asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(SNESCanvas, GUI::SNESCanvas, asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(CheckLabel, hiro::CheckLabel, asOBJ_APP_CLASS_CDAK);
   REG_VALUE_TYPE(ComboButtonItem, hiro::ComboButtonItem, asOBJ_APP_CLASS_CDAK);
-  REG_REF_TYPE(ComboButton);
-  REG_REF_TYPE(HorizontalSlider);
+  REG_VALUE_TYPE(ComboButton, hiro::ComboButton, asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(HorizontalSlider, hiro::HorizontalSlider, asOBJ_APP_CLASS_CDAK);
 
   // value types:
   REG_REF_SCOPED(Alignment, hiro::Alignment);
@@ -326,13 +326,20 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
   GUI_EXPOSE_SHARED_PTR(name, hiro::name, hiro::m##name)
 
-#define EXPOSE_VALUE_CAK(name, classname) \
+#define EXPOSE_VALUE_CA(name, classname) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(value_construct<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f(const " #name " & in)", asFUNCTION(value_copy_construct<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
   r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asFUNCTION(value_assign<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+#define EXPOSE_VALUE_CAK(name, classname) \
+  EXPOSE_VALUE_CA(name, classname) \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f(const " #name " & in)", asFUNCTION(value_copy_construct<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
 #define EXPOSE_VALUE_CDAK(name, classname) \
   EXPOSE_VALUE_CAK(name, classname) \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+#define EXPOSE_VALUE_CDA(name, classname) \
+  EXPOSE_VALUE_CA(name, classname) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
 #define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name)
@@ -560,7 +567,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #endif
 
   // VerticalLayout
-  EXPOSE_HIRO(VerticalLayout);
+  EXPOSE_HIRO_VALUE(VerticalLayout);
   EXPOSE_HIRO_OBJECT(VerticalLayout);
   EXPOSE_HIRO_SIZABLE(VerticalLayout);
   REG_LAMBDA(VerticalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
@@ -573,7 +580,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(VerticalLayout, "void setSpacing(float spacing = 5.0)",    ([](hiro::VerticalLayout* p, float spacing) { p->setSpacing(spacing); }));
 
   // HorizontalLayout
-  EXPOSE_HIRO(HorizontalLayout);
+  EXPOSE_HIRO_VALUE(HorizontalLayout);
   EXPOSE_HIRO_OBJECT(HorizontalLayout);
   EXPOSE_HIRO_SIZABLE(HorizontalLayout);
   REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
@@ -586,14 +593,14 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(HorizontalLayout, "void setSpacing(float spacing = 5.0)",    ([](hiro::HorizontalLayout* p, float spacing) { p->setSpacing(spacing); }));
 
   // Group
-  EXPOSE_HIRO(Group);
+  EXPOSE_VALUE_CDA(Group, hiro::Group);
   REG_LAMBDA(Group, "void append(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->append(*object); }));
   REG_LAMBDA(Group, "void remove(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->remove(*object); }));
   //REG_LAMBDA(Group, "Group@ get_opIndex(uint i) property",  ([](hiro::Group *p, uint i) { return new hiro::ComboButtonItem(p->object(i)); }));
   REG_LAMBDA(Group, "uint count()",                         ([](hiro::Group *p) { return p->objectCount(); }));
 
   // LineEdit
-  EXPOSE_HIRO(LineEdit);
+  EXPOSE_HIRO_VALUE(LineEdit);
   EXPOSE_HIRO_OBJECT(LineEdit);
   EXPOSE_HIRO_SIZABLE(LineEdit);
   EXPOSE_HIRO_WIDGET(LineEdit);
@@ -602,7 +609,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(LineEdit, "void onChange(Callback @cb)",                   ([](hiro::LineEdit* self, asIScriptFunction* cb) { self->onChange(Callback(cb)); }));
 
   // Label
-  EXPOSE_HIRO(Label);
+  EXPOSE_HIRO_VALUE(Label);
   EXPOSE_HIRO_OBJECT(Label);
   EXPOSE_HIRO_SIZABLE(Label);
   EXPOSE_HIRO_WIDGET(Label);
@@ -616,7 +623,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Label, "void set_text(const string &in) property",           ([](hiro::Label* self, string &text){ self->setText(text); }));
 
   // Button
-  EXPOSE_HIRO(Button);
+  EXPOSE_HIRO_VALUE(Button);
   EXPOSE_HIRO_OBJECT(Button);
   EXPOSE_HIRO_SIZABLE(Button);
   EXPOSE_HIRO_WIDGET(Button);
@@ -625,7 +632,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Button, "void onActivate(Callback @cb)",                 ([](hiro::Button* self, asIScriptFunction* cb){ self->onActivate(Callback(cb)); }));
 
   // Canvas
-  EXPOSE_HIRO(Canvas);
+  EXPOSE_HIRO_VALUE(Canvas);
   EXPOSE_HIRO_OBJECT(Canvas);
   EXPOSE_HIRO_SIZABLE(Canvas);
   EXPOSE_HIRO_WIDGET(Canvas);
@@ -650,7 +657,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   //REG_LAMBDA(Canvas, "void set_size(Size &in) property",         ([](hiro::Canvas& self, hiro::Size* size) { self.setSize(*size); }));
 
   // CheckLabel
-  EXPOSE_HIRO(CheckLabel);
+  EXPOSE_HIRO_VALUE(CheckLabel);
   EXPOSE_HIRO_OBJECT(CheckLabel);
   EXPOSE_HIRO_SIZABLE(CheckLabel);
   EXPOSE_HIRO_WIDGET(CheckLabel);
@@ -672,7 +679,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // auto setIcon(const image& icon = {}) -> type&;
 
   // ComboButton
-  EXPOSE_HIRO(ComboButton);
+  EXPOSE_HIRO_VALUE(ComboButton);
   EXPOSE_HIRO_OBJECT(ComboButton);
   EXPOSE_HIRO_SIZABLE(ComboButton);
   EXPOSE_HIRO_WIDGET(ComboButton);
@@ -686,7 +693,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(ComboButton, "ComboButtonItem get_selected() property",        ([](hiro::ComboButton *p) { return hiro::ComboButtonItem(p->selected()); }));
 
   // HorizontalSlider
-  EXPOSE_HIRO(HorizontalSlider);
+  EXPOSE_HIRO_VALUE(HorizontalSlider);
   EXPOSE_HIRO_OBJECT(HorizontalSlider);
   EXPOSE_HIRO_SIZABLE(HorizontalSlider);
   EXPOSE_HIRO_WIDGET(HorizontalSlider);
@@ -698,8 +705,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(HorizontalSlider, "void onChange(Callback @cb)",               ([](hiro::HorizontalSlider *p, asIScriptFunction *cb) { p->onChange(Callback(cb)); }));
 
   // SNESCanvas
-  r = e->RegisterObjectBehaviour("SNESCanvas", asBEHAVE_FACTORY, "SNESCanvas@ f()", asFUNCTION( +([]{ return new GUI::SNESCanvas(); }) ), asCALL_CDECL); assert(r >= 0);
-  GUI_EXPOSE_SHARED_PTR(SNESCanvas, GUI::SNESCanvas, GUI::mSNESCanvas);
+  EXPOSE_VALUE_CDA(SNESCanvas, GUI::SNESCanvas);
   EXPOSE_OBJECT(SNESCanvas, GUI::SNESCanvas);
   EXPOSE_SIZABLE(SNESCanvas, GUI::SNESCanvas);
   REG_LAMBDA(SNESCanvas, "void set_size(Size &in size) property",               ([](GUI::SNESCanvas& self, hiro::Size &size) { self.setSize(size); }));
