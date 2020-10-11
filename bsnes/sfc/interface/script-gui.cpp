@@ -326,11 +326,13 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
   GUI_EXPOSE_SHARED_PTR(name, hiro::name, hiro::m##name)
 
-#define EXPOSE_HIRO_VALUE(name) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(value_construct<hiro::name>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f(const " #name " & in)", asFUNCTION(value_copy_construct<hiro::name>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<hiro::name>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
-  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asFUNCTION(value_assign<hiro::name>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+#define EXPOSE_VALUE_CDAK(name, classname) \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(value_construct<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f(const " #name " & in)", asFUNCTION(value_copy_construct<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
+  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asFUNCTION(value_assign<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+#define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name)
 
   // Object:
 #define EXPOSE_OBJECT(name, className) \
@@ -715,4 +717,49 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
              })
   );
   // TODO: draw_sprite_8bpp
+
+  {
+    // experimental:
+    REG_VALUE_TYPE(Window2, hiro::Window, asOBJ_APP_CLASS_CDAK);
+    //EXPOSE_VALUE_CDAK(Window2, hiro::Window);
+    REG_LAMBDA_CTOR(Window2, "void f()",                             ([](void* address){ value_construct<hiro::Window>(address); }));
+    REG_LAMBDA_CTOR(Window2, "void f(const Window2 &in)",            ([](void* address, hiro::Window* other){ value_copy_construct(address, other); }));
+    REG_LAMBDA_DTOR(Window2, "void f()",                             ([](hiro::Window* self){ value_destroy(self); }));
+    REG_LAMBDA     (Window2, "Window2 &opAssign(const Window2 &in)", ([](hiro::Window* self, hiro::Window* other){ value_assign(self, other); }));
+
+    EXPOSE_OBJECT(Window2, hiro::Window);
+    REG_LAMBDA(Window2, "void append(const ? &in sizable)", ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->append(*sizable); }));
+    REG_LAMBDA(Window2, "void remove(const ? &in sizable)", ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->remove(*sizable); }));
+    REG_LAMBDA(Window2, "void reset()",                     ([](hiro::Window* self){ self->reset(); }));
+
+    REG_LAMBDA(Window2, "Color@ get_backgroundColor() property", ([](hiro::Window* self) { return new hiro::Color(self->backgroundColor()); }));
+    REG_LAMBDA(Window2, "bool get_dismissable() property",       ([](hiro::Window* self) { return self->dismissable(); }));
+    REG_LAMBDA(Window2, "bool get_fullScreen() property",        ([](hiro::Window* self) { return self->fullScreen(); }));
+    REG_LAMBDA(Window2, "bool get_maximized() property",         ([](hiro::Window* self) { return self->maximized(); }));
+    REG_LAMBDA(Window2, "Size@ get_maximumSize() property",      ([](hiro::Window* self) { return new hiro::Size(self->maximumSize()); }));
+    REG_LAMBDA(Window2, "bool get_minimized() property",         ([](hiro::Window* self) { return self->minimized(); }));
+    REG_LAMBDA(Window2, "Size@ get_minimumSize() property",      ([](hiro::Window* self) { return new hiro::Size(self->minimumSize()); }));
+    REG_LAMBDA(Window2, "bool get_modal() property",             ([](hiro::Window* self) { return self->modal(); }));
+    REG_LAMBDA(Window2, "bool get_resizable() property",         ([](hiro::Window* self) { return self->resizable(); }));
+    REG_LAMBDA(Window2, "bool get_sizable() property",           ([](hiro::Window* self) { return self->sizable(); }));
+    REG_LAMBDA(Window2, "string get_title() property",           ([](hiro::Window* self) { return self->title(); }));
+
+    REG_LAMBDA(Window2, "Geometry@ get_frameGeometry() property",([](hiro::Window* self) { return new hiro::Geometry(self->frameGeometry()); }));
+    REG_LAMBDA(Window2, "Geometry@ get_geometry() property",     ([](hiro::Window* self) { return new hiro::Geometry(self->geometry()); }));
+
+    REG_LAMBDA(Window2, "void set_backgroundColor(const Color &in color) property", ([](hiro::Window* self, hiro::Color &color)  { self->setBackgroundColor(color); }));
+    REG_LAMBDA(Window2, "void set_dismissable(bool dismissable) property",          ([](hiro::Window* self, bool dismissable)    { self->setDismissable(dismissable); }));
+    REG_LAMBDA(Window2, "void set_fullScreen(bool fullScreen) property",            ([](hiro::Window* self, bool fullScreen)     { self->setFullScreen(fullScreen); }));
+    REG_LAMBDA(Window2, "void set_maximized(bool maximized) property",              ([](hiro::Window* self, bool maximized)      { self->setMaximized(maximized); }));
+    REG_LAMBDA(Window2, "void set_maximumSize(const Size &in size) property",       ([](hiro::Window* self, hiro::Size &size)    { self->setMaximumSize(size); }));
+    REG_LAMBDA(Window2, "void set_minimized(bool minimized) property",              ([](hiro::Window* self, bool minimized)      { self->setMinimized(minimized); }));
+    REG_LAMBDA(Window2, "void set_minimumSize(const Size &in size) property",       ([](hiro::Window* self, hiro::Size &size)    { self->setMinimumSize(size); }));
+    REG_LAMBDA(Window2, "void set_modal(bool modal) property",                      ([](hiro::Window* self, bool modal)          { self->setModal(modal); }));
+    REG_LAMBDA(Window2, "void set_resizable(bool resizable) property",              ([](hiro::Window* self, bool resizable)      { self->setResizable(resizable); }));
+    REG_LAMBDA(Window2, "void set_title(const string &in title) property",          ([](hiro::Window* self, const string &title) { self->setTitle(title); }));
+    REG_LAMBDA(Window2, "void set_size(const Size &in size) property",              ([](hiro::Window* self, hiro::Size &size)    { self->setSize(size); }));
+
+    REG_LAMBDA(Window2, "void onSize(Callback @cb)",             ([](hiro::Window *self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
+
+  }
 }
