@@ -1,21 +1,20 @@
 SettingsWindow @settings;
 
 class SettingsWindow {
-  private GUI::Window @window;
-  GUI::ComboButton      @dd;
-  GUI::HorizontalSlider @hs;
+  private GUI::Window window;
+  GUI::ComboButton      dd;
+  GUI::HorizontalSlider hs;
 
   SettingsWindow() {
-    auto @node = UserSettings::load("test.bml");
+    auto node = UserSettings::load("test.bml");
     message("'" + node["test"].text + "'");
     message("'" + node["test"].textOr("fallback") + "'");
 
-    @node = BML::Node();
+    node = BML::Node();
     node.create("test").value = "test";
     node.create("test/two").value = "three";
     UserSettings::save("test.bml", node);
 
-    @window = GUI::Window();
     window.dismissable = false;
     window.resizable = false;
     window.visible = true;
@@ -31,13 +30,13 @@ class SettingsWindow {
     text += "abc";
     message(text);
 
-    auto @vl = GUI::VerticalLayout();
+    auto vl = GUI::VerticalLayout();
     auto spacing = 8.0;
     vl.setSpacing(spacing);
     vl.setPadding(5, 5);
     window.append(vl);
     {
-      auto @chk = GUI::CheckLabel();
+      auto chk = GUI::CheckLabel();
       vl.append(chk, GUI::Size(0, 0), spacing);
       chk.text = "Test 1 enabled, checked";
       chk.onToggle(@GUI::Callback(this.toggled));
@@ -45,28 +44,28 @@ class SettingsWindow {
       chk.checked = true;
       chk.setFocused();
 
-      @chk = GUI::CheckLabel();
+      chk = GUI::CheckLabel();
       vl.append(chk, GUI::Size(0, 0), spacing);
       chk.text = "Test 2 disabled, checked";
       chk.onToggle(@GUI::Callback(this.toggled));
       chk.enabled = false;
       chk.checked = true;
 
-      @chk = GUI::CheckLabel();
+      chk = GUI::CheckLabel();
       vl.append(chk, GUI::Size(0, 0), spacing);
       chk.text = "Test 3 enabled, unchecked";
       chk.onToggle(@GUI::Callback(this.toggled));
       chk.enabled = true;
       chk.checked = false;
 
-      @chk = GUI::CheckLabel();
+      chk = GUI::CheckLabel();
       vl.append(chk, GUI::Size(0, 0), spacing);
       chk.text = "Test 4 disabled, unchecked";
       chk.onToggle(@GUI::Callback(this.toggled));
       chk.enabled = false;
       chk.checked = false;
 
-      auto @lbl = GUI::Label();
+      auto lbl = GUI::Label();
       vl.append(lbl, GUI::Size(256, 48), spacing);
       lbl.text = "0123456789ABCDEF";
       lbl.toolTip = "tool tip";
@@ -76,24 +75,23 @@ class SettingsWindow {
       GUI::Color fc = lbl.foregroundColor;
       GUI::Color bc = lbl.backgroundColor;
 
-      auto @cv = GUI::SNESCanvas();
+      auto cv = GUI::SNESCanvas();
       vl.append(cv, GUI::Size(0, 0), spacing);
       cv.size = GUI::Size(256, 256);
       cv.luma = 4;
       cv.fill(0x03E0 | 0x8000);
       cv.update();
 
-      @dd = GUI::ComboButton();
       vl.append(dd, GUI::Size(0, 0));
 
-      auto @di = GUI::ComboButtonItem();
+      auto di = GUI::ComboButtonItem();
       di.attributes["test"] = "value";
       message("attr['test'] = " + di.attributes["test"]);
       di.text = "A";
       di.setSelected();
       dd.append(di);
 
-      @di = GUI::ComboButtonItem();
+      di = GUI::ComboButtonItem();
       di.attributes["test2"] = "value2";
       message("attr['test2'] = " + di.attributes["test2"]);
       di.text = "B";
@@ -109,7 +107,6 @@ class SettingsWindow {
       message(dd[1].text);
       message(dd[1].attributes["test2"]);
 
-      @hs = GUI::HorizontalSlider();
       vl.append(hs, GUI::Size(200, 0), spacing);
       hs.length = 31;
       hs.position = 31;
@@ -131,7 +128,7 @@ class SettingsWindow {
 };
 
 void init() {
-  @settings = SettingsWindow();
+  @settings = @SettingsWindow();
   @ppu::extra.font = ppu::fonts[0]; // "proggy-tinysz";
   ppu::extra.text_outline = true;
   ppu::extra.color = ppu::rgb(31, 31, 31);
