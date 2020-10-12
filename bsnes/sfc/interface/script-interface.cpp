@@ -226,32 +226,6 @@ namespace ScriptInterface {
   uint32_t  *emulatorPalette;
   uint      emulatorDepth;    // 24 or 30
 
-  struct any{};
-
-  static auto sharedPtrAddRef(shared_pointer<any> &p) {
-    ++p.manager->strong;
-    //printf("%p ++ -> %d\n", (void*)&p, p.references());
-  }
-
-  template<class C>
-  static auto sharedPtrRelease(shared_pointer<C> &p) {
-    //printf("%p -- -> %d\n", (void*)&p, p.references() - 1);
-    if (p.manager && p.manager->strong) {
-      if (p.manager->strong == 1) {
-        if(p.manager->deleter) {
-          p.manager->deleter(p.manager->pointer);
-        } else {
-          delete (C*)p.manager->pointer;
-        }
-        p.manager->pointer = nullptr;
-      }
-      if (--p.manager->strong == 0) {
-        delete p.manager;
-        p.manager = nullptr;
-      }
-    }
-  }
-
   struct Callback {
     asIScriptFunction *func = nullptr;
     void              *obj  = nullptr;
@@ -298,10 +272,6 @@ namespace ScriptInterface {
       ctx->Release();
     }
   };
-
-#define EXPOSE_SHARED_PTR(name, className, mClassName) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(sharedPtrAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ sharedPtrRelease<mClassName>(self); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
   #include "script-bus.cpp"
   #include "script-ppu.cpp"

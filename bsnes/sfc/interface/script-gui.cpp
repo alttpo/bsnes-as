@@ -149,6 +149,8 @@ struct GUI {
     }
   };
 
+  using sSNESCanvas = shared_pointer<mSNESCanvas>;
+
   // shared pointer interface to mSNESCanvas:
   struct SNESCanvas : shared_pointer<mSNESCanvas> {
     SNESCanvas() : shared_pointer<mSNESCanvas>(new mSNESCanvas, [](auto p) {
@@ -157,6 +159,8 @@ struct GUI {
     }) {
       (*this)->bind(*this);
     }
+
+    SNESCanvas(const sSNESCanvas& source) : sSNESCanvas(source) { assert(source); }
 
     auto self() const -> mSNESCanvas& { return (mSNESCanvas&)operator*(); }
 
@@ -266,14 +270,6 @@ bool isGuiEnabled = true;
 bool isGuiEnabled = false;
 #endif
 
-#ifndef DISABLE_HIRO
-#  define GUI_EXPOSE_SHARED_PTR(name, className, mClassName) EXPOSE_SHARED_PTR(name, className, mClassName)
-#else
-#  define GUI_EXPOSE_SHARED_PTR(name, className, mClassName) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(+([](className& self){ self._addRef(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ self._releaseRef(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
-#endif
-
 auto RegisterGUI(asIScriptEngine *e) -> void {
   int r;
 
@@ -322,27 +318,26 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_SCOPED(Size, hiro::Size);
   REG_REF_SCOPED(Geometry, hiro::Geometry);
 
-#define EXPOSE_HIRO(name) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
-  GUI_EXPOSE_SHARED_PTR(name, hiro::name, hiro::m##name)
+#define EXPOSE_VALUE_CA(name, shClass, sClass) \
+  REG_LAMBDA_CTOR(name, "void f()", ([](void* address){ new (address) shClass((const sClass &)sClass()); })); \
+  REG_LAMBDA(name, "void construct()", ([](shClass &p){ p.operator=(shClass()); })); \
+  REG_LAMBDA(name, "void destruct()", ([](shClass *p){ value_destroy<shClass>(p); })); \
+  REG_LAMBDA(name, "bool opImplConv() const", ([](shClass &p){ return p.operator bool(); })); \
+  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asFUNCTION(value_assign<shClass>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-#define EXPOSE_VALUE_CA(name, classname) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(value_construct<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0); \
-  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asFUNCTION(value_assign<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+#define EXPOSE_VALUE_CAK(name, shClass, sClass) \
+  EXPOSE_VALUE_CA(name, shClass, sClass) \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f(const " #name " & in)", asFUNCTION(value_copy_construct<shClass>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-#define EXPOSE_VALUE_CAK(name, classname) \
-  EXPOSE_VALUE_CA(name, classname) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f(const " #name " & in)", asFUNCTION(value_copy_construct<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+#define EXPOSE_VALUE_CDAK(name, shClass, sClass) \
+  EXPOSE_VALUE_CAK(name, shClass, sClass) \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<shClass>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-#define EXPOSE_VALUE_CDAK(name, classname) \
-  EXPOSE_VALUE_CAK(name, classname) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+#define EXPOSE_VALUE_CDA(name, shClass, sClass) \
+  EXPOSE_VALUE_CA(name, shClass, sClass) \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<shClass>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-#define EXPOSE_VALUE_CDA(name, classname) \
-  EXPOSE_VALUE_CA(name, classname) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<classname>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-
-#define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name)
+#define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name, hiro::s##name)
 
   // Object:
 #define EXPOSE_OBJECT(name, className) \
@@ -468,7 +463,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // Window
   REG_VALUE_TYPE(Window, hiro::Window, asOBJ_APP_CLASS_CDAK);
-  EXPOSE_VALUE_CAK(Window, hiro::Window);
+  EXPOSE_VALUE_CAK(Window, hiro::Window, hiro::sWindow);
   REG_LAMBDA_DTOR(Window, "void f()", ([](hiro::Window& self){
     if (!self) {
       return;
@@ -595,7 +590,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(HorizontalLayout, "void setSpacing(float spacing = 5.0)",    ([](hiro::HorizontalLayout* p, float spacing) { p->setSpacing(spacing); }));
 
   // Group
-  EXPOSE_VALUE_CDA(Group, hiro::Group);
+  EXPOSE_VALUE_CDA(Group, hiro::Group, hiro::sGroup);
   REG_LAMBDA(Group, "void append(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->append(*object); }));
   REG_LAMBDA(Group, "void remove(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->remove(*object); }));
   //REG_LAMBDA(Group, "Group@ get_opIndex(uint i) property",  ([](hiro::Group *p, uint i) { return new hiro::ComboButtonItem(p->object(i)); }));
@@ -707,7 +702,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(HorizontalSlider, "void onChange(Callback @cb)",               ([](hiro::HorizontalSlider *p, asIScriptFunction *cb) { p->onChange(Callback(cb)); }));
 
   // SNESCanvas
-  EXPOSE_VALUE_CDA(SNESCanvas, GUI::SNESCanvas);
+  EXPOSE_VALUE_CDA(SNESCanvas, GUI::SNESCanvas, GUI::sSNESCanvas);
   EXPOSE_OBJECT(SNESCanvas, GUI::SNESCanvas);
   EXPOSE_SIZABLE(SNESCanvas, GUI::SNESCanvas);
   REG_LAMBDA(SNESCanvas, "void set_size(Size &in size) property",               ([](GUI::SNESCanvas& self, hiro::Size &size) { self.setSize(size); }));
