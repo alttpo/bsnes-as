@@ -340,6 +340,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name, hiro::s##name)
 
+#define REG_SH_GETTER(name, shClass, defn, fieldType, getterMethod) \
+  REG_FUNC  (name, defn, (Deref<fieldType (shClass::*)(void) const>::f<&shClass::getterMethod>));
+
+#define REG_SH_SETTER(name, shClass, defn, fieldType, setterMethod) \
+  REG_FUNC  (name, defn, (Deref<shClass (shClass::*)(fieldType)>::d<&shClass::setterMethod>));
+
   // Object:
 #define EXPOSE_OBJECT(name, className) \
   REG_LAMBDA(name, "Attributes &get_attributes() property",       ([](className* self) { return self; })); \
@@ -347,7 +353,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(name, "void set_visible(bool visible) property",     ([](className* self, bool visible)    { self->setVisible(visible); })); \
   REG_LAMBDA(name, "bool get_enabled() property",                 ([](className* self) { return self->enabled(false); })); \
   REG_LAMBDA(name, "bool get_enabled_recursive() property",       ([](className* self) { return self->enabled(true); })); \
-  REG_FUNC  (name, "bool get_focused() property",                 (Deref< bool (className::*)(void) const >::f< &className::focused >)); \
+  REG_SH_GETTER(name, className, "bool get_focused() property", bool, focused); \
   REG_LAMBDA(name, "Font@ get_font() property",                   ([](className* self) { return new hiro::Font(self->font(false)); })); \
   REG_LAMBDA(name, "Font@ get_font_recursive() property",         ([](className* self) { return new hiro::Font(self->font(true)); })); \
   REG_LAMBDA(name, "int get_offset() property",                   ([](className* self) { return self->offset(); })); \
@@ -507,7 +513,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "Geometry@ get_geometry() property",     ([](hiro::Window* self) { return new hiro::Geometry(self->geometry()); }));
 
   REG_LAMBDA(Window, "void set_backgroundColor(const Color &in color) property", ([](hiro::Window* self, hiro::Color &color)  { self->setBackgroundColor(color); }));
-  REG_FUNC  (Window, "void set_dismissable(bool dismissable) property",          (Deref<hiro::Window (hiro::Window::*)(bool)>::d<&hiro::Window::setDismissable>));
+  REG_SH_SETTER(Window, hiro::Window, "void set_dismissable(bool dismissable) property", bool, setDismissable);
   REG_LAMBDA(Window, "void set_fullScreen(bool fullScreen) property",            ([](hiro::Window* self, bool fullScreen)     { self->setFullScreen(fullScreen); }));
   REG_LAMBDA(Window, "void set_maximized(bool maximized) property",              ([](hiro::Window* self, bool maximized)      { self->setMaximized(maximized); }));
   REG_LAMBDA(Window, "void set_maximumSize(const Size &in size) property",       ([](hiro::Window* self, hiro::Size &size)    { self->setMaximumSize(size); }));
