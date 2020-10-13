@@ -313,7 +313,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // value types:
   REG_REF_SCOPED(Alignment, hiro::Alignment);
-  REG_REF_SCOPED(Color, hiro::Color);
+  REG_VALUE_TYPE(Color, hiro::Color, asOBJ_APP_CLASS_CDK);
   REG_REF_SCOPED(Font, hiro::Font);
   REG_REF_SCOPED(Position, hiro::Position);
   REG_REF_SCOPED(Size, hiro::Size);
@@ -432,7 +432,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Geometry, "void  set_size(const Size &in) property",             ([](hiro::Geometry* self, hiro::Size& size)     { self->setSize(size); }));
 
   // Color value type:
-  REG_LAMBDA_BEHAVIOUR(Color, asBEHAVE_FACTORY, "Color@ f(int red, int green, int blue, int alpha = 255)", ([](int r, int g, int b, int a){ return new hiro::Color(r,g,b,a); }));
+  REG_LAMBDA_CTOR(Color, "void f(int red, int green, int blue, int alpha = 255)", ([](void * address, int r, int g, int b, int a){ new (address) hiro::Color(r,g,b,a); }));
+  REG_LAMBDA_CTOR(Color, "void f(const Color &in)", ([](void * address, const hiro::Color &other){ new (address) hiro::Color(other); }));
+  REG_LAMBDA_DTOR(Color, "void f()", ([](hiro::Color &color){ color.~Color(); }));
+  //REG_LAMBDA_BEHAVIOUR(Color, asBEHAVE_FACTORY, "Color@ f(int red, int green, int blue, int alpha = 255)", ([](int r, int g, int b, int a){ return new hiro::Color(r,g,b,a); }));
   //r = e->RegisterObjectMethod("Color", "Color@ setColor(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
   //r = e->RegisterObjectMethod("Color", "Color@ setValue(uint32 value)", asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
   //r = e->RegisterObjectMethod("Color", "uint8 get_alpha() property",    asMETHOD(hiro::Color, alpha), asCALL_THISCALL); assert(r >= 0);
@@ -444,7 +447,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   //r = e->RegisterObjectMethod("Color", "Color@ set_green(int green)",   asMETHOD(hiro::Color, setGreen), asCALL_THISCALL); assert(r >= 0);
   //r = e->RegisterObjectMethod("Color", "Color@ set_red(int red)",       asMETHOD(hiro::Color, setRed), asCALL_THISCALL); assert(r >= 0);
 
-  REG_LAMBDA_GLOBAL("Color@ colorFromSNES(uint16 bgr)", ([](uint16_t bgr) -> hiro::Color* {
+  REG_LAMBDA_GLOBAL("Color colorFromSNES(uint16 bgr)", ([](uint16_t bgr) -> hiro::Color {
     uint16 rgb = GUI::mSNESCanvas::luma_adjust(bgr, 0x0F);
     uint64_t r = (rgb      ) & 0x1F;
     uint64_t g = (rgb >>  5) & 0x1F;
@@ -452,7 +455,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     r = image::normalize(r, 5, 8);
     g = image::normalize(g, 5, 8);
     b = image::normalize(b, 5, 8);
-    return new hiro::Color(r, g, b, 255);
+    return hiro::Color(r, g, b, 255);
   }));
 
   // Font value type:
@@ -503,7 +506,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "void remove(const ? &in sizable)", ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->remove(*sizable); }));
   REG_LAMBDA(Window, "void reset()",                     ([](hiro::Window* self){ self->reset(); }));
 
-  REG_LAMBDA(Window, "Color@ get_backgroundColor() property", ([](hiro::Window* self) { return new hiro::Color(self->backgroundColor()); }));
+  REG_LAMBDA(Window, "Color get_backgroundColor() property", ([](hiro::Window* self) { return self->backgroundColor(); }));
   REG_LAMBDA(Window, "bool get_dismissable() property",       ([](hiro::Window* self) { return self->dismissable(); }));
   REG_LAMBDA(Window, "bool get_fullScreen() property",        ([](hiro::Window* self) { return self->fullScreen(); }));
   REG_LAMBDA(Window, "bool get_maximized() property",         ([](hiro::Window* self) { return self->maximized(); }));
@@ -624,8 +627,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_SIZABLE(Label);
   EXPOSE_HIRO_WIDGET(Label);
   REG_LAMBDA(Label, "Alignment@ get_alignment() property",                ([](hiro::Label* self){ return new hiro::Alignment(self->alignment()); }));
-  REG_LAMBDA(Label, "Color@ get_backgroundColor() property",              ([](hiro::Label* self){ return new hiro::Color(self->backgroundColor()); }));
-  REG_LAMBDA(Label, "Color@ get_foregroundColor() property",              ([](hiro::Label* self){ return new hiro::Color(self->foregroundColor()); }));
+  REG_LAMBDA(Label, "Color get_backgroundColor() property",              ([](hiro::Label* self){ return self->backgroundColor(); }));
+  REG_LAMBDA(Label, "Color get_foregroundColor() property",              ([](hiro::Label* self){ return self->foregroundColor(); }));
   REG_LAMBDA(Label, "string get_text() property",                         ([](hiro::Label* self){ return self->text(); }));
   REG_LAMBDA(Label, "void set_alignment(const Alignment &in) property",   ([](hiro::Label* self, const hiro::Alignment &alignment){ self->setAlignment(alignment); }));
   REG_LAMBDA(Label, "void set_backgroundColor(const Color &in) property", ([](hiro::Label* self, const hiro::Color &color){ self->setBackgroundColor(color); }));
@@ -659,7 +662,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     return true;
   }));
   REG_LAMBDA(Canvas, "Alignment@ get_alignment() property",              ([](hiro::Canvas& self){ return new hiro::Alignment(self.alignment()); }));
-  REG_LAMBDA(Canvas, "Color@ get_color() property",                      ([](hiro::Canvas& self){ return new hiro::Color(self.color()); }));
+  REG_LAMBDA(Canvas, "Color get_color() property",                      ([](hiro::Canvas& self){ return self.color(); }));
   REG_LAMBDA(Canvas, "void setAlignment(float, float)",                  ([](hiro::Canvas& self, float h, float v) { self.setAlignment(hiro::Alignment(h, v)); }));
   REG_LAMBDA(Canvas, "void set_alignment(const Alignment &in) property", ([](hiro::Canvas& self, hiro::Alignment* value){ self.setAlignment(*value); }));
   REG_LAMBDA(Canvas, "void set_color(const Color &in) property",         ([](hiro::Canvas& self, hiro::Color* value){ self.setColor(*value); }));
