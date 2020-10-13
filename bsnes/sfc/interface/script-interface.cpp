@@ -73,6 +73,8 @@ bool sock_has_error(int err) {
 
 #define REG_GLOBAL(defn, ptr) r = e->RegisterGlobalProperty(defn, ptr); assert( r >= 0 )
 
+#define REG_FUNC(name, defn, func) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(func), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+
 #define REG_LAMBDA(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 #define REG_LAMBDA_GENERIC(name, defn, lambda) r = e->RegisterObjectMethod(#name, defn, asFUNCTION(+lambda), asCALL_GENERIC); assert( r >= 0 )
 #define REG_LAMBDA_BEHAVIOUR(name, bhvr, defn, lambda) r = e->RegisterObjectBehaviour(#name, bhvr, defn, asFUNCTION(+lambda), ((bhvr == asBEHAVE_RELEASE || bhvr == asBEHAVE_ADDREF) ? asCALL_CDECL_OBJLAST : asCALL_CDECL)); assert( r >= 0 )
@@ -107,6 +109,83 @@ template <typename T>
 void value_assign(T * lhs, T* rhs) {
   *lhs = *rhs;
 }
+
+template <typename T> struct Deref {};
+
+static const char *deref_error = "cannot dereference null shared_pointer; call construct() first";
+
+template <typename T>
+struct Deref<void (T::*)(void)> {
+  template <void (T::*fp)(void)>
+  static void f(T &self) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return;
+    }
+    (self.*fp)();
+  }
+};
+template <typename T, typename R>
+struct Deref<R (T::*)(void) const> {
+  template <R (T::*fp)(void) const>
+  static R f(T &self) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return R{};
+    }
+    return (self.*fp)();
+  }
+};
+template <typename T, typename A0>
+struct Deref<void (T::*)(A0)> {
+  template <void (T::*fp)(A0)>
+  static void f(T &self, A0 a0) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return;
+    }
+    (self.*fp)(a0);
+  }
+};
+template <typename T, typename R, typename A0>
+struct Deref<R (T::*)(A0) const> {
+  template <R (T::*fp)(A0) const>
+  static R f(T &self, A0 a0) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return R{};
+    }
+    return (self.*fp)(a0);
+  }
+};
+template <typename T, typename R, typename A0>
+struct Deref<R (T::*)(A0)> {
+  // return return value:
+  template <R (T::*fp)(A0)>
+  static R f(T &self, A0 a0) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return R{};
+    }
+    return (self.*fp)(a0);
+  }
+
+  // discard return value:
+  template <R (T::*fp)(A0)>
+  static void d(T &self, A0 a0) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return;
+    }
+    (self.*fp)(a0);
+  }
+};
 
 #include "script-string.cpp"
 

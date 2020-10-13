@@ -12,7 +12,8 @@
   std::enable_if_t<std::is_base_of<internalType, typename T::internalType>::value>* = 0) : \
   s##Name((s##Name&)source) { assert(source); } \
   explicit operator bool() const { return self().operator bool(); } \
-  auto self() const -> m##Name& { return (m##Name&)operator*(); } \
+  auto self() const -> m##Name& { return (m##Name&)operator*(); }   \
+  auto ptr() const -> const s##Name& { return (const s##Name&)*this; }
 
 #define DeclareSharedObject(Name) \
   DeclareShared(Name) \

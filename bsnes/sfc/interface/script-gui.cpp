@@ -163,6 +163,7 @@ struct GUI {
     SNESCanvas(const sSNESCanvas& source) : sSNESCanvas(source) { assert(source); }
 
     auto self() const -> mSNESCanvas& { return (mSNESCanvas&)operator*(); }
+    auto ptr() const -> const sSNESCanvas& { return (const sSNESCanvas&)*this; }
 
     // Object:
     auto enabled(bool recursive = false) const { return self().enabled(recursive); }
@@ -346,7 +347,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(name, "void set_visible(bool visible) property",     ([](className* self, bool visible)    { self->setVisible(visible); })); \
   REG_LAMBDA(name, "bool get_enabled() property",                 ([](className* self) { return self->enabled(false); })); \
   REG_LAMBDA(name, "bool get_enabled_recursive() property",       ([](className* self) { return self->enabled(true); })); \
-  REG_LAMBDA(name, "bool get_focused() property",                 ([](className* self) { return self->focused(); })); \
+  REG_FUNC  (name, "bool get_focused() property",                 (Deref< bool (className::*)(void) const >::f< &className::focused >)); \
   REG_LAMBDA(name, "Font@ get_font() property",                   ([](className* self) { return new hiro::Font(self->font(false)); })); \
   REG_LAMBDA(name, "Font@ get_font_recursive() property",         ([](className* self) { return new hiro::Font(self->font(true)); })); \
   REG_LAMBDA(name, "int get_offset() property",                   ([](className* self) { return self->offset(); })); \
@@ -506,7 +507,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "Geometry@ get_geometry() property",     ([](hiro::Window* self) { return new hiro::Geometry(self->geometry()); }));
 
   REG_LAMBDA(Window, "void set_backgroundColor(const Color &in color) property", ([](hiro::Window* self, hiro::Color &color)  { self->setBackgroundColor(color); }));
-  REG_LAMBDA(Window, "void set_dismissable(bool dismissable) property",          ([](hiro::Window* self, bool dismissable)    { self->setDismissable(dismissable); }));
+  REG_FUNC  (Window, "void set_dismissable(bool dismissable) property",          (Deref<hiro::Window (hiro::Window::*)(bool)>::d<&hiro::Window::setDismissable>));
   REG_LAMBDA(Window, "void set_fullScreen(bool fullScreen) property",            ([](hiro::Window* self, bool fullScreen)     { self->setFullScreen(fullScreen); }));
   REG_LAMBDA(Window, "void set_maximized(bool maximized) property",              ([](hiro::Window* self, bool maximized)      { self->setMaximized(maximized); }));
   REG_LAMBDA(Window, "void set_maximumSize(const Size &in size) property",       ([](hiro::Window* self, hiro::Size &size)    { self->setMaximumSize(size); }));
