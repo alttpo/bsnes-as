@@ -187,6 +187,43 @@ struct Deref<R (T::*)(A0)> {
   }
 };
 
+template <typename T, typename R, typename A0, typename A1>
+struct Deref<R (T::*)(A0, A1) const> {
+  template <R (T::*fp)(A0, A1) const>
+  static R f(T &self, A0 a0, A1 a1) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return R{};
+    }
+    return (self.*fp)(a0, a1);
+  }
+};
+template <typename T, typename R, typename A0, typename A1>
+struct Deref<R (T::*)(A0, A1)> {
+  // return return value:
+  template <R (T::*fp)(A0, A1)>
+  static R f(T &self, A0 a0, A1 a1) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return R{};
+    }
+    return (self.*fp)(a0, a1);
+  }
+
+  // discard return value:
+  template <R (T::*fp)(A0, A1)>
+  static void d(T &self, A0 a0, A1 a1) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return;
+    }
+    (self.*fp)(a0, a1);
+  }
+};
+
 #include "script-string.cpp"
 
 // R5G5B5 is what ends up on the final PPU frame buffer (R and B are swapped from SNES)

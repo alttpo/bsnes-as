@@ -178,8 +178,8 @@ struct GUI {
     }
     auto remove() { self().remove(); }
     auto setEnabled(bool enabled = true) { return self().setEnabled(enabled), *this; }
-    auto setFocused() { self().setFocused(); }
-    auto setFont(const hiro::Font& font = {}) { self().setFont(font); }
+    auto setFocused() { return self().setFocused(), *this; }
+    auto setFont(const hiro::Font& font = {}) { return self().setFont(font), *this; }
     auto setVisible(bool visible = true) { return self().setVisible(visible), *this; }
     auto visible(bool recursive = false) const { return self().visible(recursive); }
 
@@ -355,8 +355,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // Object:
 #define EXPOSE_OBJECT(name, className) \
   REG_LAMBDA(name, "Attributes &get_attributes() property",       ([](className* self) { return self; })); \
-  REG_LAMBDA(name, "void set_font(const Font &in font) property", ([](className* self, hiro::Font &font){ self->setFont(font); })); \
-  REG_SH_SETTER(name, className, "void set_visible(bool visible) property", bool, setVisible); \
+  REG_SH_SETTER(name, className, "void set_font(const Font &in font) property", const hiro::Font&, setFont); \
+  REG_SH_SETTER(name, className, "void set_visible(bool visible) property",     bool, setVisible); \
   REG_LAMBDA(name, "bool get_enabled() property",                 ([](className* self) { return self->enabled(false); })); \
   REG_LAMBDA(name, "bool get_enabled_recursive() property",       ([](className* self) { return self->enabled(true); })); \
   REG_SH_GETTER(name, className, "bool get_focused() property", bool, focused); \
