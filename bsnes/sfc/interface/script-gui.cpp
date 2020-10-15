@@ -348,27 +348,27 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #define EXPOSE_HIRO_OBJECT(name) EXPOSE_OBJECT(name, hiro::name)
 
   // Sizable:
-#define EXPOSE_SIZABLE(name, className) \
-  REG_LAMBDA(name, "Geometry get_geometry() property",              ([](className* self) { return new hiro::Geometry(self->geometry()); })); \
-  REG_LAMBDA(name, "void set_geometry(const Geometry &in) property", ([](className* self, hiro::Geometry& geometry) { self->setGeometry(geometry); })); \
-  REG_LAMBDA(name, "bool get_collapsible() property",                ([](className* self) { return self->collapsible(); })); \
-  REG_LAMBDA(name, "void set_collapsible(bool) property",            ([](className* self, bool collapsible) { self->setCollapsible(collapsible); })); \
-  REG_LAMBDA(name, "bool get_layoutExcluded() property",             ([](className* self) { return self->layoutExcluded(); })); \
-  REG_LAMBDA(name, "void set_layoutExcluded(bool) property",         ([](className* self, bool layoutExcluded) { self->setLayoutExcluded(layoutExcluded); })); \
-  REG_LAMBDA(name, "Size get_minimumSize() property",               ([](className* self) { return new hiro::Size(self->minimumSize()); })); \
-  REG_LAMBDA(name, "void setPosition(float, float)",                 ([](className* self, float x, float y) { \
+#define EXPOSE_SIZABLE(name, shClass) \
+  REG_SH_GETTER0(name, shClass, "Geometry get_geometry() property",   hiro::Geometry, geometry); \
+  REG_SH_GETTER0(name, shClass, "bool get_collapsible() property",    bool,        collapsible); \
+  REG_SH_GETTER0(name, shClass, "bool get_layoutExcluded() property", bool,     layoutExcluded); \
+  REG_SH_GETTER0(name, shClass, "Size get_minimumSize() property",    hiro::Size,  minimumSize); \
+  REG_LAMBDA(name, "void set_geometry(const Geometry &in) property", ([](shClass* self, hiro::Geometry& geometry) { self->setGeometry(geometry); })); \
+  REG_LAMBDA(name, "void set_collapsible(bool) property",            ([](shClass* self, bool collapsible) { self->setCollapsible(collapsible); })); \
+  REG_LAMBDA(name, "void set_layoutExcluded(bool) property",         ([](shClass* self, bool layoutExcluded) { self->setLayoutExcluded(layoutExcluded); })); \
+  REG_LAMBDA(name, "void setPosition(float, float)",                 ([](shClass* self, float x, float y) { \
     self->setGeometry(hiro::Geometry(hiro::Position(x, y), self->geometry().size())); \
   })); \
-  REG_LAMBDA(name, "void doSize()",                               ([](className* self) { self->doSize(); })); \
-  REG_LAMBDA(name, "void onSize(Callback @callback)",             ([](className* self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
+  REG_LAMBDA(name, "void doSize()",                               ([](shClass* self) { self->doSize(); })); \
+  REG_LAMBDA(name, "void onSize(Callback @callback)",             ([](shClass* self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
 
 
 #define EXPOSE_HIRO_SIZABLE(name) EXPOSE_SIZABLE(name, hiro::name)
 
   // Widget:
-#define EXPOSE_WIDGET(name, className) \
-  REG_LAMBDA(name, "string get_toolTip() property",                 ([](className* self) { return self->toolTip(); })); \
-  REG_LAMBDA(name, "void   set_toolTip(const string &in) property", ([](className* self, string &value) { self->setToolTip(value); }))
+#define EXPOSE_WIDGET(name, shClass) \
+  REG_LAMBDA(name, "string get_toolTip() property",                 ([](shClass* self) { return self->toolTip(); })); \
+  REG_LAMBDA(name, "void   set_toolTip(const string &in) property", ([](shClass* self, string &value) { self->setToolTip(value); }))
 
 #define EXPOSE_HIRO_WIDGET(name) EXPOSE_WIDGET(name, hiro::name)
 
