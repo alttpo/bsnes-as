@@ -301,35 +301,22 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name, hiro::s##name)
 
-#define REG_SH_VOID0(name, shClass, defn, method) \
-            REG_FUNC(name, defn, (Deref<void (shClass::*)(void)>::f<&shClass::method>))
-
-#define REG_SH_CVOID0(name, shClass, defn, method) \
-             REG_FUNC(name, defn, (Deref<void (shClass::*)(void) const>::f<&shClass::method>))
-
-#define REG_SH_SELF0(name, shClass, defn, method) \
-            REG_FUNC(name, defn, (Deref<shClass (shClass::*)(void)>::d<&shClass::method>))
-
-#define REG_SH_GETTER0(name, shClass, defn, fieldType, getterMethod) \
-              REG_FUNC(name, defn, (Deref<fieldType (shClass::*)(void) const>::f<&shClass::getterMethod>))
-
-#define HIRO_GETTER0(name, defn, fieldType, getterMethod) \
-      REG_SH_GETTER0(name, hiro::name, defn, fieldType, getterMethod)
-
-#define REG_SH_GETTER1(name, shClass, defn, fieldType, getterMethod, a0) \
-              REG_FUNC(name, defn, (Deref<fieldType (shClass::*)(a0) const>::f<&shClass::getterMethod>))
-
-#define HIRO_GETTER1(name, defn, fieldType, getterMethod, a0) \
-      REG_SH_GETTER1(name, hiro::name, defn, fieldType, getterMethod, a0)
-
-#define REG_SH_SETTER0(name, shClass, defn, fieldType, setterMethod) \
-              REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType)>::d<&shClass::setterMethod>))
-
-#define REG_SH_SETTER1(name, shClass, defn, fieldType, setterMethod, a0) \
-              REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType, a0)>::d<&shClass::setterMethod>))
-
-#define HIRO_SETTER0(name, defn, fieldType, setterMethod) \
-      REG_SH_SETTER0(name, hiro::name, defn, fieldType, setterMethod)
+#define REG_SH_VOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<void (shClass::*)(void)>::f<&shClass::method>))
+#define REG_SH_CVOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<void (shClass::*)(void) const>::f<&shClass::method>))
+#define REG_SH_SELF0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<shClass (shClass::*)(void)>::d<&shClass::method>))
+#define HIRO_SELF0(name, defn, method) REG_SH_SELF0(name, hiro::name, defn, method)
+#define REG_SH_SELF1(name, shClass, defn, method, a0) REG_FUNC(name, defn, (Deref<shClass (shClass::*)(a0)>::d<&shClass::method>))
+#define HIRO_SELF1(name, defn, method, a0) REG_SH_SELF1(name, hiro::name, defn, method, a0)
+#define REG_SH_SELF2(name, shClass, defn, method, a0, a1) REG_FUNC(name, defn, (Deref<shClass (shClass::*)(a0, a1)>::d<&shClass::method>))
+#define HIRO_SELF2(name, defn, method, a0, a1) REG_SH_SELF2(name, hiro::name, defn, method, a0, a1)
+#define REG_SH_GETTER0(name, shClass, defn, fieldType, getterMethod) REG_FUNC(name, defn, (Deref<fieldType (shClass::*)(void) const>::f<&shClass::getterMethod>))
+#define HIRO_GETTER0(name, defn, fieldType, getterMethod) REG_SH_GETTER0(name, hiro::name, defn, fieldType, getterMethod)
+#define REG_SH_GETTER1(name, shClass, defn, fieldType, getterMethod, a0) REG_FUNC(name, defn, (Deref<fieldType (shClass::*)(a0) const>::f<&shClass::getterMethod>))
+#define HIRO_GETTER1(name, defn, fieldType, getterMethod, a0) REG_SH_GETTER1(name, hiro::name, defn, fieldType, getterMethod, a0)
+#define REG_SH_SETTER0(name, shClass, defn, fieldType, setterMethod) REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType)>::d<&shClass::setterMethod>))
+#define HIRO_SETTER0(name, defn, fieldType, setterMethod) REG_SH_SETTER0(name, hiro::name, defn, fieldType, setterMethod)
+#define REG_SH_SETTER1(name, shClass, defn, fieldType, setterMethod, a0) REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType, a0)>::d<&shClass::setterMethod>))
+#define HIRO_SETTER1(name, defn, fieldType, setterMethod, a0) REG_SH_SETTER1(name, hiro::name, defn, fieldType, setterMethod, aa0)
 
   // Object:
 #define EXPOSE_OBJECT(name, shClass) \
@@ -530,6 +517,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #endif
   }));
 
+  ///////////////////////////////////////////////////////////////////////////////////
+
   EXPOSE_HIRO_OBJECT(Window);
   REG_LAMBDA(Window, "void append(const ? &in sizable)", ([](hiro::Window& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
@@ -539,10 +528,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     CHECK_ALIVE(self);
     self.remove(*sizable);
   }));
-  REG_LAMBDA(Window, "void reset()", ([](hiro::Window& self){
-    CHECK_ALIVE(self);
-    self.reset();
-  }));
+  HIRO_SELF0(Window, "void reset()", reset);
 
   HIRO_GETTER0(Window, "Color get_backgroundColor() property",  hiro::Color, backgroundColor);
   HIRO_GETTER0(Window, "bool get_dismissable() property",       bool, dismissable);
@@ -570,7 +556,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   HIRO_SETTER0(Window, "void set_title(const string &in title) property",       const string &, setTitle);
   HIRO_SETTER0(Window, "void set_size(Size) property",           hiro::Size,   setSize);
 
-  REG_LAMBDA(Window, "void onSize(Callback @cb)", ([](hiro::Window self, asIScriptFunction *cb) {
+  REG_LAMBDA(Window, "void onSize(Callback @cb)", ([](hiro::Window& self, asIScriptFunction *cb) {
     CHECK_ALIVE(self);
     self.onSize(Callback(cb));
   }));
@@ -632,31 +618,56 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     CHECK_ALIVE(self);
     self.remove(*sizable);
   }));
-  REG_LAMBDA(VerticalLayout, "void resize()",                           ([](hiro::VerticalLayout& self) { self.resize(); }));
-  REG_LAMBDA(VerticalLayout, "void setAlignment(float alignment)",      ([](hiro::VerticalLayout& self, float alignment) { self.setAlignment(alignment); }));
-  REG_LAMBDA(VerticalLayout, "void resetAlignment()",                   ([](hiro::VerticalLayout& self) { self.setAlignment(); }));
-  REG_LAMBDA(VerticalLayout, "void setPadding(float x, float y)",       ([](hiro::VerticalLayout& self, float x, float y) { self.setPadding(x, y); }));
-  REG_LAMBDA(VerticalLayout, "void setSpacing(float spacing = 5.0)",    ([](hiro::VerticalLayout& self, float spacing) { self.setSpacing(spacing); }));
+  HIRO_SELF0(VerticalLayout, "void resize()",                        resize);
+  HIRO_SELF2(VerticalLayout, "void setPadding(float x, float y)",    setPadding, float, float);
+  HIRO_SELF1(VerticalLayout, "void setSpacing(float spacing = 5.0)", setSpacing, float);
+  REG_LAMBDA(VerticalLayout, "void setAlignment(float alignment)",      ([](hiro::VerticalLayout& self, float alignment) {
+    CHECK_ALIVE(self);
+    self.setAlignment(alignment);
+  }));
+  REG_LAMBDA(VerticalLayout, "void resetAlignment()",                   ([](hiro::VerticalLayout& self) {
+    CHECK_ALIVE(self);
+    self.setAlignment();
+  }));
 
   // HorizontalLayout
   EXPOSE_HIRO_VALUE(HorizontalLayout);
   EXPOSE_HIRO_OBJECT(HorizontalLayout);
   EXPOSE_HIRO_SIZABLE(HorizontalLayout);
   REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
-    ([](hiro::HorizontalLayout& self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){ self.append(*sizable, *size, spacing); }));
-  REG_LAMBDA(HorizontalLayout, "void remove(const ? &in sizable)",        ([](hiro::HorizontalLayout& self, hiro::Sizable* sizable, int sizableTypeId){ self.remove(*sizable); }));
-  REG_LAMBDA(HorizontalLayout, "void resize()",                           ([](hiro::HorizontalLayout& self) { self.resize(); }));
-  REG_LAMBDA(HorizontalLayout, "void setAlignment(float alignment)",      ([](hiro::HorizontalLayout& self, float alignment) { self.setAlignment(alignment); }));
-  REG_LAMBDA(HorizontalLayout, "void resetAlignment()",                   ([](hiro::HorizontalLayout& self) { self.setAlignment(); }));
-  REG_LAMBDA(HorizontalLayout, "void setPadding(float x, float y)",       ([](hiro::HorizontalLayout& self, float x, float y) { self.setPadding(x, y); }));
-  REG_LAMBDA(HorizontalLayout, "void setSpacing(float spacing = 5.0)",    ([](hiro::HorizontalLayout& self, float spacing) { self.setSpacing(spacing); }));
+    ([](hiro::HorizontalLayout& self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){
+      CHECK_ALIVE(self);
+      self.append(*sizable, *size, spacing);
+    }));
+  REG_LAMBDA(HorizontalLayout, "void remove(const ? &in sizable)",        ([](hiro::HorizontalLayout& self, hiro::Sizable* sizable, int sizableTypeId){
+    CHECK_ALIVE(self);
+    self.remove(*sizable);
+  }));
+  HIRO_SELF0(HorizontalLayout, "void resize()",                        resize);
+  HIRO_SELF2(HorizontalLayout, "void setPadding(float x, float y)",    setPadding, float, float);
+  HIRO_SELF1(HorizontalLayout, "void setSpacing(float spacing = 5.0)", setSpacing, float);
+  REG_LAMBDA(HorizontalLayout, "void setAlignment(float alignment)", ([](hiro::HorizontalLayout& self, float alignment) {
+    CHECK_ALIVE(self);
+    self.setAlignment(alignment);
+  }));
+  REG_LAMBDA(HorizontalLayout, "void resetAlignment()", ([](hiro::HorizontalLayout& self) {
+    CHECK_ALIVE(self);
+    self.setAlignment();
+  }));
 
   // Group
   EXPOSE_VALUE_CDA(Group, hiro::Group, hiro::sGroup);
-  REG_LAMBDA(Group, "void append(const ? &in object)",      ([](hiro::Group& self, hiro::Object *object, int objectTypeId){ self.append(*object); }));
-  REG_LAMBDA(Group, "void remove(const ? &in object)",      ([](hiro::Group& self, hiro::Object *object, int objectTypeId){ self.remove(*object); }));
+  REG_LAMBDA(Group, "void append(const ? &in object)",      ([](hiro::Group& self, hiro::Object *object, int objectTypeId){
+    CHECK_ALIVE(self);
+    self.append(*object);
+  }));
+  REG_LAMBDA(Group, "void remove(const ? &in object)",      ([](hiro::Group& self, hiro::Object *object, int objectTypeId){
+    CHECK_ALIVE(self);
+    self.remove(*object);
+  }));
   //REG_LAMBDA(Group, "Group get_opIndex(uint i) property",  ([](hiro::Group& self, uint i) { return new hiro::ComboButtonItem(self.object(i)); }));
-  REG_LAMBDA(Group, "uint count()",                         ([](hiro::Group& self) { return self.objectCount(); }));
+  HIRO_GETTER0(Group, "uint count()", uint, objectCount);
+  //REG_LAMBDA(Group, "uint count()",                         ([](hiro::Group& self) { return self.objectCount(); }));
 
   // LineEdit
   EXPOSE_HIRO_VALUE(LineEdit);
