@@ -166,6 +166,7 @@ struct GUI {
     auto ptr() const -> const sSNESCanvas& { return (const sSNESCanvas&)*this; }
 
     // Object:
+    auto attribute(const string &name) const { return self().attribute(name); }
     auto enabled(bool recursive = false) const { return self().enabled(recursive); }
     auto focused() const { return self().focused(); }
     auto font(bool recursive = false) const { return self().font(recursive); }
@@ -177,6 +178,7 @@ struct GUI {
       return hiro::Object();
     }
     auto remove() { return self().remove(), *this; }
+    auto setAttribute(const string &name, const string &value) { return self().setAttribute(name, value), *this; }
     auto setEnabled(bool enabled = true) { return self().setEnabled(enabled), *this; }
     auto setFocused() { return self().setFocused(), *this; }
     auto setFont(const hiro::Font& font = {}) { return self().setFont(font), *this; }
@@ -320,12 +322,16 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #define REG_SH_SETTER0(name, shClass, defn, fieldType, setterMethod) \
              REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType)>::d<&shClass::setterMethod>))
 
+#define REG_SH_SETTER1(name, shClass, defn, fieldType, setterMethod, a0) \
+             REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType, a0)>::d<&shClass::setterMethod>))
+
 #define HIRO_SETTER0(name, defn, fieldType, setterMethod) \
       REG_SH_SETTER0(name, hiro::name, defn, fieldType, setterMethod)
 
   // Object:
 #define EXPOSE_OBJECT(name, shClass) \
-  REG_LAMBDA(name, "Attributes &get_attributes() property",       ([](shClass* self) { return self; })); \
+  REG_SH_GETTER1(name, shClass, "string get_attributes(const string &in) property", string, attribute, const string&); \
+  REG_SH_SETTER1(name, shClass, "void set_attributes(const string &in, const string &in) property", const string &, setAttribute, const string &); \
   REG_SH_SETTER0(name, shClass, "void set_font(const Font &in font) property", const hiro::Font&, setFont); \
   REG_SH_SETTER0(name, shClass, "void set_visible(bool visible) property",     bool, setVisible); \
   REG_SH_GETTER1(name, shClass, "bool get_enabled(bool recursive = false) property",     bool, enabled, bool); \
@@ -389,7 +395,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
 
   // Register shared_pointer types:
-  REG_REF_NOCOUNT(Attributes);
   REG_VALUE_TYPE(Window,           hiro::Window,           asOBJ_APP_CLASS_CDAK);
   REG_VALUE_TYPE(VerticalLayout,   hiro::VerticalLayout,   asOBJ_APP_CLASS_CDAK);
   REG_VALUE_TYPE(HorizontalLayout, hiro::HorizontalLayout, asOBJ_APP_CLASS_CDAK);
@@ -411,12 +416,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_VALUE_TYPE(Position,  hiro::Position,  asOBJ_APP_CLASS_CDK);
   REG_VALUE_TYPE(Size,      hiro::Size,      asOBJ_APP_CLASS_CDK);
   REG_VALUE_TYPE(Geometry,  hiro::Geometry,  asOBJ_APP_CLASS_CDK);
-
-  // Attributes getter/setter:
-  REG_LAMBDA(Attributes, "string get_opIndex(const string &in) property",
-    ([](hiro::Object* self, const string &name) { return self->attribute(name); }));
-  REG_LAMBDA(Attributes, "void set_opIndex(const string &in, const string &in) property",
-    ([](hiro::Object* self, const string &name, const string &value) { self->setAttribute(name, value); }));
 
   // Alignment value type:
   REG_LAMBDA_CTOR(Alignment, "void f(float, float)", ([](void * address, float h, float v) { new (address) hiro::Alignment(h, v); }));
