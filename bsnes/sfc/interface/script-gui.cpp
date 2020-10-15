@@ -459,16 +459,16 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA_CTOR(Color, "void f(int red, int green, int blue, int alpha = 255)", ([](void * address, int r, int g, int b, int a){ new (address) hiro::Color(r,g,b,a); }));
   REG_LAMBDA_CTOR(Color, "void f(const Color &in)", ([](void * address, const hiro::Color &other){ new (address) hiro::Color(other); }));
   REG_LAMBDA_DTOR(Color, "void f()", ([](hiro::Color &self){ self.~Color(); }));
-  //r = e->RegisterObjectMethod("Color", "void setColor(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "void setValue(uint32 value)",   asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "uint8 get_alpha() property",           asMETHOD(hiro::Color, alpha), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "uint8 get_blue() property",            asMETHOD(hiro::Color, blue), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "uint8 get_green() property",           asMETHOD(hiro::Color, green), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "uint8 get_red() property",             asMETHOD(hiro::Color, red), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "void set_alpha(int alpha) property",   asMETHOD(hiro::Color, setAlpha), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "void set_blue(int blue) property",     asMETHOD(hiro::Color, setBlue), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "void set_green(int green) property",   asMETHOD(hiro::Color, setGreen), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "void set_red(int red) property",       asMETHOD(hiro::Color, setRed), asCALL_THISCALL); assert(r >= 0);
+  //REG_LAMBDA(Color, "void setColor(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
+  //REG_LAMBDA(Color, "void setValue(uint32 value)",   asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
+  REG_LAMBDA(Color, "uint8 get_alpha() property",         ([](hiro::Color& self) -> uint8 { return self.alpha(); }));
+  REG_LAMBDA(Color, "uint8 get_blue() property",          ([](hiro::Color& self) -> uint8 { return self.blue(); }));
+  REG_LAMBDA(Color, "uint8 get_green() property",         ([](hiro::Color& self) -> uint8 { return self.green(); }));
+  REG_LAMBDA(Color, "uint8 get_red() property",           ([](hiro::Color& self) -> uint8 { return self.red(); }));
+  REG_LAMBDA(Color, "void set_alpha(uint8 alpha) property", ([](hiro::Color& self, uint8 alpha){ self.setAlpha(alpha); }));
+  REG_LAMBDA(Color, "void set_blue(uint8 blue) property",   ([](hiro::Color& self, uint8 blue){ self.setBlue(blue); }));
+  REG_LAMBDA(Color, "void set_green(uint8 green) property", ([](hiro::Color& self, uint8 green){ self.setGreen(green); }));
+  REG_LAMBDA(Color, "void set_red(uint8 red) property",     ([](hiro::Color& self, uint8 red){ self.setRed(red); }));
 
   REG_LAMBDA_GLOBAL("Color colorFromSNES(uint16 bgr)", ([](uint16_t bgr) -> hiro::Color {
     uint16 rgb = GUI::mSNESCanvas::luma_adjust(bgr, 0x0F);
