@@ -20,9 +20,9 @@ class SettingsWindow {
     window.resizable = false;
     window.visible = true;
     window.title = "Test";
-    //window.font = GUI::Font(GUI::Mono, 10);
+    window.font = GUI::Font(GUI::Mono, 10);
     window.size = GUI::Size(512, 512);
-    //window.backgroundColor = GUI::Color(0, 0, 100);
+    window.backgroundColor = GUI::Color(0, 0, 100);
 
     message(window.font[false].bold ? "bold" : "not bold");
     message(window.font[false].italic ? "italic" : "not italic");

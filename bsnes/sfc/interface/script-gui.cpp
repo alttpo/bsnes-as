@@ -302,13 +302,13 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name, hiro::s##name)
 
 #define REG_SH_VOID0(name, shClass, defn, method) \
-              REG_FUNC(name, defn, (Deref<void (shClass::*)(void)>::f<&shClass::method>))
+            REG_FUNC(name, defn, (Deref<void (shClass::*)(void)>::f<&shClass::method>))
 
 #define REG_SH_CVOID0(name, shClass, defn, method) \
-              REG_FUNC(name, defn, (Deref<void (shClass::*)(void) const>::f<&shClass::method>))
+             REG_FUNC(name, defn, (Deref<void (shClass::*)(void) const>::f<&shClass::method>))
 
 #define REG_SH_SELF0(name, shClass, defn, method) \
-              REG_FUNC(name, defn, (Deref<shClass (shClass::*)(void)>::d<&shClass::method>))
+            REG_FUNC(name, defn, (Deref<shClass (shClass::*)(void)>::d<&shClass::method>))
 
 #define REG_SH_GETTER0(name, shClass, defn, fieldType, getterMethod) \
               REG_FUNC(name, defn, (Deref<fieldType (shClass::*)(void) const>::f<&shClass::getterMethod>))
@@ -323,27 +323,27 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
       REG_SH_GETTER1(name, hiro::name, defn, fieldType, getterMethod, a0)
 
 #define REG_SH_SETTER0(name, shClass, defn, fieldType, setterMethod) \
-             REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType)>::d<&shClass::setterMethod>))
+              REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType)>::d<&shClass::setterMethod>))
 
 #define REG_SH_SETTER1(name, shClass, defn, fieldType, setterMethod, a0) \
-             REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType, a0)>::d<&shClass::setterMethod>))
+              REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType, a0)>::d<&shClass::setterMethod>))
 
 #define HIRO_SETTER0(name, defn, fieldType, setterMethod) \
       REG_SH_SETTER0(name, hiro::name, defn, fieldType, setterMethod)
 
   // Object:
 #define EXPOSE_OBJECT(name, shClass) \
-  REG_SH_GETTER1(name, shClass, "string get_attributes(const string &in) property", string, attribute, const string&); \
-  REG_SH_SETTER1(name, shClass, "void set_attributes(const string &in, const string &in) property", const string &, setAttribute, const string &); \
-  REG_SH_SETTER0(name, shClass, "void set_font(const Font &in font) property", const hiro::Font&, setFont); \
-  REG_SH_SETTER0(name, shClass, "void set_visible(bool visible) property",     bool, setVisible); \
-  REG_SH_GETTER1(name, shClass, "bool get_enabled(bool recursive = false) property",     bool, enabled, bool); \
-  REG_SH_GETTER0(name, shClass, "bool get_focused() property", bool, focused); \
-  REG_SH_GETTER1(name, shClass, "Font get_font(bool recursive = false) property", hiro::Font, font, bool); \
-  REG_SH_GETTER0(name, shClass, "int get_offset() property",    int, offset); \
-  REG_SH_GETTER1(name, shClass, "bool get_visible(bool recursive = false) property", bool, visible, bool); \
-  REG_SH_SETTER0(name, shClass, "void set_enabled(bool enabled) property", bool, setEnabled); \
-  REG_SH_SELF0  (name, shClass, "void remove()", remove); \
+  REG_SH_GETTER1(name, shClass, "string get_attributes(const string &in) property",                 string,            attribute,    const string&); \
+  REG_SH_GETTER1(name, shClass, "bool get_enabled(bool recursive = false) property",                bool,              enabled,      bool); \
+  REG_SH_GETTER0(name, shClass, "bool get_focused() property",                                      bool,              focused); \
+  REG_SH_GETTER1(name, shClass, "Font get_font(bool recursive = false) property",                   hiro::Font,        font,         bool); \
+  REG_SH_GETTER0(name, shClass, "int get_offset() property",                                        int,               offset); \
+  REG_SH_GETTER1(name, shClass, "bool get_visible(bool recursive = false) property",                bool,              visible,      bool); \
+  REG_SH_SETTER1(name, shClass, "void set_attributes(const string &in, const string &in) property", const string &,    setAttribute, const string &); \
+  REG_SH_SETTER0(name, shClass, "void set_font(const Font &in font) property",                      const hiro::Font&, setFont); \
+  REG_SH_SETTER0(name, shClass, "void set_visible(bool visible) property",                          bool,              setVisible); \
+  REG_SH_SETTER0(name, shClass, "void set_enabled(bool enabled) property",                          bool,              setEnabled); \
+  REG_SH_SELF0  (name, shClass, "void remove()",     remove); \
   REG_SH_SELF0  (name, shClass, "void setFocused()", setFocused)
 
   //REG_LAMBDA(name, "Object get_parent()",                        ([](shClass* self) { return self->parent(); })); \
@@ -352,14 +352,14 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // Sizable:
 #define EXPOSE_SIZABLE(name, shClass) \
-  REG_SH_GETTER0(name, shClass, "Geometry get_geometry() property",   hiro::Geometry, geometry); \
-  REG_SH_GETTER0(name, shClass, "bool get_collapsible() property",    bool,        collapsible); \
-  REG_SH_GETTER0(name, shClass, "bool get_layoutExcluded() property", bool,     layoutExcluded); \
-  REG_SH_GETTER0(name, shClass, "Size get_minimumSize() property",    hiro::Size,  minimumSize); \
-  REG_SH_SETTER0(name, shClass, "void set_geometry(const Geometry &in) property", hiro::Geometry, setGeometry); \
-  REG_SH_SETTER0(name, shClass, "void set_collapsible(bool) property",            bool,        setCollapsible); \
-  REG_SH_SETTER0(name, shClass, "void set_layoutExcluded(bool) property",         bool,     setLayoutExcluded); \
-  REG_LAMBDA(name, "void setPosition(float, float)",                 ([](shClass* self, float x, float y) { \
+  REG_SH_GETTER0(name, shClass, "Geometry get_geometry() property",       hiro::Geometry, geometry); \
+  REG_SH_GETTER0(name, shClass, "bool get_collapsible() property",        bool,           collapsible); \
+  REG_SH_GETTER0(name, shClass, "bool get_layoutExcluded() property",     bool,           layoutExcluded); \
+  REG_SH_GETTER0(name, shClass, "Size get_minimumSize() property",        hiro::Size,     minimumSize); \
+  REG_SH_SETTER0(name, shClass, "void set_geometry(Geometry) property",   hiro::Geometry, setGeometry); \
+  REG_SH_SETTER0(name, shClass, "void set_collapsible(bool) property",    bool,           setCollapsible); \
+  REG_SH_SETTER0(name, shClass, "void set_layoutExcluded(bool) property", bool,           setLayoutExcluded); \
+  REG_LAMBDA(name, "void setPosition(float, float)", ([](shClass* self, float x, float y) { \
     self->setGeometry(hiro::Geometry(hiro::Position(x, y), self->geometry().size())); \
   })); \
   REG_SH_CVOID0 (name, shClass, "void doSize()", doSize); \
@@ -369,8 +369,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // Widget:
 #define EXPOSE_WIDGET(name, shClass) \
-  REG_LAMBDA(name, "string get_toolTip() property",                 ([](shClass* self) { return self->toolTip(); })); \
-  REG_LAMBDA(name, "void   set_toolTip(const string &in) property", ([](shClass* self, string &value) { self->setToolTip(value); }))
+  REG_SH_GETTER0(name, shClass, "string get_toolTip() property",                 string, toolTip); \
+  REG_SH_SETTER0(name, shClass, "void   set_toolTip(const string &in) property", const string &, setToolTip)
 
 #define EXPOSE_HIRO_WIDGET(name) EXPOSE_WIDGET(name, hiro::name)
 
@@ -447,18 +447,18 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Size, "void  set_height(float) property", ([](hiro::Size& self, float value)    { self.setHeight(value); }));
 
   // Geometry value type:
-  REG_LAMBDA_CTOR(Geometry, "void f(const Position &in, const Size &in)", ([](void * address, hiro::Position &position, hiro::Size &size){ new (address) hiro::Geometry(position, size); }));
+  REG_LAMBDA_CTOR(Geometry, "void f(Position, Size)", ([](void * address, hiro::Position position, hiro::Size size){ new (address) hiro::Geometry(position, size); }));
   REG_LAMBDA_CTOR(Geometry, "void f(const Geometry &in)", ([](void * address, const hiro::Geometry &other){ new (address) hiro::Geometry(other); }));
   REG_LAMBDA_DTOR(Geometry, "void f()", ([](hiro::Geometry &self){ self.~Geometry(); }));
-  REG_LAMBDA(Geometry, "Position  get_position() property",                   ([](hiro::Geometry* self) { return new hiro::Position(self->position()); }));
-  REG_LAMBDA(Geometry, "void      set_position(const Position &in) property", ([](hiro::Geometry* self, hiro::Position& position) { self->setPosition(position); }));
-  REG_LAMBDA(Geometry, "Size  get_size() property",                           ([](hiro::Geometry* self) { return new hiro::Size(self->size()); }));
-  REG_LAMBDA(Geometry, "void  set_size(const Size &in) property",             ([](hiro::Geometry* self, hiro::Size& size)     { self->setSize(size); }));
+  REG_LAMBDA(Geometry, "Position get_position() property",         ([](hiro::Geometry* self) { return self->position(); }));
+  REG_LAMBDA(Geometry, "void     set_position(Position) property", ([](hiro::Geometry* self, hiro::Position position) { self->setPosition(position); }));
+  REG_LAMBDA(Geometry, "Size get_size() property",                 ([](hiro::Geometry* self) { return self->size(); }));
+  REG_LAMBDA(Geometry, "void set_size(Size) property",             ([](hiro::Geometry* self, hiro::Size size) { self->setSize(size); }));
 
   // Color value type:
   REG_LAMBDA_CTOR(Color, "void f(int red, int green, int blue, int alpha = 255)", ([](void * address, int r, int g, int b, int a){ new (address) hiro::Color(r,g,b,a); }));
   REG_LAMBDA_CTOR(Color, "void f(const Color &in)", ([](void * address, const hiro::Color &other){ new (address) hiro::Color(other); }));
-  REG_LAMBDA_DTOR(Color, "void f()", ([](hiro::Color &color){ color.~Color(); }));
+  REG_LAMBDA_DTOR(Color, "void f()", ([](hiro::Color &self){ self.~Color(); }));
   //r = e->RegisterObjectMethod("Color", "void setColor(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
   //r = e->RegisterObjectMethod("Color", "void setValue(uint32 value)",   asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
   //r = e->RegisterObjectMethod("Color", "uint8 get_alpha() property",           asMETHOD(hiro::Color, alpha), asCALL_THISCALL); assert(r >= 0);
@@ -531,13 +531,13 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "void remove(const ? &in sizable)", ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->remove(*sizable); }));
   REG_LAMBDA(Window, "void reset()",                     ([](hiro::Window* self){ self->reset(); }));
 
-  REG_LAMBDA(Window, "Color get_backgroundColor() property", ([](hiro::Window* self) { return self->backgroundColor(); }));
+  REG_LAMBDA(Window, "Color get_backgroundColor() property",  ([](hiro::Window* self) { return self->backgroundColor(); }));
   REG_LAMBDA(Window, "bool get_dismissable() property",       ([](hiro::Window* self) { return self->dismissable(); }));
   REG_LAMBDA(Window, "bool get_fullScreen() property",        ([](hiro::Window* self) { return self->fullScreen(); }));
   REG_LAMBDA(Window, "bool get_maximized() property",         ([](hiro::Window* self) { return self->maximized(); }));
-  REG_LAMBDA(Window, "Size get_maximumSize() property",      ([](hiro::Window* self) { return new hiro::Size(self->maximumSize()); }));
+  REG_LAMBDA(Window, "Size get_maximumSize() property",       ([](hiro::Window* self) { return new hiro::Size(self->maximumSize()); }));
   REG_LAMBDA(Window, "bool get_minimized() property",         ([](hiro::Window* self) { return self->minimized(); }));
-  REG_LAMBDA(Window, "Size get_minimumSize() property",      ([](hiro::Window* self) { return new hiro::Size(self->minimumSize()); }));
+  REG_LAMBDA(Window, "Size get_minimumSize() property",       ([](hiro::Window* self) { return new hiro::Size(self->minimumSize()); }));
   REG_LAMBDA(Window, "bool get_modal() property",             ([](hiro::Window* self) { return self->modal(); }));
   REG_LAMBDA(Window, "bool get_resizable() property",         ([](hiro::Window* self) { return self->resizable(); }));
   REG_LAMBDA(Window, "bool get_sizable() property",           ([](hiro::Window* self) { return self->sizable(); }));
@@ -546,7 +546,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "Geometry get_frameGeometry() property",([](hiro::Window* self) { return new hiro::Geometry(self->frameGeometry()); }));
   REG_LAMBDA(Window, "Geometry get_geometry() property",     ([](hiro::Window* self) { return new hiro::Geometry(self->geometry()); }));
 
-  REG_LAMBDA(Window, "void set_backgroundColor(const Color &in color) property", ([](hiro::Window* self, hiro::Color &color)  { self->setBackgroundColor(color); }));
+  HIRO_SETTER0(Window, "void set_backgroundColor(Color color) property", hiro::Color, setBackgroundColor);
   HIRO_SETTER0(Window, "void set_dismissable(bool dismissable) property", bool, setDismissable);
   REG_LAMBDA(Window, "void set_fullScreen(bool fullScreen) property",            ([](hiro::Window* self, bool fullScreen)     { self->setFullScreen(fullScreen); }));
   REG_LAMBDA(Window, "void set_maximized(bool maximized) property",              ([](hiro::Window* self, bool maximized)      { self->setMaximized(maximized); }));
