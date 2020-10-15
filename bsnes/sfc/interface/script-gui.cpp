@@ -340,11 +340,11 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name, hiro::s##name)
 
-#define REG_SH_GETTER(name, shClass, defn, fieldType, getterMethod) \
-             REG_FUNC(name, defn, (Deref<fieldType (shClass::*)(void) const>::f<&shClass::getterMethod>))
+#define REG_SH_GETTER0(name, shClass, defn, fieldType, getterMethod) \
+              REG_FUNC(name, defn, (Deref<fieldType (shClass::*)(void) const>::f<&shClass::getterMethod>))
 
-#define HIRO_GETTER(name, defn, fieldType, getterMethod) \
-      REG_SH_GETTER(name, hiro::name, defn, fieldType, getterMethod)
+#define HIRO_GETTER0(name, defn, fieldType, getterMethod) \
+      REG_SH_GETTER0(name, hiro::name, defn, fieldType, getterMethod)
 
 #define REG_SH_SETTER(name, shClass, defn, fieldType, setterMethod) \
              REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType)>::d<&shClass::setterMethod>))
@@ -359,10 +359,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_SH_SETTER(name, className, "void set_visible(bool visible) property",     bool, setVisible); \
   REG_LAMBDA(name, "bool get_enabled() property",                 ([](className* self) { return self->enabled(false); })); \
   REG_LAMBDA(name, "bool get_enabled_recursive() property",       ([](className* self) { return self->enabled(true); })); \
-  REG_SH_GETTER(name, className, "bool get_focused() property", bool, focused); \
+  REG_SH_GETTER0(name, className, "bool get_focused() property", bool, focused); \
   REG_LAMBDA(name, "Font@ get_font() property",                   ([](className* self) { return new hiro::Font(self->font(false)); })); \
   REG_LAMBDA(name, "Font@ get_font_recursive() property",         ([](className* self) { return new hiro::Font(self->font(true)); })); \
-  REG_SH_GETTER(name, className, "int get_offset() property",    int, offset); \
+  REG_SH_GETTER0(name, className, "int get_offset() property",    int, offset); \
   REG_LAMBDA(name, "bool get_visible() property",                 ([](className* self) { return self->visible(false); })); \
   REG_LAMBDA(name, "bool get_visible_recursive() property",       ([](className* self) { return self->visible(true); })); \
   REG_SH_SETTER(name, className, "void set_enabled(bool enabled) property", bool, setEnabled); \

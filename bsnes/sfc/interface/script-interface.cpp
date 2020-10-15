@@ -126,6 +126,30 @@ struct Deref<void (T::*)(void)> {
     (self.*fp)();
   }
 };
+
+template <typename T, typename R>
+struct Deref<R (T::*)(void)> {
+  template <R (T::*fp)(void)>
+  static R f(T &self) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return R{};
+    }
+    return (self.*fp)();
+  }
+
+  // discard return value:
+  template <R (T::*fp)(void)>
+  static void d(T &self) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return;
+    }
+    (self.*fp)();
+  }
+};
 template <typename T, typename R>
 struct Deref<R (T::*)(void) const> {
   template <R (T::*fp)(void) const>
@@ -137,7 +161,19 @@ struct Deref<R (T::*)(void) const> {
     }
     return (self.*fp)();
   }
+
+  // discard return value:
+  template <R (T::*fp)(void) const>
+  static void d(T &self) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return;
+    }
+    (self.*fp)();
+  }
 };
+
 template <typename T, typename A0>
 struct Deref<void (T::*)(A0)> {
   template <void (T::*fp)(A0)>
@@ -150,18 +186,19 @@ struct Deref<void (T::*)(A0)> {
     (self.*fp)(a0);
   }
 };
-template <typename T, typename R, typename A0>
-struct Deref<R (T::*)(A0) const> {
-  template <R (T::*fp)(A0) const>
-  static R f(T &self, A0 a0) {
+template <typename T, typename A0>
+struct Deref<void (T::*)(A0) const> {
+  template <void (T::*fp)(A0) const>
+  static void f(T &self, A0 a0) {
     auto alive = (bool)(self.ptr());
     if (!alive) {
       asGetActiveContext()->SetException(deref_error, true);
-      return R{};
+      return;
     }
-    return (self.*fp)(a0);
+    (self.*fp)(a0);
   }
 };
+
 template <typename T, typename R, typename A0>
 struct Deref<R (T::*)(A0)> {
   // return return value:
@@ -186,19 +223,30 @@ struct Deref<R (T::*)(A0)> {
     (self.*fp)(a0);
   }
 };
-
-template <typename T, typename R, typename A0, typename A1>
-struct Deref<R (T::*)(A0, A1) const> {
-  template <R (T::*fp)(A0, A1) const>
-  static R f(T &self, A0 a0, A1 a1) {
+template <typename T, typename R, typename A0>
+struct Deref<R (T::*)(A0) const> {
+  template <R (T::*fp)(A0) const>
+  static R f(T &self, A0 a0) {
     auto alive = (bool)(self.ptr());
     if (!alive) {
       asGetActiveContext()->SetException(deref_error, true);
       return R{};
     }
-    return (self.*fp)(a0, a1);
+    return (self.*fp)(a0);
+  }
+
+  // discard return value:
+  template <R (T::*fp)(A0) const>
+  static void d(T &self, A0 a0) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return;
+    }
+    (self.*fp)(a0);
   }
 };
+
 template <typename T, typename R, typename A0, typename A1>
 struct Deref<R (T::*)(A0, A1)> {
   // return return value:
@@ -223,7 +271,29 @@ struct Deref<R (T::*)(A0, A1)> {
     (self.*fp)(a0, a1);
   }
 };
+template <typename T, typename R, typename A0, typename A1>
+struct Deref<R (T::*)(A0, A1) const> {
+  template <R (T::*fp)(A0, A1) const>
+  static R f(T &self, A0 a0, A1 a1) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return R{};
+    }
+    return (self.*fp)(a0, a1);
+  }
 
+  // discard return value:
+  template <R (T::*fp)(A0, A1) const>
+  static void d(T &self, A0 a0, A1 a1) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return;
+    }
+    (self.*fp)(a0, a1);
+  }
+};
 #include "script-string.cpp"
 
 // R5G5B5 is what ends up on the final PPU frame buffer (R and B are swapped from SNES)
