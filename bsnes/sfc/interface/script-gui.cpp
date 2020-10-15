@@ -176,7 +176,7 @@ struct GUI {
       }
       return hiro::Object();
     }
-    auto remove() { self().remove(); }
+    auto remove() { return self().remove(), *this; }
     auto setEnabled(bool enabled = true) { return self().setEnabled(enabled), *this; }
     auto setFocused() { return self().setFocused(), *this; }
     auto setFont(const hiro::Font& font = {}) { return self().setFont(font), *this; }
@@ -195,7 +195,7 @@ struct GUI {
     auto setGeometry(hiro::Geometry geometry) { self().setGeometry(geometry); }
 
 
-    auto setAlignment(float horizontal, float vertical) -> void {
+    auto setAlignment(float horizontal, float vertical) {
       self().setAlignment(hiro::Alignment{horizontal, vertical});
     }
 
@@ -207,15 +207,16 @@ struct GUI {
       return self().setAlignment(alignment), *this;
     }
 
-    auto setSize(hiro::Size &size) -> void {
-      self().setSize(size);
+    auto setSize(hiro::Size &size) {
+      return self().setSize(size), *this;
     }
 
-    auto setPosition(float x, float y) -> void {
+    auto setPosition(float x, float y) {
       self().setGeometry(hiro::Geometry(
         hiro::Position(x, y),
         self().geometry().size()
       ));
+      return *this;
     }
 
     auto update() -> void {
@@ -298,6 +299,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name, hiro::s##name)
 
+#define REG_SH_VOID0(name, shClass, defn, method) \
+              REG_FUNC(name, defn, (Deref<void (shClass::*)(void)>::f<&shClass::method>))
+
+#define REG_SH_SELF0(name, shClass, defn, method) \
+              REG_FUNC(name, defn, (Deref<shClass (shClass::*)(void)>::d<&shClass::method>))
+
 #define REG_SH_GETTER0(name, shClass, defn, fieldType, getterMethod) \
               REG_FUNC(name, defn, (Deref<fieldType (shClass::*)(void) const>::f<&shClass::getterMethod>))
 
@@ -325,11 +332,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_SH_GETTER0(name, shClass, "bool get_focused() property", bool, focused); \
   REG_SH_GETTER1(name, shClass, "Font get_font(bool recursive = false) property", hiro::Font, font, bool); \
   REG_SH_GETTER0(name, shClass, "int get_offset() property",    int, offset); \
-  REG_LAMBDA(name, "bool get_visible() property",                 ([](shClass* self) { return self->visible(false); })); \
-  REG_LAMBDA(name, "bool get_visible_recursive() property",       ([](shClass* self) { return self->visible(true); })); \
+  REG_SH_GETTER1(name, shClass, "bool get_visible(bool recursive = false) property", bool, visible, bool); \
   REG_SH_SETTER0(name, shClass, "void set_enabled(bool enabled) property", bool, setEnabled); \
-  REG_LAMBDA(name, "void remove()",         ([](shClass* self) { self->remove(); })); \
-  REG_LAMBDA(name, "void setFocused()",     ([](shClass* self) { self->setFocused(); }))
+  REG_SH_SELF0  (name, shClass, "void remove()", remove); \
+  REG_SH_SELF0  (name, shClass, "void setFocused()", setFocused)
 
   //REG_LAMBDA(name, "Object get_parent()",                        ([](shClass* self) { return self->parent(); })); \
 
