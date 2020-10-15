@@ -303,6 +303,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define REG_SH_VOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) -> void>::f<&shClass::method>))
 #define REG_SH_CVOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) const -> void>::f<&shClass::method>))
+#define HIRO_CVOID0(name, defn, method) REG_SH_CVOID0(name, hiro::name, defn, method)
 #define REG_SH_SELF0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) -> shClass>::d<&shClass::method>))
 #define HIRO_SELF0(name, defn, method) REG_SH_SELF0(name, hiro::name, defn, method)
 #define REG_SH_SELF1(name, shClass, defn, method, a0) REG_FUNC(name, defn, (Deref<auto (shClass::*)(a0) -> shClass>::d<&shClass::method>))
@@ -727,7 +728,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   HIRO_GETTER0(Canvas, "Alignment get_alignment() property",     hiro::Alignment, alignment);
   HIRO_GETTER0(Canvas, "Color get_color() property",             hiro::Color,     color);
   HIRO_SETTER0(Canvas, "void set_alignment(Alignment) property", hiro::Alignment, setAlignment);
-  HIRO_SETTER0(Canvas, "void set_color(Color) property",         hiro::Color, setColor);
+  HIRO_SETTER0(Canvas, "void set_color(Color) property",         hiro::Color,     setColor);
   // allocates a new icon:
   //REG_LAMBDA(Canvas, "void set_size(Size &in) property",         ([](hiro::Canvas& self, hiro::Size* size) { self.setSize(*size); }));
 
@@ -736,12 +737,15 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(CheckLabel);
   EXPOSE_HIRO_SIZABLE(CheckLabel);
   EXPOSE_HIRO_WIDGET(CheckLabel);
-  REG_LAMBDA(CheckLabel, "void set_text(const string &in text) property", ([](hiro::CheckLabel& self, const string &text) { self.setText(text); }));
-  REG_LAMBDA(CheckLabel, "string get_text() property",                    ([](hiro::CheckLabel& self) { return self.text(); }));
-  REG_LAMBDA(CheckLabel, "void set_checked(bool checked) property",       ([](hiro::CheckLabel& self, bool checked) { self.setChecked(checked); }));
-  REG_LAMBDA(CheckLabel, "bool get_checked() property",                   ([](hiro::CheckLabel& self) { return self.checked(); }));
-  REG_LAMBDA(CheckLabel, "void doToggle()",                               ([](hiro::CheckLabel& self) { self.doToggle(); }));
-  REG_LAMBDA(CheckLabel, "void onToggle(Callback @cb)",                   ([](hiro::CheckLabel& self, asIScriptFunction *cb) { self.onToggle(Callback(cb)); }));
+  HIRO_GETTER0(CheckLabel, "string get_text() property",                    string, text);
+  HIRO_GETTER0(CheckLabel, "bool get_checked() property",                   bool,   checked);
+  HIRO_SETTER0(CheckLabel, "void set_text(const string &in text) property", const string &, setText);
+  HIRO_SETTER0(CheckLabel, "void set_checked(bool checked) property",       bool, setChecked);
+  HIRO_CVOID0 (CheckLabel, "void doToggle()",      doToggle);
+  REG_LAMBDA(CheckLabel, "void onToggle(Callback @cb)", ([](hiro::CheckLabel& self, asIScriptFunction *cb) {
+    CHECK_ALIVE(self);
+    self.onToggle(Callback(cb));
+  }));
 
   // ComboButtonItem
   EXPOSE_HIRO_VALUE(ComboButtonItem);
