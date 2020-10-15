@@ -675,7 +675,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_WIDGET(LineEdit);
   HIRO_GETTER0(LineEdit, "string get_text() property",                    string, text);
   HIRO_SETTER0(LineEdit, "void set_text(const string &in text) property", const string&, setText);
-  REG_LAMBDA(LineEdit, "void onChange(Callback @cb)", ([](hiro::LineEdit& self, asIScriptFunction* cb) {
+  REG_LAMBDA  (LineEdit, "void onChange(Callback @cb)", ([](hiro::LineEdit& self, asIScriptFunction* cb) {
     CHECK_ALIVE(self);
     self.onChange(Callback(cb));
   }));
@@ -699,9 +699,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(Button);
   EXPOSE_HIRO_SIZABLE(Button);
   EXPOSE_HIRO_WIDGET(Button);
-  REG_LAMBDA(Button, "string get_text() property",                    ([](hiro::Button& self){ return self.text(); }));
-  REG_LAMBDA(Button, "void set_text(const string &in text) property", ([](hiro::Button& self, const string &text){ self.setText(text); }));
-  REG_LAMBDA(Button, "void onActivate(Callback @cb)",                 ([](hiro::Button& self, asIScriptFunction* cb){ self.onActivate(Callback(cb)); }));
+  HIRO_GETTER0(Button, "string get_text() property",                    string, text);
+  HIRO_SETTER0(Button, "void set_text(const string &in text) property", const string &, setText);
+  REG_LAMBDA  (Button, "void onActivate(Callback @cb)", ([](hiro::Button& self, asIScriptFunction* cb){
+    CHECK_ALIVE(self);
+    self.onActivate(Callback(cb));
+  }));
 
   // Canvas
   EXPOSE_HIRO_VALUE(Canvas);
@@ -709,6 +712,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_SIZABLE(Canvas);
   EXPOSE_HIRO_WIDGET(Canvas);
   REG_LAMBDA(Canvas, "bool loadPNG(const string &in)", ([](hiro::Canvas& self, const string &filename) -> bool {
+    CHECK_ALIVE_RET(self, false);
     string path;
     path.append(platform->scriptEngineState.directory);
     path.append(filename);
@@ -720,11 +724,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     self.moveIcon(std::move(img));
     return true;
   }));
-  REG_LAMBDA(Canvas, "Alignment get_alignment() property",               ([](hiro::Canvas& self){ return new hiro::Alignment(self.alignment()); }));
-  REG_LAMBDA(Canvas, "Color get_color() property",                       ([](hiro::Canvas& self){ return self.color(); }));
-  REG_LAMBDA(Canvas, "void setAlignment(float, float)",                  ([](hiro::Canvas& self, float h, float v) { self.setAlignment(hiro::Alignment(h, v)); }));
-  REG_LAMBDA(Canvas, "void set_alignment(const Alignment &in) property", ([](hiro::Canvas& self, hiro::Alignment* value){ self.setAlignment(*value); }));
-  REG_LAMBDA(Canvas, "void set_color(const Color &in) property",         ([](hiro::Canvas& self, hiro::Color* value){ self.setColor(*value); }));
+  HIRO_GETTER0(Canvas, "Alignment get_alignment() property",     hiro::Alignment, alignment);
+  HIRO_GETTER0(Canvas, "Color get_color() property",             hiro::Color,     color);
+  HIRO_SETTER0(Canvas, "void set_alignment(Alignment) property", hiro::Alignment, setAlignment);
+  HIRO_SETTER0(Canvas, "void set_color(Color) property",         hiro::Color, setColor);
   // allocates a new icon:
   //REG_LAMBDA(Canvas, "void set_size(Size &in) property",         ([](hiro::Canvas& self, hiro::Size* size) { self.setSize(*size); }));
 
