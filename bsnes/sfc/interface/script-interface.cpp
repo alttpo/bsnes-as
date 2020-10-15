@@ -114,15 +114,23 @@ template <typename T> struct Deref {};
 
 static const char *deref_error = "cannot dereference null shared_pointer; call construct() first";
 
+#define CHECK_ALIVE(self) \
+  if (!(bool)((self).ptr())) { \
+    asGetActiveContext()->SetException(deref_error, true); \
+    return; \
+  }
+
+#define CHECK_ALIVE_RET(self, R) \
+  if (!(bool)((self).ptr())) { \
+    asGetActiveContext()->SetException(deref_error, true); \
+    return R; \
+  }
+
 template <typename T>
 struct Deref<void (T::*)(void)> {
   template <void (T::*fp)(void)>
   static void f(T &self) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return;
-    }
+    CHECK_ALIVE(self);
     (self.*fp)();
   }
 };
@@ -130,11 +138,7 @@ template <typename T>
 struct Deref<void (T::*)(void) const> {
   template <void (T::*fp)(void) const>
   static void f(T &self) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return;
-    }
+    CHECK_ALIVE(self);
     (self.*fp)();
   }
 };
@@ -143,22 +147,14 @@ template <typename T, typename R>
 struct Deref<R (T::*)(void)> {
   template <R (T::*fp)(void)>
   static R f(T &self) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return R{};
-    }
+    CHECK_ALIVE_RET(self, R{});
     return (self.*fp)();
   }
 
   // discard return value:
   template <R (T::*fp)(void)>
   static void d(T &self) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return;
-    }
+    CHECK_ALIVE(self);
     (self.*fp)();
   }
 };
@@ -166,22 +162,14 @@ template <typename T, typename R>
 struct Deref<R (T::*)(void) const> {
   template <R (T::*fp)(void) const>
   static R f(T &self) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return R{};
-    }
+    CHECK_ALIVE_RET(self, R{});
     return (self.*fp)();
   }
 
   // discard return value:
   template <R (T::*fp)(void) const>
   static void d(T &self) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return;
-    }
+    CHECK_ALIVE(self);
     (self.*fp)();
   }
 };
@@ -190,11 +178,7 @@ template <typename T, typename A0>
 struct Deref<void (T::*)(A0)> {
   template <void (T::*fp)(A0)>
   static void f(T &self, A0 a0) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return;
-    }
+    CHECK_ALIVE(self);
     (self.*fp)(a0);
   }
 };
@@ -202,11 +186,7 @@ template <typename T, typename A0>
 struct Deref<void (T::*)(A0) const> {
   template <void (T::*fp)(A0) const>
   static void f(T &self, A0 a0) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return;
-    }
+    CHECK_ALIVE(self);
     (self.*fp)(a0);
   }
 };
@@ -216,22 +196,14 @@ struct Deref<R (T::*)(A0)> {
   // return return value:
   template <R (T::*fp)(A0)>
   static R f(T &self, A0 a0) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return R{};
-    }
+    CHECK_ALIVE_RET(self, R{});
     return (self.*fp)(a0);
   }
 
   // discard return value:
   template <R (T::*fp)(A0)>
   static void d(T &self, A0 a0) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return;
-    }
+    CHECK_ALIVE(self);
     (self.*fp)(a0);
   }
 };
@@ -239,22 +211,14 @@ template <typename T, typename R, typename A0>
 struct Deref<R (T::*)(A0) const> {
   template <R (T::*fp)(A0) const>
   static R f(T &self, A0 a0) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return R{};
-    }
+    CHECK_ALIVE_RET(self, R{});
     return (self.*fp)(a0);
   }
 
   // discard return value:
   template <R (T::*fp)(A0) const>
   static void d(T &self, A0 a0) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return;
-    }
+    CHECK_ALIVE(self);
     (self.*fp)(a0);
   }
 };
@@ -264,22 +228,14 @@ struct Deref<R (T::*)(A0, A1)> {
   // return return value:
   template <R (T::*fp)(A0, A1)>
   static R f(T &self, A0 a0, A1 a1) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return R{};
-    }
+    CHECK_ALIVE_RET(self, R{});
     return (self.*fp)(a0, a1);
   }
 
   // discard return value:
   template <R (T::*fp)(A0, A1)>
   static void d(T &self, A0 a0, A1 a1) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return;
-    }
+    CHECK_ALIVE(self);
     (self.*fp)(a0, a1);
   }
 };
@@ -287,22 +243,14 @@ template <typename T, typename R, typename A0, typename A1>
 struct Deref<R (T::*)(A0, A1) const> {
   template <R (T::*fp)(A0, A1) const>
   static R f(T &self, A0 a0, A1 a1) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return R{};
-    }
+    CHECK_ALIVE_RET(self, R{});
     return (self.*fp)(a0, a1);
   }
 
   // discard return value:
   template <R (T::*fp)(A0, A1) const>
   static void d(T &self, A0 a0, A1 a1) {
-    auto alive = (bool)(self.ptr());
-    if (!alive) {
-      asGetActiveContext()->SetException(deref_error, true);
-      return;
-    }
+    CHECK_ALIVE(self);
     (self.*fp)(a0, a1);
   }
 };

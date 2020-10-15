@@ -359,11 +359,15 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_SH_SETTER0(name, shClass, "void set_geometry(Geometry) property",   hiro::Geometry, setGeometry); \
   REG_SH_SETTER0(name, shClass, "void set_collapsible(bool) property",    bool,           setCollapsible); \
   REG_SH_SETTER0(name, shClass, "void set_layoutExcluded(bool) property", bool,           setLayoutExcluded); \
-  REG_LAMBDA(name, "void setPosition(float, float)", ([](shClass* self, float x, float y) { \
-    self->setGeometry(hiro::Geometry(hiro::Position(x, y), self->geometry().size())); \
+  REG_LAMBDA(name, "void setPosition(float, float)", ([](shClass& self, float x, float y) { \
+    CHECK_ALIVE(self); \
+    self.setGeometry(hiro::Geometry(hiro::Position(x, y), self.geometry().size())); \
   })); \
   REG_SH_CVOID0 (name, shClass, "void doSize()", doSize); \
-  REG_LAMBDA(name, "void onSize(Callback @callback)", ([](shClass* self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
+  REG_LAMBDA(name, "void onSize(Callback @callback)", ([](shClass& self, asIScriptFunction *cb) {    \
+    CHECK_ALIVE(self); \
+    self.onSize(Callback(cb));       \
+  }));
 
 #define EXPOSE_HIRO_SIZABLE(name) EXPOSE_SIZABLE(name, hiro::name)
 
@@ -506,7 +510,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_VALUE_TYPE(Window, hiro::Window, asOBJ_APP_CLASS_CDAK);
   EXPOSE_VALUE_CAK(Window, hiro::Window, hiro::sWindow);
   REG_LAMBDA_DTOR(Window, "void f()", ([](hiro::Window& self){
-    if (!self) {
+    if (!((bool)self.ptr())) {
       return;
     }
     self->setVisible(false);
@@ -531,20 +535,19 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "void remove(const ? &in sizable)", ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->remove(*sizable); }));
   REG_LAMBDA(Window, "void reset()",                     ([](hiro::Window* self){ self->reset(); }));
 
-  REG_LAMBDA(Window, "Color get_backgroundColor() property",  ([](hiro::Window* self) { return self->backgroundColor(); }));
-  REG_LAMBDA(Window, "bool get_dismissable() property",       ([](hiro::Window* self) { return self->dismissable(); }));
-  REG_LAMBDA(Window, "bool get_fullScreen() property",        ([](hiro::Window* self) { return self->fullScreen(); }));
-  REG_LAMBDA(Window, "bool get_maximized() property",         ([](hiro::Window* self) { return self->maximized(); }));
-  REG_LAMBDA(Window, "Size get_maximumSize() property",       ([](hiro::Window* self) { return new hiro::Size(self->maximumSize()); }));
-  REG_LAMBDA(Window, "bool get_minimized() property",         ([](hiro::Window* self) { return self->minimized(); }));
-  REG_LAMBDA(Window, "Size get_minimumSize() property",       ([](hiro::Window* self) { return new hiro::Size(self->minimumSize()); }));
-  REG_LAMBDA(Window, "bool get_modal() property",             ([](hiro::Window* self) { return self->modal(); }));
-  REG_LAMBDA(Window, "bool get_resizable() property",         ([](hiro::Window* self) { return self->resizable(); }));
-  REG_LAMBDA(Window, "bool get_sizable() property",           ([](hiro::Window* self) { return self->sizable(); }));
-  REG_LAMBDA(Window, "string get_title() property",           ([](hiro::Window* self) { return self->title(); }));
-
-  REG_LAMBDA(Window, "Geometry get_frameGeometry() property",([](hiro::Window* self) { return new hiro::Geometry(self->frameGeometry()); }));
-  REG_LAMBDA(Window, "Geometry get_geometry() property",     ([](hiro::Window* self) { return new hiro::Geometry(self->geometry()); }));
+  HIRO_GETTER0(Window, "Color get_backgroundColor() property",  hiro::Color, backgroundColor);
+  HIRO_GETTER0(Window, "bool get_dismissable() property",       bool, dismissable);
+  HIRO_GETTER0(Window, "bool get_fullScreen() property",        bool, fullScreen);
+  HIRO_GETTER0(Window, "bool get_maximized() property",         bool, maximized);
+  HIRO_GETTER0(Window, "Size get_maximumSize() property",       hiro::Size, maximumSize);
+  HIRO_GETTER0(Window, "bool get_minimized() property",         bool, minimized);
+  HIRO_GETTER0(Window, "Size get_minimumSize() property",       hiro::Size, minimumSize);
+  HIRO_GETTER0(Window, "bool get_modal() property",             bool, modal);
+  HIRO_GETTER0(Window, "bool get_resizable() property",         bool, resizable);
+  //HIRO_GETTER0(Window, "Sizable get_sizable() property",        Sizable, sizable);
+  HIRO_GETTER0(Window, "string get_title() property",           string, title);
+  HIRO_GETTER0(Window, "Geometry get_frameGeometry() property", hiro::Geometry, frameGeometry);
+  HIRO_GETTER0(Window, "Geometry get_geometry() property",      hiro::Geometry, geometry);
 
   HIRO_SETTER0(Window, "void set_backgroundColor(Color color) property", hiro::Color, setBackgroundColor);
   HIRO_SETTER0(Window, "void set_dismissable(bool dismissable) property", bool, setDismissable);
