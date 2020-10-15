@@ -301,21 +301,21 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name, hiro::s##name)
 
-#define REG_SH_VOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<void (shClass::*)(void)>::f<&shClass::method>))
-#define REG_SH_CVOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<void (shClass::*)(void) const>::f<&shClass::method>))
-#define REG_SH_SELF0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<shClass (shClass::*)(void)>::d<&shClass::method>))
+#define REG_SH_VOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) -> void>::f<&shClass::method>))
+#define REG_SH_CVOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) const -> void>::f<&shClass::method>))
+#define REG_SH_SELF0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) -> shClass>::d<&shClass::method>))
 #define HIRO_SELF0(name, defn, method) REG_SH_SELF0(name, hiro::name, defn, method)
-#define REG_SH_SELF1(name, shClass, defn, method, a0) REG_FUNC(name, defn, (Deref<shClass (shClass::*)(a0)>::d<&shClass::method>))
+#define REG_SH_SELF1(name, shClass, defn, method, a0) REG_FUNC(name, defn, (Deref<auto (shClass::*)(a0) -> shClass>::d<&shClass::method>))
 #define HIRO_SELF1(name, defn, method, a0) REG_SH_SELF1(name, hiro::name, defn, method, a0)
-#define REG_SH_SELF2(name, shClass, defn, method, a0, a1) REG_FUNC(name, defn, (Deref<shClass (shClass::*)(a0, a1)>::d<&shClass::method>))
+#define REG_SH_SELF2(name, shClass, defn, method, a0, a1) REG_FUNC(name, defn, (Deref<auto (shClass::*)(a0, a1) -> shClass>::d<&shClass::method>))
 #define HIRO_SELF2(name, defn, method, a0, a1) REG_SH_SELF2(name, hiro::name, defn, method, a0, a1)
-#define REG_SH_GETTER0(name, shClass, defn, fieldType, getterMethod) REG_FUNC(name, defn, (Deref<fieldType (shClass::*)(void) const>::f<&shClass::getterMethod>))
+#define REG_SH_GETTER0(name, shClass, defn, fieldType, getterMethod) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) const -> fieldType>::f<&shClass::getterMethod>))
 #define HIRO_GETTER0(name, defn, fieldType, getterMethod) REG_SH_GETTER0(name, hiro::name, defn, fieldType, getterMethod)
-#define REG_SH_GETTER1(name, shClass, defn, fieldType, getterMethod, a0) REG_FUNC(name, defn, (Deref<fieldType (shClass::*)(a0) const>::f<&shClass::getterMethod>))
+#define REG_SH_GETTER1(name, shClass, defn, fieldType, getterMethod, a0) REG_FUNC(name, defn, (Deref<auto (shClass::*)(a0) const -> fieldType>::f<&shClass::getterMethod>))
 #define HIRO_GETTER1(name, defn, fieldType, getterMethod, a0) REG_SH_GETTER1(name, hiro::name, defn, fieldType, getterMethod, a0)
-#define REG_SH_SETTER0(name, shClass, defn, fieldType, setterMethod) REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType)>::d<&shClass::setterMethod>))
+#define REG_SH_SETTER0(name, shClass, defn, fieldType, setterMethod) REG_FUNC(name, defn, (Deref<auto (shClass::*)(fieldType) -> shClass>::d<&shClass::setterMethod>))
 #define HIRO_SETTER0(name, defn, fieldType, setterMethod) REG_SH_SETTER0(name, hiro::name, defn, fieldType, setterMethod)
-#define REG_SH_SETTER1(name, shClass, defn, fieldType, setterMethod, a0) REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType, a0)>::d<&shClass::setterMethod>))
+#define REG_SH_SETTER1(name, shClass, defn, fieldType, setterMethod, a0) REG_FUNC(name, defn, (Deref<auto (shClass::*)(fieldType, a0) -> shClass>::d<&shClass::setterMethod>))
 #define HIRO_SETTER1(name, defn, fieldType, setterMethod, a0) REG_SH_SETTER1(name, hiro::name, defn, fieldType, setterMethod, aa0)
 
   // Object:
@@ -493,6 +493,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterGlobalProperty("string Serif", (void *) &hiro::Font::Serif); assert(r >= 0);
   r = e->RegisterGlobalProperty("string Mono",  (void *) &hiro::Font::Mono); assert(r >= 0);
 
+  ///////////////////////////////////////////////////////////////////////////////////
+
   // Window
   REG_VALUE_TYPE(Window, hiro::Window, asOBJ_APP_CLASS_CDAK);
   EXPOSE_VALUE_CAK(Window, hiro::Window, hiro::sWindow);
@@ -516,8 +518,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     }
 #endif
   }));
-
-  ///////////////////////////////////////////////////////////////////////////////////
 
   EXPOSE_HIRO_OBJECT(Window);
   REG_LAMBDA(Window, "void append(const ? &in sizable)", ([](hiro::Window& self, hiro::Sizable* sizable, int sizableTypeId){
@@ -667,30 +667,32 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   }));
   //REG_LAMBDA(Group, "Group get_opIndex(uint i) property",  ([](hiro::Group& self, uint i) { return new hiro::ComboButtonItem(self.object(i)); }));
   HIRO_GETTER0(Group, "uint count()", uint, objectCount);
-  //REG_LAMBDA(Group, "uint count()",                         ([](hiro::Group& self) { return self.objectCount(); }));
 
   // LineEdit
   EXPOSE_HIRO_VALUE(LineEdit);
   EXPOSE_HIRO_OBJECT(LineEdit);
   EXPOSE_HIRO_SIZABLE(LineEdit);
   EXPOSE_HIRO_WIDGET(LineEdit);
-  REG_LAMBDA(LineEdit, "string get_text() property",                    ([](hiro::LineEdit& self){ return self.text(); }));
-  REG_LAMBDA(LineEdit, "void set_text(const string &in text) property", ([](hiro::LineEdit& self, string &text){ self.setText(text); }));
-  REG_LAMBDA(LineEdit, "void onChange(Callback @cb)",                   ([](hiro::LineEdit& self, asIScriptFunction* cb) { self.onChange(Callback(cb)); }));
+  HIRO_GETTER0(LineEdit, "string get_text() property",                    string, text);
+  HIRO_SETTER0(LineEdit, "void set_text(const string &in text) property", const string&, setText);
+  REG_LAMBDA(LineEdit, "void onChange(Callback @cb)", ([](hiro::LineEdit& self, asIScriptFunction* cb) {
+    CHECK_ALIVE(self);
+    self.onChange(Callback(cb));
+  }));
 
   // Label
   EXPOSE_HIRO_VALUE(Label);
   EXPOSE_HIRO_OBJECT(Label);
   EXPOSE_HIRO_SIZABLE(Label);
   EXPOSE_HIRO_WIDGET(Label);
-  REG_LAMBDA(Label, "Alignment get_alignment() property",                ([](hiro::Label& self){ return self.alignment(); }));
-  REG_LAMBDA(Label, "Color get_backgroundColor() property",              ([](hiro::Label& self){ return self.backgroundColor(); }));
-  REG_LAMBDA(Label, "Color get_foregroundColor() property",              ([](hiro::Label& self){ return self.foregroundColor(); }));
-  REG_LAMBDA(Label, "string get_text() property",                         ([](hiro::Label& self){ return self.text(); }));
-  REG_LAMBDA(Label, "void set_alignment(const Alignment &in) property",   ([](hiro::Label& self, const hiro::Alignment &alignment){ self.setAlignment(alignment); }));
-  REG_LAMBDA(Label, "void set_backgroundColor(const Color &in) property", ([](hiro::Label& self, const hiro::Color &color){ self.setBackgroundColor(color); }));
-  REG_LAMBDA(Label, "void set_foregroundColor(const Color &in) property", ([](hiro::Label& self, const hiro::Color &color){ self.setForegroundColor(color); }));
-  REG_LAMBDA(Label, "void set_text(const string &in) property",           ([](hiro::Label& self, string &text){ self.setText(text); }));
+  HIRO_GETTER0(Label, "Alignment get_alignment() property",    hiro::Alignment, alignment);
+  HIRO_GETTER0(Label, "Color get_backgroundColor() property",  hiro::Color,     backgroundColor);
+  HIRO_GETTER0(Label, "Color get_foregroundColor() property",  hiro::Color,     foregroundColor);
+  HIRO_GETTER0(Label, "string get_text() property",            string,    text);
+  HIRO_SETTER0(Label, "void set_alignment(const Alignment &in) property",   hiro::Alignment, setAlignment);
+  HIRO_SETTER0(Label, "void set_backgroundColor(const Color &in) property", hiro::Color,     setBackgroundColor);
+  HIRO_SETTER0(Label, "void set_foregroundColor(const Color &in) property", hiro::Color,     setForegroundColor);
+  HIRO_SETTER0(Label, "void set_text(const string &in) property",           const string&,   setText);
 
   // Button
   EXPOSE_HIRO_VALUE(Button);
