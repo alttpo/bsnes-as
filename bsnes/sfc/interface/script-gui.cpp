@@ -762,14 +762,20 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(ComboButton);
   EXPOSE_HIRO_SIZABLE(ComboButton);
   EXPOSE_HIRO_WIDGET(ComboButton);
-  REG_LAMBDA(ComboButton, "void append(const ComboButtonItem &in item)",    ([](hiro::ComboButton& self, hiro::ComboButtonItem *item) { self.append(*item); }));
-  REG_LAMBDA(ComboButton, "ComboButtonItem get_opIndex(uint i) property",   ([](hiro::ComboButton& self, uint i) { return hiro::ComboButtonItem(self.item(i)); }));
-  REG_LAMBDA(ComboButton, "uint count()",                                   ([](hiro::ComboButton& self) { return self.itemCount(); }));
-  REG_LAMBDA(ComboButton, "void doChange()",                                ([](hiro::ComboButton& self) { self.doChange(); }));
-  REG_LAMBDA(ComboButton, "void remove(const ComboButtonItem &in item)",    ([](hiro::ComboButton& self, hiro::ComboButtonItem *item) { self.remove(*item); }));
-  REG_LAMBDA(ComboButton, "void onChange(Callback @cb)",                    ([](hiro::ComboButton& self, asIScriptFunction *cb) { self.onChange(Callback(cb)); }));
-  REG_LAMBDA(ComboButton, "void reset()",                                   ([](hiro::ComboButton& self) { self.reset(); }));
-  REG_LAMBDA(ComboButton, "ComboButtonItem get_selected() property",        ([](hiro::ComboButton& self) { return hiro::ComboButtonItem(self.selected()); }));
+  REG_LAMBDA(ComboButton, "void append(const ComboButtonItem &in item)",    ([](hiro::ComboButton& self, hiro::ComboButtonItem *item) {
+    CHECK_ALIVE(self);
+    self.append(*item);
+  }));
+  HIRO_GETTER1(ComboButton, "ComboButtonItem get_opIndex(uint i) property", hiro::ComboButtonItem, item, uint);
+  HIRO_GETTER0(ComboButton, "uint count()",                                 uint, itemCount);
+  HIRO_GETTER0(ComboButton, "ComboButtonItem get_selected() property",      hiro::ComboButtonItem, selected);
+  HIRO_CVOID0 (ComboButton, "void doChange()",                                doChange);
+  HIRO_SELF0  (ComboButton, "void reset()",                                   reset);
+  HIRO_SELF1  (ComboButton, "void remove(ComboButtonItem)", remove, hiro::sComboButtonItem);
+  REG_LAMBDA  (ComboButton, "void onChange(Callback @cb)", ([](hiro::ComboButton& self, asIScriptFunction *cb) {
+    CHECK_ALIVE(self);
+    self.onChange(Callback(cb));
+  }));
 
   // HorizontalSlider
   EXPOSE_HIRO_VALUE(HorizontalSlider);
