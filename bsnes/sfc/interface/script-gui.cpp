@@ -274,50 +274,8 @@ bool isGuiEnabled = false;
 auto RegisterGUI(asIScriptEngine *e) -> void {
   int r;
 
-  // GUI
-  r = e->SetDefaultNamespace("GUI"); assert(r >= 0);
-
-  // GUI::enabled
-  r = e->RegisterGlobalProperty("bool enabled", (void*) &isGuiEnabled);
-
-  REG_LAMBDA_GLOBAL("float get_dpiX() property", ([]() -> float {
-    // round DPI scalar to increments of 0.5 (eg 1.0, 1.5, 2.0, ...)
-    auto scale = round(hiro::Monitor::dpi().x() / 96.0 * 2.0) / 2.0;
-    return scale;
-  }));
-
-  REG_LAMBDA_GLOBAL("float get_dpiY() property", ([]() -> float {
-    // round DPI scalar to increments of 0.5 (eg 1.0, 1.5, 2.0, ...)
-    auto scale = round(hiro::Monitor::dpi().y() / 96.0 * 2.0) / 2.0;
-    return scale;
-  }));
-
-  // function types:
-  r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
-
-  // Register reference types:
-  REG_REF_NOCOUNT(Attributes);
-  REG_VALUE_TYPE(Window, hiro::Window, asOBJ_APP_CLASS_CDAK);
-  REG_VALUE_TYPE(VerticalLayout, hiro::VerticalLayout, asOBJ_APP_CLASS_CDAK);
-  REG_VALUE_TYPE(HorizontalLayout, hiro::HorizontalLayout, asOBJ_APP_CLASS_CDAK);
-  REG_VALUE_TYPE(Group, hiro::Group, asOBJ_APP_CLASS_CDA);
-  REG_VALUE_TYPE(LineEdit, hiro::LineEdit, asOBJ_APP_CLASS_CDAK);
-  REG_VALUE_TYPE(Label, hiro::Label, asOBJ_APP_CLASS_CDAK);
-  REG_VALUE_TYPE(Button, hiro::Button, asOBJ_APP_CLASS_CDAK);
-  REG_VALUE_TYPE(Canvas, hiro::Canvas, asOBJ_APP_CLASS_CDAK);
-  REG_VALUE_TYPE(SNESCanvas, GUI::SNESCanvas, asOBJ_APP_CLASS_CDAK);
-  REG_VALUE_TYPE(CheckLabel, hiro::CheckLabel, asOBJ_APP_CLASS_CDAK);
-  REG_VALUE_TYPE(ComboButtonItem, hiro::ComboButtonItem, asOBJ_APP_CLASS_CDAK);
-  REG_VALUE_TYPE(ComboButton, hiro::ComboButton, asOBJ_APP_CLASS_CDAK);
-  REG_VALUE_TYPE(HorizontalSlider, hiro::HorizontalSlider, asOBJ_APP_CLASS_CDAK);
-
-  // value types:
-  REG_REF_SCOPED(Alignment, hiro::Alignment);
-  REG_VALUE_TYPE(Color, hiro::Color, asOBJ_APP_CLASS_CDK);
-  REG_REF_SCOPED(Font, hiro::Font);
-  REG_REF_SCOPED(Position, hiro::Position);
-  REG_REF_SCOPED(Size, hiro::Size);
-  REG_REF_SCOPED(Geometry, hiro::Geometry);
+  ////////////////////////////////////////////////////////////////////////
+  // Macros:
 
 #define EXPOSE_VALUE_CA(name, shClass, sClass) \
   REG_LAMBDA_CTOR(name, "void f()", ([](void* address){ new (address) shClass((const sClass &)sClass()); })); \
@@ -346,42 +304,46 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #define HIRO_GETTER0(name, defn, fieldType, getterMethod) \
       REG_SH_GETTER0(name, hiro::name, defn, fieldType, getterMethod)
 
-#define REG_SH_SETTER(name, shClass, defn, fieldType, setterMethod) \
+#define REG_SH_GETTER1(name, shClass, defn, fieldType, getterMethod, a0) \
+              REG_FUNC(name, defn, (Deref<fieldType (shClass::*)(a0) const>::f<&shClass::getterMethod>))
+
+#define HIRO_GETTER1(name, defn, fieldType, getterMethod, a0) \
+      REG_SH_GETTER1(name, hiro::name, defn, fieldType, getterMethod, a0)
+
+#define REG_SH_SETTER0(name, shClass, defn, fieldType, setterMethod) \
              REG_FUNC(name, defn, (Deref<shClass (shClass::*)(fieldType)>::d<&shClass::setterMethod>))
 
-#define HIRO_SETTER(name, defn, fieldType, setterMethod) \
-      REG_SH_SETTER(name, hiro::name, defn, fieldType, setterMethod)
+#define HIRO_SETTER0(name, defn, fieldType, setterMethod) \
+      REG_SH_SETTER0(name, hiro::name, defn, fieldType, setterMethod)
 
   // Object:
-#define EXPOSE_OBJECT(name, className) \
-  REG_LAMBDA(name, "Attributes &get_attributes() property",       ([](className* self) { return self; })); \
-  REG_SH_SETTER(name, className, "void set_font(const Font &in font) property", const hiro::Font&, setFont); \
-  REG_SH_SETTER(name, className, "void set_visible(bool visible) property",     bool, setVisible); \
-  REG_LAMBDA(name, "bool get_enabled() property",                 ([](className* self) { return self->enabled(false); })); \
-  REG_LAMBDA(name, "bool get_enabled_recursive() property",       ([](className* self) { return self->enabled(true); })); \
-  REG_SH_GETTER0(name, className, "bool get_focused() property", bool, focused); \
-  REG_LAMBDA(name, "Font@ get_font() property",                   ([](className* self) { return new hiro::Font(self->font(false)); })); \
-  REG_LAMBDA(name, "Font@ get_font_recursive() property",         ([](className* self) { return new hiro::Font(self->font(true)); })); \
-  REG_SH_GETTER0(name, className, "int get_offset() property",    int, offset); \
-  REG_LAMBDA(name, "bool get_visible() property",                 ([](className* self) { return self->visible(false); })); \
-  REG_LAMBDA(name, "bool get_visible_recursive() property",       ([](className* self) { return self->visible(true); })); \
-  REG_SH_SETTER(name, className, "void set_enabled(bool enabled) property", bool, setEnabled); \
-  REG_LAMBDA(name, "void remove()",         ([](className* self) { self->remove(); })); \
-  REG_LAMBDA(name, "void setFocused()",     ([](className* self) { self->setFocused(); }))
+#define EXPOSE_OBJECT(name, shClass) \
+  REG_LAMBDA(name, "Attributes &get_attributes() property",       ([](shClass* self) { return self; })); \
+  REG_SH_SETTER0(name, shClass, "void set_font(const Font &in font) property", const hiro::Font&, setFont); \
+  REG_SH_SETTER0(name, shClass, "void set_visible(bool visible) property",     bool, setVisible); \
+  REG_SH_GETTER1(name, shClass, "bool get_enabled(bool recursive = false) property",     bool, enabled, bool); \
+  REG_SH_GETTER0(name, shClass, "bool get_focused() property", bool, focused); \
+  REG_SH_GETTER1(name, shClass, "Font get_font(bool recursive = false) property", hiro::Font, font, bool); \
+  REG_SH_GETTER0(name, shClass, "int get_offset() property",    int, offset); \
+  REG_LAMBDA(name, "bool get_visible() property",                 ([](shClass* self) { return self->visible(false); })); \
+  REG_LAMBDA(name, "bool get_visible_recursive() property",       ([](shClass* self) { return self->visible(true); })); \
+  REG_SH_SETTER0(name, shClass, "void set_enabled(bool enabled) property", bool, setEnabled); \
+  REG_LAMBDA(name, "void remove()",         ([](shClass* self) { self->remove(); })); \
+  REG_LAMBDA(name, "void setFocused()",     ([](shClass* self) { self->setFocused(); }))
 
-  //REG_LAMBDA(name, "Object get_parent()",                        ([](className* self) { return self->parent(); })); \
+  //REG_LAMBDA(name, "Object get_parent()",                        ([](shClass* self) { return self->parent(); })); \
 
 #define EXPOSE_HIRO_OBJECT(name) EXPOSE_OBJECT(name, hiro::name)
 
   // Sizable:
 #define EXPOSE_SIZABLE(name, className) \
-  REG_LAMBDA(name, "Geometry@ get_geometry() property",              ([](className* self) { return new hiro::Geometry(self->geometry()); })); \
+  REG_LAMBDA(name, "Geometry get_geometry() property",              ([](className* self) { return new hiro::Geometry(self->geometry()); })); \
   REG_LAMBDA(name, "void set_geometry(const Geometry &in) property", ([](className* self, hiro::Geometry& geometry) { self->setGeometry(geometry); })); \
   REG_LAMBDA(name, "bool get_collapsible() property",                ([](className* self) { return self->collapsible(); })); \
   REG_LAMBDA(name, "void set_collapsible(bool) property",            ([](className* self, bool collapsible) { self->setCollapsible(collapsible); })); \
   REG_LAMBDA(name, "bool get_layoutExcluded() property",             ([](className* self) { return self->layoutExcluded(); })); \
   REG_LAMBDA(name, "void set_layoutExcluded(bool) property",         ([](className* self, bool layoutExcluded) { self->setLayoutExcluded(layoutExcluded); })); \
-  REG_LAMBDA(name, "Size@ get_minimumSize() property",               ([](className* self) { return new hiro::Size(self->minimumSize()); })); \
+  REG_LAMBDA(name, "Size get_minimumSize() property",               ([](className* self) { return new hiro::Size(self->minimumSize()); })); \
   REG_LAMBDA(name, "void setPosition(float, float)",                 ([](className* self, float x, float y) { \
     self->setGeometry(hiro::Geometry(hiro::Position(x, y), self->geometry().size())); \
   })); \
@@ -398,54 +360,108 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define EXPOSE_HIRO_WIDGET(name) EXPOSE_WIDGET(name, hiro::name)
 
+  ////////////////////////////////////////////////////////////////////////
+  // GUI
+  r = e->SetDefaultNamespace("GUI"); assert(r >= 0);
+
+  // GUI::enabled
+  r = e->RegisterGlobalProperty("bool enabled", (void*) &isGuiEnabled);
+
+  REG_LAMBDA_GLOBAL("float get_dpiX() property", ([]() -> float {
+    // round DPI scalar to increments of 0.5 (eg 1.0, 1.5, 2.0, ...)
+    auto scale = round(hiro::Monitor::dpi().x() / 96.0 * 2.0) / 2.0;
+    return scale;
+  }));
+
+  REG_LAMBDA_GLOBAL("float get_dpiY() property", ([]() -> float {
+    // round DPI scalar to increments of 0.5 (eg 1.0, 1.5, 2.0, ...)
+    auto scale = round(hiro::Monitor::dpi().y() / 96.0 * 2.0) / 2.0;
+    return scale;
+  }));
+
+  // function types:
+  r = e->RegisterFuncdef("void Callback()"); assert(r >= 0);
+
+  // Register shared_pointer types:
+  REG_REF_NOCOUNT(Attributes);
+  REG_VALUE_TYPE(Window,           hiro::Window,           asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(VerticalLayout,   hiro::VerticalLayout,   asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(HorizontalLayout, hiro::HorizontalLayout, asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(Group,            hiro::Group,            asOBJ_APP_CLASS_CDA);
+  REG_VALUE_TYPE(LineEdit,         hiro::LineEdit,         asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(Label,            hiro::Label,            asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(Button,           hiro::Button,           asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(Canvas,           hiro::Canvas,           asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(SNESCanvas,       GUI::SNESCanvas,        asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(CheckLabel,       hiro::CheckLabel,       asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(ComboButtonItem,  hiro::ComboButtonItem,  asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(ComboButton,      hiro::ComboButton,      asOBJ_APP_CLASS_CDAK);
+  REG_VALUE_TYPE(HorizontalSlider, hiro::HorizontalSlider, asOBJ_APP_CLASS_CDAK);
+
+  // value types:
+  REG_VALUE_TYPE(Alignment, hiro::Alignment, asOBJ_APP_CLASS_CDK);
+  REG_VALUE_TYPE(Color,     hiro::Color,     asOBJ_APP_CLASS_CDK);
+  REG_VALUE_TYPE(Font,      hiro::Font,      asOBJ_APP_CLASS_CDK);
+  REG_VALUE_TYPE(Position,  hiro::Position,  asOBJ_APP_CLASS_CDK);
+  REG_VALUE_TYPE(Size,      hiro::Size,      asOBJ_APP_CLASS_CDK);
+  REG_VALUE_TYPE(Geometry,  hiro::Geometry,  asOBJ_APP_CLASS_CDK);
+
+  // Attributes getter/setter:
   REG_LAMBDA(Attributes, "string get_opIndex(const string &in) property",
     ([](hiro::Object* self, const string &name) { return self->attribute(name); }));
   REG_LAMBDA(Attributes, "void set_opIndex(const string &in, const string &in) property",
     ([](hiro::Object* self, const string &name, const string &value) { self->setAttribute(name, value); }));
 
   // Alignment value type:
-  REG_LAMBDA_BEHAVIOUR(Alignment, asBEHAVE_FACTORY, "Alignment@ f(float, float)", ([](float h, float v) { return new hiro::Alignment(h, v); }));
+  REG_LAMBDA_CTOR(Alignment, "void f(float, float)", ([](void * address, float h, float v) { new (address) hiro::Alignment(h, v); }));
+  REG_LAMBDA_CTOR(Alignment, "void f(const Alignment &in)", ([](void * address, const hiro::Alignment &other){ new (address) hiro::Alignment(other); }));
+  REG_LAMBDA_DTOR(Alignment, "void f()", ([](hiro::Alignment &self){ self.~Alignment(); }));
   REG_LAMBDA(Alignment, "float get_horizontal() property",      ([](hiro::Alignment& self) -> float { return self.horizontal(); }));
   REG_LAMBDA(Alignment, "void  set_horizontal(float) property", ([](hiro::Alignment& self, float value)    { self.setHorizontal(value); }));
   REG_LAMBDA(Alignment, "float get_vertical() property",        ([](hiro::Alignment& self) -> float { return self.vertical(); }));
   REG_LAMBDA(Alignment, "void  set_vertical(float) property",   ([](hiro::Alignment& self, float value)    { self.setVertical(value); }));
 
   // Position value type:
-  REG_LAMBDA_BEHAVIOUR(Position, asBEHAVE_FACTORY, "Position@ f(float, float)", ([](float x, float y){ return new hiro::Position(x, y); }));
+  REG_LAMBDA_CTOR(Position, "void f(float, float)", ([](void * address, float x, float y){ new (address) hiro::Position(x, y); }));
+  REG_LAMBDA_CTOR(Position, "void f(const Position &in)", ([](void * address, const hiro::Position &other){ new (address) hiro::Position(other); }));
+  REG_LAMBDA_DTOR(Position, "void f()", ([](hiro::Position &self){ self.~Position(); }));
   REG_LAMBDA(Position, "float get_x() property",      ([](hiro::Position& self) -> float { return self.x(); }));
   REG_LAMBDA(Position, "void  set_x(float) property", ([](hiro::Position& self, float value)    { self.setX(value); }));
   REG_LAMBDA(Position, "float get_y() property",      ([](hiro::Position& self) -> float { return self.y(); }));
   REG_LAMBDA(Position, "void  set_y(float) property", ([](hiro::Position& self, float value)    { self.setY(value); }));
 
   // Size value type:
-  REG_LAMBDA_BEHAVIOUR(Size, asBEHAVE_FACTORY, "Size@ f(float, float)", ([](float width, float height){ return new hiro::Size(width, height); }));
+  REG_LAMBDA_CTOR(Size, "void f(float, float)", ([](void * address, float width, float height){ new (address) hiro::Size(width, height); }));
+  REG_LAMBDA_CTOR(Size, "void f(const Size &in)", ([](void * address, const hiro::Size &other){ new (address) hiro::Size(other); }));
+  REG_LAMBDA_DTOR(Size, "void f()", ([](hiro::Size &self){ self.~Size(); }));
   REG_LAMBDA(Size, "float get_width() property",       ([](hiro::Size& self) -> float { return self.width(); }));
   REG_LAMBDA(Size, "void  set_width(float) property",  ([](hiro::Size& self, float value)    { self.setWidth(value); }));
   REG_LAMBDA(Size, "float get_height() property",      ([](hiro::Size& self) -> float { return self.height(); }));
   REG_LAMBDA(Size, "void  set_height(float) property", ([](hiro::Size& self, float value)    { self.setHeight(value); }));
 
   // Geometry value type:
-  REG_LAMBDA_BEHAVIOUR(Geometry, asBEHAVE_FACTORY, "Geometry@ f(const Position &in, const Size &in)", ([](hiro::Position &position, hiro::Size &size){ return new hiro::Geometry(position, size); }));
-  REG_LAMBDA(Geometry, "Position@ get_position() property",                   ([](hiro::Geometry* self) { return new hiro::Position(self->position()); }));
+  REG_LAMBDA_CTOR(Geometry, "void f(const Position &in, const Size &in)", ([](void * address, hiro::Position &position, hiro::Size &size){ new (address) hiro::Geometry(position, size); }));
+  REG_LAMBDA_CTOR(Geometry, "void f(const Geometry &in)", ([](void * address, const hiro::Geometry &other){ new (address) hiro::Geometry(other); }));
+  REG_LAMBDA_DTOR(Geometry, "void f()", ([](hiro::Geometry &self){ self.~Geometry(); }));
+  REG_LAMBDA(Geometry, "Position  get_position() property",                   ([](hiro::Geometry* self) { return new hiro::Position(self->position()); }));
   REG_LAMBDA(Geometry, "void      set_position(const Position &in) property", ([](hiro::Geometry* self, hiro::Position& position) { self->setPosition(position); }));
-  REG_LAMBDA(Geometry, "Size@ get_size() property",                           ([](hiro::Geometry* self) { return new hiro::Size(self->size()); }));
+  REG_LAMBDA(Geometry, "Size  get_size() property",                           ([](hiro::Geometry* self) { return new hiro::Size(self->size()); }));
   REG_LAMBDA(Geometry, "void  set_size(const Size &in) property",             ([](hiro::Geometry* self, hiro::Size& size)     { self->setSize(size); }));
 
   // Color value type:
   REG_LAMBDA_CTOR(Color, "void f(int red, int green, int blue, int alpha = 255)", ([](void * address, int r, int g, int b, int a){ new (address) hiro::Color(r,g,b,a); }));
   REG_LAMBDA_CTOR(Color, "void f(const Color &in)", ([](void * address, const hiro::Color &other){ new (address) hiro::Color(other); }));
   REG_LAMBDA_DTOR(Color, "void f()", ([](hiro::Color &color){ color.~Color(); }));
-  //REG_LAMBDA_BEHAVIOUR(Color, asBEHAVE_FACTORY, "Color@ f(int red, int green, int blue, int alpha = 255)", ([](int r, int g, int b, int a){ return new hiro::Color(r,g,b,a); }));
-  //r = e->RegisterObjectMethod("Color", "Color@ setColor(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "Color@ setValue(uint32 value)", asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "uint8 get_alpha() property",    asMETHOD(hiro::Color, alpha), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "uint8 get_blue() property",     asMETHOD(hiro::Color, blue), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "uint8 get_green() property",    asMETHOD(hiro::Color, green), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "uint8 get_red() property",      asMETHOD(hiro::Color, red), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "Color@ set_alpha(int alpha)",   asMETHOD(hiro::Color, setAlpha), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "Color@ set_blue(int blue)",     asMETHOD(hiro::Color, setBlue), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "Color@ set_green(int green)",   asMETHOD(hiro::Color, setGreen), asCALL_THISCALL); assert(r >= 0);
-  //r = e->RegisterObjectMethod("Color", "Color@ set_red(int red)",       asMETHOD(hiro::Color, setRed), asCALL_THISCALL); assert(r >= 0);
+  //r = e->RegisterObjectMethod("Color", "void setColor(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
+  //r = e->RegisterObjectMethod("Color", "void setValue(uint32 value)",   asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
+  //r = e->RegisterObjectMethod("Color", "uint8 get_alpha() property",           asMETHOD(hiro::Color, alpha), asCALL_THISCALL); assert(r >= 0);
+  //r = e->RegisterObjectMethod("Color", "uint8 get_blue() property",            asMETHOD(hiro::Color, blue), asCALL_THISCALL); assert(r >= 0);
+  //r = e->RegisterObjectMethod("Color", "uint8 get_green() property",           asMETHOD(hiro::Color, green), asCALL_THISCALL); assert(r >= 0);
+  //r = e->RegisterObjectMethod("Color", "uint8 get_red() property",             asMETHOD(hiro::Color, red), asCALL_THISCALL); assert(r >= 0);
+  //r = e->RegisterObjectMethod("Color", "void set_alpha(int alpha) property",   asMETHOD(hiro::Color, setAlpha), asCALL_THISCALL); assert(r >= 0);
+  //r = e->RegisterObjectMethod("Color", "void set_blue(int blue) property",     asMETHOD(hiro::Color, setBlue), asCALL_THISCALL); assert(r >= 0);
+  //r = e->RegisterObjectMethod("Color", "void set_green(int green) property",   asMETHOD(hiro::Color, setGreen), asCALL_THISCALL); assert(r >= 0);
+  //r = e->RegisterObjectMethod("Color", "void set_red(int red) property",       asMETHOD(hiro::Color, setRed), asCALL_THISCALL); assert(r >= 0);
 
   REG_LAMBDA_GLOBAL("Color colorFromSNES(uint16 bgr)", ([](uint16_t bgr) -> hiro::Color {
     uint16 rgb = GUI::mSNESCanvas::luma_adjust(bgr, 0x0F);
@@ -459,7 +475,9 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   }));
 
   // Font value type:
-  REG_LAMBDA_BEHAVIOUR(Font, asBEHAVE_FACTORY, "Font@ f(const string &in family, float size = 0.0)", ([](string &family, float size){ return new hiro::Font(family, size); }));
+  REG_LAMBDA_CTOR(Font, "void f(const string &in family, float size = 0.0)", ([](void * address, string &family, float size){ new (address) hiro::Font(family, size); }));
+  REG_LAMBDA_CTOR(Font, "void f(const Font &in)", ([](void * address, const hiro::Font &other){ new (address) hiro::Font(other); }));
+  REG_LAMBDA_DTOR(Font, "void f()", ([](hiro::Font &font){ font.~Font(); }));
   REG_LAMBDA(Font, "bool   get_bold() property",                          ([](hiro::Font* self) { return self->bold(); }));
   REG_LAMBDA(Font, "string get_family() property",                        ([](hiro::Font* self) { return self->family(); }));
   REG_LAMBDA(Font, "bool   get_italic() property",                        ([](hiro::Font* self) { return self->italic(); }));
@@ -469,7 +487,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Font, "void   set_italic(bool italic) property",             ([](hiro::Font* self, bool italic) { self->setItalic(italic); }));
   REG_LAMBDA(Font, "void   set_size(float size) property",                ([](hiro::Font* self, float size) { self->setSize(size); }));
 
-  REG_LAMBDA(Font, "Size@ measure(const string &in text)", ([](hiro::Font* self, string &text) { return new hiro::Size(self->size(text)); }));
+  REG_LAMBDA(Font, "Size measure(const string &in text)", ([](hiro::Font* self, string &text) { return self->size(text); }));
   REG_LAMBDA(Font, "void reset()", ([](hiro::Font* self) { self->reset(); }));
 
   // Font names:
@@ -510,19 +528,19 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "bool get_dismissable() property",       ([](hiro::Window* self) { return self->dismissable(); }));
   REG_LAMBDA(Window, "bool get_fullScreen() property",        ([](hiro::Window* self) { return self->fullScreen(); }));
   REG_LAMBDA(Window, "bool get_maximized() property",         ([](hiro::Window* self) { return self->maximized(); }));
-  REG_LAMBDA(Window, "Size@ get_maximumSize() property",      ([](hiro::Window* self) { return new hiro::Size(self->maximumSize()); }));
+  REG_LAMBDA(Window, "Size get_maximumSize() property",      ([](hiro::Window* self) { return new hiro::Size(self->maximumSize()); }));
   REG_LAMBDA(Window, "bool get_minimized() property",         ([](hiro::Window* self) { return self->minimized(); }));
-  REG_LAMBDA(Window, "Size@ get_minimumSize() property",      ([](hiro::Window* self) { return new hiro::Size(self->minimumSize()); }));
+  REG_LAMBDA(Window, "Size get_minimumSize() property",      ([](hiro::Window* self) { return new hiro::Size(self->minimumSize()); }));
   REG_LAMBDA(Window, "bool get_modal() property",             ([](hiro::Window* self) { return self->modal(); }));
   REG_LAMBDA(Window, "bool get_resizable() property",         ([](hiro::Window* self) { return self->resizable(); }));
   REG_LAMBDA(Window, "bool get_sizable() property",           ([](hiro::Window* self) { return self->sizable(); }));
   REG_LAMBDA(Window, "string get_title() property",           ([](hiro::Window* self) { return self->title(); }));
 
-  REG_LAMBDA(Window, "Geometry@ get_frameGeometry() property",([](hiro::Window* self) { return new hiro::Geometry(self->frameGeometry()); }));
-  REG_LAMBDA(Window, "Geometry@ get_geometry() property",     ([](hiro::Window* self) { return new hiro::Geometry(self->geometry()); }));
+  REG_LAMBDA(Window, "Geometry get_frameGeometry() property",([](hiro::Window* self) { return new hiro::Geometry(self->frameGeometry()); }));
+  REG_LAMBDA(Window, "Geometry get_geometry() property",     ([](hiro::Window* self) { return new hiro::Geometry(self->geometry()); }));
 
   REG_LAMBDA(Window, "void set_backgroundColor(const Color &in color) property", ([](hiro::Window* self, hiro::Color &color)  { self->setBackgroundColor(color); }));
-  HIRO_SETTER(Window, "void set_dismissable(bool dismissable) property", bool, setDismissable);
+  HIRO_SETTER0(Window, "void set_dismissable(bool dismissable) property", bool, setDismissable);
   REG_LAMBDA(Window, "void set_fullScreen(bool fullScreen) property",            ([](hiro::Window* self, bool fullScreen)     { self->setFullScreen(fullScreen); }));
   REG_LAMBDA(Window, "void set_maximized(bool maximized) property",              ([](hiro::Window* self, bool maximized)      { self->setMaximized(maximized); }));
   REG_LAMBDA(Window, "void set_maximumSize(const Size &in size) property",       ([](hiro::Window* self, hiro::Size &size)    { self->setMaximumSize(size); }));
@@ -609,7 +627,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_VALUE_CDA(Group, hiro::Group, hiro::sGroup);
   REG_LAMBDA(Group, "void append(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->append(*object); }));
   REG_LAMBDA(Group, "void remove(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->remove(*object); }));
-  //REG_LAMBDA(Group, "Group@ get_opIndex(uint i) property",  ([](hiro::Group *p, uint i) { return new hiro::ComboButtonItem(p->object(i)); }));
+  //REG_LAMBDA(Group, "Group get_opIndex(uint i) property",  ([](hiro::Group *p, uint i) { return new hiro::ComboButtonItem(p->object(i)); }));
   REG_LAMBDA(Group, "uint count()",                         ([](hiro::Group *p) { return p->objectCount(); }));
 
   // LineEdit
@@ -626,7 +644,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(Label);
   EXPOSE_HIRO_SIZABLE(Label);
   EXPOSE_HIRO_WIDGET(Label);
-  REG_LAMBDA(Label, "Alignment@ get_alignment() property",                ([](hiro::Label* self){ return new hiro::Alignment(self->alignment()); }));
+  REG_LAMBDA(Label, "Alignment get_alignment() property",                ([](hiro::Label* self){ return new hiro::Alignment(self->alignment()); }));
   REG_LAMBDA(Label, "Color get_backgroundColor() property",              ([](hiro::Label* self){ return self->backgroundColor(); }));
   REG_LAMBDA(Label, "Color get_foregroundColor() property",              ([](hiro::Label* self){ return self->foregroundColor(); }));
   REG_LAMBDA(Label, "string get_text() property",                         ([](hiro::Label* self){ return self->text(); }));
@@ -661,7 +679,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     self.moveIcon(std::move(img));
     return true;
   }));
-  REG_LAMBDA(Canvas, "Alignment@ get_alignment() property",              ([](hiro::Canvas& self){ return new hiro::Alignment(self.alignment()); }));
+  REG_LAMBDA(Canvas, "Alignment get_alignment() property",              ([](hiro::Canvas& self){ return new hiro::Alignment(self.alignment()); }));
   REG_LAMBDA(Canvas, "Color get_color() property",                      ([](hiro::Canvas& self){ return self.color(); }));
   REG_LAMBDA(Canvas, "void setAlignment(float, float)",                  ([](hiro::Canvas& self, float h, float v) { self.setAlignment(hiro::Alignment(h, v)); }));
   REG_LAMBDA(Canvas, "void set_alignment(const Alignment &in) property", ([](hiro::Canvas& self, hiro::Alignment* value){ self.setAlignment(*value); }));
@@ -724,7 +742,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(SNESCanvas, "void set_size(Size &in size) property",               ([](GUI::SNESCanvas& self, hiro::Size &size) { self.setSize(size); }));
   REG_LAMBDA(SNESCanvas, "uint8 get_luma() property",                           ([](GUI::SNESCanvas& self) { return self.luma(); }));
   REG_LAMBDA(SNESCanvas, "void set_luma(uint8 luma) property",                  ([](GUI::SNESCanvas& self, uint8 value) { self.set_luma(value); }));
-  REG_LAMBDA(SNESCanvas, "Alignment@ get_alignment() property",                 ([](GUI::SNESCanvas& self) { return self.alignment(); }));
+  REG_LAMBDA(SNESCanvas, "Alignment get_alignment() property",                 ([](GUI::SNESCanvas& self) { return self.alignment(); }));
   REG_LAMBDA(SNESCanvas, "void set_alignment(const Alignment &in) property",    ([](GUI::SNESCanvas& self, hiro::Alignment &alignment) { self.setAlignment(alignment); }));
   REG_LAMBDA(SNESCanvas, "void setAlignment(float horizontal, float vertical)", ([](GUI::SNESCanvas& self, float horizontal, float vertical) { self.setAlignment(horizontal, vertical); }));
   REG_LAMBDA(SNESCanvas, "void setCollapsible(bool)",    ([](GUI::SNESCanvas& self, bool value) { self.setCollapsible(value); }));

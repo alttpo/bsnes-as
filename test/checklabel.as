@@ -24,9 +24,9 @@ class SettingsWindow {
     window.size = GUI::Size(512, 512);
     //window.backgroundColor = GUI::Color(0, 0, 100);
 
-    message(window.font.bold ? "bold" : "not bold");
-    message(window.font.italic ? "italic" : "not italic");
-    message(fmtFloat(window.font.size));
+    message(window.font[false].bold ? "bold" : "not bold");
+    message(window.font[false].italic ? "italic" : "not italic");
+    message(fmtFloat(window.font[false].size));
     string text = "";
     text += "abc";
     message(text);
