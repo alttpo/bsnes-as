@@ -126,6 +126,18 @@ struct Deref<void (T::*)(void)> {
     (self.*fp)();
   }
 };
+template <typename T>
+struct Deref<void (T::*)(void) const> {
+  template <void (T::*fp)(void) const>
+  static void f(T &self) {
+    auto alive = (bool)(self.ptr());
+    if (!alive) {
+      asGetActiveContext()->SetException(deref_error, true);
+      return;
+    }
+    (self.*fp)();
+  }
+};
 
 template <typename T, typename R>
 struct Deref<R (T::*)(void)> {

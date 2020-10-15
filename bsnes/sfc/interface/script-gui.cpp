@@ -191,10 +191,10 @@ struct GUI {
     auto doSize() const { return self().doSize(); }
     auto geometry() const { return self().geometry(); }
     auto minimumSize() const { return self().minimumSize(); }
-    auto onSize(const function<void ()>& callback = {}) { self().onSize(callback); }
-    auto setCollapsible(bool collapsible = true) { self().setCollapsible(collapsible); }
-    auto setLayoutExcluded(bool layoutExcluded = true) { self().setLayoutExcluded(layoutExcluded); }
-    auto setGeometry(hiro::Geometry geometry) { self().setGeometry(geometry); }
+    auto onSize(const function<void ()>& callback = {}) { return self().onSize(callback), *this; }
+    auto setCollapsible(bool collapsible = true) { return self().setCollapsible(collapsible), *this; }
+    auto setLayoutExcluded(bool layoutExcluded = true) { return self().setLayoutExcluded(layoutExcluded), *this; }
+    auto setGeometry(hiro::Geometry geometry) { return self().setGeometry(geometry), *this; }
 
 
     auto setAlignment(float horizontal, float vertical) {
@@ -304,6 +304,9 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #define REG_SH_VOID0(name, shClass, defn, method) \
               REG_FUNC(name, defn, (Deref<void (shClass::*)(void)>::f<&shClass::method>))
 
+#define REG_SH_CVOID0(name, shClass, defn, method) \
+              REG_FUNC(name, defn, (Deref<void (shClass::*)(void) const>::f<&shClass::method>))
+
 #define REG_SH_SELF0(name, shClass, defn, method) \
               REG_FUNC(name, defn, (Deref<shClass (shClass::*)(void)>::d<&shClass::method>))
 
@@ -353,15 +356,14 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_SH_GETTER0(name, shClass, "bool get_collapsible() property",    bool,        collapsible); \
   REG_SH_GETTER0(name, shClass, "bool get_layoutExcluded() property", bool,     layoutExcluded); \
   REG_SH_GETTER0(name, shClass, "Size get_minimumSize() property",    hiro::Size,  minimumSize); \
-  REG_LAMBDA(name, "void set_geometry(const Geometry &in) property", ([](shClass* self, hiro::Geometry& geometry) { self->setGeometry(geometry); })); \
-  REG_LAMBDA(name, "void set_collapsible(bool) property",            ([](shClass* self, bool collapsible) { self->setCollapsible(collapsible); })); \
-  REG_LAMBDA(name, "void set_layoutExcluded(bool) property",         ([](shClass* self, bool layoutExcluded) { self->setLayoutExcluded(layoutExcluded); })); \
+  REG_SH_SETTER0(name, shClass, "void set_geometry(const Geometry &in) property", hiro::Geometry, setGeometry); \
+  REG_SH_SETTER0(name, shClass, "void set_collapsible(bool) property",            bool,        setCollapsible); \
+  REG_SH_SETTER0(name, shClass, "void set_layoutExcluded(bool) property",         bool,     setLayoutExcluded); \
   REG_LAMBDA(name, "void setPosition(float, float)",                 ([](shClass* self, float x, float y) { \
     self->setGeometry(hiro::Geometry(hiro::Position(x, y), self->geometry().size())); \
   })); \
-  REG_LAMBDA(name, "void doSize()",                               ([](shClass* self) { self->doSize(); })); \
-  REG_LAMBDA(name, "void onSize(Callback @callback)",             ([](shClass* self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
-
+  REG_SH_CVOID0 (name, shClass, "void doSize()", doSize); \
+  REG_LAMBDA(name, "void onSize(Callback @callback)", ([](shClass* self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
 
 #define EXPOSE_HIRO_SIZABLE(name) EXPOSE_SIZABLE(name, hiro::name)
 
