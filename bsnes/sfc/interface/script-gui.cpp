@@ -750,10 +750,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   // ComboButtonItem
   EXPOSE_HIRO_VALUE(ComboButtonItem);
   EXPOSE_HIRO_OBJECT(ComboButtonItem);
-  REG_LAMBDA(ComboButtonItem, "void set_text(const string &in text) property", ([](hiro::ComboButtonItem& self, const string &text) { self.setText(text); }));
-  REG_LAMBDA(ComboButtonItem, "string get_text() property",                    ([](hiro::ComboButtonItem& self) { return self.text(); }));
-  REG_LAMBDA(ComboButtonItem, "string get_selected() property",                ([](hiro::ComboButtonItem& self) { return self.selected(); }));
-  REG_LAMBDA(ComboButtonItem, "void setSelected()",                            ([](hiro::ComboButtonItem& self) { self.setSelected(); }));
+  HIRO_GETTER0(ComboButtonItem, "string get_text() property",                    string, text);
+  HIRO_GETTER0(ComboButtonItem, "bool get_selected() property",                  bool,   selected);
+  HIRO_SETTER0(ComboButtonItem, "void set_text(const string &in text) property", const string &, setText);
+  HIRO_SELF0  (ComboButtonItem, "void setSelected()", setSelected);
   // auto icon() const -> image;
   // auto setIcon(const image& icon = {}) -> type&;
 
