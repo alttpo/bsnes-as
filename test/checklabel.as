@@ -4,6 +4,7 @@ class SettingsWindow {
   private GUI::Window window;
   GUI::ComboButton      dd;
   GUI::HorizontalSlider hs;
+  array<GUI::ComboButtonItem> items;
 
   SettingsWindow() {
     auto node = UserSettings::load("test.bml");
@@ -93,6 +94,7 @@ class SettingsWindow {
       dd.construct();
       vl.append(dd, GUI::Size(0, 0));
 
+      items.resize(2);
       auto di = GUI::ComboButtonItem();
       di.construct();
       di.attributes["test"] = "value";
@@ -100,6 +102,7 @@ class SettingsWindow {
       di.text = "A";
       di.setSelected();
       dd.append(di);
+      items.insertLast(di);
 
       di = GUI::ComboButtonItem();
       di.construct();
@@ -107,6 +110,7 @@ class SettingsWindow {
       message("attr['test2'] = " + di.attributes["test2"]);
       di.text = "B";
       dd.append(di);
+      items.insertLast(di);
 
       dd.onChange(@GUI::Callback(comboChanged));
       dd.enabled = true;

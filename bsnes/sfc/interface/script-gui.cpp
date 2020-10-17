@@ -292,6 +292,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
 #define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name, hiro::s##name)
 
+#define REG_OPASSIGN(name, shClass) \
+  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asFUNCTION(value_assign<shClass>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 #define REG_SH_VOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) -> void>::f<&shClass::method>))
 #define REG_SH_CVOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) const -> void>::f<&shClass::method>))
 #define HIRO_CVOID0(name, defn, method) REG_SH_CVOID0(name, hiro::name, defn, method)
@@ -405,45 +407,55 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_VALUE_TYPE(Geometry,  hiro::Geometry,  asOBJ_APP_CLASS_CDK);
 
   // Alignment value type:
+  REG_LAMBDA_CTOR(Alignment, "void f()", ([](void * address){ new (address) hiro::Alignment(); }));
   REG_LAMBDA_CTOR(Alignment, "void f(float, float)", ([](void * address, float h, float v) { new (address) hiro::Alignment(h, v); }));
   REG_LAMBDA_CTOR(Alignment, "void f(const Alignment &in)", ([](void * address, const hiro::Alignment &other){ new (address) hiro::Alignment(other); }));
   REG_LAMBDA_DTOR(Alignment, "void f()", ([](hiro::Alignment &self){ self.~Alignment(); }));
+  REG_OPASSIGN(Alignment, hiro::Alignment);
   REG_LAMBDA(Alignment, "float get_horizontal() property",      ([](hiro::Alignment& self) -> float { return self.horizontal(); }));
   REG_LAMBDA(Alignment, "void  set_horizontal(float) property", ([](hiro::Alignment& self, float value)    { self.setHorizontal(value); }));
   REG_LAMBDA(Alignment, "float get_vertical() property",        ([](hiro::Alignment& self) -> float { return self.vertical(); }));
   REG_LAMBDA(Alignment, "void  set_vertical(float) property",   ([](hiro::Alignment& self, float value)    { self.setVertical(value); }));
 
   // Position value type:
+  REG_LAMBDA_CTOR(Position, "void f()", ([](void * address){ new (address) hiro::Position(); }));
   REG_LAMBDA_CTOR(Position, "void f(float, float)", ([](void * address, float x, float y){ new (address) hiro::Position(x, y); }));
   REG_LAMBDA_CTOR(Position, "void f(const Position &in)", ([](void * address, const hiro::Position &other){ new (address) hiro::Position(other); }));
   REG_LAMBDA_DTOR(Position, "void f()", ([](hiro::Position &self){ self.~Position(); }));
+  REG_OPASSIGN(Position, hiro::Position);
   REG_LAMBDA(Position, "float get_x() property",      ([](hiro::Position& self) -> float { return self.x(); }));
   REG_LAMBDA(Position, "void  set_x(float) property", ([](hiro::Position& self, float value)    { self.setX(value); }));
   REG_LAMBDA(Position, "float get_y() property",      ([](hiro::Position& self) -> float { return self.y(); }));
   REG_LAMBDA(Position, "void  set_y(float) property", ([](hiro::Position& self, float value)    { self.setY(value); }));
 
   // Size value type:
+  REG_LAMBDA_CTOR(Size, "void f()", ([](void * address){ new (address) hiro::Size(); }));
   REG_LAMBDA_CTOR(Size, "void f(float, float)", ([](void * address, float width, float height){ new (address) hiro::Size(width, height); }));
   REG_LAMBDA_CTOR(Size, "void f(const Size &in)", ([](void * address, const hiro::Size &other){ new (address) hiro::Size(other); }));
   REG_LAMBDA_DTOR(Size, "void f()", ([](hiro::Size &self){ self.~Size(); }));
+  REG_OPASSIGN(Size, hiro::Size);
   REG_LAMBDA(Size, "float get_width() property",       ([](hiro::Size& self) -> float { return self.width(); }));
   REG_LAMBDA(Size, "void  set_width(float) property",  ([](hiro::Size& self, float value)    { self.setWidth(value); }));
   REG_LAMBDA(Size, "float get_height() property",      ([](hiro::Size& self) -> float { return self.height(); }));
   REG_LAMBDA(Size, "void  set_height(float) property", ([](hiro::Size& self, float value)    { self.setHeight(value); }));
 
   // Geometry value type:
+  REG_LAMBDA_CTOR(Geometry, "void f()", ([](void * address){ new (address) hiro::Geometry(); }));
   REG_LAMBDA_CTOR(Geometry, "void f(Position, Size)", ([](void * address, hiro::Position position, hiro::Size size){ new (address) hiro::Geometry(position, size); }));
   REG_LAMBDA_CTOR(Geometry, "void f(const Geometry &in)", ([](void * address, const hiro::Geometry &other){ new (address) hiro::Geometry(other); }));
   REG_LAMBDA_DTOR(Geometry, "void f()", ([](hiro::Geometry &self){ self.~Geometry(); }));
+  REG_OPASSIGN(Geometry, hiro::Geometry);
   REG_LAMBDA(Geometry, "Position get_position() property",         ([](hiro::Geometry& self) { return self.position(); }));
   REG_LAMBDA(Geometry, "void     set_position(Position) property", ([](hiro::Geometry& self, hiro::Position position) { self.setPosition(position); }));
   REG_LAMBDA(Geometry, "Size get_size() property",                 ([](hiro::Geometry& self) { return self.size(); }));
   REG_LAMBDA(Geometry, "void set_size(Size) property",             ([](hiro::Geometry& self, hiro::Size size) { self.setSize(size); }));
 
   // Color value type:
+  REG_LAMBDA_CTOR(Color, "void f()", ([](void * address){ new (address) hiro::Color(); }));
   REG_LAMBDA_CTOR(Color, "void f(int red, int green, int blue, int alpha = 255)", ([](void * address, int r, int g, int b, int a){ new (address) hiro::Color(r,g,b,a); }));
   REG_LAMBDA_CTOR(Color, "void f(const Color &in)", ([](void * address, const hiro::Color &other){ new (address) hiro::Color(other); }));
   REG_LAMBDA_DTOR(Color, "void f()", ([](hiro::Color &self){ self.~Color(); }));
+  REG_OPASSIGN(Color, hiro::Color);
   //REG_LAMBDA(Color, "void setColor(int red, int green, int blue, int alpha = 255)", asMETHODPR(hiro::Color, setColor, (int, int, int, int), hiro::Color&), asCALL_THISCALL); assert(r >= 0);
   //REG_LAMBDA(Color, "void setValue(uint32 value)",   asMETHOD(hiro::Color, setValue), asCALL_THISCALL); assert(r >= 0);
   REG_LAMBDA(Color, "uint8 get_alpha() property",         ([](hiro::Color& self) -> uint8 { return self.alpha(); }));
@@ -467,9 +479,11 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   }));
 
   // Font value type:
+  REG_LAMBDA_CTOR(Font, "void f()", ([](void * address){ new (address) hiro::Font(); }));
   REG_LAMBDA_CTOR(Font, "void f(const string &in family, float size = 0.0)", ([](void * address, string &family, float size){ new (address) hiro::Font(family, size); }));
   REG_LAMBDA_CTOR(Font, "void f(const Font &in)", ([](void * address, const hiro::Font &other){ new (address) hiro::Font(other); }));
   REG_LAMBDA_DTOR(Font, "void f()", ([](hiro::Font &font){ font.~Font(); }));
+  REG_OPASSIGN(Font, hiro::Font);
   REG_LAMBDA(Font, "bool   get_bold() property",                          ([](hiro::Font& self) { return self.bold(); }));
   REG_LAMBDA(Font, "string get_family() property",                        ([](hiro::Font& self) { return self.family(); }));
   REG_LAMBDA(Font, "bool   get_italic() property",                        ([](hiro::Font& self) { return self.italic(); }));
@@ -516,10 +530,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(Window);
   REG_LAMBDA(Window, "void append(const ? &in sizable)", ([](hiro::Window& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
+    CHECK_ALIVE(*sizable);
     self.append(*sizable);
   }));
   REG_LAMBDA(Window, "void remove(const ? &in sizable)", ([](hiro::Window& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
+    CHECK_ALIVE(*sizable);
     self.remove(*sizable);
   }));
   HIRO_SELF0(Window, "void reset()", reset);
@@ -606,10 +622,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(VerticalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
     ([](hiro::VerticalLayout& self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){
       CHECK_ALIVE(self);
+      CHECK_ALIVE(*sizable);
       self.append(*sizable, *size, spacing);
     }));
   REG_LAMBDA(VerticalLayout, "void remove(const ? &in sizable)",        ([](hiro::VerticalLayout& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
+    CHECK_ALIVE(*sizable);
     self.remove(*sizable);
   }));
   HIRO_SELF0(VerticalLayout, "void resize()",                        resize);
@@ -631,10 +649,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
     ([](hiro::HorizontalLayout& self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){
       CHECK_ALIVE(self);
+      CHECK_ALIVE(*sizable);
       self.append(*sizable, *size, spacing);
     }));
   REG_LAMBDA(HorizontalLayout, "void remove(const ? &in sizable)",        ([](hiro::HorizontalLayout& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
+    CHECK_ALIVE(*sizable);
     self.remove(*sizable);
   }));
   HIRO_SELF0(HorizontalLayout, "void resize()",                        resize);
@@ -653,10 +673,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_VALUE_CDA(Group, hiro::Group, hiro::sGroup);
   REG_LAMBDA(Group, "void append(const ? &in object)",      ([](hiro::Group& self, hiro::Object *object, int objectTypeId){
     CHECK_ALIVE(self);
+    CHECK_ALIVE(*object);
     self.append(*object);
   }));
   REG_LAMBDA(Group, "void remove(const ? &in object)",      ([](hiro::Group& self, hiro::Object *object, int objectTypeId){
     CHECK_ALIVE(self);
+    CHECK_ALIVE(*object);
     self.remove(*object);
   }));
   //REG_LAMBDA(Group, "Group get_opIndex(uint i) property",  ([](hiro::Group& self, uint i) { return new hiro::ComboButtonItem(self.object(i)); }));
@@ -755,9 +777,15 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(ComboButton);
   EXPOSE_HIRO_SIZABLE(ComboButton);
   EXPOSE_HIRO_WIDGET(ComboButton);
-  REG_LAMBDA(ComboButton, "void append(const ComboButtonItem &in item)",    ([](hiro::ComboButton& self, hiro::ComboButtonItem *item) {
+  REG_LAMBDA(ComboButton, "void append(const ComboButtonItem &in item)", ([](hiro::ComboButton& self, hiro::ComboButtonItem *item) {
     CHECK_ALIVE(self);
+    CHECK_ALIVE(*item);
     self.append(*item);
+  }));
+  REG_LAMBDA(ComboButton, "void remove(const ComboButtonItem &in item)", ([](hiro::ComboButton& self, hiro::ComboButtonItem *item) {
+    CHECK_ALIVE(self);
+    CHECK_ALIVE(*item);
+    self.remove(*item);
   }));
   HIRO_GETTER1(ComboButton, "ComboButtonItem get_opIndex(uint i) property", hiro::ComboButtonItem, item, uint);
   HIRO_GETTER0(ComboButton, "uint count()",                                 uint, itemCount);
