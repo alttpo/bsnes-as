@@ -53,7 +53,7 @@ struct GUI {
     }
 
     uint8 mLuma = 0x0Fu;
-    auto luma() -> uint8 { return mLuma; }
+    auto luma() const -> uint8 { return mLuma; }
     auto set_luma(uint8 luma) -> void { mLuma = luma & 0x0Fu; }
 
     auto luma_adjust(uint16 color) -> uint16 {
@@ -186,6 +186,9 @@ struct GUI {
     auto visible(bool recursive = false) const { return self().visible(recursive); }
 
     // Sizable:
+    auto alignment() const { return self().alignment(); }
+    auto setAlignment(hiro::Alignment alignment) { return self().setAlignment(alignment), *this; }
+    auto setSize(hiro::Size size) { return self().setSize(size), *this; }
     auto collapsible() const { return self().collapsible(); }
     auto layoutExcluded() const { return self().layoutExcluded(); }
     auto doSize() const { return self().doSize(); }
@@ -198,19 +201,7 @@ struct GUI {
 
 
     auto setAlignment(float horizontal, float vertical) {
-      self().setAlignment(hiro::Alignment{horizontal, vertical});
-    }
-
-    auto alignment() -> hiro::Alignment* {
-      return new hiro::Alignment(self().alignment());
-    }
-
-    auto setAlignment(hiro::Alignment& alignment) {
-      return self().setAlignment(alignment), *this;
-    }
-
-    auto setSize(hiro::Size &size) {
-      return self().setSize(size), *this;
+      return self().setAlignment(hiro::Alignment{horizontal, vertical}), *this;
     }
 
     auto setPosition(float x, float y) {
@@ -221,19 +212,19 @@ struct GUI {
       return *this;
     }
 
-    auto update() -> void {
-      self().update();
+    auto update() {
+      return self().update(), *this;
     }
 
-    auto luma() -> uint8 { return self().luma(); }
-    auto set_luma(uint8 luma) -> void { self().set_luma(luma); }
+    auto luma() const -> uint8 { return self().luma(); }
+    auto set_luma(uint8 luma) { return self().set_luma(luma), *this; }
 
-    auto fill(uint16 color) -> void {
-      self().fill(color);
+    auto fill(uint16 color) {
+      return self().fill(color), *this;
     }
 
-    auto pixel(int x, int y, uint16 color) -> void {
-      self().pixel(x, y, color);
+    auto pixel(int x, int y, uint16 color) {
+      return self().pixel(x, y, color), *this;
     }
 
     auto draw_sprite_4bpp(int x, int y, uint c, uint width, uint height, const CScriptArray *tile_data, const CScriptArray *palette_data) -> void {
@@ -310,6 +301,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 #define HIRO_SELF1(name, defn, method, a0) REG_SH_SELF1(name, hiro::name, defn, method, a0)
 #define REG_SH_SELF2(name, shClass, defn, method, a0, a1) REG_FUNC(name, defn, (Deref<auto (shClass::*)(a0, a1) -> shClass>::d<&shClass::method>))
 #define HIRO_SELF2(name, defn, method, a0, a1) REG_SH_SELF2(name, hiro::name, defn, method, a0, a1)
+#define REG_SH_SELF3(name, shClass, defn, method, a0, a1, a2) REG_FUNC(name, defn, (Deref<auto (shClass::*)(a0, a1, a2) -> shClass>::d<&shClass::method>))
+#define HIRO_SELF3(name, defn, method, a0, a1, a2) REG_SH_SELF2(name, hiro::name, defn, method, a0, a1, a2)
 #define REG_SH_GETTER0(name, shClass, defn, fieldType, getterMethod) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) const -> fieldType>::f<&shClass::getterMethod>))
 #define HIRO_GETTER0(name, defn, fieldType, getterMethod) REG_SH_GETTER0(name, hiro::name, defn, fieldType, getterMethod)
 #define REG_SH_GETTER1(name, shClass, defn, fieldType, getterMethod, a0) REG_FUNC(name, defn, (Deref<auto (shClass::*)(a0) const -> fieldType>::f<&shClass::getterMethod>))
@@ -769,8 +762,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   HIRO_GETTER1(ComboButton, "ComboButtonItem get_opIndex(uint i) property", hiro::ComboButtonItem, item, uint);
   HIRO_GETTER0(ComboButton, "uint count()",                                 uint, itemCount);
   HIRO_GETTER0(ComboButton, "ComboButtonItem get_selected() property",      hiro::ComboButtonItem, selected);
-  HIRO_CVOID0 (ComboButton, "void doChange()",                                doChange);
-  HIRO_SELF0  (ComboButton, "void reset()",                                   reset);
+  HIRO_CVOID0 (ComboButton, "void doChange()", doChange);
+  HIRO_SELF0  (ComboButton, "void reset()",    reset);
   HIRO_SELF1  (ComboButton, "void remove(ComboButtonItem)", remove, hiro::sComboButtonItem);
   REG_LAMBDA  (ComboButton, "void onChange(Callback @cb)", ([](hiro::ComboButton& self, asIScriptFunction *cb) {
     CHECK_ALIVE(self);
@@ -782,31 +775,35 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(HorizontalSlider);
   EXPOSE_HIRO_SIZABLE(HorizontalSlider);
   EXPOSE_HIRO_WIDGET(HorizontalSlider);
-  REG_LAMBDA(HorizontalSlider, "uint get_length() property",                ([](hiro::HorizontalSlider& self) { return self.length(); }));
-  REG_LAMBDA(HorizontalSlider, "void set_length(uint length) property",     ([](hiro::HorizontalSlider& self, uint length) { self.setLength(length); }));
-  REG_LAMBDA(HorizontalSlider, "uint get_position() property",              ([](hiro::HorizontalSlider& self) { return self.position(); }));
-  REG_LAMBDA(HorizontalSlider, "void set_position(uint position) property", ([](hiro::HorizontalSlider& self, uint length) { self.setPosition(length); }));
-  REG_LAMBDA(HorizontalSlider, "void doChange()",                           ([](hiro::HorizontalSlider& self) { self.doChange(); }));
-  REG_LAMBDA(HorizontalSlider, "void onChange(Callback @cb)",               ([](hiro::HorizontalSlider& self, asIScriptFunction *cb) { self.onChange(Callback(cb)); }));
+  HIRO_GETTER0(HorizontalSlider, "uint get_length() property",                uint, length);
+  HIRO_GETTER0(HorizontalSlider, "uint get_position() property",              uint, position);
+  HIRO_SETTER0(HorizontalSlider, "void set_length(uint length) property",     uint, setLength);
+  HIRO_SETTER0(HorizontalSlider, "void set_position(uint position) property", uint, setPosition);
+  HIRO_CVOID0 (HorizontalSlider, "void doChange()", doChange);
+  REG_LAMBDA(HorizontalSlider, "void onChange(Callback @cb)", ([](hiro::HorizontalSlider& self, asIScriptFunction *cb) {
+    CHECK_ALIVE(self);
+    self.onChange(Callback(cb));
+  }));
 
   // SNESCanvas
   EXPOSE_VALUE_CDA(SNESCanvas, GUI::SNESCanvas, GUI::sSNESCanvas);
   EXPOSE_OBJECT(SNESCanvas, GUI::SNESCanvas);
   EXPOSE_SIZABLE(SNESCanvas, GUI::SNESCanvas);
-  REG_LAMBDA(SNESCanvas, "void set_size(Size &in size) property",               ([](GUI::SNESCanvas& self, hiro::Size &size) { self.setSize(size); }));
-  REG_LAMBDA(SNESCanvas, "uint8 get_luma() property",                           ([](GUI::SNESCanvas& self) { return self.luma(); }));
-  REG_LAMBDA(SNESCanvas, "void set_luma(uint8 luma) property",                  ([](GUI::SNESCanvas& self, uint8 value) { self.set_luma(value); }));
-  REG_LAMBDA(SNESCanvas, "Alignment get_alignment() property",                 ([](GUI::SNESCanvas& self) { return self.alignment(); }));
-  REG_LAMBDA(SNESCanvas, "void set_alignment(const Alignment &in) property",    ([](GUI::SNESCanvas& self, hiro::Alignment &alignment) { self.setAlignment(alignment); }));
-  REG_LAMBDA(SNESCanvas, "void setAlignment(float horizontal, float vertical)", ([](GUI::SNESCanvas& self, float horizontal, float vertical) { self.setAlignment(horizontal, vertical); }));
-  REG_LAMBDA(SNESCanvas, "void setCollapsible(bool)",    ([](GUI::SNESCanvas& self, bool value) { self.setCollapsible(value); }));
-  REG_LAMBDA(SNESCanvas, "void update()",                ([](GUI::SNESCanvas& self) { self.update(); }));
-  REG_LAMBDA(SNESCanvas, "void fill(uint16)",            ([](GUI::SNESCanvas& self, uint16 color) { self.fill(color); }));
-  REG_LAMBDA(SNESCanvas, "void pixel(int, int, uint16)", ([](GUI::SNESCanvas& self, int x, int y, uint16 color) { self.pixel(x, y, color); }));
+  REG_SH_GETTER0(SNESCanvas, GUI::SNESCanvas, "Alignment get_alignment() property",      hiro::Alignment, alignment);
+  REG_SH_GETTER0(SNESCanvas, GUI::SNESCanvas, "uint8 get_luma() property",               uint8, luma);
+  REG_SH_SETTER0(SNESCanvas, GUI::SNESCanvas, "void set_size(Size) property",            hiro::Size, setSize);
+  REG_SH_SETTER0(SNESCanvas, GUI::SNESCanvas, "void set_luma(uint8) property",           uint8, set_luma);
+  REG_SH_SETTER0(SNESCanvas, GUI::SNESCanvas, "void set_alignment(Alignment) property", hiro::Alignment, setAlignment);
+  REG_SH_SELF2  (SNESCanvas, GUI::SNESCanvas, "void setAlignment(float horizontal, float vertical)", setAlignment, float, float);
+  REG_SH_SELF1  (SNESCanvas, GUI::SNESCanvas, "void setCollapsible(bool)", setCollapsible, bool);
+  REG_SH_SELF0  (SNESCanvas, GUI::SNESCanvas, "void update()", update);
+  REG_SH_SELF1  (SNESCanvas, GUI::SNESCanvas, "void fill(uint16)", fill, uint16);
+  REG_SH_SELF3  (SNESCanvas, GUI::SNESCanvas, "void pixel(int, int, uint16)", pixel, int, int, uint16);
   REG_LAMBDA(SNESCanvas, "void draw_sprite_4bpp(int, int, uint, uint, uint, const array<uint16> &in, const array<uint16> &in)",
-             ([](GUI::SNESCanvas& self, int x, int y, uint c, uint width, uint height, const CScriptArray *tile_data, const CScriptArray *palette_data) {
-               self.draw_sprite_4bpp(x, y, c, width, height, tile_data, palette_data);
-             })
+    ([](GUI::SNESCanvas& self, int x, int y, uint c, uint width, uint height, const CScriptArray *tile_data, const CScriptArray *palette_data) {
+      CHECK_ALIVE(self);
+      self.draw_sprite_4bpp(x, y, c, width, height, tile_data, palette_data);
+    })
   );
   // TODO: draw_sprite_8bpp
 }

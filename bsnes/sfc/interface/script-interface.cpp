@@ -254,6 +254,38 @@ struct Deref<R (T::*)(A0, A1) const> {
     (self.*fp)(a0, a1);
   }
 };
+
+template <typename T, typename R, typename A0, typename A1, typename A2>
+struct Deref<R (T::*)(A0, A1, A2)> {
+  // return return value:
+  template <R (T::*fp)(A0, A1, A2)>
+  static R f(T &self, A0 a0, A1 a1, A2 a2) {
+    CHECK_ALIVE_RET(self, R{});
+    return (self.*fp)(a0, a1, a2);
+  }
+
+  // discard return value:
+  template <R (T::*fp)(A0, A1, A2)>
+  static void d(T &self, A0 a0, A1 a1, A2 a2) {
+    CHECK_ALIVE(self);
+    (self.*fp)(a0, a1, a2);
+  }
+};
+template <typename T, typename R, typename A0, typename A1, typename A2>
+struct Deref<R (T::*)(A0, A1, A2) const> {
+  template <R (T::*fp)(A0, A1, A2) const>
+  static R f(T &self, A0 a0, A1 a1, A2 a2) {
+    CHECK_ALIVE_RET(self, R{});
+    return (self.*fp)(a0, a1, a2);
+  }
+
+  // discard return value:
+  template <R (T::*fp)(A0, A1, A2) const>
+  static void d(T &self, A0 a0, A1 a1, A2 a2) {
+    CHECK_ALIVE(self);
+    (self.*fp)(a0, a1, a2);
+  }
+};
 #include "script-string.cpp"
 
 // R5G5B5 is what ends up on the final PPU frame buffer (R and B are swapped from SNES)
