@@ -510,6 +510,14 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     if (!((bool)self.ptr())) {
       return;
     }
+    // remove callbacks to avoid error "The script object of type 'T' is being resurrected illegally during destruction"
+    self->onClose();
+    self->onDrop();
+    self->onKeyPress();
+    self->onKeyRelease();
+    self->onMove();
+    self->onSize();
+    // setting this to false invokes callbacks:
     self->setVisible(false);
     self->setDismissable(true);
     self->destruct();
@@ -814,7 +822,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // SNESCanvas
   EXPOSE_VALUE_CDA(SNESCanvas, GUI::SNESCanvas, GUI::sSNESCanvas);
-  EXPOSE_OBJECT(SNESCanvas, GUI::SNESCanvas);
+  EXPOSE_OBJECT (SNESCanvas, GUI::SNESCanvas);
   EXPOSE_SIZABLE(SNESCanvas, GUI::SNESCanvas);
   REG_SH_GETTER0(SNESCanvas, GUI::SNESCanvas, "Alignment get_alignment() property",      hiro::Alignment, alignment);
   REG_SH_GETTER0(SNESCanvas, GUI::SNESCanvas, "uint8 get_luma() property",               uint8, luma);

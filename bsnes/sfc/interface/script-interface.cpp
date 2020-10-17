@@ -405,17 +405,21 @@ namespace ScriptInterface {
   uint      emulatorDepth;    // 24 or 30
 
   struct Callback {
-    asIScriptFunction *func = nullptr;
-    void              *obj  = nullptr;
+    asIScriptFunction *func    = nullptr;
+    void              *obj     = nullptr;
+    asITypeInfo       *objType = nullptr;
 
     Callback(asIScriptFunction *cb) {
       //printf("cb[%p].ctor()\n", (void*)this);
 
       // if dealing with a delegate, only take a reference to the method and not its object:
       if (cb && cb->GetFuncType() == asFUNC_DELEGATE) {
-        obj  = cb->GetDelegateObject();
-        func = cb->GetDelegateFunction();
+        obj     = cb->GetDelegateObject();
+        objType = cb->GetDelegateObjectType();
+        func    = cb->GetDelegateFunction();
 
+        platform->scriptEngine()->AddRefScriptObject(obj, objType);
+        //printf("cb[%p].obj[%p].addref -> %d\n", (void*)this, (void*)func, c);
         auto c = func->AddRef();
         //printf("cb[%p].func[%p].addref -> %d\n", (void*)this, (void*)func, c);
 
@@ -426,18 +430,26 @@ namespace ScriptInterface {
         func = cb;
       }
     }
-    Callback(const Callback& other) : func(other.func), obj(other.obj) {
+    Callback(const Callback& other) : func(other.func), obj(other.obj), objType(other.objType) {
       //printf("cb[%p].copy()\n", (void*)this);
+      if (obj) {
+        platform->scriptEngine()->AddRefScriptObject(obj, objType);
+      }
+      //printf("cb[%p].obj[%p].addref -> %d\n", (void*)this, (void*)func, c);
       auto c = func->AddRef();
       //printf("cb[%p].func[%p].addref -> %d\n", (void*)this, (void*)func, c);
     }
 
     ~Callback() {
       //printf("cb[%p].dtor()\n", (void*)this);
+      if (obj) {
+        platform->scriptEngine()->ReleaseScriptObject(obj, objType);
+      }
       auto c = func->Release();
       //printf("cb[%p].func[%p].release -> %d\n", (void*)this, (void*)func, c);
       func = nullptr;
       obj = nullptr;
+      objType = nullptr;
     }
 
     auto operator()() -> void {
