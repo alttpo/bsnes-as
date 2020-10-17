@@ -956,5 +956,8 @@ struct Window : sWindow {
   auto sizable() const { return self().sizable(); }
   auto statusBar() const { return self().statusBar(); }
   auto title() const { return self().title(); }
+
+  // [jsd]
+  auto position() const { return self().geometry().position(); }
 };
 #endif

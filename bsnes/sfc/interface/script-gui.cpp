@@ -516,17 +516,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     self.reset();
   }));
 
-  REG_LAMBDA_CTOR(Window, "void f(float rx, float ry, bool relative)", ([](void *address, float x, float y, bool relative) {
-    auto window = new (address) hiro::Window;
-#ifndef DISABLE_HIRO
-    if (relative) {
-      window->setPosition(platform->presentationWindow(), hiro::Position{x, y});
-    } else {
-      window->setPosition(hiro::Position{x, y});
-    }
-#endif
-  }));
-
   EXPOSE_HIRO_OBJECT(Window);
   REG_LAMBDA(Window, "void append(const ? &in sizable)", ([](hiro::Window& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
@@ -549,6 +538,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   HIRO_GETTER0(Window, "Size get_minimumSize() property",       hiro::Size, minimumSize);
   HIRO_GETTER0(Window, "bool get_modal() property",             bool, modal);
   HIRO_GETTER0(Window, "bool get_resizable() property",         bool, resizable);
+  HIRO_GETTER0(Window, "Position get_position() property",      hiro::Position, position);
   //HIRO_GETTER0(Window, "Sizable get_sizable() property",        Sizable, sizable);
   HIRO_GETTER0(Window, "string get_title() property",           string, title);
   HIRO_GETTER0(Window, "Geometry get_frameGeometry() property", hiro::Geometry, frameGeometry);
@@ -558,13 +548,22 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   HIRO_SETTER0(Window, "void set_dismissable(bool dismissable) property",       bool,               setDismissable);
   HIRO_SETTER0(Window, "void set_fullScreen(bool fullScreen) property",         bool,           setFullScreen);
   HIRO_SETTER0(Window, "void set_maximized(bool maximized) property",           bool,           setMaximized);
-  HIRO_SETTER0(Window, "void set_maximumSize(Size) property",    hiro::Size,   setMaximumSize);
+  HIRO_SETTER0(Window, "void set_maximumSize(Size) property",                   hiro::Size,   setMaximumSize);
   HIRO_SETTER0(Window, "void set_minimized(bool minimized) property",           bool,           setMinimized);
-  HIRO_SETTER0(Window, "void set_minimumSize(Size) property",    hiro::Size,   setMinimumSize);
+  HIRO_SETTER0(Window, "void set_minimumSize(Size) property",                   hiro::Size,   setMinimumSize);
   HIRO_SETTER0(Window, "void set_modal(bool modal) property",                   bool,           setModal);
   HIRO_SETTER0(Window, "void set_resizable(bool resizable) property",           bool,           setResizable);
+  HIRO_SETTER0(Window, "void set_position(Position) property",                  hiro::Position,           setPosition);
   HIRO_SETTER0(Window, "void set_title(const string &in title) property",       const string &, setTitle);
   HIRO_SETTER0(Window, "void set_size(Size) property",           hiro::Size,   setSize);
+
+  REG_LAMBDA(Window, "void set_positionRelative(Position) property", ([](hiro::Window& self, hiro::Position position) {
+#ifndef DISABLE_HIRO
+    self.setPosition(platform->presentationWindow(), position);
+#else
+    self.setPosition(position);
+#endif
+  }));
 
   REG_LAMBDA(Window, "void onSize(Callback @cb)", ([](hiro::Window& self, asIScriptFunction *cb) {
     CHECK_ALIVE(self);
