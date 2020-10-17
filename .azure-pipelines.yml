@@ -13,7 +13,7 @@ jobs:
     variables:
       makeOptions: -j2
       makeVariables: local=false build=performance
-      nightly: bsnes-angelscript-$(archName)-$(Build.BuildNumber)
+      nightly: bsnes-as-$(archName)-$(Build.BuildNumber)
       buildVersion: $(Build.BuildId)
 
     steps:
@@ -22,9 +22,11 @@ jobs:
       - script: |
           echo '#define BSNES_BUILD_NUMBER "'"$(buildVersion)"'"' > bsnes/emulator/version.generated.hpp
           make $(makeOptions) -C bsnes target=bsnes $(makeVariables) $(platformOptions)
+        displayName: 'make bsnes'
+      - script: |
           rm -f bsnes/obj/sfc-*.o bsnes/obj/core.o bsnes/obj/emulator.o || true
-          make $(makeOptions) -C bsnes target=libretro $(makeVariables) $(platformOptions)
-        displayName: 'make'
+          make $(makeOptions) -C bsnes target=libretro $(makeVariables) $(platformOptions) || true
+        displayName: 'make libretro'
       - script: $(packageScript)
         displayName: 'package'
 
@@ -52,8 +54,8 @@ jobs:
             mkdir $(nightly)/Database
             mkdir $(nightly)/Firmware
             cp -a bsnes/out/bsnes $(nightly)/bsnes.exe
+            cp -a bsnes/out/bsnes_libretro.dll $(nightly)/ || true
             cp -a bsnes/out/discord_game_sdk.dll $(nightly)/
-            cp -a bsnes/out/bsnes_libretro.dll $(nightly)/
             cp -a bsnes/Database/* $(nightly)/Database
             cp -a shaders $(nightly)/Shaders
             cp -a scripts $(nightly)/scripts
@@ -74,8 +76,8 @@ jobs:
             mkdir $(nightly)/Database
             mkdir $(nightly)/Firmware
             cp -a bsnes/out/bsnes $(nightly)/bsnes.exe
+            cp -a bsnes/out/bsnes_libretro.dll $(nightly)/ || true
             cp -a bsnes/out/discord_game_sdk.dll $(nightly)/
-            cp -a bsnes/out/bsnes_libretro.dll $(nightly)/
             cp -a bsnes/Database/* $(nightly)/Database
             cp -a shaders $(nightly)/Shaders
             cp -a scripts $(nightly)/scripts
@@ -90,7 +92,7 @@ jobs:
           packageScript: |
             mkdir $(nightly)
             cp -a bsnes/out/bsnes.app $(nightly)/
-            cp -a bsnes/out/bsnes_libretro.dylib $(nightly)/
+            cp -a bsnes/out/bsnes_libretro.dylib $(nightly)/ || true
             cp -a scripts $(nightly)/scripts
             cp -a GPLv3.txt $(nightly)/
 
@@ -109,7 +111,7 @@ jobs:
             mkdir $(nightly)/Database
             mkdir $(nightly)/Firmware
             cp -a bsnes/out/bsnes $(nightly)/bsnes
-            cp -a bsnes/out/bsnes_libretro.so $(nightly)/
+            cp -a bsnes/out/bsnes_libretro.so $(nightly)/ || true
             cp -a bsnes/out/discord_game_sdk.so $(nightly)/
             cp -a bsnes/Database/* $(nightly)/Database
             cp -a shaders $(nightly)/Shaders
