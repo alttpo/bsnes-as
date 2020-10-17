@@ -152,7 +152,7 @@ struct GUI {
   using sSNESCanvas = shared_pointer<mSNESCanvas>;
 
   // shared pointer interface to mSNESCanvas:
-  struct SNESCanvas : shared_pointer<mSNESCanvas> {
+  struct SNESCanvas : sSNESCanvas {
     SNESCanvas() : shared_pointer<mSNESCanvas>(new mSNESCanvas, [](auto p) {
       p->unbind();
       delete p;
@@ -347,9 +347,9 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     self.setGeometry(hiro::Geometry(hiro::Position(x, y), self.geometry().size())); \
   })); \
   REG_SH_CVOID0 (name, shClass, "void doSize()", doSize); \
-  REG_LAMBDA(name, "void onSize(Callback @callback)", ([](shClass& self, asIScriptFunction *cb) {    \
+  REG_LAMBDA(name, "void onSize(Callback @callback)", ([](shClass& self, asIScriptFunction *cb) { \
     CHECK_ALIVE(self); \
-    self.onSize(Callback(cb));       \
+    self.onSize(Callback(cb)); \
   }));
 
 #define EXPOSE_HIRO_SIZABLE(name) EXPOSE_SIZABLE(name, hiro::name)

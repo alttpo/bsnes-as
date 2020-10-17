@@ -106,8 +106,9 @@ void value_copy_construct(void * address, T * other) {
 }
 
 template <typename T>
-void value_assign(T * lhs, T* rhs) {
+T* value_assign(T * lhs, T* rhs) {
   *lhs = *rhs;
+  return lhs;
 }
 
 template <typename T> struct Deref {};
@@ -418,14 +419,20 @@ namespace ScriptInterface {
         objType = cb->GetDelegateObjectType();
         func    = cb->GetDelegateFunction();
 
-        platform->scriptEngine()->AddRefScriptObject(obj, objType);
-        //printf("cb[%p].obj[%p].addref -> %d\n", (void*)this, (void*)func, c);
-        auto c = func->AddRef();
-        //printf("cb[%p].func[%p].addref -> %d\n", (void*)this, (void*)func, c);
+        {
+          platform->scriptEngine()->AddRefScriptObject(obj, objType);
+          //printf("cb[%p].obj[%p].addref -> %d\n", (void *) this, (void *) obj, c);
+        }
+        {
+          auto c = func->AddRef();
+          //printf("cb[%p].func[%p].addref -> %d\n", (void *) this, (void *) func, c);
+        }
 
-        // release the delegate:
-        c = cb->Release();
-        //printf("cb[%p].cb[%p].release -> %d\n", (void*)this, (void*)cb, c);
+        {
+          // release the delegate:
+          auto c = cb->Release();
+          //printf("cb[%p].cb[%p].release -> %d\n", (void*)this, (void*)cb, c);
+        }
       } else {
         func = cb;
       }
@@ -434,32 +441,35 @@ namespace ScriptInterface {
       //printf("cb[%p].copy()\n", (void*)this);
       if (obj) {
         platform->scriptEngine()->AddRefScriptObject(obj, objType);
+        //printf("cb[%p].obj[%p].addref -> %d\n", (void*)this, (void*)obj, c);
       }
-      //printf("cb[%p].obj[%p].addref -> %d\n", (void*)this, (void*)func, c);
-      auto c = func->AddRef();
-      //printf("cb[%p].func[%p].addref -> %d\n", (void*)this, (void*)func, c);
+      {
+        auto c = func->AddRef();
+        //printf("cb[%p].func[%p].addref -> %d\n", (void *) this, (void *) func, c);
+      }
     }
 
     ~Callback() {
       //printf("cb[%p].dtor()\n", (void*)this);
       if (obj) {
         platform->scriptEngine()->ReleaseScriptObject(obj, objType);
+        //printf("cb[%p].obj[%p].release -> %d\n", (void*)this, (void*)obj, c);
       }
-      auto c = func->Release();
-      //printf("cb[%p].func[%p].release -> %d\n", (void*)this, (void*)func, c);
+      {
+        auto c = func->Release();
+        //printf("cb[%p].func[%p].release -> %d\n", (void *) this, (void *) func, c);
+      }
       func = nullptr;
       obj = nullptr;
       objType = nullptr;
     }
 
     auto operator()() -> void {
-      auto ctx = platform->scriptCreateContext();
-      platform->scriptInvokeFunctionWithContext(func, ctx, [=](asIScriptContext* ctx) {
+      platform->scriptInvokeFunctionCallback(func, [=](asIScriptContext* ctx) {
         // use the script object for which the delegate applies to:
         // TODO: what if obj == nullptr?
         ctx->SetObject(obj);
       });
-      ctx->Release();
     }
   };
 

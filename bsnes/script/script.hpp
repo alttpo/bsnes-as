@@ -97,7 +97,7 @@ public:
   virtual auto scriptCreateContext() -> asIScriptContext*;
 
   virtual auto scriptInvokeFunction(asIScriptFunction *func, function<void (asIScriptContext*)> prepareArgs = {}) -> asUINT;
-  virtual auto scriptInvokeFunctionWithContext(asIScriptFunction *func, asIScriptContext *ctx, function<void (asIScriptContext*)> prepareArgs = {}) -> asUINT;
+  virtual auto scriptInvokeFunctionCallback(asIScriptFunction *func, function<void (asIScriptContext*)> prepareArgs = {}) -> asUINT;
   virtual auto scriptExecute(asIScriptContext *ctx) -> asUINT;
 
 public:
@@ -127,6 +127,8 @@ protected:
   virtual auto getStackTrace(asIScriptContext *ctx, vector<string> &frames) -> void;
   virtual auto exceptionCallback(asIScriptContext *ctx) -> void;
   virtual auto formatStackFrame(const char *scriptSection, int line, int column, const asIScriptFunction *func = nullptr) -> string;
+
+  vector<asIScriptContext*> scriptContextStack;
 };
 
 // the interface that sfc implements:

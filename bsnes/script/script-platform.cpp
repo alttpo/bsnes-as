@@ -152,17 +152,11 @@ auto Platform::scriptExecute(asIScriptContext *ctx) -> asUINT {
 }
 
 auto Platform::scriptInvokeFunction(asIScriptFunction *func, function<void (asIScriptContext*)> prepareArgs) -> asUINT {
-  return scriptInvokeFunctionWithContext(func, nullptr, prepareArgs);
-}
-
-auto Platform::scriptInvokeFunctionWithContext(asIScriptFunction *func, asIScriptContext *ctx, function<void (asIScriptContext*)> prepareArgs) -> asUINT {
   if (!func) {
     return 0;
   }
 
-  if (!ctx) {
-    ctx = scriptPrimaryContext();
-  }
+  auto ctx = scriptPrimaryContext();
 
   ctx->Prepare(func);
   if (prepareArgs) {
@@ -170,6 +164,27 @@ auto Platform::scriptInvokeFunctionWithContext(asIScriptFunction *func, asIScrip
   }
 
   return scriptExecute(ctx);
+}
+
+auto Platform::scriptInvokeFunctionCallback(asIScriptFunction *func, function<void (asIScriptContext*)> prepareArgs) -> asUINT {
+  if (!func) {
+    return 0;
+  }
+
+  auto ctx = scriptCreateContext();
+  scriptContextStack.append(ctx);
+
+  ctx->Prepare(func);
+  if (prepareArgs) {
+    prepareArgs(ctx);
+  }
+
+  auto ret = scriptExecute(ctx);
+
+  ctx->Release();
+  scriptContextStack.removeLast();
+
+  return ret;
 }
 
 auto Platform::scriptProfilerEnable(asIScriptContext *ctx) -> void {
