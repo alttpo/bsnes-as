@@ -106,7 +106,7 @@ void value_copy_construct(void * address, T * other) {
 }
 
 template <typename T>
-T* value_assign(T * lhs, T* rhs) {
+T* value_assign(T *lhs, T* rhs) {
   *lhs = *rhs;
   return lhs;
 }
@@ -406,13 +406,21 @@ namespace ScriptInterface {
   uint      emulatorDepth;    // 24 or 30
 
   struct Callback {
-    asIScriptFunction *func    = nullptr;
-    void              *obj     = nullptr;
-    asITypeInfo       *objType = nullptr;
+#if 1
+    asIScriptFunction     *cb           = nullptr;
+#else
+    asIScriptFunction     *func         = nullptr;
+    asILockableSharedBool *weakRefFlag  = nullptr;
+    void                  *obj          = nullptr;
+    asITypeInfo           *objType      = nullptr;
+#endif
 
     Callback(asIScriptFunction *cb) {
       //printf("cb[%p].ctor()\n", (void*)this);
-
+#if 1
+      this->cb = cb;
+      cb->AddRef();
+#else
       // if dealing with a delegate, only take a reference to the method and not its object:
       if (cb && cb->GetFuncType() == asFUNC_DELEGATE) {
         obj     = cb->GetDelegateObject();
@@ -423,6 +431,10 @@ namespace ScriptInterface {
           platform->scriptEngine()->AddRefScriptObject(obj, objType);
           //printf("cb[%p].obj[%p].addref -> %d\n", (void *) this, (void *) obj, c);
         }
+        //{
+        //  weakRefFlag = platform->scriptEngine()->GetWeakRefFlagOfScriptObject(obj, objType);
+        //  weakRefFlag->AddRef();
+        //}
         {
           auto c = func->AddRef();
           //printf("cb[%p].func[%p].addref -> %d\n", (void *) this, (void *) func, c);
@@ -436,40 +448,67 @@ namespace ScriptInterface {
       } else {
         func = cb;
       }
+#endif
     }
-    Callback(const Callback& other) : func(other.func), obj(other.obj), objType(other.objType) {
+
+#if 1
+    Callback(const Callback& other) : cb(other.cb) {
+      cb->AddRef();
+    }
+#else
+    Callback(const Callback& other) : func(other.func), weakRefFlag(other.weakRefFlag), obj(other.obj), objType(other.objType) {
       //printf("cb[%p].copy()\n", (void*)this);
       if (obj) {
         platform->scriptEngine()->AddRefScriptObject(obj, objType);
         //printf("cb[%p].obj[%p].addref -> %d\n", (void*)this, (void*)obj, c);
       }
+      //if (obj) {
+      //  weakRefFlag->AddRef();
+      //}
       {
         auto c = func->AddRef();
         //printf("cb[%p].func[%p].addref -> %d\n", (void *) this, (void *) func, c);
       }
     }
+#endif
 
     ~Callback() {
       //printf("cb[%p].dtor()\n", (void*)this);
+#if 1
+      cb->Release();
+#else
       if (obj) {
         platform->scriptEngine()->ReleaseScriptObject(obj, objType);
         //printf("cb[%p].obj[%p].release -> %d\n", (void*)this, (void*)obj, c);
       }
+      //if (obj) {
+      //  weakRefFlag->Release();
+      //}
       {
         auto c = func->Release();
         //printf("cb[%p].func[%p].release -> %d\n", (void *) this, (void *) func, c);
       }
       func = nullptr;
+      weakRefFlag = nullptr;
       obj = nullptr;
       objType = nullptr;
+#endif
     }
 
     auto operator()() -> void {
+#if 1
+      platform->scriptInvokeFunctionCallback(cb);
+#else
+      //if (weakRefFlag && weakRefFlag->Get()) {
+      //  printf("callback on released weak ref\n");
+      //  return;
+      //}
       platform->scriptInvokeFunctionCallback(func, [=](asIScriptContext* ctx) {
         // use the script object for which the delegate applies to:
         // TODO: what if obj == nullptr?
         ctx->SetObject(obj);
       });
+#endif
     }
   };
 

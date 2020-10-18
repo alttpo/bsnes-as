@@ -275,8 +275,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA_CTOR(name, "void f()", ([](void* address){ new (address) shClass((const sClass &)sClass()); })); \
   REG_LAMBDA(name, "void construct()", ([](shClass &p){ p.operator=(shClass()); })); \
   REG_LAMBDA(name, "void destruct()", ([](shClass *p){ value_destroy<shClass>(p); })); \
-  REG_LAMBDA(name, "bool opImplConv() const", ([](shClass &p){ return p.operator bool(); })); \
-  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asFUNCTION(value_assign<shClass>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  REG_LAMBDA(name, "bool opImplConv() const", ([](shClass &p){ return (bool)(p.ptr()); })); \
+  REG_FUNC(name, #name " &opAssign(const " #name " &in)", (value_assign<shClass>));
 
 #define EXPOSE_VALUE_CAK(name, shClass, sClass) \
   EXPOSE_VALUE_CA(name, shClass, sClass) \
@@ -505,11 +505,16 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // Window
   REG_VALUE_TYPE(Window, hiro::Window, asOBJ_APP_CLASS_CDAK);
+#if 1
+  EXPOSE_VALUE_CDAK(Window, hiro::Window, hiro::sWindow);
+#else
   EXPOSE_VALUE_CAK(Window, hiro::Window, hiro::sWindow);
   REG_LAMBDA_DTOR(Window, "void f()", ([](hiro::Window& self){
     if (!((bool)self.ptr())) {
+      printf("~window() on null\n");
       return;
     }
+    printf("~window()\n");
     // remove callbacks to avoid error "The script object of type 'T' is being resurrected illegally during destruction"
     self->onClose();
     self->onDrop();
@@ -523,6 +528,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     self->destruct();
     self.reset();
   }));
+#endif
 
   EXPOSE_HIRO_OBJECT(Window);
   REG_LAMBDA(Window, "void append(const ? &in sizable)", ([](hiro::Window& self, hiro::Sizable* sizable, int sizableTypeId){
@@ -563,7 +569,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   HIRO_SETTER0(Window, "void set_resizable(bool resizable) property",           bool,           setResizable);
   HIRO_SETTER0(Window, "void set_position(Position) property",                  hiro::Position,           setPosition);
   HIRO_SETTER0(Window, "void set_title(const string &in title) property",       const string &, setTitle);
-  HIRO_SETTER0(Window, "void set_size(Size) property",           hiro::Size,   setSize);
+  HIRO_SETTER0(Window, "void set_size(Size) property",                          hiro::Size,   setSize);
 
   REG_LAMBDA(Window, "void set_positionRelative(Position) property", ([](hiro::Window& self, hiro::Position position) {
 #ifndef DISABLE_HIRO
@@ -626,11 +632,11 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_VALUE(VerticalLayout);
   EXPOSE_HIRO_OBJECT(VerticalLayout);
   EXPOSE_HIRO_SIZABLE(VerticalLayout);
-  REG_LAMBDA(VerticalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
-    ([](hiro::VerticalLayout& self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){
+  REG_LAMBDA(VerticalLayout, "void append(const ? &in sizable, Size size, float spacing = 5.0)",
+    ([](hiro::VerticalLayout& self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size size, float spacing){
       CHECK_ALIVE(self);
       CHECK_ALIVE(*sizable);
-      self.append(*sizable, *size, spacing);
+      self.append(*sizable, size, spacing);
     }));
   REG_LAMBDA(VerticalLayout, "void remove(const ? &in sizable)",        ([](hiro::VerticalLayout& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
@@ -653,11 +659,11 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_VALUE(HorizontalLayout);
   EXPOSE_HIRO_OBJECT(HorizontalLayout);
   EXPOSE_HIRO_SIZABLE(HorizontalLayout);
-  REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
-    ([](hiro::HorizontalLayout& self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){
+  REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size size, float spacing = 5.0)",
+    ([](hiro::HorizontalLayout& self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size size, float spacing){
       CHECK_ALIVE(self);
       CHECK_ALIVE(*sizable);
-      self.append(*sizable, *size, spacing);
+      self.append(*sizable, size, spacing);
     }));
   REG_LAMBDA(HorizontalLayout, "void remove(const ? &in sizable)",        ([](hiro::HorizontalLayout& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
