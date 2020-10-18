@@ -9,6 +9,8 @@ auto mWindow::allocate() -> pObject* {
 }
 
 auto mWindow::destruct() -> void {
+  state.destructing = true;
+  setVisible(false);
   if(auto& menuBar = state.menuBar) menuBar->destruct();
   if(auto& sizable = state.sizable) sizable->destruct();
   if(auto& statusBar = state.statusBar) statusBar->destruct();
@@ -46,6 +48,8 @@ auto mWindow::backgroundColor() const -> Color {
 }
 
 auto mWindow::dismissable() const -> bool {
+  // [jsd]: when destructing the window, force close:
+  if (state.destructing) return true;
   return state.dismissable;
 }
 

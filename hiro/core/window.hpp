@@ -68,6 +68,7 @@ struct mWindow : mObject {
 //private:
   struct State {
     Color backgroundColor;
+    bool destructing = false;
     bool dismissable = true;
     bool droppable = false;
     bool fullScreen = false;
