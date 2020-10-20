@@ -113,17 +113,21 @@ T* value_assign(T *lhs, T* rhs) {
 
 template <typename T> struct Deref {};
 
-static const char *deref_error = "cannot dereference null shared_pointer; call construct() first";
+static const char *deref_error = "cannot dereference null shared_pointer at [%p]; call construct() first";
 
 #define CHECK_ALIVE(self) \
   if (!(bool)((self).ptr())) { \
-    asGetActiveContext()->SetException(deref_error, true); \
+    char err[strlen(deref_error) + 16]; \
+    sprintf(err, deref_error, &(self)); \
+    asGetActiveContext()->SetException(err, true); \
     return; \
   }
 
 #define CHECK_ALIVE_RET(self, R) \
-  if (!(bool)((self).ptr())) { \
-    asGetActiveContext()->SetException(deref_error, true); \
+  if (!(bool)((self).ptr())) {   \
+    char err[strlen(deref_error) + 16]; \
+    sprintf(err, deref_error, &(self)); \
+    asGetActiveContext()->SetException(err, true); \
     return R; \
   }
 

@@ -271,29 +271,60 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   ////////////////////////////////////////////////////////////////////////
   // Macros:
 
-#define EXPOSE_VALUE_CA(name, shClass, sClass) \
-  REG_LAMBDA_CTOR(name, "void f()", ([](void* address){ new (address) shClass((const sClass &)sClass()); })); \
-  REG_LAMBDA(name, "void construct()", ([](shClass &p){ p.operator=(shClass()); })); \
-  REG_LAMBDA(name, "void destruct()", ([](shClass *p){ value_destroy<shClass>(p); })); \
-  REG_LAMBDA(name, "bool opImplConv() const", ([](shClass &p){ return (bool)(p.ptr()); })); \
+#define REG_OPASSIGN(name, shClass) \
   REG_FUNC(name, #name " &opAssign(const " #name " &in)", (value_assign<shClass>));
+
+#define EXPOSE_VALUE_CA(name, shClass, sClass) \
+  REG_LAMBDA_CTOR(name, "void f()", ([](void* address){ \
+    printf("ctor " #name "[%p]()\n", address); \
+    auto self = new (address) shClass((const sClass &)sClass()); \
+    printf("m[%p].ref = %d\n", self->ptr().manager, self->ptr().references()); \
+  })); \
+  REG_LAMBDA(name, "void construct()", ([](shClass &self){ \
+    printf("call " #name "[%p].construct()\n", &self); \
+    self = shClass(); \
+    printf("m[%p].ref = %d\n", self.ptr().manager, self.ptr().references()); \
+  })); \
+  REG_LAMBDA(name, "void destruct()", ([](shClass *self){  \
+    printf("call " #name "[%p].destruct()\n", self);    \
+    value_destroy<shClass>(self); \
+    printf("m[%p].ref = %d\n", self->ptr().manager, self->ptr().references()); \
+  })); \
+  REG_LAMBDA(name, "bool opImplConv() const", ([](shClass &self){ return (bool)(self.ptr()); })); \
+  REG_LAMBDA(name, #name " &opAssign(const " #name " &in)", ([](shClass &self, const shClass& other) -> shClass& { \
+    printf("copy " #name "[%p] from [%p]\n", &self, &other); \
+    self = other; \
+    printf("m[%p].ref = %d\n", self.ptr().manager, self.ptr().references()); \
+    return self; \
+  }));
 
 #define EXPOSE_VALUE_CAK(name, shClass, sClass) \
   EXPOSE_VALUE_CA(name, shClass, sClass) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_CONSTRUCT, "void f(const " #name " & in)", asFUNCTION(value_copy_construct<shClass>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  REG_LAMBDA_CTOR(name, "void f(const " #name " & in)", ([](void * address, const shClass& other) { \
+    printf("ctor " #name "[%p] <- [%p]\n", address, &other); \
+    auto self = new (address) shClass(other); \
+    printf("m[%p].ref = %d\n", self->ptr().manager, self->ptr().references()); \
+  }));
+
+#define EXPOSE_VALUE_D(name, shClass, sClass) \
+  REG_LAMBDA_DTOR(name, "void f()", ([](shClass& self) { \
+    printf("dtor " #name "[%p]\n", &self);    \
+    auto mgr = self.ptr().manager; \
+    auto refs = self.ptr().references() - 1; \
+    value_destroy<shClass>(&self); \
+    printf("m[%p].ref = %d\n", mgr, refs); \
+  }));
 
 #define EXPOSE_VALUE_CDAK(name, shClass, sClass) \
-  EXPOSE_VALUE_CAK(name, shClass, sClass) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<shClass>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  EXPOSE_VALUE_CAK(name, shClass, sClass); \
+  EXPOSE_VALUE_D(name, shClass, sClass);
 
 #define EXPOSE_VALUE_CDA(name, shClass, sClass) \
   EXPOSE_VALUE_CA(name, shClass, sClass) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<shClass>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  EXPOSE_VALUE_D(name, shClass, sClass);
 
 #define EXPOSE_HIRO_VALUE(name) EXPOSE_VALUE_CDAK(name, hiro::name, hiro::s##name)
 
-#define REG_OPASSIGN(name, shClass) \
-  r = e->RegisterObjectMethod(#name, #name " &opAssign(const " #name " &in)", asFUNCTION(value_assign<shClass>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 #define REG_SH_VOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) -> void>::f<&shClass::method>))
 #define REG_SH_CVOID0(name, shClass, defn, method) REG_FUNC(name, defn, (Deref<auto (shClass::*)(void) const -> void>::f<&shClass::method>))
 #define HIRO_CVOID0(name, defn, method) REG_SH_CVOID0(name, hiro::name, defn, method)
@@ -534,12 +565,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "void append(const ? &in sizable)", ([](hiro::Window& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
     CHECK_ALIVE(*sizable);
-    self.append(*sizable);
+    self.append(hiro::Sizable(*sizable));
   }));
   REG_LAMBDA(Window, "void remove(const ? &in sizable)", ([](hiro::Window& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
     CHECK_ALIVE(*sizable);
-    self.remove(*sizable);
+    self.remove(hiro::Sizable(*sizable));
   }));
   HIRO_SELF0(Window, "void reset()", reset);
 
@@ -636,12 +667,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     ([](hiro::VerticalLayout& self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size size, float spacing){
       CHECK_ALIVE(self);
       CHECK_ALIVE(*sizable);
-      self.append(*sizable, size, spacing);
+      self.append(hiro::Sizable(*sizable), size, spacing);
     }));
   REG_LAMBDA(VerticalLayout, "void remove(const ? &in sizable)",        ([](hiro::VerticalLayout& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
     CHECK_ALIVE(*sizable);
-    self.remove(*sizable);
+    self.remove(hiro::Sizable(*sizable));
   }));
   HIRO_SELF0(VerticalLayout, "void resize()",                        resize);
   HIRO_SELF2(VerticalLayout, "void setPadding(float x, float y)",    setPadding, float, float);
@@ -663,12 +694,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     ([](hiro::HorizontalLayout& self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size size, float spacing){
       CHECK_ALIVE(self);
       CHECK_ALIVE(*sizable);
-      self.append(*sizable, size, spacing);
+      self.append(hiro::Sizable(*sizable), size, spacing);
     }));
   REG_LAMBDA(HorizontalLayout, "void remove(const ? &in sizable)",        ([](hiro::HorizontalLayout& self, hiro::Sizable* sizable, int sizableTypeId){
     CHECK_ALIVE(self);
     CHECK_ALIVE(*sizable);
-    self.remove(*sizable);
+    self.remove(hiro::Sizable(*sizable));
   }));
   HIRO_SELF0(HorizontalLayout, "void resize()",                        resize);
   HIRO_SELF2(HorizontalLayout, "void setPadding(float x, float y)",    setPadding, float, float);
@@ -687,12 +718,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Group, "void append(const ? &in object)",      ([](hiro::Group& self, hiro::Object *object, int objectTypeId){
     CHECK_ALIVE(self);
     CHECK_ALIVE(*object);
-    self.append(*object);
+    self.append(hiro::Object(*object));
   }));
   REG_LAMBDA(Group, "void remove(const ? &in object)",      ([](hiro::Group& self, hiro::Object *object, int objectTypeId){
     CHECK_ALIVE(self);
     CHECK_ALIVE(*object);
-    self.remove(*object);
+    self.remove(hiro::Object(*object));
   }));
   //REG_LAMBDA(Group, "Group get_opIndex(uint i) property",  ([](hiro::Group& self, uint i) { return new hiro::ComboButtonItem(self.object(i)); }));
   HIRO_GETTER0(Group, "uint count()", uint, objectCount);
@@ -790,22 +821,21 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(ComboButton);
   EXPOSE_HIRO_SIZABLE(ComboButton);
   EXPOSE_HIRO_WIDGET(ComboButton);
-  REG_LAMBDA(ComboButton, "void append(const ComboButtonItem &in item)", ([](hiro::ComboButton& self, hiro::ComboButtonItem *item) {
+  REG_LAMBDA(ComboButton, "void append(ComboButtonItem)", ([](hiro::ComboButton& self, hiro::ComboButtonItem item) {
     CHECK_ALIVE(self);
-    CHECK_ALIVE(*item);
-    self.append(*item);
+    CHECK_ALIVE(item);
+    self.append(hiro::ComboButtonItem(item));
   }));
-  REG_LAMBDA(ComboButton, "void remove(const ComboButtonItem &in item)", ([](hiro::ComboButton& self, hiro::ComboButtonItem *item) {
+  REG_LAMBDA(ComboButton, "void remove(ComboButtonItem)", ([](hiro::ComboButton& self, hiro::ComboButtonItem item) {
     CHECK_ALIVE(self);
-    CHECK_ALIVE(*item);
-    self.remove(*item);
+    CHECK_ALIVE(item);
+    self.remove(hiro::ComboButtonItem(item));
   }));
   HIRO_GETTER1(ComboButton, "ComboButtonItem get_opIndex(uint i) property", hiro::ComboButtonItem, item, uint);
   HIRO_GETTER0(ComboButton, "uint count()",                                 uint, itemCount);
   HIRO_GETTER0(ComboButton, "ComboButtonItem get_selected() property",      hiro::ComboButtonItem, selected);
   HIRO_CVOID0 (ComboButton, "void doChange()", doChange);
   HIRO_SELF0  (ComboButton, "void reset()",    reset);
-  HIRO_SELF1  (ComboButton, "void remove(ComboButtonItem)", remove, hiro::sComboButtonItem);
   REG_LAMBDA  (ComboButton, "void onChange(Callback @cb)", ([](hiro::ComboButton& self, asIScriptFunction *cb) {
     CHECK_ALIVE(self);
     self.onChange(Callback(cb));
