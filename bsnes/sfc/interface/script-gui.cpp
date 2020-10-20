@@ -278,7 +278,6 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA_CTOR(name, "void f()", ([](void* address){ \
     printf("ctor " #name "[%p]()\n", address); \
     auto self = new (address) shClass((const sClass &)sClass()); \
-    printf("m[%p].ref = %d\n", self->ptr().manager, self->ptr().references()); \
   })); \
   REG_LAMBDA(name, "void construct()", ([](shClass &self){ \
     printf("call " #name "[%p].construct()\n", &self); \
@@ -310,7 +309,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA_DTOR(name, "void f()", ([](shClass& self) { \
     printf("dtor " #name "[%p]\n", &self);    \
     auto mgr = self.ptr().manager; \
-    auto refs = self.ptr().references() - 1; \
+    auto refs = max(0, self.ptr().references() - 1); \
     value_destroy<shClass>(&self); \
     printf("m[%p].ref = %d\n", mgr, refs); \
   }));
