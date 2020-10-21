@@ -250,22 +250,51 @@ namespace ScriptInterface {
   }
 
   struct Callback {
-    asIScriptFunction *cb;
+    asIScriptFunction     *func = nullptr;
+    asILockableSharedBool *weakRefFlag = nullptr;
+    void                  *obj = nullptr;
 
-    Callback(asIScriptFunction *cb) : cb(cb) {
-      cb->AddRef();
+    Callback(asIScriptFunction *cb) {
+      // if dealing with a delegate, only take a reference to the method and not its object:
+      if (cb && cb->GetFuncType() == asFUNC_DELEGATE) {
+        obj           = cb->GetDelegateObject();
+        auto objType  = cb->GetDelegateObjectType();
+        func          = cb->GetDelegateFunction();
+
+        // add a weak reference to the object:
+        weakRefFlag = platform->scriptEngine()->GetWeakRefFlagOfScriptObject(obj, objType);
+        weakRefFlag->AddRef();
+        // keep the function:
+        func->AddRef();
+        // release the delegate:
+        cb->Release();
+      } else {
+        func = cb;
+      }
     }
-    Callback(const Callback& other) : cb(other.cb) {
-      cb->AddRef();
+    Callback(const Callback& other) : func(other.func), obj(other.obj), weakRefFlag(other.weakRefFlag) {
+      if (weakRefFlag) {
+        weakRefFlag->AddRef();
+      }
+      func->AddRef();
     }
     ~Callback() {
-      cb->Release();
-      cb = nullptr;
+      if (weakRefFlag) {
+        weakRefFlag->Release();
+        weakRefFlag = nullptr;
+      }
+      func->Release();
+      func = nullptr;
+      obj = nullptr;
     }
 
     auto operator()() -> void {
       auto ctx = platform->scriptCreateContext();
-      platform->scriptInvokeFunctionWithContext(cb, ctx);
+      platform->scriptInvokeFunctionWithContext(func, ctx, [=](asIScriptContext* ctx) {
+        // use the script object for which the delegate applies to:
+        // TODO: what if obj == nullptr?
+        ctx->SetObject(obj);
+      });
       ctx->Release();
     }
   };
