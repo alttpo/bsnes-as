@@ -410,7 +410,7 @@ namespace ScriptInterface {
   uint      emulatorDepth;    // 24 or 30
 
   struct Callback {
-#if 1
+#if 0
     asIScriptFunction     *cb           = nullptr;
 #else
     asIScriptFunction     *func         = nullptr;
@@ -421,7 +421,7 @@ namespace ScriptInterface {
 
     Callback(asIScriptFunction *cb) {
       //printf("cb[%p].ctor()\n", (void*)this);
-#if 1
+#if 0
       this->cb = cb;
       cb->AddRef();
 #else
@@ -431,14 +431,14 @@ namespace ScriptInterface {
         objType = cb->GetDelegateObjectType();
         func    = cb->GetDelegateFunction();
 
-        {
-          platform->scriptEngine()->AddRefScriptObject(obj, objType);
-          //printf("cb[%p].obj[%p].addref -> %d\n", (void *) this, (void *) obj, c);
-        }
         //{
-        //  weakRefFlag = platform->scriptEngine()->GetWeakRefFlagOfScriptObject(obj, objType);
-        //  weakRefFlag->AddRef();
+        //  platform->scriptEngine()->AddRefScriptObject(obj, objType);
+        //  //printf("cb[%p].obj[%p].addref -> %d\n", (void *) this, (void *) obj, c);
         //}
+        {
+          weakRefFlag = platform->scriptEngine()->GetWeakRefFlagOfScriptObject(obj, objType);
+          weakRefFlag->AddRef();
+        }
         {
           auto c = func->AddRef();
           //printf("cb[%p].func[%p].addref -> %d\n", (void *) this, (void *) func, c);
@@ -455,20 +455,20 @@ namespace ScriptInterface {
 #endif
     }
 
-#if 1
+#if 0
     Callback(const Callback& other) : cb(other.cb) {
       cb->AddRef();
     }
 #else
     Callback(const Callback& other) : func(other.func), weakRefFlag(other.weakRefFlag), obj(other.obj), objType(other.objType) {
       //printf("cb[%p].copy()\n", (void*)this);
-      if (obj) {
-        platform->scriptEngine()->AddRefScriptObject(obj, objType);
-        //printf("cb[%p].obj[%p].addref -> %d\n", (void*)this, (void*)obj, c);
-      }
       //if (obj) {
-      //  weakRefFlag->AddRef();
+      //  platform->scriptEngine()->AddRefScriptObject(obj, objType);
+      //  //printf("cb[%p].obj[%p].addref -> %d\n", (void*)this, (void*)obj, c);
       //}
+      if (obj) {
+        weakRefFlag->AddRef();
+      }
       {
         auto c = func->AddRef();
         //printf("cb[%p].func[%p].addref -> %d\n", (void *) this, (void *) func, c);
@@ -478,16 +478,16 @@ namespace ScriptInterface {
 
     ~Callback() {
       //printf("cb[%p].dtor()\n", (void*)this);
-#if 1
+#if 0
       cb->Release();
 #else
-      if (obj) {
-        platform->scriptEngine()->ReleaseScriptObject(obj, objType);
-        //printf("cb[%p].obj[%p].release -> %d\n", (void*)this, (void*)obj, c);
-      }
       //if (obj) {
-      //  weakRefFlag->Release();
+      //  platform->scriptEngine()->ReleaseScriptObject(obj, objType);
+      //  //printf("cb[%p].obj[%p].release -> %d\n", (void*)this, (void*)obj, c);
       //}
+      if (obj) {
+        weakRefFlag->Release();
+      }
       {
         auto c = func->Release();
         //printf("cb[%p].func[%p].release -> %d\n", (void *) this, (void *) func, c);
@@ -500,13 +500,13 @@ namespace ScriptInterface {
     }
 
     auto operator()() -> void {
-#if 1
+#if 0
       platform->scriptInvokeFunctionCallback(cb);
 #else
-      //if (weakRefFlag && weakRefFlag->Get()) {
-      //  printf("callback on released weak ref\n");
-      //  return;
-      //}
+      if (weakRefFlag && weakRefFlag->Get()) {
+        printf("callback on released weak ref\n");
+        return;
+      }
       platform->scriptInvokeFunctionCallback(func, [=](asIScriptContext* ctx) {
         // use the script object for which the delegate applies to:
         // TODO: what if obj == nullptr?
@@ -905,6 +905,8 @@ auto Interface::unloadScript() -> void {
   }
   platform->scriptEngineState.modules.reset();
   platform->scriptEngineState.main_module = nullptr;
+
+  platform->scriptEngine()->GarbageCollect(asGC_FULL_CYCLE);
 
   script.funcs.init = nullptr;
   script.funcs.unload = nullptr;
