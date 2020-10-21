@@ -677,10 +677,12 @@ auto Interface::unloadScript() -> void {
   // Close any GUI windows:
   for (auto window : script.windows) {
     if (!window) continue;
+#if 0
     window->setVisible(false);
     window->setDismissable(true);
     window->destruct();
     window.reset();
+#endif
   }
   script.windows.reset();
 #endif

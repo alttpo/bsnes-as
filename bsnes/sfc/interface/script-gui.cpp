@@ -458,8 +458,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION( +([]{
     auto window = new hiro::Window;
 #ifndef DISABLE_HIRO
+#if 0
     // keep a reference for later destruction when unloading script:
     ::SuperFamicom::script.windows.append(*window);
+#endif
 #endif
     return window;
   }) ), asCALL_CDECL); assert(r >= 0);
@@ -468,8 +470,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f(float rx, float ry, bool relative)", asFUNCTION(+([](float x, float y, bool relative) {
     auto window = new hiro::Window;
 #ifndef DISABLE_HIRO
+#if 0
     // keep a reference for later destruction when unloading script:
     ::SuperFamicom::script.windows.append(*window);
+#endif
     if (relative) {
       window->setPosition(platform->presentationWindow(), hiro::Position{x, y});
     } else {
