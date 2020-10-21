@@ -309,7 +309,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA_DTOR(name, "void f()", ([](shClass& self) { \
     printf("dtor " #name "[%p]\n", &self);    \
     auto mgr = self.ptr().manager; \
-    auto refs = max(0, self.ptr().references() - 1); \
+    auto refs = max(1, self.ptr().references()) - 1; \
     printf("m[%p].ref = %d\n", mgr, refs); \
     value_destroy<shClass>(&self); \
   }));
