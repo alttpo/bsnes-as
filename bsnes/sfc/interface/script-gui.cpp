@@ -310,8 +310,8 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     printf("dtor " #name "[%p]\n", &self);    \
     auto mgr = self.ptr().manager; \
     auto refs = max(0, self.ptr().references() - 1); \
-    value_destroy<shClass>(&self); \
     printf("m[%p].ref = %d\n", mgr, refs); \
+    value_destroy<shClass>(&self); \
   }));
 
 #define EXPOSE_VALUE_CDAK(name, shClass, sClass) \
@@ -744,14 +744,14 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(Label);
   EXPOSE_HIRO_SIZABLE(Label);
   EXPOSE_HIRO_WIDGET(Label);
-  HIRO_GETTER0(Label, "Alignment get_alignment() property",    hiro::Alignment, alignment);
-  HIRO_GETTER0(Label, "Color get_backgroundColor() property",  hiro::Color,     backgroundColor);
-  HIRO_GETTER0(Label, "Color get_foregroundColor() property",  hiro::Color,     foregroundColor);
-  HIRO_GETTER0(Label, "string get_text() property",            string,    text);
-  HIRO_SETTER0(Label, "void set_alignment(const Alignment &in) property",   hiro::Alignment, setAlignment);
-  HIRO_SETTER0(Label, "void set_backgroundColor(const Color &in) property", hiro::Color,     setBackgroundColor);
-  HIRO_SETTER0(Label, "void set_foregroundColor(const Color &in) property", hiro::Color,     setForegroundColor);
-  HIRO_SETTER0(Label, "void set_text(const string &in) property",           const string&,   setText);
+  HIRO_GETTER0(Label, "Alignment get_alignment() property",       hiro::Alignment, alignment);
+  HIRO_GETTER0(Label, "Color get_backgroundColor() property",     hiro::Color,     backgroundColor);
+  HIRO_GETTER0(Label, "Color get_foregroundColor() property",     hiro::Color,     foregroundColor);
+  HIRO_GETTER0(Label, "string get_text() property",               string,    text);
+  HIRO_SETTER0(Label, "void set_alignment(Alignment) property",   hiro::Alignment, setAlignment);
+  HIRO_SETTER0(Label, "void set_backgroundColor(Color) property", hiro::Color,     setBackgroundColor);
+  HIRO_SETTER0(Label, "void set_foregroundColor(Color) property", hiro::Color,     setForegroundColor);
+  HIRO_SETTER0(Label, "void set_text(const string &in) property", const string&,   setText);
 
   // Button
   EXPOSE_HIRO_VALUE(Button);
@@ -795,10 +795,10 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(CheckLabel);
   EXPOSE_HIRO_SIZABLE(CheckLabel);
   EXPOSE_HIRO_WIDGET(CheckLabel);
-  HIRO_GETTER0(CheckLabel, "string get_text() property",                    string, text);
-  HIRO_GETTER0(CheckLabel, "bool get_checked() property",                   bool,   checked);
-  HIRO_SETTER0(CheckLabel, "void set_text(const string &in text) property", const string &, setText);
-  HIRO_SETTER0(CheckLabel, "void set_checked(bool checked) property",       bool, setChecked);
+  HIRO_GETTER0(CheckLabel, "string get_text() property",               string, text);
+  HIRO_GETTER0(CheckLabel, "bool get_checked() property",              bool,   checked);
+  HIRO_SETTER0(CheckLabel, "void set_text(const string &in) property", const string &, setText);
+  HIRO_SETTER0(CheckLabel, "void set_checked(bool) property",          bool, setChecked);
   HIRO_CVOID0 (CheckLabel, "void doToggle()",      doToggle);
   REG_LAMBDA(CheckLabel, "void onToggle(Callback @cb)", ([](hiro::CheckLabel& self, asIScriptFunction *cb) {
     CHECK_ALIVE(self);
