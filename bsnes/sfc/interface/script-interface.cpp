@@ -516,7 +516,7 @@ auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
     REG_LAMBDA(string_format, "string_format &opAssign(const string_format &in)", ([](string_format& self, const string_format& other) -> string_format& { return self.operator=(other); }));
 
     // string.format:
-    REG_LAMBDA(string, "string format(const string_format &in) const", ([](const string &self, string_format &fmt) -> string {
+    REG_LAMBDA(string, "string format(const string_format &in) const", ([](const string &self, const string_format &fmt) -> string {
       return string(self).format(fmt);
     }));
   }
