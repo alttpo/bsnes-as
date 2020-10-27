@@ -101,7 +101,7 @@ endif
 
 # build optimization levels
 ifeq ($(build),debug)
-  flags += -Og -g -DBUILD_DEBUG
+  flags += -O0 -g -DBUILD_DEBUG
 else ifeq ($(build),stable)
   flags += -O1 -DBUILD_STABLE
 else ifeq ($(build),size)
