@@ -10,6 +10,7 @@ struct mWindow : mObject {
   auto append(sStatusBar statusBar) -> type&;
   auto backgroundColor() const -> Color;
   auto dismissable() const -> bool;
+  auto doActivate() const -> void;
   auto doClose() const -> void;
   auto doDrop(vector<string>) const -> void;
   auto doKeyPress(int) const -> void;

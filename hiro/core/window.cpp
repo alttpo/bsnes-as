@@ -53,6 +53,10 @@ auto mWindow::dismissable() const -> bool {
   return state.dismissable;
 }
 
+auto mWindow::doActivate() const -> void {
+  signal(doActivate);
+}
+
 auto mWindow::doClose() const -> void {
   if(state.onClose) return state.onClose();
 }

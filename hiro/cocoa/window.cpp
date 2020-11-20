@@ -230,6 +230,12 @@ auto pWindow::append(sStatusBar statusBar) -> void {
   statusBar->setVisible(statusBar->visible(true));
 }
 
+auto pWindow::doActivate() const -> void {
+  @autoreleasepool {
+    [cocoaWindow makeKeyWindow];
+  }
+}
+
 auto pWindow::focused() const -> bool {
   @autoreleasepool {
     return [cocoaWindow isMainWindow] == YES;
@@ -385,7 +391,7 @@ auto pWindow::setTitle(const string& text) -> void {
 
 auto pWindow::setVisible(bool visible) -> void {
   @autoreleasepool {
-    if(visible) [cocoaWindow makeKeyAndOrderFront:nil];
+    if(visible) [cocoaWindow orderFront:nil];
     else [cocoaWindow orderOut:nil];
   }
 }

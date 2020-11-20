@@ -61,6 +61,11 @@ auto pWindow::append(sSizable sizable) -> void {
 auto pWindow::append(sStatusBar statusBar) -> void {
 }
 
+auto pWindow::doActivate() const -> void {
+  if (!visible) return;
+  ShowWindow(hwnd, SW_SHOWNORMAL);
+}
+
 auto pWindow::focused() const -> bool {
   return (GetForegroundWindow() == hwnd);
 }
@@ -222,7 +227,7 @@ auto pWindow::setTitle(string text) -> void {
 
 auto pWindow::setVisible(bool visible) -> void {
   auto lock = acquire();
-  ShowWindow(hwnd, visible ? SW_SHOWNORMAL : SW_HIDE);
+  ShowWindow(hwnd, visible ? SW_SHOWNOACTIVATE : SW_HIDE);
   if(auto& sizable = state().sizable) {
     sizable->setGeometry(self().geometry().setPosition());
   }
