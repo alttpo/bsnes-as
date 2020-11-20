@@ -902,6 +902,7 @@ struct Window : sWindow {
   auto append(sStatusBar statusBar) { return self().append(statusBar), *this; }
   auto backgroundColor() const { return self().backgroundColor(); }
   auto dismissable() const { return self().dismissable(); }
+  auto doActivate() const { return self().doActivate(); }
   auto doClose() const { return self().doClose(); }
   auto doDrop(vector<string> names) const { return self().doDrop(names); }
   auto doKeyPress(signed key) const { return self().doKeyPress(key); }
@@ -952,6 +953,7 @@ struct Window : sWindow {
   auto setResizable(bool resizable = true) { return self().setResizable(resizable), *this; }
   auto setSize(Size size) { return self().setSize(size), *this; }
   auto setTitle(const string& title = "") { return self().setTitle(title), *this; }
+  auto setVisibleAndActivate(bool visible = true) { return self().setVisibleAndActivate(visible), *this; }
   auto sizable() const { return self().sizable(); }
   auto statusBar() const { return self().statusBar(); }
   auto title() const { return self().title(); }

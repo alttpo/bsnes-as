@@ -370,6 +370,14 @@ auto mWindow::setTitle(const string& title) -> type& {
   return *this;
 }
 
+auto mWindow::setVisibleAndActivate(bool visible) -> type& {
+  setVisible(visible);
+  if (visible) {
+    doActivate();
+  }
+  return *this;
+}
+
 auto mWindow::setVisible(bool visible) -> type& {
   mObject::setVisible(visible);
   if(auto& menuBar = state.menuBar) menuBar->setVisible(menuBar->visible());

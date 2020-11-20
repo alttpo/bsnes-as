@@ -62,6 +62,7 @@ struct mWindow : mObject {
   auto setSize(Size size) -> type&;
   auto setTitle(const string& title = "") -> type&;
   auto setVisible(bool visible = true) -> type&;
+  auto setVisibleAndActivate(bool visible = true) -> type&;
   auto sizable() const -> Sizable;
   auto statusBar() const -> StatusBar;
   auto title() const -> string;
