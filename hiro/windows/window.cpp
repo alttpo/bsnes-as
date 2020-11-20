@@ -62,7 +62,6 @@ auto pWindow::append(sStatusBar statusBar) -> void {
 }
 
 auto pWindow::doActivate() const -> void {
-  if (!visible) return;
   ShowWindow(hwnd, SW_SHOWNORMAL);
 }
 
