@@ -486,6 +486,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "void append(const ? &in sizable)", ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->append(*sizable); }));
   REG_LAMBDA(Window, "void remove(const ? &in sizable)", ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->remove(*sizable); }));
   REG_LAMBDA(Window, "void reset()",                     ([](hiro::Window* self){ self->reset(); }));
+  REG_LAMBDA(Window, "void doActivate()",                ([](hiro::Window* self){ self->doActivate(); }));
 
   REG_LAMBDA(Window, "Color@ get_backgroundColor() property", ([](hiro::Window* self) { return new hiro::Color(self->backgroundColor()); }));
   REG_LAMBDA(Window, "bool get_dismissable() property",       ([](hiro::Window* self) { return self->dismissable(); }));
