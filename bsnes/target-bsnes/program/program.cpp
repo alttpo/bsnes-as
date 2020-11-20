@@ -24,7 +24,7 @@ auto Program::create() -> void {
   scriptInit();
 
   presentation.create();
-  presentation.setVisible();
+  presentation.setVisibleAndActivate();
   presentation.viewport.setFocused();
 
   settingsWindow.create();

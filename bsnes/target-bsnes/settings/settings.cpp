@@ -249,7 +249,7 @@ auto SettingsWindow::show(int index) -> void {
   if(index == 7) compatibilitySettings.setVisible(true);
   if(index == 8) driverSettings.setVisible(true);
   panelContainer.resize();
-  setVisible();
+  setVisibleAndActivate();
   setFocused();
   panelList.setFocused();
 }

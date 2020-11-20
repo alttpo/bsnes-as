@@ -19,7 +19,7 @@ auto StateWindow::show(string name) -> void {
   doChange();
   setTitle(!attribute("name") ? "Add State" : "Rename State");
   setAlignment(*toolsWindow);
-  setVisible();
+  setVisibleAndActivate();
   setFocused();
   nameValue.setFocused();
   acceptButton.setText(!attribute("name") ? "Add" : "Rename");

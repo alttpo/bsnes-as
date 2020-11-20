@@ -43,7 +43,7 @@ auto CheatDatabase::findCheats() -> void {
     }
 
     setTitle(game["name"].text());
-    setVisible();
+    setVisibleAndActivate();
     return;
   }
 
@@ -87,7 +87,7 @@ auto CheatWindow::show(Cheat cheat) -> void {
   doChange();
   setTitle(!cheat.name ? "Add Cheat" : "Edit Cheat");
   setAlignment(*toolsWindow);
-  setVisible();
+  setVisibleAndActivate();
   setFocused();
   nameValue.setFocused();
   acceptButton.setText(!cheat.name ? "Add" : "Edit");

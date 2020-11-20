@@ -103,7 +103,7 @@ auto ToolsWindow::show(int index) -> void {
   if(index != 1) cheatDatabase.setVisible(false), cheatWindow.setVisible(false);
   if(index != 2) stateWindow.setVisible(false);
   panelContainer.resize();
-  setVisible();
+  setVisibleAndActivate();
   setFocused();
   panelList.setFocused();
 }
