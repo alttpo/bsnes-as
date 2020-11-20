@@ -237,6 +237,11 @@ auto pWindow::append(sStatusBar statusBar) -> void {
   _setStatusVisible(statusBar->visible(true));
 }
 
+
+auto pWindow::doActivate() const -> void {
+  gtk_window_present(GTK_WINDOW(widget));
+}
+
 auto pWindow::focused() const -> bool {
   return gtk_window_is_active(GTK_WINDOW(widget));
 }
