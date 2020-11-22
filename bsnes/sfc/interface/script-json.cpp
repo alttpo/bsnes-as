@@ -17,6 +17,7 @@ private:
 auto stdToNall(const std::string& ss) -> string {
   string ns;
   ns.assign(string_view(ss.data(), ss.size()));
+  ns.resize(ss.size());
   //printf("S\"%.*s\" -> N\"%.*s\"\n", ss.size(), ss.data(), ns.size(), ns.data());
   return ns;
 }
@@ -61,7 +62,6 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
     r = e->RegisterObjectBehaviour("Value", asBEHAVE_CONSTRUCT, "void f(const Value &in)", asFUNCTION(value_copy_construct<Value>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = e->RegisterObjectBehaviour("Value", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<Value>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = e->RegisterObjectMethod("Value", "Value &opAssign(const Value &in)", asFUNCTION(value_assign<Value>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-
 
     REG_LAMBDA_GLOBAL("Value parse(const string &in)", ([](string &text) -> Value {
       Value v;
@@ -139,21 +139,24 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
       return p.get<Array>();
     }));
 
-    REG_LAMBDA(Value, "void set_string(const string &in) property", ([](Value &p, string& value) { p.set<std::string>(nallToStd(value)); }));
-    REG_LAMBDA(Value, "void set_boolean(bool) property",            ([](Value &p, bool    value) { p.set<bool>(value); }));
-    REG_LAMBDA(Value, "void set_integer(int64) property",           ([](Value &p, int64   value) { double tmp = (double)value; p.set<double>(tmp); }));
-    REG_LAMBDA(Value, "void set_natural(uint64) property",          ([](Value &p, uint64  value) { double tmp = (double)value; p.set<double>(tmp); }));
-    REG_LAMBDA(Value, "void set_real(double) property",             ([](Value &p, double  value) { p.set<double>(value); }));
-    REG_LAMBDA(Value, "void set_object(Object@) property",          ([](Value &p, Object& value) { p.set<Object>(value); }));
-    REG_LAMBDA(Value, "void set_array(Array@) property",            ([](Value &p, Array&  value) { p.set<Array>(value); }));
+    REG_LAMBDA(Value, "void set_string(const string &in) property", ([](Value &p, const string& value) { p.set<std::string>(nallToStd(value)); }));
+    REG_LAMBDA(Value, "void set_boolean(bool) property",            ([](Value &p, bool          value) { p.set<bool>(value); }));
+    REG_LAMBDA(Value, "void set_integer(int64) property",           ([](Value &p, int64         value) { double tmp = (double)value; p.set<double>(tmp); }));
+    REG_LAMBDA(Value, "void set_natural(uint64) property",          ([](Value &p, uint64        value) { double tmp = (double)value; p.set<double>(tmp); }));
+    REG_LAMBDA(Value, "void set_real(double) property",             ([](Value &p, double        value) { p.set<double>(value); }));
+    REG_LAMBDA(Value, "void set_object(Object@) property",          ([](Value &p, Object&       value) { p.set<Object>(value); }));
+    REG_LAMBDA(Value, "void set_array(Array@) property",            ([](Value &p, Array&        value) { p.set<Array>(value); }));
 
     // Object:
     REG_LAMBDA(Object, "Value& get_opIndex(const string &in) property", ([](Object &p, string& key) -> Value& { return p[nallToStd(key)]; }));
-    REG_LAMBDA(Object, "uint  get_length() const property",   ([](Object &p) -> size_t { return p.size(); }));
+    REG_LAMBDA(Object, "void set_opIndex(const string &in, Value &in value) property", ([](Object &p, string& key, Value& value) -> void {
+      p.insert(std::pair<std::string,Value>(nallToStd(key), value));
+    }));
+    REG_LAMBDA(Object, "uint  get_length() const property", ([](Object &p) -> size_t { return p.size(); }));
 
     // Array:
     REG_LAMBDA(Array, "Value& get_opIndex(uint) property", ([](Array &p, size_t index) -> Value& { return p[index]; }));
-    REG_LAMBDA(Array, "uint  get_length() const property",      ([](Array &p) -> size_t { return p.size(); }));
+    REG_LAMBDA(Array, "uint  get_length() const property", ([](Array &p) -> size_t { return p.size(); }));
 
   }
 }

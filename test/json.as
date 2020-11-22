@@ -29,4 +29,21 @@ void init() {
     }
   }
 
+  {
+    JSON::Value v = JSON::parse("{\"obj\":{\"a\":1}}");
+    auto objv = v.object["obj"];
+    if (objv.isNull) {
+      message("obj is null!");
+    } else {
+      auto obj = objv.object;
+      message("obj['a'] is " + fmtInt(obj["a"].integer));
+      {
+        auto tmp = JSON::Value();
+        tmp.string = "hello";
+        obj["b"] = tmp;
+      }
+      message("obj['b'] is " + obj["b"].string);
+    }
+  }
+
 }
