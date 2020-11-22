@@ -15,6 +15,8 @@
 
 #include "pixel-fonts.cpp"
 
+#include "picojson.h"
+
 #include <discord.h>
 
 namespace SuperFamicom {

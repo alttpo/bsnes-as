@@ -310,6 +310,7 @@ namespace ScriptInterface {
   #include "script-net.cpp"
   #include "script-gui.cpp"
   #include "script-bml.cpp"
+  #include "script-json.cpp"
   #include "script-discord.cpp"
   #include "script-menu.cpp"
 
@@ -577,6 +578,7 @@ auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
   ScriptInterface::RegisterGUI(e);
 
   ScriptInterface::RegisterBML(e);
+  ScriptInterface::RegisterJSON(e);
 
   ScriptInterface::DiscordInterface::Register(e);
 
