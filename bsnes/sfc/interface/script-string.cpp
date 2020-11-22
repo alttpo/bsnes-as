@@ -161,6 +161,8 @@ auto Interface::registerScriptString() -> void {
   r = e->RegisterGlobalFunction("string fmtInt(int64 value)", asFUNCTION(fmtInt), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("string fmtUint(uint64 value)", asFUNCTION(fmtUint), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("string fmtFloat(float value)", asFUNCTION(+([](float value) { return string(value); })), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("string fmtDouble(double value)", asFUNCTION(+([](double value) { return string(value); })), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterGlobalFunction("string fmtBool(bool value)", asFUNCTION(+([](bool value) { return string(value); })), asCALL_CDECL); assert(r >= 0);
 
   // format functions:
   REG_LAMBDA_GLOBAL("string pad(int64 value, int64 precision = 0, int padchar = ' ')", ([](int64_t value, int64_t precision, int padchar) -> string { return pad(value, precision, padchar); })); assert(r >= 0);

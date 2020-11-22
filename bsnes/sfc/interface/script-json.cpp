@@ -28,8 +28,18 @@ auto nallToStd(const string& ns) -> std::string {
   return ss;
 }
 
+auto getJSONType(picojson::value& p) -> string {
+       if (p.is<picojson::null>())   return "null";
+  else if (p.is<std::string>())      return "string";
+  else if (p.is<picojson::object>()) return "object";
+  else if (p.is<picojson::array>())  return "array";
+  else if (p.is<double>())           return "number";
+  else if (p.is<bool>())             return "boolean";
+  else return "";
+}
+
 auto RegisterJSON(asIScriptEngine *e) -> void {
-  using Node   = picojson::value;
+  using Value   = picojson::value;
   using Null   = picojson::null;
   using Object = picojson::object;
   using Array  = picojson::array;
@@ -42,17 +52,19 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
   {
     r = e->SetDefaultNamespace("JSON"); assert(r >= 0);
 
-    REG_VALUE_TYPE(Node, Node, asOBJ_APP_CLASS_CDAK);
-    r = e->RegisterObjectBehaviour("Node", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(value_construct<Node>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-    r = e->RegisterObjectBehaviour("Node", asBEHAVE_CONSTRUCT, "void f(const Node &in)", asFUNCTION(value_copy_construct<Node>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-    r = e->RegisterObjectBehaviour("Node", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<Node>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-    r = e->RegisterObjectMethod("Node", "Node &opAssign(const Node &in)", asFUNCTION(value_assign<Node>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
-
+    REG_VALUE_TYPE(Value, Value, asOBJ_APP_CLASS_CDAK);
     REG_REF_NOCOUNT(Object);
     REG_REF_NOCOUNT(Array);
 
-    REG_LAMBDA_GLOBAL("Node parse(const string &in)", ([](string &text) -> Node {
-      Node v;
+    // Value:
+    r = e->RegisterObjectBehaviour("Value", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(value_construct<Value>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = e->RegisterObjectBehaviour("Value", asBEHAVE_CONSTRUCT, "void f(const Value &in)", asFUNCTION(value_copy_construct<Value>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = e->RegisterObjectBehaviour("Value", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<Value>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = e->RegisterObjectMethod("Value", "Value &opAssign(const Value &in)", asFUNCTION(value_assign<Value>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+
+    REG_LAMBDA_GLOBAL("Value parse(const string &in)", ([](string &text) -> Value {
+      Value v;
       std::string err;
 
       //printf("JSON::parse(N\"%.*s\")\n", text.size(), text.data());
@@ -70,28 +82,78 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
       return v;
     }));
 
-    REG_LAMBDA(Node, "bool get_isNull() property",    ([](Node &p) { return p.is<Null>(); }));
+    REG_LAMBDA(Value, "bool get_isNull() const property",    ([](Value &p) { return p.is<Null>(); }));
+    REG_LAMBDA(Value, "bool get_isBoolean() const property", ([](Value &p) { return p.is<bool>(); }));
+    REG_LAMBDA(Value, "bool get_isString() const property",  ([](Value &p) { return p.is<std::string>(); }));
+    REG_LAMBDA(Value, "bool get_isNumber() const property",  ([](Value &p) { return p.is<double>(); }));
+    REG_LAMBDA(Value, "bool get_isObject() const property",  ([](Value &p) { return p.is<Object>(); }));
+    REG_LAMBDA(Value, "bool get_isArray() const property",   ([](Value &p) { return p.is<Array>(); }));
 
-    REG_LAMBDA(Node, "string get_text() property",    ([](Node &p) -> string { return stdToNall(p.get<std::string>()); }));
-    REG_LAMBDA(Node, "bool get_boolean() property",   ([](Node &p) -> bool { return p.get<bool>(); }));
-    REG_LAMBDA(Node, "int64 get_integer() property",  ([](Node &p) -> int64 { return (int64)p.get<double>(); }));
-    REG_LAMBDA(Node, "uint64 get_natural() property", ([](Node &p) -> uint64 { return (uint64)p.get<double>(); }));
-    REG_LAMBDA(Node, "double get_real() property",    ([](Node &p) -> double { return p.get<double>(); }));
+    REG_LAMBDA(Value, "string get_type() const property",    ([](Value &p) -> string { return getJSONType(p); }));
 
-    REG_LAMBDA(Node,   "Object@ get_object() property", ([](Node &p) -> Object& { return p.get<Object>(); }));
-    REG_LAMBDA(Object, "Node&   get_opIndex(const string &in) property", ([](Object &p, string& key) -> Node& { return p[nallToStd(key)]; }));
-    REG_LAMBDA(Object, "uint    get_length() property",   ([](Object &p) -> size_t { return p.size(); }));
+    REG_LAMBDA(Value, "string get_string() const property",  ([](Value &p) -> string {
+      if (!p.is<std::string>()) {
+        asGetActiveContext()->SetException(string{"JSON type mismatch; expected 'string' but found '", getJSONType(p), "'"});
+        return {};
+      }
+      return stdToNall(p.get<std::string>());
+    }));
+    REG_LAMBDA(Value, "bool get_boolean() const property",   ([](Value &p) -> bool   {
+      if (!p.is<bool>()) {
+        asGetActiveContext()->SetException(string{"JSON type mismatch; expected 'boolean' but found '", getJSONType(p), "'"});
+        return {};
+      }
+      return p.get<bool>();
+    }));
+    REG_LAMBDA(Value, "int64 get_integer() const property",  ([](Value &p) -> int64  {
+      if (!p.is<double>()) {
+        asGetActiveContext()->SetException(string{"JSON type mismatch; expected 'integer' but found '", getJSONType(p), "'"});
+        return {};
+      }
+      return (int64)p.get<double>();
+    }));
+    REG_LAMBDA(Value, "uint64 get_natural() const property", ([](Value &p) -> uint64 {
+      if (!p.is<double>()) {
+        asGetActiveContext()->SetException(string{"JSON type mismatch; expected 'natural' but found '", getJSONType(p), "'"});
+        return {};
+      }
+      return (uint64)p.get<double>();
+    }));
+    REG_LAMBDA(Value, "double get_real() const property",    ([](Value &p) -> double {
+      if (!p.is<double>()) {
+        asGetActiveContext()->SetException(string{"JSON type mismatch; expected 'double' but found '", getJSONType(p), "'"});
+        return {};
+      }
+      return p.get<double>();
+    }));
+    REG_LAMBDA(Value, "Object@ get_object() property", ([](Value &p) -> Object& {
+      if (!p.is<Object>()) {
+        asGetActiveContext()->SetException(string{"JSON type mismatch; expected 'object' but found '", getJSONType(p), "'"});
+      }
+      return p.get<Object>();
+    }));
+    REG_LAMBDA(Value, "Array@  get_array() property",  ([](Value &p) -> Array& {
+      if (!p.is<Array>()) {
+        asGetActiveContext()->SetException(string{"JSON type mismatch; expected 'array' but found '", getJSONType(p), "'"});
+      }
+      return p.get<Array>();
+    }));
 
-    REG_LAMBDA(Node,  "Array@  get_array() property",       ([](Node &p) -> Array& { return p.get<Array>(); }));
-    REG_LAMBDA(Array, "Node&   get_opIndex(uint) property", ([](Array &p, size_t index) -> Node& { return p[index]; }));
-    REG_LAMBDA(Array, "uint    get_length() property",      ([](Array &p) -> size_t { return p.size(); }));
+    REG_LAMBDA(Value, "void set_string(const string &in) property", ([](Value &p, string& value) { p.set<std::string>(nallToStd(value)); }));
+    REG_LAMBDA(Value, "void set_boolean(bool) property",            ([](Value &p, bool    value) { p.set<bool>(value); }));
+    REG_LAMBDA(Value, "void set_integer(int64) property",           ([](Value &p, int64   value) { double tmp = (double)value; p.set<double>(tmp); }));
+    REG_LAMBDA(Value, "void set_natural(uint64) property",          ([](Value &p, uint64  value) { double tmp = (double)value; p.set<double>(tmp); }));
+    REG_LAMBDA(Value, "void set_real(double) property",             ([](Value &p, double  value) { p.set<double>(value); }));
+    REG_LAMBDA(Value, "void set_object(Object@) property",          ([](Value &p, Object& value) { p.set<Object>(value); }));
+    REG_LAMBDA(Value, "void set_array(Array@) property",            ([](Value &p, Array&  value) { p.set<Array>(value); }));
 
-#if 0
-    REG_LAMBDA(Node, "string textOr(const string &in fallback)", ([](Node &p, string &fallback)  { return p.text(fallback); }));
-    REG_LAMBDA(Node, "bool booleanOr(bool fallback)",            ([](Node &p, bool fallback)     { return p.boolean(fallback); }));
-    REG_LAMBDA(Node, "int64 integerOr(int64 fallback)",          ([](Node &p, int64_t fallback)  { return p.integer(fallback); }));
-    REG_LAMBDA(Node, "uint64 naturalOr(uint64 fallback)",        ([](Node &p, uint64_t fallback) { return p.natural(fallback); }));
-    REG_LAMBDA(Node, "float realOr(float fallback)",             ([](Node &p, double fallback)   { return p.real(fallback); }));
-#endif
+    // Object:
+    REG_LAMBDA(Object, "Value& get_opIndex(const string &in) property", ([](Object &p, string& key) -> Value& { return p[nallToStd(key)]; }));
+    REG_LAMBDA(Object, "uint  get_length() const property",   ([](Object &p) -> size_t { return p.size(); }));
+
+    // Array:
+    REG_LAMBDA(Array, "Value& get_opIndex(uint) property", ([](Array &p, size_t index) -> Value& { return p[index]; }));
+    REG_LAMBDA(Array, "uint  get_length() const property",      ([](Array &p) -> size_t { return p.size(); }));
+
   }
 }
