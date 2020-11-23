@@ -166,6 +166,14 @@ class Connector {
         return;
       }
 
+      // make sure socket is writable before sending reply:
+      if (!net::is_writable(sock)) {
+        if (net::is_error) {
+          fail("is_writable");
+        }
+        return;
+      }
+
       // reset for next message:
       sizeN = 0;
 
@@ -221,26 +229,41 @@ class Connector {
     if (j.containsKey("value"))   response["value"] = j["value"];
 
     switch (commandType) {
-      case 0x00:
+      case 0xe3:  // get emulator id
+        response["value"]   = JSON::Value(version);
+        response["message"] = JSON::Value("SNES");
+        break;
+      case 0x00:  // read byte
+        // TODO: domain
         response["value"] = JSON::Value(bus::read_u8(address));
         break;
-      case 0xe3: {
-        message("version = " + fmtInt(version));
-        response["value"]   = JSON::Value(version);
-        response["message"] = JSON::Value("BSNES");
+      case 0x01:  // read short
+        // TODO: domain
+        response["value"] = JSON::Value(bus::read_u16(address));
+        break;
+      case 0x02:  // read uint32
+        // TODO: domain
+        response["value"] = JSON::Value((uint(bus::read_u16(address)) << 16) | uint(bus::read_u16(address+2)));
+        break;
+      case 0x0f: { // read block
+        // TODO: domain
+        auto size = j["size"].natural;
+        array<uint8> buf(size);
+        bus::read_block_u8(address, 0, size, buf);
+        auto blockStr = base64::encode(0, size, buf);
+        response["block"] = JSON::Value(blockStr);
         break;
       }
+      case 0xf0:  // display message
+        if (!j["message"].isNull && j["message"].isString) {
+          message("message: " + j["message"].string);
+        }
+      case 0xff:
+        // do nothing.
+        break;
       default:
-        message("unrecognized command " + fmtHex(commandType, 2));
+        message("unrecognized command 0x" + fmtHex(commandType, 2));
         break;
-    }
-
-    // make sure socket is writable before sending reply:
-    while (!net::is_writable(sock)) {
-      if (net::is_error) {
-        fail("is_writable");
-        return;
-      }
     }
 
     {
