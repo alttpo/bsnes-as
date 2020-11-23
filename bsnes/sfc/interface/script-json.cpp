@@ -153,6 +153,36 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
       return p.get<Array>();
     }));
 
+    // fallback getters:
+    REG_LAMBDA(Value, "string stringOr(const string &in) const",  ([](Value &p, string& def) -> string {
+      if (!p.is<std::string>()) { return def; }
+      return stdToNall(p.get<std::string>());
+    }));
+    REG_LAMBDA(Value, "bool booleanOr(bool) const",   ([](Value &p, bool def) -> bool   {
+      if (!p.is<bool>()) { return def; }
+      return p.get<bool>();
+    }));
+    REG_LAMBDA(Value, "int64 integerOr(int64) const",  ([](Value &p, int64 def) -> int64  {
+      if (!p.is<double>()) { return def; }
+      return (int64)p.get<double>();
+    }));
+    REG_LAMBDA(Value, "uint64 naturalOr(uint64) const", ([](Value &p, uint64 def) -> uint64 {
+      if (!p.is<double>()) { return def; }
+      return (uint64)p.get<double>();
+    }));
+    REG_LAMBDA(Value, "double realOr(double) const",    ([](Value &p, double def) -> double {
+      if (!p.is<double>()) { return def; }
+      return p.get<double>();
+    }));
+    REG_LAMBDA(Value, "Object& objectOr(const Object &in)", ([](Value &p, Object& def) -> Object& {
+      if (!p.is<Object>()) { return def; }
+      return p.get<Object>();
+    }));
+    REG_LAMBDA(Value, "Array&  arrayOr(const Array &in)",  ([](Value &p, Array& def) -> Array& {
+      if (!p.is<Array>()) { return def; }
+      return p.get<Array>();
+    }));
+
     REG_LAMBDA(Value, "void set_string(const string &in) property", ([](Value &p, const string& value) { p.set<std::string>(nallToStd(value)); }));
     REG_LAMBDA(Value, "void set_boolean(bool) property",            ([](Value &p, bool          value) { p.set<bool>(value); }));
     REG_LAMBDA(Value, "void set_integer(int64) property",           ([](Value &p, int64         value) { double tmp = (double)value; p.set<double>(tmp); }));

@@ -53,4 +53,10 @@ void init() {
     o["hello"] = JSON::Value("world");
     message("o = " + JSON::serialize(o));
   }
+
+  {
+    JSON::Value v = JSON::parse("{\"id\":1}");
+    auto t = v.object["domain"].stringOr("default");
+    message(t);
+  }
 }
