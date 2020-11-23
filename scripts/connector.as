@@ -1,12 +1,17 @@
 
-class Bridge {
+const uint8 VERSION_MAJOR = 2;
+const uint8 VERSION_MINOR = 2;
+const uint8 VERSION_PATCH = 0;
+const uint version = (uint(VERSION_MAJOR) << 16) | (uint(VERSION_MINOR) << 8) | uint(VERSION_PATCH);
+
+class Connector {
   GUI::Window@ window;
   GUI::LineEdit@ txtHost;
   GUI::LineEdit@ txtPort;
   GUI::Button@ go;
   GUI::Button@ stop;
 
-  Bridge() {
+  Connector() {
     @window = GUI::Window(120, 120, true);
     window.title = "Connector";
     window.size = GUI::Size(280, 5*25);
@@ -106,6 +111,9 @@ class Bridge {
     stop.enabled = false;
   }
 
+  array<uint8> sizeUint(4);
+  int sizeN;
+
   void main() {
     if (state == 0) {
       return;
@@ -129,6 +137,7 @@ class Bridge {
       }
 
       // connected:
+      sizeN = 0;
       state = 3;
     } else if (state == 3) {
       //if (!net::is_readable(sock)) {
@@ -139,8 +148,7 @@ class Bridge {
       //}
 
       // receive bytes and delineate NUL-terminated messages:
-      array<uint8> sizeUint(4);
-      int n = sock.recv(0, 4, sizeUint);
+      int n = sock.recv(sizeN, 4 - sizeN, sizeUint);
       if (net::is_error && net::error_code != "EWOULDBLOCK") {
         fail("recv");
         return;
@@ -150,6 +158,16 @@ class Bridge {
       if (n <= 0) {
         return;
       }
+
+      sizeN += n;
+
+      // not full yet:
+      if (sizeN < 4) {
+        return;
+      }
+
+      // reset for next message:
+      sizeN = 0;
 
       // read big-endian size of message to read:
       uint size = (uint(sizeUint[0]) << 24)
@@ -162,11 +180,12 @@ class Bridge {
       uint m = 0;
       while (m < size) {
         // async recv; will return instantly if no data available:
-        n = sock.recv(m, size, buf);
+        n = sock.recv(m, size - m, buf);
         if (net::is_error && net::error_code != "EWOULDBLOCK") {
           fail("recv");
           return;
         }
+
         // no data available:
         if (n <= 0) {
           return;
@@ -181,6 +200,8 @@ class Bridge {
   }
 
   private void processMessage(const string &in t) {
+    message(t);
+
     // parse as JSON:
     auto j = JSON::parse(t).object;
 
@@ -193,28 +214,33 @@ class Bridge {
     response["id"] = j["id"];
     response["stamp"] = JSON::Value(chrono::realtime::second);
     response["type"] = j["type"];
-    response["message"] = JSON::Value("");
-    response["address"] = j["address"];
-    response["size"] = j["size"];
-    response["domain"] = j["domain"];
-    response["value"] = j["value"];
+    if (j.containsKey("message")) response["message"] = JSON::Value("");
+    if (j.containsKey("address")) response["address"] = j["address"];
+    if (j.containsKey("size"))    response["size"] = j["size"];
+    if (j.containsKey("domain"))  response["domain"] = j["domain"];
+    if (j.containsKey("value"))   response["value"] = j["value"];
 
     switch (commandType) {
       case 0x00:
         response["value"] = JSON::Value(bus::read_u8(address));
         break;
+      case 0xe3: {
+        message("version = " + fmtInt(version));
+        response["value"]   = JSON::Value(version);
+        response["message"] = JSON::Value("BSNES");
+        break;
+      }
       default:
         message("unrecognized command " + fmtHex(commandType, 2));
         break;
     }
 
     // make sure socket is writable before sending reply:
-    // TODO: while() loop until it is?!
-    if (!net::is_writable(sock)) {
+    while (!net::is_writable(sock)) {
       if (net::is_error) {
         fail("is_writable");
+        return;
       }
-      return;
     }
 
     {
@@ -222,12 +248,15 @@ class Bridge {
       auto data = JSON::serialize(JSON::Value(response));
       uint size = data.length();
 
-      array<uint8> r(4 + size);
+      array<uint8> r;
+      r.reserve(4 + size);
       r.insertLast(uint8((size >> 24) & 0xFF));
       r.insertLast(uint8((size >> 16) & 0xFF));
       r.insertLast(uint8((size >> 8) & 0xFF));
       r.insertLast(uint8((size) & 0xFF));
       r.write_str(data);
+
+      message("send: r_length=" + fmtInt(r.length()) + " size=" + fmtInt(size) + " data=`" + data + "`");
 
       sock.send(0, r.length(), r);
       if (net::is_error) {
@@ -238,12 +267,12 @@ class Bridge {
   }
 }
 
-Bridge@ bridge;
+Connector@ connector;
 
 void init() {
-  @bridge = Bridge();
+  @connector = Connector();
 }
 
 void pre_frame() {
-  bridge.main();
+  connector.main();
 }
