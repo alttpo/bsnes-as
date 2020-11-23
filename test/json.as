@@ -51,6 +51,6 @@ void init() {
   {
     JSON::Object o;
     o["hello"] = JSON::Value("world");
-    message("o[hello] = " + o["hello"].string);
+    message("o = " + JSON::serialize(o));
   }
 }

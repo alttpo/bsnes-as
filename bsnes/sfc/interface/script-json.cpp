@@ -168,7 +168,7 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
     r = e->RegisterObjectMethod("Object", "Object &opAssign(const Object &in)", asFUNCTION(value_assign<Object>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
     REG_LAMBDA(Object, "Value& get_opIndex(const string &in) property", ([](Object &p, string& key) -> Value& { return p[nallToStd(key)]; }));
-    REG_LAMBDA(Object, "void set_opIndex(const string &in, Value &in) property", ([](Object &p, string& key, Value& value) -> void {
+    REG_LAMBDA(Object, "void set_opIndex(const string &in, Value &in) property", ([](Object &p, string& key, const Value& value) -> void {
       p.insert(std::pair<std::string,Value>(nallToStd(key), value));
     }));
     REG_LAMBDA(Object, "uint get_length() const property", ([](Object &p) -> size_t { return p.size(); }));
