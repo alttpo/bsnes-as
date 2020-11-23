@@ -23,6 +23,7 @@ namespace SuperFamicom {
 
 Settings settings;
 #include "configuration.cpp"
+#include "base64.cpp"
 #include "script-interface.cpp"
 
 auto Interface::information() -> Information {

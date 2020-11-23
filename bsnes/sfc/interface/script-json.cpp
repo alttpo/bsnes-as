@@ -198,7 +198,13 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
     r = e->RegisterObjectMethod("Object", "Object &opAssign(const Object &in)", asFUNCTION(value_assign<Object>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
     REG_LAMBDA(Object, "bool containsKey(const string &in) const", ([](Object &p, string& key) -> bool { return p.count(nallToStd(key)) > 0; }));
-    REG_LAMBDA(Object, "Value& get_opIndex(const string &in) property", ([](Object &p, string& key) -> Value& { return p[nallToStd(key)]; }));
+    REG_LAMBDA(Object, "Value& get_opIndex(const string &in) property", ([](Object &p, string& key) -> Value& {
+      static Value s_null;
+      auto stdKey = nallToStd(key);
+      if (p.count(stdKey) == 0) return s_null;
+      // map::operator[] "helpfully" inserts if the key doesn't exist.
+      return p[stdKey];
+    }));
     REG_LAMBDA(Object, "void set_opIndex(const string &in, Value &in) property", ([](Object &p, string& key, const Value& value) -> void {
       // I'm sure there's an atomic replace but I'm too lazy:
       auto stdKey = nallToStd(key);

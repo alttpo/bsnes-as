@@ -580,6 +580,29 @@ auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
   ScriptInterface::RegisterBML(e);
   ScriptInterface::RegisterJSON(e);
 
+  {
+    r = e->SetDefaultNamespace("base64"); assert(r >= 0);
+
+    REG_LAMBDA_GLOBAL("string encode(uint offs, uint size, const array<uint8> &in)", ([](size_t offs, size_t size, CScriptArray* arr) -> string {
+      if (offs + size > arr->GetSize()) {
+        asGetActiveContext()->SetException("Array read would exceed its bounds");
+        return {};
+      }
+      return base64_encode(arr->At(offs), size);
+    }));
+    REG_LAMBDA_GLOBAL("uint decode(const string &in, const array<uint8> &in, uint offs = 0)", ([](string& text, CScriptArray* arr, size_t offs) -> size_t {
+      auto result = base64_decode(text);
+
+      // extend array:
+      arr->Resize(offs + result.size());
+
+      // copy data:
+      memory::copy(arr->At(offs), result.data(), result.size());
+
+      return result.size();
+    }));
+  }
+
   ScriptInterface::DiscordInterface::Register(e);
 
   ScriptInterface::RegisterMenu(e);
