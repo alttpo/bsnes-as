@@ -149,14 +149,26 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
 
     // Object:
     REG_LAMBDA(Object, "Value& get_opIndex(const string &in) property", ([](Object &p, string& key) -> Value& { return p[nallToStd(key)]; }));
-    REG_LAMBDA(Object, "void set_opIndex(const string &in, Value &in value) property", ([](Object &p, string& key, Value& value) -> void {
+    REG_LAMBDA(Object, "void set_opIndex(const string &in, Value &in) property", ([](Object &p, string& key, Value& value) -> void {
       p.insert(std::pair<std::string,Value>(nallToStd(key), value));
     }));
-    REG_LAMBDA(Object, "uint  get_length() const property", ([](Object &p) -> size_t { return p.size(); }));
+    REG_LAMBDA(Object, "uint get_length() const property", ([](Object &p) -> size_t { return p.size(); }));
+    REG_LAMBDA(Object, "void remove(const string &in)", ([](Object &p, string& key) {
+      p.erase(nallToStd(key));
+    }));
 
     // Array:
     REG_LAMBDA(Array, "Value& get_opIndex(uint) property", ([](Array &p, size_t index) -> Value& { return p[index]; }));
+    REG_LAMBDA(Array, "void set_opIndex(uint, Value &in) property", ([](Array &p, size_t index, Value& value) -> void {
+      p[index] = value;
+    }));
     REG_LAMBDA(Array, "uint  get_length() const property", ([](Array &p) -> size_t { return p.size(); }));
 
+    REG_LAMBDA(Array, "void resize(uint)", ([](Array &p, size_t newSize) {
+      p.resize(newSize);
+    }));
+    REG_LAMBDA(Array, "void insertLast(Value &in)", ([](Array &p, Value& value) {
+      p.push_back(value);
+    }));
   }
 }
