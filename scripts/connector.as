@@ -113,98 +113,138 @@ class Connector {
 
   array<uint8> sizeUint(4);
   int sizeN;
+  int size;
+  array<uint8> buf;
+  int bufN;
 
   void main() {
+    // run up to 16 steps (arbitrary limit) of this state machine per frame:
+    for (uint i = 0; i < 16; i++) {
+      if (!step()) return;
+    }
+  }
+
+  // returns true if we can run another step immediately after, false if need to wait for next frame.
+  bool step() {
     if (state == 0) {
-      return;
+      // not connected; need to wait for external event:
+      return false;
     } else if (state == 1) {
       // connect:
       @sock = net::Socket(addr);
       sock.connect(addr);
       if (net::is_error && net::error_code != "EINPROGRESS" && net::error_code != "EWOULDBLOCK") {
         fail("connect");
-        return;
+        return false;
       }
 
       // wait for connection success:
       state = 2;
+      return true;
     } else if (state == 2) {
       // socket writable means connected:
       bool connected = net::is_writable(sock);
       if (!connected && net::is_error) {
         fail("is_writable");
-        return;
+        return false;
       }
 
       // connected:
-      sizeN = 0;
       state = 3;
+      return true;
     } else if (state == 3) {
-      //if (!net::is_readable(sock)) {
-      //  if (net::is_error) {
-      //    fail("is_readable");
-      //  }
-      //  return;
-      //}
+      // entry state
+      // start expecting JSON messages with 4-byte size prefix:
+      sizeN = 0;
+      state = 4;
+      return true;
+    } else if (state == 4) {
+      // read 4-byte size prefix:
+      if (!net::is_readable(sock)) {
+        if (net::is_error) {
+          fail("is_readable");
+        }
+        return false;
+      }
 
       // receive bytes and delineate NUL-terminated messages:
       int n = sock.recv(sizeN, 4 - sizeN, sizeUint);
       if (net::is_error && net::error_code != "EWOULDBLOCK") {
         fail("recv");
-        return;
+        return false;
       }
 
       // no data available:
       if (n <= 0) {
-        return;
+        return false;
       }
 
       sizeN += n;
 
-      // not full yet:
       if (sizeN < 4) {
-        return;
-      }
-
-      // make sure socket is writable before sending reply:
-      if (!net::is_writable(sock)) {
-        if (net::is_error) {
-          fail("is_writable");
-        }
-        return;
+        // see if more data is available to read:
+        return true;
       }
 
       // reset for next message:
       sizeN = 0;
 
       // read big-endian size of message to read:
-      uint size = (uint(sizeUint[0]) << 24)
+      size = (uint(sizeUint[0]) << 24)
         | (uint(sizeUint[1]) << 16)
         | (uint(sizeUint[2]) << 8)
         | (uint(sizeUint[3]));
 
-      // await all that data:
-      array<uint8> buf(size);
-      uint m = 0;
-      while (m < size) {
-        // async recv; will return instantly if no data available:
-        n = sock.recv(m, size - m, buf);
-        if (net::is_error && net::error_code != "EWOULDBLOCK") {
-          fail("recv");
-          return;
-        }
+      // resize our buffer:
+      buf.resize(size);
+      bufN = 0;
 
-        // no data available:
-        if (n <= 0) {
-          return;
-        }
+      // move on to read message:
+      state = 5;
+      return true;
+    } else if (state == 5) {
+      // read JSON message of size `size`:
 
-        m += n;
+      // async recv; will return instantly if no data available:
+      int n = sock.recv(bufN, size - bufN, buf);
+      if (net::is_error && net::error_code != "EWOULDBLOCK") {
+        fail("recv");
+        return false;
+      }
+
+      // no data available:
+      if (n <= 0) {
+        return false;
+      }
+
+      bufN += n;
+
+      if (bufN < size) {
+        // see if more data is available to read:
+        return true;
+      }
+
+      state = 6;
+      return true;
+    } else if (state == 6) {
+      // make sure socket is writable before sending reply:
+      if (!net::is_writable(sock)) {
+        if (net::is_error) {
+          fail("is_writable");
+        }
+        return false;
       }
 
       // process this message as a string:
-      processMessage(buf.toString(0, m));
+      processMessage(buf.toString(0, bufN));
+
+      // await next message:
+      state = 3;
+      return true;
     }
+
+    // unknown state!
+    return false;
   }
 
   private void processMessage(const string &in t) {
