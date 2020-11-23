@@ -252,6 +252,7 @@ class Connector {
       return 0x7E0000 + offset;
     } else if (domain == "CARTROM") {
       // convert PC address to bus address:
+      message("CARTROM $" + fmtHex(offset, 6));
       auto offs = offset & 0x7FFF;
       return ((offset >> 15) << 16) | offset | 0x8000;
     // TODO: confirm these domain names:
@@ -356,6 +357,24 @@ class Connector {
         } else {
           message("missing block!");
         }
+        break;
+      }
+
+      case 0x20: { // safe bit flip
+        auto old = bus::read_u8(busAddress);
+        response["value"] = JSON::Value(old);
+        auto newval = old | value;
+        bus::write_u8(busAddress, newval);
+        message("<      flip($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(old, 2) + " | $" + fmtHex(value, 2) + " = $" + fmtHex(newval, 2));
+        break;
+      }
+      case 0x21: { // safe bit unflip
+        auto old = bus::read_u8(busAddress);
+        response["value"] = JSON::Value(old);
+        auto mask = ~uint8(value);
+        auto newval = old & mask;
+        bus::write_u8(busAddress, newval);
+        message("<    unflip($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(old, 2) + " & $" + fmtHex(mask, 2) + " = $" + fmtHex(newval, 2));
         break;
       }
 
