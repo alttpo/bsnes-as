@@ -247,16 +247,44 @@ class Connector {
     return false;
   }
 
+  private uint32 busAddressFor(const string &in domain, uint32 offset) {
+    if (domain == "WRAM") {
+      return 0x7E0000 + offset;
+    } else if (domain == "CARTROM") {
+      // convert PC address to bus address:
+      auto offs = offset & 0x7FFF;
+      return ((offset >> 15) << 16) | offset | 0x8000;
+    // TODO: confirm these domain names:
+    } else if (domain == "SRAM") {
+      return 0x700000 + offset;
+    } else {
+      message("!!!! unhandled domain " + domain + ", offset=$" + fmtHex(offset, 6));
+      //case "ROM":
+      //case "System Bus":
+      //default:
+      return offset;
+    }
+  }
+
   private void processMessage(const string &in t) {
-    message(t);
+    //message("recv: `" + t + "`");
 
     // parse as JSON:
     auto j = JSON::parse(t).object;
 
     // extract useful values or sensible defaults:
     auto commandType = j["type"].naturalOr(0xFF);
-    auto domain = j["domain"].stringOr("System Bus");
-    auto address = j["address"].naturalOr(0);
+
+    auto domain      = j["domain"].stringOr("");
+    auto address     = j["address"].naturalOr(0);
+
+    uint32 busAddress = 0xFFFFFF;
+    if (j.containsKey("address") && j.containsKey("domain")) {
+      busAddress = busAddressFor(domain, address);
+    }
+
+    auto value       = j["value"].naturalOr(0);
+    auto size        = j["size"].naturalOr(0);
 
     JSON::Object response;
     response["id"] = j["id"];
@@ -270,56 +298,95 @@ class Connector {
 
     switch (commandType) {
       case 0xe3:  // get emulator id
+        message("< emulator id");
         response["value"]   = JSON::Value(version);
         response["message"] = JSON::Value("SNES");
         break;
+
+    // reads:
       case 0x00:  // read byte
-        // TODO: domain
-        response["value"] = JSON::Value(bus::read_u8(address));
+        response["value"] = JSON::Value(bus::read_u8(busAddress));
+        message("<  read_u8 ($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(response["value"].natural, 2));
         break;
       case 0x01:  // read short
-        // TODO: domain
-        response["value"] = JSON::Value(bus::read_u16(address));
+        response["value"] = JSON::Value(bus::read_u16(busAddress));
+        message("<  read_u16($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(response["value"].natural, 4));
         break;
-      case 0x02:  // read uint32
-        // TODO: domain
-        response["value"] = JSON::Value((uint(bus::read_u16(address)) << 16) | uint(bus::read_u16(address+2)));
+      case 0x02:  // read uint32 (jsd: why not uint24 as well?)
+        response["value"] = JSON::Value( uint(bus::read_u16(busAddress)) | (uint(bus::read_u16(busAddress+2) << 16)) );
+        message("<  read_u32($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(response["value"].natural, 8));
         break;
       case 0x0f: { // read block
-        // TODO: domain
-        auto size = j["size"].natural;
+        message("<  read_blk($" + fmtHex(busAddress, 6) + ", size=$" + fmtHex(size, 6) + ")");
         array<uint8> buf(size);
-        bus::read_block_u8(address, 0, size, buf);
+        bus::read_block_u8(busAddress, 0, size, buf);
         auto blockStr = base64::encode(0, size, buf);
         response["block"] = JSON::Value(blockStr);
         break;
       }
+
+    // writes:
+      case 0x10:  // write byte
+        // TODO: freezes
+        message("< write_u8 ($" + fmtHex(busAddress, 6) + ", $" + fmtHex(value, 2) + ")");
+        bus::write_u8(busAddress, value);
+        break;
+      case 0x11:  // write short
+        // TODO: freezes
+        message("< write_u16($" + fmtHex(busAddress, 6) + ", $" + fmtHex(value, 4) + ")");
+        bus::write_u16(busAddress, value);
+        break;
+      case 0x12:  // write uint32
+        // TODO: freezes
+        message("< write_u32($" + fmtHex(busAddress, 6) + ", $" + fmtHex(value, 8) + ")");
+        bus::write_u16(busAddress  , value & 0xFFFF);
+        bus::write_u16(busAddress+2, (value >> 16) & 0xFFFF);
+        break;
+      case 0x1f: { // write block
+        message("< write_blk($" + fmtHex(busAddress, 6) + ", size=$" + fmtHex(size, 6) + ")");
+        if (j.containsKey("block") && j["block"].isString) {
+          auto block = j["block"].string;
+          array<uint8> data;
+          auto decSize = base64::decode(block, data);
+          if (size != decSize) {
+            message("size does not match base64 decoded size!");
+          } else {
+            bus::write_block_u8(busAddress, 0, size, data);
+          }
+        } else {
+          message("missing block!");
+        }
+        break;
+      }
+
+    // misc:
       case 0xf0:  // display message
-        if (!j["message"].isNull && j["message"].isString) {
-          message("message: " + j["message"].string);
+        if (j.containsKey("message") && j["message"].isString) {
+          message("MSG: " + j["message"].string);
         }
       case 0xff:
         // do nothing.
         break;
+
       default:
-        message("unrecognized command 0x" + fmtHex(commandType, 2));
+        message("!!!! UNRECOGNIZED COMMAND 0x" + fmtHex(commandType, 2));
         break;
     }
 
     {
       // compose response packet:
       auto data = JSON::serialize(JSON::Value(response));
-      uint size = data.length();
+      uint dataSize = data.length();
 
       array<uint8> r;
-      r.reserve(4 + size);
-      r.insertLast(uint8((size >> 24) & 0xFF));
-      r.insertLast(uint8((size >> 16) & 0xFF));
-      r.insertLast(uint8((size >> 8) & 0xFF));
-      r.insertLast(uint8((size) & 0xFF));
+      r.reserve(4 + dataSize);
+      r.insertLast(uint8((dataSize >> 24) & 0xFF));
+      r.insertLast(uint8((dataSize >> 16) & 0xFF));
+      r.insertLast(uint8((dataSize >> 8) & 0xFF));
+      r.insertLast(uint8((dataSize) & 0xFF));
       r.write_str(data);
 
-      message("send: r_length=" + fmtInt(r.length()) + " size=" + fmtInt(size) + " data=`" + data + "`");
+      //message("send: `" + data + "`");
 
       sock.send(0, r.length(), r);
       if (net::is_error) {
