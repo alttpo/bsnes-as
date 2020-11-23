@@ -43,7 +43,14 @@ void init() {
         obj["b"] = tmp;
       }
       message("obj['b'] is " + obj["b"].string);
+      objv.object = obj;
+      message("obj['b'] is " + objv.object["b"].string);
     }
   }
 
+  {
+    JSON::Object o;
+    o["hello"] = JSON::Value("world");
+    message("o[hello] = " + o["hello"].string);
+  }
 }

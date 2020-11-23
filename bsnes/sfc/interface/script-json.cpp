@@ -54,14 +54,23 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
     r = e->SetDefaultNamespace("JSON"); assert(r >= 0);
 
     REG_VALUE_TYPE(Value, Value, asOBJ_APP_CLASS_CDAK);
-    REG_REF_NOCOUNT(Object);
-    REG_REF_NOCOUNT(Array);
+    REG_VALUE_TYPE(Object, Object, asOBJ_APP_CLASS_CDAK);
+    REG_VALUE_TYPE(Array, Array, asOBJ_APP_CLASS_CDAK);
 
     // Value:
-    r = e->RegisterObjectBehaviour("Value", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(value_construct<Value>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = e->RegisterObjectBehaviour("Value", asBEHAVE_CONSTRUCT, "void f(const Value &in)", asFUNCTION(value_copy_construct<Value>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = e->RegisterObjectBehaviour("Value", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<Value>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = e->RegisterObjectMethod("Value", "Value &opAssign(const Value &in)", asFUNCTION(value_assign<Value>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
+    REG_LAMBDA_BEHAVIOUR(Value, asBEHAVE_CONSTRUCT, "void f()",                 ([](void* mem){ new(mem) Value(); }));
+    REG_LAMBDA_BEHAVIOUR(Value, asBEHAVE_CONSTRUCT, "void f(const string &in)", ([](void* mem, const string& value){ new(mem) Value(nallToStd(value)); }));
+    REG_LAMBDA_BEHAVIOUR(Value, asBEHAVE_CONSTRUCT, "void f(const Object &in)", ([](void* mem, const Object& value){ new(mem) Value(value); }));
+    REG_LAMBDA_BEHAVIOUR(Value, asBEHAVE_CONSTRUCT, "void f(const Array &in)",  ([](void* mem, const Array& value){ new(mem) Value(value); }));
+    REG_LAMBDA_BEHAVIOUR(Value, asBEHAVE_CONSTRUCT, "void f(bool)",             ([](void* mem, bool value){ new(mem) Value(value); }));
+    REG_LAMBDA_BEHAVIOUR(Value, asBEHAVE_CONSTRUCT, "void f(double)",           ([](void* mem, double value){ new(mem) Value(value); }));
+    REG_LAMBDA_BEHAVIOUR(Value, asBEHAVE_CONSTRUCT, "void f(float)",            ([](void* mem, float value){ new(mem) Value((double)value); }));
+    REG_LAMBDA_BEHAVIOUR(Value, asBEHAVE_CONSTRUCT, "void f(int64)",            ([](void* mem, int64 value){ new(mem) Value((double)value); }));
+    REG_LAMBDA_BEHAVIOUR(Value, asBEHAVE_CONSTRUCT, "void f(uint64)",           ([](void* mem, uint64 value){ new(mem) Value((double)value); }));
 
     REG_LAMBDA_GLOBAL("Value parse(const string &in)", ([](string &text) -> Value {
       Value v;
@@ -131,13 +140,13 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
       }
       return p.get<double>();
     }));
-    REG_LAMBDA(Value, "Object@ get_object() property", ([](Value &p) -> Object& {
+    REG_LAMBDA(Value, "Object& get_object() property", ([](Value &p) -> Object& {
       if (!p.is<Object>()) {
         asGetActiveContext()->SetException(string{"JSON type mismatch; expected 'object' but found '", getJSONType(p), "'"});
       }
       return p.get<Object>();
     }));
-    REG_LAMBDA(Value, "Array@  get_array() property",  ([](Value &p) -> Array& {
+    REG_LAMBDA(Value, "Array&  get_array() property",  ([](Value &p) -> Array& {
       if (!p.is<Array>()) {
         asGetActiveContext()->SetException(string{"JSON type mismatch; expected 'array' but found '", getJSONType(p), "'"});
       }
@@ -149,10 +158,15 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
     REG_LAMBDA(Value, "void set_integer(int64) property",           ([](Value &p, int64         value) { double tmp = (double)value; p.set<double>(tmp); }));
     REG_LAMBDA(Value, "void set_natural(uint64) property",          ([](Value &p, uint64        value) { double tmp = (double)value; p.set<double>(tmp); }));
     REG_LAMBDA(Value, "void set_real(double) property",             ([](Value &p, double        value) { p.set<double>(value); }));
-    REG_LAMBDA(Value, "void set_object(Object@) property",          ([](Value &p, Object&       value) { p.set<Object>(value); }));
-    REG_LAMBDA(Value, "void set_array(Array@) property",            ([](Value &p, Array&        value) { p.set<Array>(value); }));
+    REG_LAMBDA(Value, "void set_object(Object &in) property",       ([](Value &p, Object&       value) { p.set<Object>(value); }));
+    REG_LAMBDA(Value, "void set_array(Array &in) property",         ([](Value &p, Array&        value) { p.set<Array>(value); }));
 
     // Object:
+    r = e->RegisterObjectBehaviour("Object", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(value_construct<Object>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = e->RegisterObjectBehaviour("Object", asBEHAVE_CONSTRUCT, "void f(const Object &in)", asFUNCTION(value_copy_construct<Object>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = e->RegisterObjectBehaviour("Object", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<Object>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = e->RegisterObjectMethod("Object", "Object &opAssign(const Object &in)", asFUNCTION(value_assign<Object>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
     REG_LAMBDA(Object, "Value& get_opIndex(const string &in) property", ([](Object &p, string& key) -> Value& { return p[nallToStd(key)]; }));
     REG_LAMBDA(Object, "void set_opIndex(const string &in, Value &in) property", ([](Object &p, string& key, Value& value) -> void {
       p.insert(std::pair<std::string,Value>(nallToStd(key), value));
@@ -163,6 +177,11 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
     }));
 
     // Array:
+    r = e->RegisterObjectBehaviour("Array", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(value_construct<Array>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = e->RegisterObjectBehaviour("Array", asBEHAVE_CONSTRUCT, "void f(const Array &in)", asFUNCTION(value_copy_construct<Array>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = e->RegisterObjectBehaviour("Array", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<Array>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+    r = e->RegisterObjectMethod("Array", "Array &opAssign(const Array &in)", asFUNCTION(value_assign<Array>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+
     REG_LAMBDA(Array, "Value& get_opIndex(uint) property", ([](Array &p, size_t index) -> Value& { return p[index]; }));
     REG_LAMBDA(Array, "void set_opIndex(uint, Value &in) property", ([](Array &p, size_t index, Value& value) -> void {
       p[index] = value;
