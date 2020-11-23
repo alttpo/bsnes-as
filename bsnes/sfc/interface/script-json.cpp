@@ -82,6 +82,11 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
       return v;
     }));
 
+    REG_LAMBDA_GLOBAL("string serialize(Value &in, bool prettify = false)", ([](Value &value, bool prettify) -> string {
+      std::string ss = value.serialize(prettify);
+      return stdToNall(ss);
+    }));
+
     REG_LAMBDA(Value, "bool get_isNull() const property",    ([](Value &p) { return p.is<Null>(); }));
     REG_LAMBDA(Value, "bool get_isBoolean() const property", ([](Value &p) { return p.is<bool>(); }));
     REG_LAMBDA(Value, "bool get_isString() const property",  ([](Value &p) { return p.is<std::string>(); }));
