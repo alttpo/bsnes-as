@@ -5,6 +5,8 @@ const uint8 VERSION_PATCH = 0;
 const uint version = (uint(VERSION_MAJOR) << 16) | (uint(VERSION_MINOR) << 8) | uint(VERSION_PATCH);
 
 class Connector {
+  bool debug = false;   // set to true to see debug messages
+
   GUI::Window@ window;
   GUI::LineEdit@ txtHost;
   GUI::LineEdit@ txtPort;
@@ -259,7 +261,9 @@ class Connector {
     //} else if (domain == "SRAM") {
     //  return 0x700000 + offset;
     } else {
-      message("!!!! unhandled domain " + domain + ", offset=$" + fmtHex(offset, 6));
+      if (debug) {
+        message("!!!! unhandled domain " + domain + ", offset=$" + fmtHex(offset, 6));
+      }
       //case "ROM":
       //case "System Bus":
       //default:
@@ -299,7 +303,9 @@ class Connector {
 
     switch (commandType) {
       case 0xe3:  // get emulator id
-        message("< emulator id");
+        if (debug) {
+          message("< emulator id");
+        }
         response["value"]   = JSON::Value(version);
         response["message"] = JSON::Value("SNES");
         break;
@@ -307,18 +313,26 @@ class Connector {
     // reads:
       case 0x00:  // read byte
         response["value"] = JSON::Value(bus::read_u8(busAddress));
-        message("<  read_u8 ($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(response["value"].natural, 2));
+        if (debug) {
+          message("<  read_u8 ($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(response["value"].natural, 2));
+        }
         break;
       case 0x01:  // read short
         response["value"] = JSON::Value(bus::read_u16(busAddress));
-        message("<  read_u16($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(response["value"].natural, 4));
+        if (debug) {
+          message("<  read_u16($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(response["value"].natural, 4));
+        }
         break;
       case 0x02:  // read uint32 (jsd: why not uint24 as well?)
         response["value"] = JSON::Value( uint(bus::read_u16(busAddress)) | (uint(bus::read_u16(busAddress+2) << 16)) );
-        message("<  read_u32($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(response["value"].natural, 8));
+        if (debug) {
+          message("<  read_u32($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(response["value"].natural, 8));
+        }
         break;
       case 0x0f: { // read block
-        message("<  read_blk($" + fmtHex(busAddress, 6) + ", size=$" + fmtHex(size, 6) + ")");
+        if (debug) {
+          message("<  read_blk($" + fmtHex(busAddress, 6) + ", size=$" + fmtHex(size, 6) + ")");
+        }
         array<uint8> buf(size);
         bus::read_block_u8(busAddress, 0, size, buf);
         auto blockStr = base64::encode(0, size, buf);
@@ -329,22 +343,30 @@ class Connector {
     // writes:
       case 0x10:  // write byte
         // TODO: freezes
-        message("< write_u8 ($" + fmtHex(busAddress, 6) + ", $" + fmtHex(value, 2) + ")");
+        if (debug) {
+          message("< write_u8 ($" + fmtHex(busAddress, 6) + ", $" + fmtHex(value, 2) + ")");
+        }
         bus::write_u8(busAddress, value);
         break;
       case 0x11:  // write short
         // TODO: freezes
-        message("< write_u16($" + fmtHex(busAddress, 6) + ", $" + fmtHex(value, 4) + ")");
+        if (debug) {
+          message("< write_u16($" + fmtHex(busAddress, 6) + ", $" + fmtHex(value, 4) + ")");
+        }
         bus::write_u16(busAddress, value);
         break;
       case 0x12:  // write uint32
         // TODO: freezes
-        message("< write_u32($" + fmtHex(busAddress, 6) + ", $" + fmtHex(value, 8) + ")");
+        if (debug) {
+          message("< write_u32($" + fmtHex(busAddress, 6) + ", $" + fmtHex(value, 8) + ")");
+        }
         bus::write_u16(busAddress  , value & 0xFFFF);
         bus::write_u16(busAddress+2, (value >> 16) & 0xFFFF);
         break;
       case 0x1f: { // write block
-        message("< write_blk($" + fmtHex(busAddress, 6) + ", size=$" + fmtHex(size, 6) + ")");
+        if (debug) {
+          message("< write_blk($" + fmtHex(busAddress, 6) + ", size=$" + fmtHex(size, 6) + ")");
+        }
         if (j.containsKey("block") && j["block"].isString) {
           auto block = j["block"].string;
           array<uint8> data;
@@ -365,7 +387,9 @@ class Connector {
         response["value"] = JSON::Value(old);
         auto newval = old | value;
         bus::write_u8(busAddress, newval);
-        message("<      flip($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(old, 2) + " | $" + fmtHex(value, 2) + " = $" + fmtHex(newval, 2));
+        if (debug) {
+          message("<      flip($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(old, 2) + " | $" + fmtHex(value, 2) + " = $" + fmtHex(newval, 2));
+        }
         break;
       }
       case 0x21: { // safe bit unflip
@@ -374,13 +398,16 @@ class Connector {
         auto mask = ~uint8(value);
         auto newval = old & mask;
         bus::write_u8(busAddress, newval);
-        message("<    unflip($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(old, 2) + " & $" + fmtHex(mask, 2) + " = $" + fmtHex(newval, 2));
+        if (debug) {
+          message("<    unflip($" + fmtHex(busAddress, 6) + ") > $" + fmtHex(old, 2) + " & $" + fmtHex(mask, 2) + " = $" + fmtHex(newval, 2));
+        }
         break;
       }
 
     // misc:
       case 0xf0:  // display message
         if (j.containsKey("message") && j["message"].isString) {
+          // TODO: notification on screen
           message("MSG: " + j["message"].string);
         }
       case 0xff:
