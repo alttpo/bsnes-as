@@ -252,12 +252,12 @@ class Connector {
       return 0x7E0000 + offset;
     } else if (domain == "CARTROM") {
       // convert PC address to bus address:
-      message("CARTROM $" + fmtHex(offset, 6));
+      //message("CARTROM $" + fmtHex(offset, 6));
       auto offs = offset & 0x7FFF;
-      return ((offset >> 15) << 16) | offset | 0x8000;
+      return ((offset >> 15) << 16) | offs | 0x8000;
     // TODO: confirm these domain names:
-    } else if (domain == "SRAM") {
-      return 0x700000 + offset;
+    //} else if (domain == "SRAM") {
+    //  return 0x700000 + offset;
     } else {
       message("!!!! unhandled domain " + domain + ", offset=$" + fmtHex(offset, 6));
       //case "ROM":
