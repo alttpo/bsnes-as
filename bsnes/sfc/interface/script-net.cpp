@@ -651,6 +651,10 @@ namespace Net {
 
     operator bool() { return socket->operator bool(); }
 
+    auto close() -> void {
+      socket->close();
+    }
+
     vector<uint8_t> frame;
     WebSocketMessage *message = nullptr;
 
@@ -1292,6 +1296,7 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   r = e->RegisterObjectMethod("WebSocket", "WebSocketMessage@ process()", asMETHOD(Net::WebSocket, process), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocket", "void send(WebSocketMessage@ msg)", asMETHOD(Net::WebSocket, send), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocket", "bool get_is_valid() property", asMETHOD(Net::WebSocket, operator bool), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocket", "void close()", asMETHOD(Net::WebSocket, close), asCALL_THISCALL); assert( r >= 0 );
 
   r = e->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_FACTORY, "WebSocketHandshaker@ f(Socket@ socket)", asFUNCTION(Net::create_web_socket_handshaker), asCALL_CDECL); assert(r >= 0);

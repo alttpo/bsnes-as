@@ -46,6 +46,8 @@ void pre_frame() {
     if (msg.opcode == 1) {
       auto s = msg.as_string();
       message("text: " + s);
+    } else if (msg.opcode == 8) {
+      clients[c].close();
     } else {
       auto a = msg.as_array();
       message("opcode=" + fmtHex(msg.opcode) + " length=" + fmtInt(a.length()));
