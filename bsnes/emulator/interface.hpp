@@ -75,6 +75,7 @@ struct Interface : Script::Interface {
   virtual auto power() -> void {}
   virtual auto reset() -> void {}
   virtual auto run() -> void {}
+  virtual auto idle() -> void {}
 
   //time functions
   virtual auto rtc() -> bool { return false; }

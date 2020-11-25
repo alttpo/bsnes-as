@@ -679,6 +679,7 @@ auto Interface::loadScript(string location) -> void {
   script.funcs.pre_frame = main_module->GetFunctionByDecl("void pre_frame()");
   script.funcs.post_frame = main_module->GetFunctionByDecl("void post_frame()");
   script.funcs.palette_updated = main_module->GetFunctionByDecl("void palette_updated()");
+  script.funcs.idle = main_module->GetFunctionByDecl("void idle()");
 
   // enable profiler:
   platform->scriptProfilerEnable(platform->scriptPrimaryContext());

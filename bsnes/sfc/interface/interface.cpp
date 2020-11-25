@@ -248,6 +248,12 @@ auto Interface::run() -> void {
   system.run();
 }
 
+auto Interface::idle() -> void {
+  if (script.funcs.idle == nullptr) return;
+
+  platform->scriptInvokeFunction(script.funcs.idle);
+}
+
 auto Interface::rtc() -> bool {
   if(cartridge.has.EpsonRTC) return true;
   if(cartridge.has.SharpRTC) return true;

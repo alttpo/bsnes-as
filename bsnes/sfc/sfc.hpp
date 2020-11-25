@@ -164,6 +164,7 @@ namespace SuperFamicom {
       asIScriptFunction *pre_frame = nullptr;
       asIScriptFunction *post_frame = nullptr;
       asIScriptFunction *palette_updated = nullptr;
+      asIScriptFunction *idle = nullptr;
     } funcs;
   };
   extern Script script;

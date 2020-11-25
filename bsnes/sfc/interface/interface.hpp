@@ -54,6 +54,7 @@ struct Interface : Emulator::Interface {
   auto power() -> void override;
   auto reset() -> void override;
   auto run() -> void override;
+  auto idle() -> void override;
 
   auto rtc() -> bool override;
   auto synchronize(uint64 timestamp) -> void override;
