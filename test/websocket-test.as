@@ -2,7 +2,11 @@
 net::WebSocketServer@ wsServer;
 
 void init() {
-  @wsServer = net::WebSocketServer("ws://localhost:4590/alttp");
+  @wsServer = net::WebSocketServer("ws://localhost:4590/alttpo");
+}
+
+void idle() {
+  pre_frame();
 }
 
 int frame_counter = 0;

@@ -410,9 +410,12 @@ namespace Net {
       int rc = ::recv(fd, (char *)buffer->At(offs), size, 0); last_error_location = LOCATION " recv";
 #endif
       last_error = 0;
-      if (rc == -1) {
+      if (rc < 0) {
         last_error = sock_capture_error();
         exception_thrown();
+      }
+      if (rc == 0) {
+        close();
       }
       return rc;
     }
@@ -425,9 +428,12 @@ namespace Net {
       int rc = ::send(fd, (const char*)buffer->At(offs), size, 0); last_error_location = LOCATION " send";
 #endif
       last_error = 0;
-      if (rc == -1) {
+      if (rc < 0) {
         last_error = sock_capture_error();
         exception_thrown();
+      }
+      if (rc == 0) {
+        close();
       }
       return rc;
     }
@@ -444,9 +450,12 @@ namespace Net {
       int rc = ::recvfrom(fd, (char *)buffer->At(offs), size, 0, (struct sockaddr *)&recvaddr, &recvaddrlen); last_error_location = LOCATION " recvfrom";
 #endif
       last_error = 0;
-      if (rc == -1) {
+      if (rc < 0) {
         last_error = sock_capture_error();
         exception_thrown();
+      }
+      if (rc == 0) {
+        close();
       }
       return rc;
     }
@@ -459,9 +468,12 @@ namespace Net {
       int rc = ::sendto(fd, (const char *)buffer->At(offs), size, 0, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " sendto";
 #endif
       last_error = 0;
-      if (rc == -1) {
+      if (rc < 0) {
         last_error = sock_capture_error();
         exception_thrown();
+      }
+      if (rc == 0) {
+        close();
       }
       return rc;
     }
@@ -637,7 +649,7 @@ namespace Net {
         delete this;
     }
 
-    operator bool() { return *socket; }
+    operator bool() { return socket->operator bool(); }
 
     vector<uint8_t> frame;
     WebSocketMessage *message = nullptr;
@@ -646,7 +658,7 @@ namespace Net {
     auto process() -> WebSocketMessage* {
       if (!*socket) {
         // TODO: throw exception if socket closed?
-        printf("[%d] invalid socket!\n", socket->fd);
+        //printf("[%d] invalid socket!\n", socket->fd);
         return nullptr;
       }
 
@@ -654,14 +666,14 @@ namespace Net {
       auto rc = socket->recv_buffer(frame);
       // No data ready to recv:
       if (rc == 0) {
-        printf("[%d] no data\n", socket->fd);
+        //printf("[%d] no data\n", socket->fd);
         return nullptr;
       }
 
       // check start of frame:
       uint minsize = 2;
       if (frame.size() < minsize) {
-        printf("[%d] frame too small (%d) to read opcode and payload length bytes (%d)\n", socket->fd, frame.size(), minsize);
+        //printf"[%d] frame too small (%d) to read opcode and payload length bytes (%d)\n", socket->fd, frame.size(), minsize);
         return nullptr;
       }
 
@@ -682,7 +694,7 @@ namespace Net {
 
       // need more data?
       if (frame.size() < minsize) {
-        printf("[%d] frame too small (%d) to read additional payload length bytes (%d)\n", socket->fd, frame.size(), minsize);
+        //printf"[%d] frame too small (%d) to read additional payload length bytes (%d)\n", socket->fd, frame.size(), minsize);
         return nullptr;
       }
 
@@ -707,7 +719,7 @@ namespace Net {
       if (mask) {
         minsize += 4;
         if (frame.size() < minsize) {
-          printf("[%d] frame too small (%d) to read mask key bytes (%d)\n", socket->fd, frame.size(), minsize);
+          //printf"[%d] frame too small (%d) to read mask key bytes (%d)\n", socket->fd, frame.size(), minsize);
           return nullptr;
         }
 
@@ -724,7 +736,7 @@ namespace Net {
 
       // not enough data in frame yet?
       if (frame.size() - i < len) {
-        printf("[%d] frame too small (%d) to read full payload (%d)\n", socket->fd, frame.size(), i + len);
+        //printf"[%d] frame too small (%d) to read full payload (%d)\n", socket->fd, frame.size(), i + len);
         return nullptr;
       }
 
@@ -755,12 +767,12 @@ namespace Net {
 
       // if no FIN flag set, wait for more frames:
       if (!fin) {
-        printf("[%d] FIN not set\n", socket->fd);
+        //printf"[%d] FIN not set\n", socket->fd);
         return nullptr;
       }
 
       // return final message:
-      printf("[%d] FIN set; returning message\n", socket->fd);
+      //printf"[%d] FIN set; returning message\n", socket->fd);
       auto tmp = message;
       message = nullptr;
       return tmp;
@@ -809,11 +821,11 @@ namespace Net {
       }
       if (rc < 0) {
         // TODO: maintain sending state machine
-        printf("[%d] send() error!\n", socket->fd);
+        //printf"[%d] send() error!\n", socket->fd);
         return;
       }
       if (rc < outframe.size()) {
-        printf("[%d] send() failed to send entire frame!\n", socket->fd);
+        //printf"[%d] send() failed to send entire frame!\n", socket->fd);
         return;
       }
     }
@@ -1051,17 +1063,17 @@ namespace Net {
       // make sure we have a script context:
       asIScriptContext *ctx = asGetActiveContext();
       if (!ctx) {
-        printf("WebSocketServer requires a current script context\n");
+        //printf"WebSocketServer requires a current script context\n");
         return;
       }
       asIScriptEngine* engine = ctx->GetEngine();
       if (!engine) {
-        printf("WebSocketServer requires a current script engine instance\n");
+        //printf"WebSocketServer requires a current script engine instance\n");
         return;
       }
       asITypeInfo* typeInfo = engine->GetTypeInfoByDecl("array<net::WebSocket@>");
       if (!typeInfo) {
-        printf("WebSocketServer could not find script TypeInfo for `array<net::WebSocket@>`\n");
+        //printf"WebSocketServer could not find script TypeInfo for `array<net::WebSocket@>`\n");
         return;
       }
 
@@ -1262,8 +1274,6 @@ auto RegisterNet(asIScriptEngine *e) -> void {
     return (bool) FD_ISSET(sock.fd, &fds);
   })), asCALL_CDECL); assert( r >= 0 );
 
-  // TODO(jsd): disable websockets for now since nothing uses it. Too lazy to remove THISCALLs here.
-#ifdef SCRIPT_WEBSOCKETS
   r = e->RegisterObjectType("WebSocketMessage", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_FACTORY, "WebSocketMessage@ f(uint8 opcode)", asFUNCTION(Net::create_web_socket_message), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterObjectBehaviour("WebSocketMessage", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::WebSocketMessage, addRef), asCALL_THISCALL); assert( r >= 0 );
@@ -1288,7 +1298,7 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::WebSocketHandshaker, addRef), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectBehaviour("WebSocketHandshaker", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::WebSocketHandshaker, release), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocketHandshaker", "Socket@ get_socket() property", asMETHOD(Net::WebSocketHandshaker, get_socket), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("WebSocketHandshaker", "WebSocket@ handshake()", asMETHOD(Net::WebSocketHandshaker, handshake), asCALL_THISCALL); assert( r >= 0 );    r = e->RegisterObjectType("WebSocketHandshaker", 0, asOBJ_REF); assert(r >= 0);
+  r = e->RegisterObjectMethod("WebSocketHandshaker", "WebSocket@ handshake()", asMETHOD(Net::WebSocketHandshaker, handshake), asCALL_THISCALL); assert( r >= 0 );
 
   r = e->RegisterObjectType("WebSocketServer", 0, asOBJ_REF); assert(r >= 0);
   r = e->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_FACTORY, "WebSocketServer@ f(string &in uri)", asFUNCTION(Net::create_web_socket_server), asCALL_CDECL); assert(r >= 0);
@@ -1296,5 +1306,4 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   r = e->RegisterObjectBehaviour("WebSocketServer", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::WebSocketServer, release), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocketServer", "array<WebSocket@> &get_clients() property", asMETHOD(Net::WebSocketServer, get_clients), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocketServer", "int process()", asMETHOD(Net::WebSocketServer, process), asCALL_THISCALL); assert( r >= 0 );
-#endif
 }
