@@ -31,7 +31,7 @@ struct Bus {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the output array", true);
       return;
     }
-    if (addr + size > 0xFFFFFF) {
+    if (addr + size > 0x1000000) {
       asGetActiveContext()->SetException("addr + size exceeds the address space", true);
       return;
     }
@@ -58,7 +58,7 @@ struct Bus {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the output array", true);
       return;
     }
-    if (addr + (size << 1) > 0xFFFFFF) {
+    if (addr + (size << 1) > 0x1000000) {
       asGetActiveContext()->SetException("addr + size exceeds the address space", true);
       return;
     }
@@ -128,7 +128,7 @@ struct Bus {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the input array", true);
       return;
     }
-    if (addr + size > 0xFFFFFF) {
+    if (addr + size > 0x1000000) {
       asGetActiveContext()->SetException("addr + size exceeds the address space", true);
       return;
     }
@@ -159,7 +159,7 @@ struct Bus {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the input array", true);
       return;
     }
-    if (addr + (size << 1) > 0xFFFFFF) {
+    if (addr + (size << 1) > 0x1000000) {
       asGetActiveContext()->SetException("addr + size exceeds the address space", true);
       return;
     }
