@@ -301,6 +301,7 @@ namespace Net {
         delete this;
         return true;
       }
+
       return false;
     }
 
@@ -348,6 +349,8 @@ namespace Net {
 
     // bind to an address:
     auto bind(const Address *addr) -> int {
+      if (fd < 0) return 0;
+
       int rc = ::bind(fd, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " bind";
       last_error = 0;
       if (rc < 0) {
@@ -359,6 +362,8 @@ namespace Net {
 
     // connect to an address:
     auto connect(const Address *addr) -> int {
+      if (fd < 0) return 0;
+
       int rc = ::connect(fd, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " connect";
       last_error = 0;
       if (rc < 0) {
@@ -370,6 +375,8 @@ namespace Net {
 
     // start listening for connections:
     auto listen(int backlog = 32) -> int {
+      if (fd < 0) return 0;
+
       int rc = ::listen(fd, backlog); last_error_location = LOCATION " listen";
       last_error = 0;
       if (rc < 0) {
@@ -381,6 +388,10 @@ namespace Net {
 
     // accept a connection:
     auto accept() -> Socket* {
+      if (fd < 0) {
+        return nullptr;
+      }
+
       // non-blocking sockets don't require a poll() because accept() handles non-blocking scenario itself.
 
       // accept incoming connection, discard client address:
@@ -404,6 +415,8 @@ namespace Net {
 
     // attempt to receive data:
     auto recv(int offs, int size, CScriptArray* buffer) -> int {
+      if (fd < 0) return 0;
+
 #if !defined(PLATFORM_WINDOWS)
       int rc = ::recv(fd, buffer->At(offs), size, 0); last_error_location = LOCATION " recv";
 #else
@@ -422,6 +435,8 @@ namespace Net {
 
     // attempt to send data:
     auto send(int offs, int size, CScriptArray* buffer) -> int {
+      if (fd < 0) return 0;
+
 #if !defined(PLATFORM_WINDOWS)
       int rc = ::send(fd, buffer->At(offs), size, 0); last_error_location = LOCATION " send";
 #else
@@ -444,6 +459,8 @@ namespace Net {
 
     // attempt to receive data and record address of sender (e.g. for UDP):
     auto recvfrom(int offs, int size, CScriptArray* buffer) -> int {
+      if (fd < 0) return 0;
+
 #if !defined(PLATFORM_WINDOWS)
       int rc = ::recvfrom(fd, buffer->At(offs), size, 0, (struct sockaddr *)&recvaddr, &recvaddrlen); last_error_location = LOCATION " recvfrom";
 #else
@@ -462,6 +479,8 @@ namespace Net {
 
     // attempt to send data to specific address (e.g. for UDP):
     auto sendto(int offs, int size, CScriptArray* buffer, const Address* addr) -> int {
+      if (fd < 0) return 0;
+
 #if !defined(PLATFORM_WINDOWS)
       int rc = ::sendto(fd, buffer->At(offs), size, 0, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " sendto";
 #else
@@ -479,6 +498,8 @@ namespace Net {
     }
 
     auto recv_append(string &s) -> uint64_t {
+      if (fd < 0) return 0;
+
       uint8_t rawbuf[4096];
       uint64_t total = 0;
 
@@ -509,6 +530,8 @@ namespace Net {
     }
 
     auto recv_buffer(vector<uint8_t>& buffer) -> uint64_t {
+      if (fd < 0) return 0;
+
       uint8_t rawbuf[4096];
       uint64_t total = 0;
 
@@ -536,6 +559,8 @@ namespace Net {
     }
 
     auto send_buffer(array_view<uint8_t> buffer) -> int {
+      if (fd < 0) return 0;
+
 #if !defined(PLATFORM_WINDOWS)
       int rc = ::send(fd, buffer.data(), buffer.size(), 0); last_error_location = LOCATION " send";
 #else
@@ -1248,11 +1273,14 @@ auto RegisterNet(asIScriptEngine *e) -> void {
     ([](Net::Socket& self, int offs, int size, CScriptArray* buffer, const Net::Address* addr) { return self.sendto(offs, size, buffer, addr); })
   );
 
-  r = e->RegisterGlobalFunction("bool is_writable(Socket@ sock)", asFUNCTION(+([](Net::Socket &sock) {
+  r = e->RegisterGlobalFunction("bool is_writable(const Socket &in)", asFUNCTION(+([](Net::Socket *sock) -> bool {
+    if (!sock) return false;
+    if (!*sock) return false;
+
     timeval zero {0, 0};
     fd_set fds;
     FD_ZERO(&fds);
-    FD_SET(sock.fd, &fds);
+    FD_SET(sock->fd, &fds);
 
     Net::last_error = 0;
     int rc = select(FD_SETSIZE, NULL, &fds, NULL, &zero);
@@ -1260,14 +1288,17 @@ auto RegisterNet(asIScriptEngine *e) -> void {
       Net::last_error = sock_capture_error();
       return false;
     }
-    return (bool) FD_ISSET(sock.fd, &fds);
+    return (bool) FD_ISSET(sock->fd, &fds);
   })), asCALL_CDECL); assert( r >= 0 );
 
-  r = e->RegisterGlobalFunction("bool is_readable(Socket@ sock)", asFUNCTION(+([](Net::Socket &sock) {
+  r = e->RegisterGlobalFunction("bool is_readable(const Socket &in)", asFUNCTION(+([](Net::Socket *sock) -> bool {
+    if (!sock) return false;
+    if (!*sock) return false;
+
     timeval zero {0, 0};
     fd_set fds;
     FD_ZERO(&fds);
-    FD_SET(sock.fd, &fds);
+    FD_SET(sock->fd, &fds);
 
     Net::last_error = 0;
     int rc = select(FD_SETSIZE, &fds, NULL, NULL, &zero);
@@ -1275,7 +1306,7 @@ auto RegisterNet(asIScriptEngine *e) -> void {
       Net::last_error = sock_capture_error();
       return false;
     }
-    return (bool) FD_ISSET(sock.fd, &fds);
+    return (bool) FD_ISSET(sock->fd, &fds);
   })), asCALL_CDECL); assert( r >= 0 );
 
   r = e->RegisterObjectType("WebSocketMessage", 0, asOBJ_REF); assert(r >= 0);
