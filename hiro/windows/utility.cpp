@@ -191,11 +191,20 @@ static auto CALLBACK Shared_windowProc(WindowProc windowProc, HWND hwnd, UINT ms
     //note that this happens always: default colors are black text on a white background, unless overridden
     //this intentionally overrides the default behavior of Windows to paint disabled controls with the window background color
 
+    HBRUSH hbrush = nullptr;
+
+    #if defined(Hiro_Window) && defined(Hiro_TabFrame)
+    if(!object->parentTabFrame(true) && window->self()->hbrush) {
+      SetBkColor((HDC)wparam, window->self()->hbrushColor);
+      hbrush = window->self()->hbrush;
+    }
+    #endif
+
     #if defined(Hiro_HexEdit)
     if(auto hexEdit = dynamic_cast<mHexEdit*>(object)) {
       if(auto background = hexEdit->backgroundColor()) SetBkColor((HDC)wparam, CreateRGB(background));
       if(auto foreground = hexEdit->foregroundColor()) SetTextColor((HDC)wparam, CreateRGB(foreground));
-      return (LRESULT)hexEdit->self()->backgroundBrush;
+      hbrush = hexEdit->self()->backgroundBrush;
     }
     #endif
 
@@ -203,7 +212,7 @@ static auto CALLBACK Shared_windowProc(WindowProc windowProc, HWND hwnd, UINT ms
     if(auto lineEdit = dynamic_cast<mLineEdit*>(object)) {
       if(auto background = lineEdit->backgroundColor()) SetBkColor((HDC)wparam, CreateRGB(background));
       if(auto foreground = lineEdit->foregroundColor()) SetTextColor((HDC)wparam, CreateRGB(foreground));
-      return (LRESULT)lineEdit->self()->backgroundBrush;
+      hbrush = lineEdit->self()->backgroundBrush;
     }
     #endif
 
@@ -211,16 +220,13 @@ static auto CALLBACK Shared_windowProc(WindowProc windowProc, HWND hwnd, UINT ms
     if(auto textEdit = dynamic_cast<mTextEdit*>(object)) {
       if(auto background = textEdit->backgroundColor()) SetBkColor((HDC)wparam, CreateRGB(background));
       if(auto foreground = textEdit->foregroundColor()) SetTextColor((HDC)wparam, CreateRGB(foreground));
-      return (LRESULT)textEdit->self()->backgroundBrush;
+      hbrush = textEdit->self()->backgroundBrush;
     }
     #endif
 
-    #if defined(Hiro_Window) && defined(Hiro_TabFrame)
-    if(!object->parentTabFrame(true) && window->self()->hbrush) {
-      SetBkColor((HDC)wparam, window->self()->hbrushColor);
-      return (LRESULT)window->self()->hbrush;
+    if (hbrush) {
+      return (LRESULT)hbrush;
     }
-    #endif
 
     break;
   }
