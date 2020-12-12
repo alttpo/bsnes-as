@@ -599,9 +599,13 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(LineEdit);
   EXPOSE_HIRO_SIZABLE(LineEdit);
   EXPOSE_HIRO_WIDGET(LineEdit);
-  REG_LAMBDA(LineEdit, "string get_text() property",                    ([](hiro::LineEdit* self){ return self->text(); }));
-  REG_LAMBDA(LineEdit, "void set_text(const string &in text) property", ([](hiro::LineEdit* self, string &text){ self->setText(text); }));
-  REG_LAMBDA(LineEdit, "void onChange(Callback @cb)",                   ([](hiro::LineEdit* self, asIScriptFunction* cb) { self->onChange(Callback(cb)); }));
+  REG_LAMBDA(LineEdit, "string get_text() property",                         ([](hiro::LineEdit* self){ return self->text(); }));
+  REG_LAMBDA(LineEdit, "void set_text(const string &in text) property",      ([](hiro::LineEdit* self, string &text){ self->setText(text); }));
+  REG_LAMBDA(LineEdit, "void onChange(Callback @cb)",                        ([](hiro::LineEdit* self, asIScriptFunction* cb) { self->onChange(Callback(cb)); }));
+  REG_LAMBDA(LineEdit, "Color@ get_backgroundColor() property",              ([](hiro::LineEdit* self){ return new hiro::Color(self->backgroundColor()); }));
+  REG_LAMBDA(LineEdit, "Color@ get_foregroundColor() property",              ([](hiro::LineEdit* self){ return new hiro::Color(self->foregroundColor()); }));
+  REG_LAMBDA(LineEdit, "void set_backgroundColor(const Color &in) property", ([](hiro::LineEdit* self, const hiro::Color &color){ self->setBackgroundColor(color); }));
+  REG_LAMBDA(LineEdit, "void set_foregroundColor(const Color &in) property", ([](hiro::LineEdit* self, const hiro::Color &color){ self->setForegroundColor(color); }));
 
   // Label
   EXPOSE_HIRO(Label);
