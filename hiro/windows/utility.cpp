@@ -191,13 +191,6 @@ static auto CALLBACK Shared_windowProc(WindowProc windowProc, HWND hwnd, UINT ms
     //note that this happens always: default colors are black text on a white background, unless overridden
     //this intentionally overrides the default behavior of Windows to paint disabled controls with the window background color
 
-    #if defined(Hiro_Window) && defined(Hiro_TabFrame)
-    if(!object->parentTabFrame(true) && window->self()->hbrush) {
-      SetBkColor((HDC)wparam, window->self()->hbrushColor);
-      return (LRESULT)window->self()->hbrush;
-    }
-    #endif
-
     #if defined(Hiro_HexEdit)
     if(auto hexEdit = dynamic_cast<mHexEdit*>(object)) {
       if(auto background = hexEdit->backgroundColor()) SetBkColor((HDC)wparam, CreateRGB(background));
@@ -219,6 +212,13 @@ static auto CALLBACK Shared_windowProc(WindowProc windowProc, HWND hwnd, UINT ms
       if(auto background = textEdit->backgroundColor()) SetBkColor((HDC)wparam, CreateRGB(background));
       if(auto foreground = textEdit->foregroundColor()) SetTextColor((HDC)wparam, CreateRGB(foreground));
       return (LRESULT)textEdit->self()->backgroundBrush;
+    }
+    #endif
+
+    #if defined(Hiro_Window) && defined(Hiro_TabFrame)
+    if(!object->parentTabFrame(true) && window->self()->hbrush) {
+      SetBkColor((HDC)wparam, window->self()->hbrushColor);
+      return (LRESULT)window->self()->hbrush;
     }
     #endif
 
