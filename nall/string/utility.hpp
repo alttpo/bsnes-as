@@ -88,7 +88,7 @@ auto slice(string_view self, int offset, int length) -> string {
   if(offset < 0) offset = self.size() - abs(offset);
   if(offset < 0 || offset >= self.size()) return result;
 
-  if(length < 0) length = self.size() - offset;
+  if(length < 0) length = self.size() - offset + length + 1;
   if(length < 0) return result;
 
   if(offset + length >= self.size()) length = self.size() - offset;
