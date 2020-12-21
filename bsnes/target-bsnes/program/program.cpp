@@ -86,7 +86,8 @@ auto Program::create() -> void {
   }
   if(scriptHostState.location) scriptReload();
   else if(settings.script.autoLoadLocation) {
-    scriptHostState.location = settings.script.autoLoadLocation;
+    scriptMessage({"Auto-loading script file '", (settings.script.autoLoadLocation), "'"}, true);
+    setScriptLocation(settings.script.autoLoadLocation);
     scriptReload();
   }
   Application::onMain({&Program::main, this});

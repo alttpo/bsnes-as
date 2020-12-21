@@ -149,6 +149,7 @@ struct Program : Lock, Emulator::Platform {
   auto scriptLoad(bool loadDirectory = false) -> void;
   auto scriptReload() -> void;
   auto scriptUnload() -> void;
+  auto setScriptLocation(const string& location) -> void;
 
 public:
   struct Game {

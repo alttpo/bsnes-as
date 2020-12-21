@@ -25,6 +25,35 @@ auto Program::presentationWindow() -> hiro::Window {
   return presentation;
 }
 
+auto Program::setScriptLocation(const string& location) -> void {
+  if (location.beginsWith("/")) {
+    scriptHostState.location = location;
+    return;
+  }
+
+  string relpath = location;
+  if (relpath.beginsWith("./")) {
+    relpath = relpath.slice(2);
+  }
+
+  auto programFolder = Location::path(Path::program());
+#if defined(PLATFORM_MACOS)
+  // On MacOS, remove "/bsnes.app/Contents/MacOS/" suffix to get the folder containing the bsnes.app/ folder:
+  if (programFolder.iendsWith("/Contents/MacOS/")) {
+    programFolder = programFolder.slice(0, -strlen("/Contents/MacOS/"));
+    if (Location::suffix(programFolder) == ".app") {
+      // remove final "/bsnes.app/" suffix without hardcoding its name to allow us to be flexible with .app renames:
+      programFolder = Location::dir(programFolder);
+    }
+  }
+#endif
+
+  string abspath = programFolder;
+  abspath.append(relpath);
+
+  scriptHostState.location = abspath;
+}
+
 auto Program::scriptInit() -> void {
   scriptCreateEngine();
 
