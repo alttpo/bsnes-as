@@ -22,7 +22,7 @@ endif
 
 ifeq ($(discord),false)
   discord.flags += -DDISCORD_DISABLE=1
-  discord.options :=
+  discord.options =
 endif
 
 discord.objects := achievement_manager \

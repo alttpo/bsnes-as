@@ -27,13 +27,15 @@ obj/ui-resource.o: $(ui)/resource/resource.cpp
 
 all: $(objects) $(hiro.objects) $(ruby.objects) $(angel.objects) $(discord.objects)
 	$(info Linking out/$(name) ...)
-ifeq ($(platform),windows)
+ifeq ($(discord),true)
+ ifeq ($(platform),windows)
 	cp ../lib/$(arch)/discord_game_sdk.dll* .
-else ifeq ($(platform),macos)
+ else ifeq ($(platform),macos)
 	cp ../lib/$(arch)/discord_game_sdk.bundle .
 	cp ../lib/$(arch)/discord_game_sdk.dylib .
-else ifeq ($(platform),linux)
+ else ifeq ($(platform),linux)
 	cp ../lib/$(arch)/discord_game_sdk.so .
+ endif
 endif
 	+@$(compiler) -o out/$(name) $(hiro.objects) $(ruby.objects) $(angel.objects) $(discord.objects) $(objects) $(hiro.options) $(ruby.options) $(angel.options) $(discord.options) $(options)
 ifeq ($(platform),windows)
