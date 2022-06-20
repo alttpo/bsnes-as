@@ -9,8 +9,8 @@ ifeq ($(platform),windows)
   endif
 
   ifeq ($(hiro),gtk2)
-    hiro.flags   = $(flags.cpp) -DHIRO_GTK=2 $(shell pkg-config --cflags gtk+-2.0 gtksourceview-2.0)
-    hiro.options = $(shell pkg-config --libs gtk+-2.0 gtksourceview-2.0)
+    hiro.flags   = $(flags.cpp) -DHIRO_GTK=2 $(shell pkg-config --cflags gtk+-2.0)
+    hiro.options = $(shell pkg-config --libs gtk+-2.0)
   endif
 
   ifeq ($(hiro),gtk3)
@@ -36,8 +36,8 @@ ifneq ($(filter $(platform),linux bsd),)
   endif
 
   ifeq ($(hiro),gtk2)
-    hiro.flags   = $(flags.cpp) -DHIRO_GTK=2 $(shell pkg-config --cflags gtk+-2.0 gtksourceview-2.0)
-    hiro.options = -L/usr/local/lib -lX11 $(shell pkg-config --libs gtk+-2.0 gtksourceview-2.0)
+    hiro.flags   = $(flags.cpp) -DHIRO_GTK=2 $(shell pkg-config --cflags gtk+-2.0)
+    hiro.options = -L/usr/local/lib -lX11 $(shell pkg-config --libs gtk+-2.0)
   endif
 
   ifeq ($(hiro),gtk3)
