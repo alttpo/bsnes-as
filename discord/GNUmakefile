@@ -9,7 +9,11 @@ ifeq ($(platform),windows)
   # arch is 'x86_64' or 'x86'
   discord.options := -L../lib/$(arch) -ldiscord_game_sdk.dll
 else ifeq ($(platform),macos)
-  discord.options := discord_game_sdk.bundle
+  ifeq ($(arch),x86_64)
+    discord.options := discord_game_sdk.bundle
+  else
+    discord = false
+  endif
 else ifeq ($(platform),linux)
   ifeq ($(arch),x86_64)
     discord.options := -Wl,-rpath,'${ORIGIN}':./ discord_game_sdk.so
