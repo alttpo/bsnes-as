@@ -9,12 +9,11 @@ jobs:
     runs-on: ubuntu-22.04
 
     env:
-      makeOptions: -j2
+      makeOptions: -j4
       makeVariables: local=false build=performance
       nightly: bsnes-as-win64-${{github.run_number}}
       buildVersion: ${{github.run_id}}
       platformOptions: platform=windows compiler="x86_64-w64-mingw32-g++-posix" windres="x86_64-w64-mingw32-windres"
-      artifact: bsnes
 
     steps:
       - run: |
@@ -46,7 +45,7 @@ jobs:
           mkdir ${{env.nightly}}
           mkdir ${{env.nightly}}/Database
           mkdir ${{env.nightly}}/Firmware
-          cp -a bsnes/out/bsnes ${{env.nightly}}/bsnes.exe
+          cp -a bsnes/out/bsnes.exe ${{env.nightly}}/bsnes.exe
           cp -a bsnes/out/bsnes_libretro.dll ${{env.nightly}}/ || true
           cp -a bsnes/out/discord_game_sdk.dll ${{env.nightly}}/
           cp -a bsnes/Database/* ${{env.nightly}}/Database
@@ -60,7 +59,7 @@ jobs:
         with:
           name: '${{env.nightly}}'
           path: '${{env.nightly}}'
-#
+
 #  win32:
 #    runs-on: ubuntu-22.04
 #    env:
