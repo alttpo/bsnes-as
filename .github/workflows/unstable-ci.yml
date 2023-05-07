@@ -154,7 +154,7 @@ jobs:
 #          path: '${{env.nightly}}'
 
   macos:
-    runs-on: macOS-10.14
+    runs-on: macos-12
 
     env:
       makeOptions: -j4
