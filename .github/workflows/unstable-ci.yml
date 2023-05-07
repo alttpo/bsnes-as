@@ -60,60 +60,61 @@ jobs:
           name: '${{env.nightly}}'
           path: '${{env.nightly}}'
 
-  win32:
-    runs-on: ubuntu-22.04
-
-    env:
-      makeOptions: -j4
-      makeVariables: local=false build=performance
-      nightly: bsnes-as-win32-${{github.run_number}}
-      buildVersion: ${{github.run_id}}
-      platformOptions: platform=windows arch=x86 compiler="i686-w64-mingw32-g++-posix" windres="i686-w64-mingw32-windres"
-
-    steps:
-      - run: |
-          echo 'win64'
-          set -e
-          sudo apt-get update
-          sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-i686
-        shell: bash
-        name: 'setup'
-
-      - uses: actions/checkout@v3
-        name: Checkout
-        with:
-          fetch-depth: 0
-
-      - run: |
-          echo '#define BSNES_BUILD_NUMBER "'"${{env.buildVersion}}"'"' > bsnes/emulator/version.generated.hpp
-          make ${{env.makeOptions}} -C bsnes target=bsnes ${{env.makeVariables}} ${{env.platformOptions}}
-        shell: bash
-        name: 'make bsnes'
-
-      - run: |
-          rm -f bsnes/obj/sfc-*.o bsnes/obj/core.o bsnes/obj/emulator.o || true
-          make ${{env.makeOptions}} -C bsnes target=libretro ${{env.makeVariables}} ${{env.platformOptions}} || true
-        shell: bash
-        name: 'make libretro'
-
-      - run: |
-          mkdir ${{env.nightly}}
-          mkdir ${{env.nightly}}/Database
-          mkdir ${{env.nightly}}/Firmware
-          cp -a bsnes/out/bsnes.exe ${{env.nightly}}/bsnes.exe
-          cp -a bsnes/out/bsnes_libretro.dll ${{env.nightly}}/ || true
-          cp -a bsnes/out/discord_game_sdk.dll ${{env.nightly}}/
-          cp -a bsnes/Database/* ${{env.nightly}}/Database
-          cp -a shaders ${{env.nightly}}/Shaders
-          cp -a scripts ${{env.nightly}}/scripts
-          cp -a GPLv3.txt ${{env.nightly}}
-        shell: bash
-        name: 'package'
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: '${{env.nightly}}'
-          path: '${{env.nightly}}'
+# NOTE: disabled due to compilation failures with angelscript/source/as_callfunc_x86.cpp
+#  win32:
+#    runs-on: ubuntu-22.04
+#
+#    env:
+#      makeOptions: -j4
+#      makeVariables: local=false build=performance
+#      nightly: bsnes-as-win32-${{github.run_number}}
+#      buildVersion: ${{github.run_id}}
+#      platformOptions: platform=windows arch=x86 compiler="i686-w64-mingw32-g++-posix" windres="i686-w64-mingw32-windres"
+#
+#    steps:
+#      - run: |
+#          echo 'win64'
+#          set -e
+#          sudo apt-get update
+#          sudo apt-get -qq install -y --no-install-recommends ca-certificates make g++-mingw-w64-i686
+#        shell: bash
+#        name: 'setup'
+#
+#      - uses: actions/checkout@v3
+#        name: Checkout
+#        with:
+#          fetch-depth: 0
+#
+#      - run: |
+#          echo '#define BSNES_BUILD_NUMBER "'"${{env.buildVersion}}"'"' > bsnes/emulator/version.generated.hpp
+#          make ${{env.makeOptions}} -C bsnes target=bsnes ${{env.makeVariables}} ${{env.platformOptions}}
+#        shell: bash
+#        name: 'make bsnes'
+#
+#      - run: |
+#          rm -f bsnes/obj/sfc-*.o bsnes/obj/core.o bsnes/obj/emulator.o || true
+#          make ${{env.makeOptions}} -C bsnes target=libretro ${{env.makeVariables}} ${{env.platformOptions}} || true
+#        shell: bash
+#        name: 'make libretro'
+#
+#      - run: |
+#          mkdir ${{env.nightly}}
+#          mkdir ${{env.nightly}}/Database
+#          mkdir ${{env.nightly}}/Firmware
+#          cp -a bsnes/out/bsnes.exe ${{env.nightly}}/bsnes.exe
+#          cp -a bsnes/out/bsnes_libretro.dll ${{env.nightly}}/ || true
+#          cp -a bsnes/out/discord_game_sdk.dll ${{env.nightly}}/
+#          cp -a bsnes/Database/* ${{env.nightly}}/Database
+#          cp -a shaders ${{env.nightly}}/Shaders
+#          cp -a scripts ${{env.nightly}}/scripts
+#          cp -a GPLv3.txt ${{env.nightly}}
+#        shell: bash
+#        name: 'package'
+#
+#      - uses: actions/upload-artifact@v3
+#        with:
+#          name: '${{env.nightly}}'
+#          path: '${{env.nightly}}'
 
 #  macos:
 #    imageName: 'macOS-10.14'
@@ -151,7 +152,54 @@ jobs:
 #        with:
 #          name: '${{env.nightly}}'
 #          path: '${{env.nightly}}'
-#
+
+  macos:
+    runs-on: macOS-10.14
+
+    env:
+      makeOptions: -j4
+      makeVariables: local=false build=performance
+      nightly: bsnes-as-macos-${{github.run_number}}
+      buildVersion: ${{github.run_id}}
+      platformOptions:
+
+    steps:
+      - run: |
+          echo 'macos'
+        shell: bash
+        name: 'setup'
+
+      - uses: actions/checkout@v3
+        name: Checkout
+        with:
+          fetch-depth: 0
+
+      - run: |
+          echo '#define BSNES_BUILD_NUMBER "'"${{env.buildVersion}}"'"' > bsnes/emulator/version.generated.hpp
+          make ${{env.makeOptions}} -C bsnes target=bsnes ${{env.makeVariables}} ${{env.platformOptions}}
+        shell: bash
+        name: 'make bsnes'
+
+      - run: |
+          rm -f bsnes/obj/sfc-*.o bsnes/obj/core.o bsnes/obj/emulator.o || true
+          make ${{env.makeOptions}} -C bsnes target=libretro ${{env.makeVariables}} ${{env.platformOptions}} || true
+        shell: bash
+        name: 'make libretro'
+
+      - run: |
+          mkdir ${{env.nightly}}
+          cp -a bsnes/out/bsnes.app ${{env.nightly}}/
+          cp -a bsnes/out/bsnes_libretro.dylib ${{env.nightly}}/ || true
+          cp -a scripts ${{env.nightly}}/scripts
+          cp -a GPLv3.txt ${{env.nightly}}/
+        shell: bash
+        name: 'package'
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: '${{env.nightly}}'
+          path: '${{env.nightly}}'
+
 #  linux:
 #    imageName: 'ubuntu-22.04'
 #    platformOptions:
