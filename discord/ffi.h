@@ -7,7 +7,10 @@ extern "C" {
 
 #include <stdint.h>
 #include <string.h>
-#ifndef __cplusplus
+
+#ifdef __cplusplus
+#include <cstdint>
+#else
 #include <stdbool.h>
 #endif
 
