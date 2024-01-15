@@ -1,8 +1,5 @@
 
-on:
-  push:
-   branches:
-     - unstable
+on: push
 
 jobs:
   win64:
@@ -11,7 +8,8 @@ jobs:
     env:
       makeOptions: -j4
       makeVariables: local=false build=performance
-      nightly: bsnes-as-win64-${{github.run_number}}
+      #nightly: bsnes-as-win64-${{github.run_number}}
+      nightly: bsnes-as-win64
       buildVersion: ${{github.run_id}}
       platformOptions: platform=windows compiler="x86_64-w64-mingw32-g++-posix" windres="x86_64-w64-mingw32-windres"
 
@@ -35,18 +33,18 @@ jobs:
         shell: bash
         name: 'make bsnes'
 
-      - run: |
-          rm -f bsnes/obj/sfc-*.o bsnes/obj/core.o bsnes/obj/emulator.o || true
-          make ${{env.makeOptions}} -C bsnes target=libretro ${{env.makeVariables}} ${{env.platformOptions}} || true
-        shell: bash
-        name: 'make libretro'
+#      - run: |
+#          rm -f bsnes/obj/sfc-*.o bsnes/obj/core.o bsnes/obj/emulator.o || true
+#          make ${{env.makeOptions}} -C bsnes target=libretro ${{env.makeVariables}} ${{env.platformOptions}} || true
+#        shell: bash
+#        name: 'make libretro'
 
       - run: |
           mkdir ${{env.nightly}}
           mkdir ${{env.nightly}}/Database
           mkdir ${{env.nightly}}/Firmware
           cp -a bsnes/out/bsnes.exe ${{env.nightly}}/bsnes.exe
-          cp -a bsnes/out/bsnes_libretro.dll ${{env.nightly}}/ || true
+          #cp -a bsnes/out/bsnes_libretro.dll ${{env.nightly}}/ || true
           cp -a bsnes/out/discord_game_sdk.dll ${{env.nightly}}/
           cp -a bsnes/Database/* ${{env.nightly}}/Database
           cp -a shaders ${{env.nightly}}/Shaders
@@ -55,10 +53,20 @@ jobs:
         shell: bash
         name: 'package'
 
+      - run: Compress-Archive -Path ${{env.nightly}}/* -Destination ${{env.nightly}}.zip
+        shell: pwsh
+        name: 'archive'
+
       - uses: actions/upload-artifact@v3
         with:
-          name: '${{env.nightly}}'
-          path: '${{env.nightly}}'
+          name: '${{env.nightly}}.zip'
+          path: '${{env.nightly}}.zip'
+
+      - name: release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: '${{env.nightly}}.zip'
 
 # NOTE: disabled due to compilation failures with angelscript/source/as_callfunc_x86.cpp
 #  win32:
@@ -122,7 +130,8 @@ jobs:
     env:
       makeOptions: -j4
       makeVariables: local=false build=performance
-      nightly: bsnes-as-macos-${{github.run_number}}
+      #nightly: bsnes-as-macos-${{github.run_number}}
+      nightly: bsnes-as-macos
       buildVersion: ${{github.run_id}}
       platformOptions:
 
@@ -143,25 +152,35 @@ jobs:
         shell: bash
         name: 'make bsnes'
 
-      - run: |
-          rm -f bsnes/obj/sfc-*.o bsnes/obj/core.o bsnes/obj/emulator.o || true
-          make ${{env.makeOptions}} -C bsnes target=libretro ${{env.makeVariables}} ${{env.platformOptions}} || true
-        shell: bash
-        name: 'make libretro'
+#      - run: |
+#          rm -f bsnes/obj/sfc-*.o bsnes/obj/core.o bsnes/obj/emulator.o || true
+#          make ${{env.makeOptions}} -C bsnes target=libretro ${{env.makeVariables}} ${{env.platformOptions}} || true
+#        shell: bash
+#        name: 'make libretro'
 
       - run: |
           mkdir ${{env.nightly}}
           cp -a bsnes/out/bsnes.app ${{env.nightly}}/
-          cp -a bsnes/out/bsnes_libretro.dylib ${{env.nightly}}/ || true
+          #cp -a bsnes/out/bsnes_libretro.dylib ${{env.nightly}}/ || true
           cp -a scripts ${{env.nightly}}/scripts
           cp -a GPLv3.txt ${{env.nightly}}/
         shell: bash
         name: 'package'
 
+      - run: tar cJf ${{env.nightly}}.tar.xz ${{env.nightly}}/*
+        shell: bash
+        name: 'archive'
+
       - uses: actions/upload-artifact@v3
         with:
-          name: '${{env.nightly}}'
-          path: '${{env.nightly}}'
+          name: '${{env.nightly}}.tar.xz'
+          path: '${{env.nightly}}.tar.xz'
+
+      - name: release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: '${{env.nightly}}.tar.xz'
 
   linux:
     runs-on: ubuntu-22.04
@@ -169,7 +188,8 @@ jobs:
     env:
       makeOptions: -j4
       makeVariables: local=false build=performance
-      nightly: bsnes-as-linux-${{github.run_number}}
+      #nightly: bsnes-as-linux-${{github.run_number}}
+      nightly: bsnes-as-linux
       buildVersion: ${{github.run_id}}
       platformOptions:
 
@@ -194,18 +214,18 @@ jobs:
         shell: bash
         name: 'make bsnes'
 
-      - run: |
-          rm -f bsnes/obj/sfc-*.o bsnes/obj/core.o bsnes/obj/emulator.o || true
-          make ${{env.makeOptions}} -C bsnes target=libretro ${{env.makeVariables}} ${{env.platformOptions}} || true
-        shell: bash
-        name: 'make libretro'
+#      - run: |
+#          rm -f bsnes/obj/sfc-*.o bsnes/obj/core.o bsnes/obj/emulator.o || true
+#          make ${{env.makeOptions}} -C bsnes target=libretro ${{env.makeVariables}} ${{env.platformOptions}} || true
+#        shell: bash
+#        name: 'make libretro'
 
       - run: |
           mkdir ${{env.nightly}}
           mkdir ${{env.nightly}}/Database
           mkdir ${{env.nightly}}/Firmware
           cp -a bsnes/out/bsnes ${{env.nightly}}/bsnes
-          cp -a bsnes/out/bsnes_libretro.so ${{env.nightly}}/ || true
+          #cp -a bsnes/out/bsnes_libretro.so ${{env.nightly}}/ || true
           cp -a bsnes/out/discord_game_sdk.so ${{env.nightly}}/
           cp -a bsnes/Database/* ${{env.nightly}}/Database
           cp -a shaders ${{env.nightly}}/Shaders
@@ -214,7 +234,17 @@ jobs:
         shell: bash
         name: 'package'
 
+      - run: tar cJf ${{env.nightly}}.tar.xz ${{env.nightly}}/*
+        shell: bash
+        name: 'archive'
+
       - uses: actions/upload-artifact@v3
         with:
-          name: '${{env.nightly}}'
-          path: '${{env.nightly}}'
+          name: '${{env.nightly}}.tar.xz'
+          path: '${{env.nightly}}.tar.xz'
+
+      - name: release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: '${{env.nightly}}.tar.xz'
