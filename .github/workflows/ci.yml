@@ -1,8 +1,5 @@
 
-on:
-  push:
-   branches:
-     - unstable
+on: push
 
 jobs:
   win64:
@@ -11,7 +8,8 @@ jobs:
     env:
       makeOptions: -j4
       makeVariables: local=false build=performance
-      nightly: bsnes-as-win64-${{github.run_number}}
+      #nightly: bsnes-as-win64-${{github.run_number}}
+      nightly: bsnes-as-win64
       buildVersion: ${{github.run_id}}
       platformOptions: platform=windows compiler="x86_64-w64-mingw32-g++-posix" windres="x86_64-w64-mingw32-windres"
 
@@ -59,6 +57,12 @@ jobs:
         with:
           name: '${{env.nightly}}'
           path: '${{env.nightly}}'
+
+      - name: release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: '${{env.nightly}}'
 
 # NOTE: disabled due to compilation failures with angelscript/source/as_callfunc_x86.cpp
 #  win32:
@@ -122,7 +126,8 @@ jobs:
     env:
       makeOptions: -j4
       makeVariables: local=false build=performance
-      nightly: bsnes-as-macos-${{github.run_number}}
+      #nightly: bsnes-as-macos-${{github.run_number}}
+      nightly: bsnes-as-macos
       buildVersion: ${{github.run_id}}
       platformOptions:
 
@@ -163,13 +168,20 @@ jobs:
           name: '${{env.nightly}}'
           path: '${{env.nightly}}'
 
+      - name: release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: '${{env.nightly}}'
+
   linux:
     runs-on: ubuntu-22.04
 
     env:
       makeOptions: -j4
       makeVariables: local=false build=performance
-      nightly: bsnes-as-linux-${{github.run_number}}
+      #nightly: bsnes-as-linux-${{github.run_number}}
+      nightly: bsnes-as-linux
       buildVersion: ${{github.run_id}}
       platformOptions:
 
@@ -218,3 +230,9 @@ jobs:
         with:
           name: '${{env.nightly}}'
           path: '${{env.nightly}}'
+
+      - name: release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: '${{env.nightly}}'
