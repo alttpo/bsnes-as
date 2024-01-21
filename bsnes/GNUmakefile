@@ -2,7 +2,7 @@ target := bsnes
 binary := application
 build := performance_debug
 openmp := true
-local := true
+local := false
 script_profiler := false
 discord := true
 flags += -I. -I..
@@ -37,6 +37,11 @@ ifeq ($(platform),windows)
   endif
 else ifeq ($(platform),macos)
   ifeq ($(binary),application)
+    # angelscript native calling convention really only supports x86_64
+    # compiler flags
+    flags += -target x86_64-apple-macos10.12
+    # linker options
+    options += -target x86_64-apple-macos10.12
   else ifeq ($(binary),library)
     flags += -fPIC
     options += -dynamiclib
@@ -69,5 +74,5 @@ include $(ui)/GNUmakefile
 -include obj/*.d
 
 clean:
-	$(call delete,obj/*)
-	$(call delete,out/*)
+	$(call rdelete,obj/*)
+	$(call rdelete,out/*)
