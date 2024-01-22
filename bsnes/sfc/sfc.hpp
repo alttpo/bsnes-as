@@ -152,8 +152,6 @@ namespace SuperFamicom {
     vector<hiro::Window> windows;
 #endif
 
-    vector<ScriptInterface::Net::Socket*> sockets;
-
     struct {
       asIScriptFunction *init = nullptr;
       asIScriptFunction *unload = nullptr;

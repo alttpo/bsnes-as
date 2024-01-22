@@ -223,10 +223,9 @@ namespace ScriptInterface {
   uint32_t  *emulatorPalette;
   uint      emulatorDepth;    // 24 or 30
 
-  struct any{};
-
-  static auto sharedPtrAddRef(shared_pointer<any> &p) {
-    ++p.manager->strong;
+  template<class C>
+  static auto sharedPtrAddRef(shared_pointer<C> &p) {
+    p.manager->strong++;
     //printf("%p ++ -> %d\n", (void*)&p, p.references());
   }
 
@@ -243,8 +242,10 @@ namespace ScriptInterface {
         p.manager->pointer = nullptr;
       }
       if (--p.manager->strong == 0) {
-        delete p.manager;
-        p.manager = nullptr;
+        if(p.manager->weak == 0) {
+          delete p.manager;
+          p.manager = nullptr;
+        }
       }
     }
   }
@@ -300,7 +301,7 @@ namespace ScriptInterface {
   };
 
 #define EXPOSE_SHARED_PTR(name, className, mClassName) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(sharedPtrAddRef), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(+([](className& self){ sharedPtrAddRef<mClassName>(self); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ sharedPtrRelease<mClassName>(self); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
   #include "script-bus.cpp"
@@ -712,12 +713,6 @@ auto Interface::unloadScript() -> void {
   }
   script.windows.reset();
 #endif
-
-  for (auto socket : script.sockets) {
-    // release all script handles to the socket and close it but do not remove it from the script.sockets vector:
-    while (!socket->release(false)) {}
-  }
-  script.sockets.reset();
 
   // unload script:
   platform->scriptInvokeFunction(script.funcs.unload);

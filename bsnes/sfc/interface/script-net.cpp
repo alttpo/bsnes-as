@@ -293,11 +293,8 @@ namespace Net {
     void addRef() {
       ref++;
     }
-    bool release(bool remove = true) {
+    bool release() {
       if (--ref == 0) {
-        if (remove) {
-          script.sockets.removeByValue(this);
-        }
         delete this;
         return true;
       }
@@ -408,7 +405,6 @@ namespace Net {
         delete conn;
         return nullptr;
       }
-      script.sockets.append(conn);
 
       return conn;
     }
@@ -591,7 +587,6 @@ namespace Net {
       delete socket;
       return nullptr;
     }
-    script.sockets.append(socket);
     return socket;
   }
 
