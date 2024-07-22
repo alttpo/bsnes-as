@@ -83,6 +83,12 @@ void Profiler::save() {
   mtx.lock();
 
   auto fb = file_buffer({"perf-", getpid(), ".csv"}, file_buffer::mode::write);
+  if (!fb) {
+      perror("could not write perf.csv file");
+      mtx.unlock();
+      return;
+  }
+
   fb.truncate(0);
   fb.writes({"section,line,samples\n"});
   for (auto &node : sectionLineSamples) {
