@@ -7,7 +7,7 @@ jobs:
 
     env:
       makeOptions: -j4
-      makeVariables: local=false build=performance
+      makeVariables: local=false build=performance platform=windows arch=x86_64
       #nightly: bsnes-as-win64-${{github.run_number}}
       nightly: bsnes-as-win64
       buildVersion: ${{github.run_id}}
@@ -125,11 +125,11 @@ jobs:
 #          path: '${{env.nightly}}'
 
   macos:
-    runs-on: macos-12
+    runs-on: macos-14
 
     env:
-      makeOptions: -j4
-      makeVariables: local=false build=performance
+      makeOptions: -j12
+      makeVariables: local=false build=performance platform=macos arch=arm64
       #nightly: bsnes-as-macos-${{github.run_number}}
       nightly: bsnes-as-macos
       buildVersion: ${{github.run_id}}
@@ -187,7 +187,7 @@ jobs:
 
     env:
       makeOptions: -j4
-      makeVariables: local=false build=performance
+      makeVariables: local=false build=performance platform=linux arch=x86_64
       #nightly: bsnes-as-linux-${{github.run_number}}
       nightly: bsnes-as-linux
       buildVersion: ${{github.run_id}}

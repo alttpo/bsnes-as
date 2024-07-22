@@ -6,11 +6,6 @@ angel.objects := as_atomic \
                  as_bytecode \
                  as_callfunc \
                  as_callfunc_mips \
-                 as_callfunc_x86 \
-                 as_callfunc_x64_gcc \
-                 as_callfunc_x64_msvc \
-                 as_callfunc_x64_mingw \
-                 as_callfunc_arm64 \
                  as_compiler \
                  as_configgroup \
                  as_context \
@@ -38,9 +33,16 @@ angel.objects := as_atomic \
 
 ifeq ($(arch),arm64)
   ifeq ($(platform),macos)
-    angel.objects += as_callfunc_arm64_xcode
+    angel.objects += as_callfunc_arm64 as_callfunc_arm64_xcode
   else
-    angel.objects += as_callfunc_arm64_gcc
+    angel.objects += as_callfunc_arm64 as_callfunc_arm64_gcc
+  endif
+else ifeq ($(arch),x86_64)
+  # TBD: include gcc and msvc?
+  ifeq ($(platform),windows)
+    angel.objects += as_callfunc_x86 as_callfunc_x64_gcc as_callfunc_x64_msvc as_callfunc_x64_mingw
+  else
+    angel.objects += as_callfunc_x86 as_callfunc_x64_gcc as_callfunc_x64_mingw
   endif
 endif
 
