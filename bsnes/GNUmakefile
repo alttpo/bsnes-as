@@ -37,11 +37,12 @@ ifeq ($(platform),windows)
   endif
 else ifeq ($(platform),macos)
   ifeq ($(binary),application)
-    # angelscript native calling convention really only supports x86_64
+    # angelscript <= 2.36.1 native calling convention really only supports x86_64
+    # angelscript >= 2.27.0 native calling convention now supports Apple Silicon M1,M2,M3, etc.
     # compiler flags
-    flags += -target x86_64-apple-macos10.12
+    #flags += -target x86_64-apple-macos10.12
     # linker options
-    options += -target x86_64-apple-macos10.12
+    #options += -target x86_64-apple-macos10.12
   else ifeq ($(binary),library)
     flags += -fPIC
     options += -dynamiclib

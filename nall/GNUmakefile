@@ -48,6 +48,8 @@ ifeq ($(arch),)
       arch := x86
     else ifeq ($(unamem),aarch64)
       arch := aarch64
+    else ifeq ($(unamem),arm64)
+      arch := arm64
     else
       arch := $(unamem)
     endif
@@ -70,6 +72,7 @@ compiler.c      = $(compiler) -x c -std=c11
 compiler.cpp    = $(compiler) -x c++ -std=c++17
 compiler.objc   = $(compiler) -x objective-c -std=c11
 compiler.objcpp = $(compiler) -x objective-c++ -std=c++17
+compiler.S      = as
 
 flags.c      = -x c -std=c11
 flags.cpp    = -x c++ -std=c++17
@@ -201,7 +204,9 @@ compile = \
       $(compiler.c)   $(flags.deps) $(flags) $1 -c $< -o $@ \
    ,$(if $(filter %.cpp,$<), \
       $(compiler.cpp) $(flags.deps) $(flags) $1 -c $< -o $@ \
-    )) \
+   ,$(if $(filter %.S,$<), \
+      $(compiler.S)   $(flags.deps) $(flags) $1 -c $< -o $@ \
+   ))) \
   )
 
 # function rwildcard(directory, pattern)

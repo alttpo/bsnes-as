@@ -10,6 +10,7 @@ angel.objects := as_atomic \
                  as_callfunc_x64_gcc \
                  as_callfunc_x64_msvc \
                  as_callfunc_x64_mingw \
+                 as_callfunc_arm64 \
                  as_compiler \
                  as_configgroup \
                  as_context \
@@ -34,6 +35,15 @@ angel.objects := as_atomic \
                  as_tokenizer \
                  as_typeinfo \
                  as_variablescope
+
+ifeq ($(arch),arm64)
+  ifeq ($(platform),macos)
+    angel.objects += as_callfunc_arm64_xcode
+  else
+    angel.objects += as_callfunc_arm64_gcc
+  endif
+endif
+
 angel.objects := $(angel.objects:%=obj/%.o)
 
 obj/as_atomic.o: $(angel.path)/source/as_atomic.cpp
@@ -45,6 +55,10 @@ obj/as_callfunc_x86.o: $(angel.path)/source/as_callfunc_x86.cpp
 obj/as_callfunc_x64_gcc.o: $(angel.path)/source/as_callfunc_x64_gcc.cpp
 obj/as_callfunc_x64_msvc.o: $(angel.path)/source/as_callfunc_x64_msvc.cpp
 obj/as_callfunc_x64_mingw.o: $(angel.path)/source/as_callfunc_x64_mingw.cpp
+obj/as_callfunc_arm64.o: $(angel.path)/source/as_callfunc_arm64.cpp
+obj/as_callfunc_arm64_gcc.o: $(angel.path)/source/as_callfunc_arm64_gcc.S
+obj/as_callfunc_arm64_msvc.o: $(angel.path)/source/as_callfunc_arm64_msvc.asm
+obj/as_callfunc_arm64_xcode.o: $(angel.path)/source/as_callfunc_arm64_xcode.S
 obj/as_compiler.o: $(angel.path)/source/as_compiler.cpp
 obj/as_configgroup.o: $(angel.path)/source/as_configgroup.cpp
 obj/as_context.o: $(angel.path)/source/as_context.cpp
