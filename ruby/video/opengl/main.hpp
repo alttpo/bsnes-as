@@ -49,9 +49,10 @@ auto OpenGL::setShader(const string& pathname) -> void {
 
   //changing shaders may change input format, which requires the input texture to be recreated
   if(texture) { glDeleteTextures(1, &texture); texture = 0; }
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, getFormat(), getType(), buffer);
+  GL(glGenTextures(1, &texture));
+  GL(glBindTexture(GL_TEXTURE_2D, texture));
+  fprintf(stderr, "w=%d, h=%d\n", width, height);
+  GL(glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, getFormat(), getType(), buffer));
   allocateHistory(historySize);
 }
 
@@ -71,15 +72,15 @@ auto OpenGL::allocateHistory(uint size) -> void {
 
 auto OpenGL::clear() -> void {
   for(auto& p : programs) {
-    glUseProgram(p.program);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, p.framebuffer);
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
+    GL(glUseProgram(p.program));
+    GL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, p.framebuffer));
+    GL(glClearColor(0, 0, 0, 1));
+    GL(glClear(GL_COLOR_BUFFER_BIT));
   }
-  glUseProgram(0);
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-  glClearColor(0, 0, 0, 1);
-  glClear(GL_COLOR_BUFFER_BIT);
+  GL(glUseProgram(0));
+  GL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
+  GL(glClearColor(0, 0, 0, 1));
+  GL(glClear(GL_COLOR_BUFFER_BIT));
 }
 
 auto OpenGL::lock(uint32_t*& data, uint& pitch) -> bool {
@@ -90,9 +91,13 @@ auto OpenGL::lock(uint32_t*& data, uint& pitch) -> bool {
 auto OpenGL::output() -> void {
   clear();
 
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, getFormat(), getType(), buffer);
+  if (width == 0 || height == 0) {
+    return;
+  }
+
+  GL(glActiveTexture(GL_TEXTURE0));
+  GL(glBindTexture(GL_TEXTURE_2D, texture));
+  GL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, getFormat(), getType(), buffer));
 
   struct Source {
     GLuint texture;
@@ -140,7 +145,7 @@ auto OpenGL::output() -> void {
     uint cid = 0;
     for(auto& pixmap : p.pixmaps) {
       glrUniform1i({"pixmap[", cid, "]"}, aid + bid + cid);
-      glrUniform4f({"pixmapSize[", bid, "]"}, pixmap.width, pixmap.height, 1.0 / pixmap.width, 1.0 / pixmap.height);
+      glrUniform4f({"pixmapSize[", cid, "]"}, pixmap.width, pixmap.height, 1.0 / pixmap.width, 1.0 / pixmap.height);
       glActiveTexture(GL_TEXTURE0 + aid + bid + (cid++));
       glBindTexture(GL_TEXTURE_2D, pixmap.texture);
       glrParameters(pixmap.filter, pixmap.wrap);
@@ -160,24 +165,24 @@ auto OpenGL::output() -> void {
   if(relativeWidth) targetWidth = sources[0].width * relativeWidth;
   if(relativeHeight) targetHeight = sources[0].height * relativeHeight;
 
-  glUseProgram(program);
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+  GL(glUseProgram(program));
+  GL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
 
-  glrUniform1i("source[0]", 0);
-  glrUniform4f("targetSize", targetWidth, targetHeight, 1.0 / targetWidth, 1.0 / targetHeight);
-  glrUniform4f("outputSize", outputWidth, outputHeight, 1.0 / outputWidth, 1.0 / outputHeight);
+  GL(glrUniform1i("source[0]", 0));
+  GL(glrUniform4f("targetSize", targetWidth, targetHeight, 1.0 / targetWidth, 1.0 / targetHeight));
+  GL(glrUniform4f("outputSize", outputWidth, outputHeight, 1.0 / outputWidth, 1.0 / outputHeight));
 
-  glrParameters(sources[0].filter, sources[0].wrap);
+  GL(glrParameters(sources[0].filter, sources[0].wrap));
   render(sources[0].width, sources[0].height, outputX, outputY, outputWidth, outputHeight);
 
   if(history.size() > 0) {
     OpenGLTexture frame = history.takeRight();
 
-    glBindTexture(GL_TEXTURE_2D, frame.texture);
+    GL(glBindTexture(GL_TEXTURE_2D, frame.texture));
     if(width == frame.width && height == frame.height) {
-      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, getFormat(), getType(), buffer);
+      GL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, getFormat(), getType(), buffer));
     } else {
-      glTexImage2D(GL_TEXTURE_2D, 0, format, frame.width = width, frame.height = height, 0, getFormat(), getType(), buffer);
+      GL(glTexImage2D(GL_TEXTURE_2D, 0, format, frame.width = width, frame.height = height, 0, getFormat(), getType(), buffer));
     }
 
     history.prepend(frame);
@@ -187,11 +192,11 @@ auto OpenGL::output() -> void {
 auto OpenGL::initialize(const string& shader) -> bool {
   if(!OpenGLBind()) return false;
 
-  glDisable(GL_BLEND);
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_POLYGON_SMOOTH);
-  glDisable(GL_STENCIL_TEST);
-  glEnable(GL_DITHER);
+  GL(glDisable(GL_BLEND));
+  GL(glDisable(GL_DEPTH_TEST));
+  GL(glDisable(GL_POLYGON_SMOOTH));
+  GL(glDisable(GL_STENCIL_TEST));
+  GL(glEnable(GL_DITHER));
 
   program = glCreateProgram();
   vertex = glrCreateShader(program, GL_VERTEX_SHADER, OpenGLOutputVertexShader);
@@ -199,6 +204,9 @@ auto OpenGL::initialize(const string& shader) -> bool {
   fragment = glrCreateShader(program, GL_FRAGMENT_SHADER, OpenGLFragmentShader);
   OpenGLSurface::allocate();
   glrLinkProgram(program);
+#if 1
+  glrDumpProgram(program);
+#endif
 
   setShader(shader);
   return initialized = true;
