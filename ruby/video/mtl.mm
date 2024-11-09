@@ -4,7 +4,7 @@
 
 struct VideoMTL;
 
-const string VertexShaderMetal = R"(
+const string MetalShaders = R"(
 #include <metal_stdlib>
 using namespace metal;
 
@@ -18,21 +18,23 @@ struct VertexOut {
     float2 texCoord [[user(texCoord)]];
 };
 
-vertex VertexOut vertex_main(VertexIn in [[stage_in]]) {
+vertex VertexOut vertex_main(
+    VertexIn in [[stage_in]]
+) {
     VertexOut out;
     out.position = in.position;
     out.texCoord = in.texCoord;
     return out;
 }
-)";
 
-const string FragmentShaderMetal = R"(
-#include <metal_stdlib>
-using namespace metal;
-
-fragment float4 fragment_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]]) {
-    constexpr sampler texSampler (mag_filter::linear, min_filter::linear);
-    return tex.sample(texSampler, in.texCoord);
+fragment float4 fragment_main(
+    VertexOut        in  [[stage_in]],
+    texture2d<float> tex [[texture(0)]],
+    sampler          texSampler [[sampler(0)]]
+) {
+    // Sample the texture at the given texture coordinates
+    float4 color = tex.sample(texSampler, in.texCoord);
+    return color;
 }
 )";
 
@@ -153,7 +155,6 @@ struct VideoMTL : VideoDriver {
 
   auto release() -> void override {
     @autoreleasepool {
-      // printf("upload\n");
       [renderer uploadTexture:_buffer width:_width height:_height];
     }
   }
@@ -190,11 +191,13 @@ private:
 
       auto device = MTLCreateSystemDefaultDevice();
 
-      view = [[RubyMetalKitView alloc] initWith:this frame:NSMakeRect(0, 0, size.width, size.height) device:device];
-      // view = [[MTKView alloc] initWithFrame:NSMakeRect(0, 0, size.width, size.height) device:device];
-      // printf("view initWithFrame:(%d,%d)\n", view.frame.size.width, view.frame.size.height);
+      // view = [[RubyMetalKitView alloc] initWith:this frame:NSMakeRect(0, 0, size.width, size.height) device:device];
+      // view = [[RubyMetalKitView alloc] initWith:this frame:NSMakeRect(0, 0, size.width, size.height) device:device];
+      view = [[MTKView alloc] initWithFrame:NSMakeRect(0, 0, size.width, size.height) device:device];
+      printf("view initWithFrame:(%d,%d)\n", view.frame.size.width, view.frame.size.height);
       view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-      view.colorPixelFormat = MTLPixelFormatRGBA8Unorm;
+      view.autoResizeDrawable = true;
+      view.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
       // view.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
 
       [context addSubview:view];
@@ -232,8 +235,8 @@ private:
     }
   }
 
-  RubyMetalKitView* view = nullptr;
-  // MTKView* view = nullptr;
+  // RubyMetalKitView* view = nullptr;
+  MTKView* view = nullptr;
   RubyWindowMTL* window = nullptr;
   RubyMetalRenderer* renderer = nullptr;
 
@@ -254,7 +257,7 @@ private:
 
   video = videoPointer;
   view = mtkView;
-  [view setClearColor: MTLClearColorMake(1.0, 0.25, 0.25, 1)];
+  [view setClearColor: MTLClearColorMake(0.0, 0.5, 0.0, 1)];
 
   device = newDevice;
   commandQueue = [device newCommandQueue];
@@ -271,10 +274,10 @@ private:
 -(void) createBuffers {
   // Vertices for a rectangle that fills the screen
   static const float vertexData[] = {
-      -1.0f, -1.0f, 0.0f,  0.0f, 0.0f,  // Bottom left corner
-       1.0f, -1.0f, 0.0f,  1.0f, 0.0f,  // Bottom right corner
-      -1.0f,  1.0f, 0.0f,  0.0f, 1.0f,  // Top left corner
-       1.0f,  1.0f, 0.0f,  1.0f, 1.0f   // Top right corner
+    -1.0,  1.0, 0.0, 1.0,  0.0, 1.0,  // Top-left
+     1.0,  1.0, 0.0, 1.0,  1.0, 1.0,  // Top-right
+    -1.0, -1.0, 0.0, 1.0,  0.0, 0.0,  // Bottom-left
+     1.0, -1.0, 0.0, 1.0,  1.0, 0.0   // Bottom-right
   };
 
   vertexBuffer = [device newBufferWithBytes:vertexData
@@ -287,10 +290,9 @@ private:
   NSError *error = nil;
 
   // Load shaders
-  NSString *vertexSource = [[NSString alloc] initWithUTF8String:VertexShaderMetal];
-  NSString *fragmentSource = [[NSString alloc] initWithUTF8String:FragmentShaderMetal];
+  NSString *shadersSource = [[NSString alloc] initWithUTF8String:MetalShaders];
 
-  id<MTLLibrary> library = [device newLibraryWithSource:vertexSource options:nil error:&error];
+  id<MTLLibrary> library = [device newLibraryWithSource:shadersSource options:nil error:&error];
   if (error) {
     NSLog(@"Error creating library: %@", error);
     return;
@@ -303,17 +305,17 @@ private:
   MTLVertexDescriptor *vertexDescriptor = [[MTLVertexDescriptor alloc] init];
   
   // Position attribute (0)
-  vertexDescriptor.attributes[0].format = MTLVertexFormatFloat3;
+  vertexDescriptor.attributes[0].format = MTLVertexFormatFloat4;
   vertexDescriptor.attributes[0].offset = 0;
   vertexDescriptor.attributes[0].bufferIndex = 0;
   
   // TexCoord attribute (1)
   vertexDescriptor.attributes[1].format = MTLVertexFormatFloat2;
-  vertexDescriptor.attributes[1].offset = sizeof(float) * 3; // After 3 floats for position
+  vertexDescriptor.attributes[1].offset = sizeof(float) * 4; // After 4 floats for position
   vertexDescriptor.attributes[1].bufferIndex = 0;
   
   // Set up the buffer layout (how the vertex data is arranged in memory)
-  vertexDescriptor.layouts[0].stride = sizeof(float) * 5;  // 3 floats for position, 2 for texcoord
+  vertexDescriptor.layouts[0].stride = sizeof(float) * 6;  // 4 floats for position, 2 for texcoord
 
   MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
   pipelineDescriptor.vertexFunction = vertexFunction;
@@ -326,6 +328,29 @@ private:
     NSLog(@"Error creating pipeline state: %@", error);
     return;
   }
+
+  // Create a sampler descriptor
+  MTLSamplerDescriptor *samplerDescriptor = [[MTLSamplerDescriptor alloc] init];
+
+  // Set the minification filter (how to handle when the texture is minified)
+  samplerDescriptor.minFilter = MTLSamplerMinMagFilterLinear; // Linear filtering for minification
+
+  // Set the magnification filter (how to handle when the texture is magnified)
+  samplerDescriptor.magFilter = MTLSamplerMinMagFilterLinear; // Linear filtering for magnification
+
+  // Set the mipmap filter (how to handle when using mipmaps)
+  samplerDescriptor.mipFilter = MTLSamplerMipFilterLinear; // Linear mipmap filtering
+
+  // Set texture addressing modes
+  samplerDescriptor.sAddressMode = MTLSamplerAddressModeRepeat; // Repeat texture when coordinates are out of bounds
+  samplerDescriptor.tAddressMode = MTLSamplerAddressModeRepeat;
+  samplerDescriptor.rAddressMode = MTLSamplerAddressModeRepeat;
+
+  // Optionally, set whether to enable comparison (e.g., for shadow maps)
+  samplerDescriptor.compareFunction = MTLCompareFunctionAlways; // No comparison, always return the sample
+
+  // Create the sampler state using the descriptor
+  samplerState = [device newSamplerStateWithDescriptor:samplerDescriptor];
 }
 
 -(void) uploadTexture:(uint32_t*)bytes width:(uint)newWidth height:(uint)newHeight {
@@ -342,8 +367,9 @@ private:
     textureDescriptor.width = newWidth;
     textureDescriptor.height = newHeight;
     textureDescriptor.pixelFormat = MTLPixelFormatRGBA8Unorm;
+    textureDescriptor.storageMode = MTLStorageModeShared;
     // textureDescriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
-    textureDescriptor.usage = MTLTextureUsageShaderRead; // MTLResourceUsageSample;
+    textureDescriptor.usage = MTLTextureUsageShaderRead;
 
     printf("new texture (%d,%d)\n", newWidth, newHeight);
     currentTexture = [device newTextureWithDescriptor:textureDescriptor];
@@ -351,10 +377,24 @@ private:
     height = newHeight;
   }
 
+#if 1
+  uint8_t textureData[512 * 512 * 4];  // RGBA format
+
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      textureData[(y * width + x) * 4 + 0] = 0;    // Red
+      textureData[(y * width + x) * 4 + 1] = 255;  // Green
+      textureData[(y * width + x) * 4 + 2] = 0;    // Blue
+      textureData[(y * width + x) * 4 + 3] = 255;  // Alpha
+    }
+  }
+#endif
+
   // upload new data:
   [currentTexture replaceRegion:MTLRegionMake2D(0, 0, width, height)
           mipmapLevel:0
-          withBytes:bytes
+          // withBytes:bytes
+          withBytes:textureData
           bytesPerRow:width * sizeof(uint32_t)];
 }
 
@@ -368,33 +408,39 @@ private:
   // Create a drawable
   // CAMetalLayer *metalLayer = (CAMetalLayer *)view.layer;
   // id<CAMetalDrawable> drawable = [metalLayer nextDrawable];
+  id<CAMetalDrawable> drawable = view.currentDrawable;
+  if (drawable == nil) {
+    return;
+  }
+  if (currentTexture == nil) {
+    return;
+  }
 
-  // printf("render to %p\n", view.currentDrawable);
+  printf("render to %p (%d,%d)\n", drawable, view.bounds.size.width, view.bounds.size.height);
 
-  // Create command buffer and render command encoder
-  MTLRenderPassDescriptor *passDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-  passDescriptor.colorAttachments[0].texture = view.currentDrawable.texture;
-  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-  passDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 0.0, 0.0, 1.0);
-  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-
-  // Create a command buffer
+  // Create a command buffer:
   id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
-  
-  // Create a render command encoder
+
+  // // synchronize access to texture:
+  // id<MTLBlitCommandEncoder> blitEncoder = [commandBuffer blitCommandEncoder];
+  // [blitEncoder synchronizeResource:currentTexture];
+  // [blitEncoder endEncoding];
+
+  // Create a render command encoder:
+  MTLRenderPassDescriptor *passDescriptor = view.currentRenderPassDescriptor;
   id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
   [renderEncoder setRenderPipelineState:pipelineState];
   [renderEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
   [renderEncoder setFragmentTexture:currentTexture atIndex:0];
-
+  [renderEncoder setFragmentSamplerState:samplerState atIndex:0];
   [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
-  [renderEncoder endEncoding];
-  
-  // Commit the command buffer
-  [commandBuffer presentDrawable:view.currentDrawable];
-  [commandBuffer commit];
 
+  [renderEncoder endEncoding];
+
+  // Commit the command buffer
+  [commandBuffer presentDrawable:drawable];
+  [commandBuffer commit];
 }
 
 -(void) mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size {
