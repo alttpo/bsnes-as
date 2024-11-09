@@ -4,40 +4,8 @@
 
 struct VideoMTL;
 
-const string MetalShaders = R"(
-#include <metal_stdlib>
-using namespace metal;
 
-struct VertexIn {
-    float4 position [[attribute(0)]];
-    float2 texCoord [[attribute(1)]];
-};
-
-struct VertexOut {
-    float4 position [[position]];
-    float2 texCoord [[user(texCoord)]];
-};
-
-vertex VertexOut vertex_main(
-    VertexIn in [[stage_in]]
-) {
-    VertexOut out;
-    out.position = in.position;
-    out.texCoord = in.texCoord;
-    return out;
-}
-
-fragment float4 fragment_main(
-    VertexOut        in  [[stage_in]],
-    texture2d<float> tex [[texture(0)]],
-    sampler          texSampler [[sampler(0)]]
-) {
-    // Sample the texture at the given texture coordinates
-    float4 color = tex.sample(texSampler, in.texCoord);
-    return color;
-}
-)";
-
+// this window is for full-screen only:
 @interface RubyWindowMTL : NSWindow <NSWindowDelegate> {
 @public
   VideoMTL* video;
@@ -47,14 +15,6 @@ fragment float4 fragment_main(
 -(BOOL) canBecomeMainWindow;
 @end
 
-@interface RubyMetalKitView : MTKView {
-@public
-  VideoMTL* video;
-}
--(id) initWith:(VideoMTL*)video frame:(NSRect)frame device:(id<MTLDevice>)device;
--(void) reshape;
--(BOOL) acceptsFirstResponder;
-@end
 
 @interface RubyMetalRenderer : NSObject <MTKViewDelegate> {
 @public
@@ -73,6 +33,7 @@ fragment float4 fragment_main(
 -(void) drawInMTKView:(MTKView *) view;
 -(void) mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size;
 @end
+
 
 struct VideoMTL : VideoDriver {
   VideoMTL& self = *this;
@@ -165,7 +126,6 @@ struct VideoMTL : VideoDriver {
 
     @autoreleasepool {
       if([view lockFocusIfCanDraw]) {
-        // printf("draw\n");
         [view draw];
 
         [view unlockFocus];
@@ -191,14 +151,10 @@ private:
 
       auto device = MTLCreateSystemDefaultDevice();
 
-      // view = [[RubyMetalKitView alloc] initWith:this frame:NSMakeRect(0, 0, size.width, size.height) device:device];
-      // view = [[RubyMetalKitView alloc] initWith:this frame:NSMakeRect(0, 0, size.width, size.height) device:device];
       view = [[MTKView alloc] initWithFrame:NSMakeRect(0, 0, size.width, size.height) device:device];
-      printf("view initWithFrame:(%d,%d)\n", view.frame.size.width, view.frame.size.height);
       view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
       view.autoResizeDrawable = true;
-      view.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
-      // view.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
+      view.colorPixelFormat = MTLPixelFormatRGBA8Unorm;
 
       [context addSubview:view];
       [[view window] makeFirstResponder:view];
@@ -235,7 +191,6 @@ private:
     }
   }
 
-  // RubyMetalKitView* view = nullptr;
   MTKView* view = nullptr;
   RubyWindowMTL* window = nullptr;
   RubyMetalRenderer* renderer = nullptr;
@@ -246,6 +201,7 @@ private:
   uint _height = 0;
   uint32_t *_buffer = nullptr;
 };
+
 
 @implementation RubyMetalRenderer : NSObject
 
@@ -274,16 +230,50 @@ private:
 -(void) createBuffers {
   // Vertices for a rectangle that fills the screen
   static const float vertexData[] = {
-    -1.0,  1.0, 0.0, 1.0,  0.0, 1.0,  // Top-left
-     1.0,  1.0, 0.0, 1.0,  1.0, 1.0,  // Top-right
-    -1.0, -1.0, 0.0, 1.0,  0.0, 0.0,  // Bottom-left
-     1.0, -1.0, 0.0, 1.0,  1.0, 0.0   // Bottom-right
+    -1.0,  1.0, 0.0, 1.0,  0.0, 0.0,  // Top-left
+     1.0,  1.0, 0.0, 1.0,  1.0, 0.0,  // Top-right
+    -1.0, -1.0, 0.0, 1.0,  0.0, 1.0,  // Bottom-left
+     1.0, -1.0, 0.0, 1.0,  1.0, 1.0   // Bottom-right
   };
 
   vertexBuffer = [device newBufferWithBytes:vertexData
                                      length:sizeof(vertexData)
                                     options:MTLResourceStorageModeShared];
 }
+
+const string MetalShaders = R"(
+#include <metal_stdlib>
+using namespace metal;
+
+struct VertexIn {
+    float4 position [[attribute(0)]];
+    float2 texCoord [[attribute(1)]];
+};
+
+struct VertexOut {
+    float4 position [[position]];
+    float2 texCoord [[user(texCoord)]];
+};
+
+vertex VertexOut vertex_main(
+    VertexIn in [[stage_in]]
+) {
+    VertexOut out;
+    out.position = in.position;
+    out.texCoord = in.texCoord;
+    return out;
+}
+
+fragment float4 fragment_main(
+    VertexOut        in  [[stage_in]],
+    texture2d<float> tex [[texture(0)]],
+    sampler          texSampler [[sampler(0)]]
+) {
+    // Sample the texture at the given texture coordinates
+    float4 color = tex.sample(texSampler, in.texCoord);
+    return color;
+}
+)";
 
 -(void) createPipeline {
   // Create a basic Metal pipeline
@@ -355,8 +345,7 @@ private:
 
 -(void) uploadTexture:(uint32_t*)bytes width:(uint)newWidth height:(uint)newHeight {
   if (newWidth <= 0 || newHeight <= 0) {
-    printf("delete texture (%d,%d)\n", width, height);
-    //[currentTexture release];
+    // [currentTexture release];
     currentTexture = nil;
     return;
   }
@@ -366,35 +355,19 @@ private:
     MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
     textureDescriptor.width = newWidth;
     textureDescriptor.height = newHeight;
-    textureDescriptor.pixelFormat = MTLPixelFormatRGBA8Unorm;
+    textureDescriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;
     textureDescriptor.storageMode = MTLStorageModeShared;
-    // textureDescriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
     textureDescriptor.usage = MTLTextureUsageShaderRead;
 
-    printf("new texture (%d,%d)\n", newWidth, newHeight);
     currentTexture = [device newTextureWithDescriptor:textureDescriptor];
     width = newWidth;
     height = newHeight;
   }
 
-#if 1
-  uint8_t textureData[512 * 512 * 4];  // RGBA format
-
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      textureData[(y * width + x) * 4 + 0] = 0;    // Red
-      textureData[(y * width + x) * 4 + 1] = 255;  // Green
-      textureData[(y * width + x) * 4 + 2] = 0;    // Blue
-      textureData[(y * width + x) * 4 + 3] = 255;  // Alpha
-    }
-  }
-#endif
-
   // upload new data:
   [currentTexture replaceRegion:MTLRegionMake2D(0, 0, width, height)
           mipmapLevel:0
-          // withBytes:bytes
-          withBytes:textureData
+          withBytes:bytes
           bytesPerRow:width * sizeof(uint32_t)];
 }
 
@@ -405,26 +378,22 @@ private:
 }
 
 -(void) render:(MTKView*)view {
-  // Create a drawable
-  // CAMetalLayer *metalLayer = (CAMetalLayer *)view.layer;
-  // id<CAMetalDrawable> drawable = [metalLayer nextDrawable];
-  id<CAMetalDrawable> drawable = view.currentDrawable;
-  if (drawable == nil) {
-    return;
-  }
   if (currentTexture == nil) {
     return;
   }
 
-  printf("render to %p (%d,%d)\n", drawable, view.bounds.size.width, view.bounds.size.height);
+  id<CAMetalDrawable> drawable = view.currentDrawable;
+  if (drawable == nil) {
+    return;
+  }
 
   // Create a command buffer:
   id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
 
-  // // synchronize access to texture:
-  // id<MTLBlitCommandEncoder> blitEncoder = [commandBuffer blitCommandEncoder];
-  // [blitEncoder synchronizeResource:currentTexture];
-  // [blitEncoder endEncoding];
+  // synchronize access to texture:
+  id<MTLBlitCommandEncoder> blitEncoder = [commandBuffer blitCommandEncoder];
+  [blitEncoder synchronizeResource:currentTexture];
+  [blitEncoder endEncoding];
 
   // Create a render command encoder:
   MTLRenderPassDescriptor *passDescriptor = view.currentRenderPassDescriptor;
@@ -444,35 +413,7 @@ private:
 }
 
 -(void) mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size {
-  printf("mtkView: drawableSizeWillChange:(%d,%d)\n", size.width, size.height);
   video->output(0, 0);
-}
-
-@end
-
-@implementation RubyMetalKitView : MTKView
-
--(id) initWith:(VideoMTL*)videoPointer frame:(NSRect)frame device:(id<MTLDevice>)device {
-  if(self = [super initWithFrame:frame device:device]) {
-    video = videoPointer;
-  } else {
-    printf("super init failed!\n");
-  }
-  return self;
-}
-
--(void) reshape {
-  video->output(0, 0);
-}
-
--(BOOL) acceptsFirstResponder {
-  return YES;
-}
-
--(void) keyDown:(NSEvent*)event {
-}
-
--(void) keyUp:(NSEvent*)event {
 }
 
 @end
