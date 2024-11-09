@@ -210,6 +210,10 @@ auto Video::hasDrivers() -> vector<string> {
   "GDI",
   #endif
 
+  #if defined(VIDEO_MTL)
+  "Metal",
+  #endif
+
   #if defined(VIDEO_CGL)
   "OpenGL 3.2",
   #endif
@@ -220,10 +224,6 @@ auto Video::hasDrivers() -> vector<string> {
 
   #if defined(VIDEO_GLX2)
   "OpenGL 2.0",
-  #endif
-
-  #if defined(VIDEO_MTL)
-  "Metal",
   #endif
 
   #if defined(VIDEO_XVIDEO)
