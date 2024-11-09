@@ -22,6 +22,10 @@
   #include <ruby/video/glx2.cpp>
 #endif
 
+#if defined(VIDEO_MTL)
+  #include <ruby/video/mtl.mm>
+#endif
+
 #if defined(VIDEO_WGL)
   #include <ruby/video/wgl.cpp>
 #endif
@@ -166,6 +170,10 @@ auto Video::create(string driver) -> bool {
   if(driver == "OpenGL 2.0") self.instance = new VideoGLX2(*this);
   #endif
 
+  #if defined(VIDEO_MTL)
+  if(driver == "Metal") self.instance = new VideoMTL(*this);
+  #endif
+
   #if defined(VIDEO_WGL)
   if(driver == "OpenGL 3.2") self.instance = new VideoWGL(*this);
   #endif
@@ -214,6 +222,10 @@ auto Video::hasDrivers() -> vector<string> {
   "OpenGL 2.0",
   #endif
 
+  #if defined(VIDEO_MTL)
+  "Metal",
+  #endif
+
   #if defined(VIDEO_XVIDEO)
   "XVideo",
   #endif
@@ -234,6 +246,8 @@ auto Video::optimalDriver() -> string {
   return "DirectDraw 7.0";
   #elif defined(VIDEO_GDI)
   return "GDI";
+  #elif defined(VIDEO_MTL)
+  return "Metal";
   #elif defined(VIDEO_CGL)
   return "OpenGL 3.2";
   #elif defined(VIDEO_GLX)
@@ -258,6 +272,8 @@ auto Video::safestDriver() -> string {
   return "DirectDraw 7.0";
   #elif defined(VIDEO_GDI)
   return "GDI";
+  #elif defined(VIDEO_MTL)
+  return "Metal";
   #elif defined(VIDEO_CGL)
   return "OpenGL 3.2";
   #elif defined(VIDEO_XSHM)

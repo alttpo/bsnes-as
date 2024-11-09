@@ -4,7 +4,7 @@ ifeq ($(ruby),)
     ruby += audio.asio audio.wasapi audio.xaudio2 audio.directsound audio.waveout
     ruby += input.windows
   else ifeq ($(platform),macos)
-    ruby += video.cgl
+    ruby += video.cgl video.mtl
     ruby += audio.openal
     ruby += input.quartz #input.carbon
   else ifeq ($(platform),linux)
@@ -33,6 +33,7 @@ ruby.options += $(if $(findstring video.cgl,$(ruby)),-framework OpenGL)
 ruby.options += $(if $(findstring video.direct3d,$(ruby)),-ld3d9)
 ruby.options += $(if $(findstring video.directdraw,$(ruby)),-lddraw)
 ruby.options += $(if $(findstring video.glx,$(ruby)),-lGL)
+ruby.options += $(if $(findstring video.mtl,$(ruby)),-framework MetalKit -framework Metal)
 ruby.options += $(if $(findstring video.wgl,$(ruby)),-lopengl32)
 ruby.options += $(if $(findstring video.xvideo,$(ruby)),-lXv)
 

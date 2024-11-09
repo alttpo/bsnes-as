@@ -204,9 +204,11 @@ compile = \
       $(compiler.c)   $(flags.deps) $(flags) $1 -c $< -o $@ \
    ,$(if $(filter %.cpp,$<), \
       $(compiler.cpp) $(flags.deps) $(flags) $1 -c $< -o $@ \
+   ,$(if $(filter %.mm,$<), \
+      $(compiler.objcpp) $(flags.deps) $(flags) $1 -c $< -o $@ \
    ,$(if $(filter %.S,$<), \
       $(compiler.S)   $(flags.deps) $(flags) $1 -c $< -o $@ \
-   ))) \
+   )))) \
   )
 
 # function rwildcard(directory, pattern)
