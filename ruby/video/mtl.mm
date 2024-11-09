@@ -9,24 +9,19 @@ const string VertexShaderMetal = R"(
 using namespace metal;
 
 struct VertexIn {
-    float4 position [[attribute(0)]]; // Position (x, y)
-    float2 texCoord [[attribute(1)]]; // Texture coordinates (u, v)
+    float4 position [[attribute(0)]];
+    float2 texCoord [[attribute(1)]];
 };
 
 struct VertexOut {
-    float4 position [[position]]; // Final position
-    float2 texCoord [[user(texCoord)]]; // Passed to the fragment shader
+    float4 position [[position]];
+    float2 texCoord [[user(texCoord)]];
 };
 
 vertex VertexOut vertex_main(VertexIn in [[stage_in]]) {
     VertexOut out;
-
-    // Pass the position directly through
     out.position = in.position;
-
-    // Pass the texture coordinates to the fragment shader
     out.texCoord = in.texCoord;
-
     return out;
 }
 )";
@@ -35,17 +30,9 @@ const string FragmentShaderMetal = R"(
 #include <metal_stdlib>
 using namespace metal;
 
-struct VertexOut {
-    float4 position [[position]];
-    float2 texCoord [[user(texCoord)]];
-};
-
-fragment float4 fragment_main(VertexOut in [[stage_in]], texture2d<half> tex [[texture(0)]], sampler texSampler [[sampler(0)]]) {
-    // Sample the texture at the given coordinates (in.texCoord)
-    half4 texColor = tex.sample(texSampler, in.texCoord);
-
-    // Return the texture color
-    return float4(texColor);
+fragment float4 fragment_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]]) {
+    constexpr sampler texSampler (mag_filter::linear, min_filter::linear);
+    return tex.sample(texSampler, in.texCoord);
 }
 )";
 
@@ -62,7 +49,7 @@ fragment float4 fragment_main(VertexOut in [[stage_in]], texture2d<half> tex [[t
 @public
   VideoMTL* video;
 }
--(id) initWith:(VideoMTL*)video frame:(NSRect)frame;
+-(id) initWith:(VideoMTL*)video frame:(NSRect)frame device:(id<MTLDevice>)device;
 -(void) reshape;
 -(BOOL) acceptsFirstResponder;
 @end
@@ -77,201 +64,12 @@ fragment float4 fragment_main(VertexOut in [[stage_in]], texture2d<half> tex [[t
 
   id<MTLRenderPipelineState> pipelineState;
   id<MTLBuffer> vertexBuffer;
-  id<MTLBuffer> indexBuffer;
-  id<MTLTexture> texture;
-  id<MTLTexture> dynamicTexture;
   id<MTLTexture> currentTexture;
   id<MTLSamplerState> samplerState;
-
-  float verticesUVs[16];
-  uint16_t indices[6];
 }
 -(id)   initWith:(VideoMTL*)video mtkView:(MTKView*)mtkView;
 -(void) drawInMTKView:(MTKView *) view;
 -(void) mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size;
-@end
-
-@implementation RubyMetalRenderer : NSObject
-
-  uint width;
-  uint height;
-
--(id) initWith:(VideoMTL*)videoPointer mtkView:(MTKView*)mtkView {
-  self = [super init];
-
-  video = videoPointer;
-  view = mtkView;
-  [view setClearColor: MTLClearColorMake(0.25, 0.25, 0.25, 1)];
-
-  device = MTLCreateSystemDefaultDevice();
-  [view setDevice: device];
-
-  commandQueue = [device newCommandQueue];
-  currentTexture = nil;
-
-  [self createBuffers];
-  [self createPipeline];
-
-  [view setDelegate: self];
-
-  return self;
-}
-
--(void) createBuffers {
-  static float vuvs_static[16] = {
-    -0.5f, -0.5f, 0.0f, 0.0f,  // Bottom-left (position + texcoord)
-    0.5f, -0.5f, 1.0f, 0.0f,   // Bottom-right
-    -0.5f, 0.5f, 0.0f, 1.0f,    // Top-left
-    0.5f, 0.5f, 1.0f, 1.0f      // Top-right
-  };
-  // Indices for rectangle (2 triangles)
-  static uint16_t indices_static[6] = {
-    0, 1, 2, // First triangle
-    1, 3, 2  // Second triangle
-  };
-
-  memcpy(verticesUVs, vuvs_static, sizeof(vuvs_static));
-  memcpy(indices, indices_static, sizeof(indices_static));
-
-  // Create vertex buffer
-  vertexBuffer = [device newBufferWithBytes:verticesUVs length:sizeof(verticesUVs) options:MTLResourceStorageModeShared];
-
-  // Create index buffer
-  indexBuffer = [device newBufferWithBytes:indices length:sizeof(indices) options:MTLResourceStorageModeShared];
-}
-
--(void) createPipeline {
-  // Create a basic Metal pipeline
-  NSError *error = nil;
-
-  // Load shaders
-  NSString *vertexSource = [[NSString alloc] initWithUTF8String:VertexShaderMetal];
-  NSString *fragmentSource = [[NSString alloc] initWithUTF8String:FragmentShaderMetal];
-
-  id<MTLLibrary> library = [device newLibraryWithSource:vertexSource options:nil error:&error];
-  if (error) {
-      NSLog(@"Error creating library: %@", error);
-      return;
-  }
-
-  id<MTLFunction> vertexFunction = [library newFunctionWithName:@"vertex_main"];
-  id<MTLFunction> fragmentFunction = [library newFunctionWithName:@"fragment_main"];
-
-  MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-  pipelineDescriptor.vertexFunction = vertexFunction;
-  pipelineDescriptor.fragmentFunction = fragmentFunction;
-  pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
-
-  // Create the vertex descriptor
-  MTLVertexDescriptor *vertexDescriptor = [[MTLVertexDescriptor alloc] init];
-
-  // Define the position attribute
-  vertexDescriptor.attributes[0].format = MTLVertexFormatFloat2;
-  vertexDescriptor.attributes[0].offset = 0;
-  vertexDescriptor.attributes[0].bufferIndex = 0;
-
-  // Define the texture coordinate attribute
-  vertexDescriptor.attributes[1].format = MTLVertexFormatFloat2;
-  vertexDescriptor.attributes[1].offset = sizeof(float) * 2; // Offset by 2 floats (x, y)
-  vertexDescriptor.attributes[1].bufferIndex = 0;
-
-  // Define the layout for the vertex buffer
-  vertexDescriptor.layouts[0].stride = sizeof(float) * 4;  // 4 floats (2 for position, 2 for texcoord)
-  vertexDescriptor.layouts[0].stepRate = 1;
-  vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-
-  // Set the vertex descriptor on the pipeline descriptor
-  pipelineDescriptor.vertexDescriptor = vertexDescriptor;
-
-  pipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
-  if (error) {
-      NSLog(@"Error creating pipeline state: %@", error);
-      return;
-  }
-
-  // Create a sampler state (for texture filtering)
-  MTLSamplerDescriptor *samplerDescriptor = [[MTLSamplerDescriptor alloc] init];
-  samplerDescriptor.minFilter = MTLSamplerMinMagFilterLinear;
-  samplerDescriptor.magFilter = MTLSamplerMinMagFilterLinear;
-  samplerState = [device newSamplerStateWithDescriptor:samplerDescriptor];
-}
-
--(void) uploadTexture:(uint32_t*)bytes width:(uint)newWidth height:(uint)newHeight {
-  if (newWidth <= 0 || newHeight <= 0) {
-    currentTexture = nil;
-    return;
-  }
-
-  // recreate texture if width/height changes:
-  if (width != newWidth || height != newHeight) {
-    MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
-    textureDescriptor.width = newWidth;
-    textureDescriptor.height = newHeight;
-    textureDescriptor.pixelFormat = MTLPixelFormatRGBA8Unorm;
-    textureDescriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
-
-    currentTexture = [device newTextureWithDescriptor:textureDescriptor];
-    width = newWidth;
-    height = newHeight;
-  }
-
-  assert(currentTexture);
-
-  // upload new data:
-  [currentTexture replaceRegion:MTLRegionMake2D(0, 0, width, height)
-          mipmapLevel:0
-          withBytes:bytes
-          bytesPerRow:width * sizeof(uint32_t)];
-}
-
--(void) drawInMTKView:(MTKView*)view {
-  @autoreleasepool {
-    [self render:view];
-  }
-}
-
--(void) render:(MTKView*)view {
-  // Create a drawable
-  CAMetalLayer *metalLayer = (CAMetalLayer *)view.layer;
-  id<CAMetalDrawable> drawable = [metalLayer nextDrawable];
-
-  if (!drawable) {
-    printf("render: NO DRAWABLE\n");
-    return;
-  }
-
-  // Create command buffer and render command encoder
-  MTLRenderPassDescriptor *passDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-  passDescriptor.colorAttachments[0].texture = drawable.texture;
-  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-  passDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
-  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-
-  id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
-  id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
-
-  // Set pipeline state and texture
-  [renderEncoder setRenderPipelineState:pipelineState];
-  [renderEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
-  [renderEncoder setVertexBuffer:indexBuffer offset:0 atIndex:1];
-  [renderEncoder setFragmentTexture:currentTexture atIndex:0];
-  [renderEncoder setFragmentSamplerState:samplerState atIndex:0];
-
-  // Draw the rectangle
-  [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                            indexCount:6
-                             indexType:MTLIndexTypeUInt16
-                           indexBuffer:indexBuffer
-                     indexBufferOffset:0];
-
-  [renderEncoder endEncoding];
-
-  [commandBuffer presentDrawable:drawable];
-  [commandBuffer commit];
-}
-
--(void) mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size {}
-
 @end
 
 struct VideoMTL : VideoDriver {
@@ -355,6 +153,7 @@ struct VideoMTL : VideoDriver {
 
   auto release() -> void override {
     @autoreleasepool {
+      // printf("upload\n");
       [renderer uploadTexture:_buffer width:_width height:_height];
     }
   }
@@ -365,6 +164,7 @@ struct VideoMTL : VideoDriver {
 
     @autoreleasepool {
       if([view lockFocusIfCanDraw]) {
+        // printf("draw\n");
         [view draw];
 
         [view unlockFocus];
@@ -386,11 +186,16 @@ private:
       }
 
       auto context = self.fullScreen ? [window contentView] : (NSView*)self.context;
+      auto size = [context frame].size;
 
-      view = [[RubyMetalKitView alloc] initWith:this frame:context.bounds];
-      [view setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-      view.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
-      view.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
+      auto device = MTLCreateSystemDefaultDevice();
+
+      view = [[RubyMetalKitView alloc] initWith:this frame:NSMakeRect(0, 0, size.width, size.height) device:device];
+      // view = [[MTKView alloc] initWithFrame:NSMakeRect(0, 0, size.width, size.height) device:device];
+      // printf("view initWithFrame:(%d,%d)\n", view.frame.size.width, view.frame.size.height);
+      view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+      view.colorPixelFormat = MTLPixelFormatRGBA8Unorm;
+      // view.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
 
       [context addSubview:view];
       [[view window] makeFirstResponder:view];
@@ -399,11 +204,7 @@ private:
       [view setPaused:true];
       [view setEnableSetNeedsDisplay:false];
 
-      [view lockFocus];
-
-      renderer = [[RubyMetalRenderer alloc] initWith:this mtkView:view];
-
-      [view unlockFocus];
+      renderer = [[RubyMetalRenderer alloc] initWith:this mtkView:view device:device];
     }
 
     clear();
@@ -432,6 +233,7 @@ private:
   }
 
   RubyMetalKitView* view = nullptr;
+  // MTKView* view = nullptr;
   RubyWindowMTL* window = nullptr;
   RubyMetalRenderer* renderer = nullptr;
 
@@ -442,11 +244,173 @@ private:
   uint32_t *_buffer = nullptr;
 };
 
+@implementation RubyMetalRenderer : NSObject
+
+  uint width;
+  uint height;
+
+-(id) initWith:(VideoMTL*)videoPointer mtkView:(MTKView*)mtkView device:(id<MTLDevice>)newDevice {
+  self = [super init];
+
+  video = videoPointer;
+  view = mtkView;
+  [view setClearColor: MTLClearColorMake(1.0, 0.25, 0.25, 1)];
+
+  device = newDevice;
+  commandQueue = [device newCommandQueue];
+  currentTexture = nil;
+
+  [self createBuffers];
+  [self createPipeline];
+
+  [view setDelegate: self];
+
+  return self;
+}
+
+-(void) createBuffers {
+  // Vertices for a rectangle that fills the screen
+  static const float vertexData[] = {
+      -1.0f, -1.0f, 0.0f,  0.0f, 0.0f,  // Bottom left corner
+       1.0f, -1.0f, 0.0f,  1.0f, 0.0f,  // Bottom right corner
+      -1.0f,  1.0f, 0.0f,  0.0f, 1.0f,  // Top left corner
+       1.0f,  1.0f, 0.0f,  1.0f, 1.0f   // Top right corner
+  };
+
+  vertexBuffer = [device newBufferWithBytes:vertexData
+                                     length:sizeof(vertexData)
+                                    options:MTLResourceStorageModeShared];
+}
+
+-(void) createPipeline {
+  // Create a basic Metal pipeline
+  NSError *error = nil;
+
+  // Load shaders
+  NSString *vertexSource = [[NSString alloc] initWithUTF8String:VertexShaderMetal];
+  NSString *fragmentSource = [[NSString alloc] initWithUTF8String:FragmentShaderMetal];
+
+  id<MTLLibrary> library = [device newLibraryWithSource:vertexSource options:nil error:&error];
+  if (error) {
+    NSLog(@"Error creating library: %@", error);
+    return;
+  }
+
+  id<MTLFunction> vertexFunction = [library newFunctionWithName:@"vertex_main"];
+  id<MTLFunction> fragmentFunction = [library newFunctionWithName:@"fragment_main"];
+
+  // Set up the vertex descriptor
+  MTLVertexDescriptor *vertexDescriptor = [[MTLVertexDescriptor alloc] init];
+  
+  // Position attribute (0)
+  vertexDescriptor.attributes[0].format = MTLVertexFormatFloat3;
+  vertexDescriptor.attributes[0].offset = 0;
+  vertexDescriptor.attributes[0].bufferIndex = 0;
+  
+  // TexCoord attribute (1)
+  vertexDescriptor.attributes[1].format = MTLVertexFormatFloat2;
+  vertexDescriptor.attributes[1].offset = sizeof(float) * 3; // After 3 floats for position
+  vertexDescriptor.attributes[1].bufferIndex = 0;
+  
+  // Set up the buffer layout (how the vertex data is arranged in memory)
+  vertexDescriptor.layouts[0].stride = sizeof(float) * 5;  // 3 floats for position, 2 for texcoord
+
+  MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+  pipelineDescriptor.vertexFunction = vertexFunction;
+  pipelineDescriptor.fragmentFunction = fragmentFunction;
+  pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
+  pipelineDescriptor.vertexDescriptor = vertexDescriptor;
+
+  pipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+  if (error) {
+    NSLog(@"Error creating pipeline state: %@", error);
+    return;
+  }
+}
+
+-(void) uploadTexture:(uint32_t*)bytes width:(uint)newWidth height:(uint)newHeight {
+  if (newWidth <= 0 || newHeight <= 0) {
+    printf("delete texture (%d,%d)\n", width, height);
+    //[currentTexture release];
+    currentTexture = nil;
+    return;
+  }
+
+  // recreate texture if width/height changes:
+  if (width != newWidth || height != newHeight) {
+    MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
+    textureDescriptor.width = newWidth;
+    textureDescriptor.height = newHeight;
+    textureDescriptor.pixelFormat = MTLPixelFormatRGBA8Unorm;
+    // textureDescriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
+    textureDescriptor.usage = MTLTextureUsageShaderRead; // MTLResourceUsageSample;
+
+    printf("new texture (%d,%d)\n", newWidth, newHeight);
+    currentTexture = [device newTextureWithDescriptor:textureDescriptor];
+    width = newWidth;
+    height = newHeight;
+  }
+
+  // upload new data:
+  [currentTexture replaceRegion:MTLRegionMake2D(0, 0, width, height)
+          mipmapLevel:0
+          withBytes:bytes
+          bytesPerRow:width * sizeof(uint32_t)];
+}
+
+-(void) drawInMTKView:(MTKView*)view {
+  @autoreleasepool {
+    [self render:view];
+  }
+}
+
+-(void) render:(MTKView*)view {
+  // Create a drawable
+  // CAMetalLayer *metalLayer = (CAMetalLayer *)view.layer;
+  // id<CAMetalDrawable> drawable = [metalLayer nextDrawable];
+
+  // printf("render to %p\n", view.currentDrawable);
+
+  // Create command buffer and render command encoder
+  MTLRenderPassDescriptor *passDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+  passDescriptor.colorAttachments[0].texture = view.currentDrawable.texture;
+  passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+  passDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 0.0, 0.0, 1.0);
+  passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+  // Create a command buffer
+  id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
+  
+  // Create a render command encoder
+  id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+
+  [renderEncoder setRenderPipelineState:pipelineState];
+  [renderEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
+  [renderEncoder setFragmentTexture:currentTexture atIndex:0];
+
+  [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+  [renderEncoder endEncoding];
+  
+  // Commit the command buffer
+  [commandBuffer presentDrawable:view.currentDrawable];
+  [commandBuffer commit];
+
+}
+
+-(void) mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size {
+  printf("mtkView: drawableSizeWillChange:(%d,%d)\n", size.width, size.height);
+  video->output(0, 0);
+}
+
+@end
+
 @implementation RubyMetalKitView : MTKView
 
--(id) initWith:(VideoMTL*)videoPointer frame:(NSRect)frame {
-  if(self = [super initWithFrame:frame]) {
+-(id) initWith:(VideoMTL*)videoPointer frame:(NSRect)frame device:(id<MTLDevice>)device {
+  if(self = [super initWithFrame:frame device:device]) {
     video = videoPointer;
+  } else {
+    printf("super init failed!\n");
   }
   return self;
 }

@@ -146,6 +146,10 @@ auto Video::create(string driver) -> bool {
   self.instance.reset();
   if(!driver) driver = optimalDriver();
 
+  #if defined(VIDEO_MTL)
+  if(driver == "Metal") self.instance = new VideoMTL(*this);
+  #endif
+
   #if defined(VIDEO_CGL)
   if(driver == "OpenGL 3.2") self.instance = new VideoCGL(*this);
   #endif
@@ -168,10 +172,6 @@ auto Video::create(string driver) -> bool {
 
   #if defined(VIDEO_GLX2)
   if(driver == "OpenGL 2.0") self.instance = new VideoGLX2(*this);
-  #endif
-
-  #if defined(VIDEO_MTL)
-  if(driver == "Metal") self.instance = new VideoMTL(*this);
   #endif
 
   #if defined(VIDEO_WGL)
