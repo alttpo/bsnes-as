@@ -12,6 +12,7 @@
     [self setDelegate:self];
     [self setReleasedWhenClosed:NO];
     [self setAcceptsMouseMovedEvents:YES];
+    [self setTabbingMode:NSWindowTabbingModeDisallowed];
     [self setTitle:@""];
 
     NSBundle* bundle = [NSBundle mainBundle];
