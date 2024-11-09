@@ -325,10 +325,10 @@ fragment float4 fragment_main(
   MTLSamplerDescriptor *samplerDescriptor = [[MTLSamplerDescriptor alloc] init];
 
   // Set the minification filter (how to handle when the texture is minified)
-  samplerDescriptor.minFilter = MTLSamplerMinMagFilterLinear; // Linear filtering for minification
+  samplerDescriptor.minFilter = MTLSamplerMinMagFilterNearest;
 
   // Set the magnification filter (how to handle when the texture is magnified)
-  samplerDescriptor.magFilter = MTLSamplerMinMagFilterLinear; // Linear filtering for magnification
+  samplerDescriptor.magFilter = MTLSamplerMinMagFilterNearest;
 
   // Set the mipmap filter (how to handle when using mipmaps)
   samplerDescriptor.mipFilter = MTLSamplerMipFilterLinear; // Linear mipmap filtering
