@@ -29,6 +29,7 @@ struct VideoMTL;
   id<MTLTexture> currentTexture;
   id<MTLSamplerState> samplerState;
 }
+@property bool blocking;
 -(id)   initWith:(VideoMTL*)video mtkView:(MTKView*)mtkView;
 -(void) drawInMTKView:(MTKView *) view;
 -(void) mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size;
@@ -63,7 +64,8 @@ struct VideoMTL : VideoDriver {
 
   auto setBlocking(bool blocking) -> bool override {
     if(!view) return true;
-    // TODO
+    if(!renderer) return true;
+    [renderer setBlocking:blocking];
     return true;
   }
 
@@ -390,11 +392,6 @@ fragment float4 fragment_main(
   // Create a command buffer:
   id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
 
-  // synchronize access to texture:
-  id<MTLBlitCommandEncoder> blitEncoder = [commandBuffer blitCommandEncoder];
-  [blitEncoder synchronizeResource:currentTexture];
-  [blitEncoder endEncoding];
-
   // Create a render command encoder:
   MTLRenderPassDescriptor *passDescriptor = view.currentRenderPassDescriptor;
   id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
@@ -407,9 +404,23 @@ fragment float4 fragment_main(
 
   [renderEncoder endEncoding];
 
-  // Commit the command buffer
   [commandBuffer presentDrawable:drawable];
+
+  // create a sharedEvent for blocking/synchronizing:
+  bool isBlocking = self.blocking;
+  id<MTLSharedEvent> sharedEvent = nil;
+  if (isBlocking) {
+    sharedEvent = [device newSharedEvent];
+    [commandBuffer encodeSignalEvent:sharedEvent value:1];
+  }
+
+  // Commit the command buffer
   [commandBuffer commit];
+
+  if (isBlocking) {
+    // Now we wait for the shared event to be signaled (i.e., GPU has finished the work)
+    [sharedEvent waitUntilSignaledValue:1 timeoutMS:16];
+  }
 }
 
 -(void) mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size {
