@@ -392,7 +392,7 @@ auto pWindow::setTitle(const string& text) -> void {
 auto pWindow::setVisible(bool visible) -> void {
   @autoreleasepool {
     if(visible) {
-      if ([cocoaWindow isVisible] == NO)
+      //if ([cocoaWindow isVisible] == NO)
         [cocoaWindow makeKeyAndOrderFront:nil];
     } else [cocoaWindow orderOut:nil];
   }
