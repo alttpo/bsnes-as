@@ -28,6 +28,8 @@ struct VideoMTL;
   id<MTLBuffer> vertexBuffer;
   id<MTLTexture> currentTexture;
   id<MTLSamplerState> samplerState;
+
+  MTLViewport viewport;
 }
 @property bool blocking;
 -(id)   initWith:(VideoMTL*)video mtkView:(MTKView*)mtkView;
@@ -123,11 +125,27 @@ struct VideoMTL : VideoDriver {
   }
 
   auto output(uint width, uint height) -> void override {
-    // uint windowWidth, windowHeight;
-    // size(windowWidth, windowHeight);
+    uint windowWidth, windowHeight;
+    size(windowWidth, windowHeight);
+
+    outputSized(width, height, windowWidth, windowHeight);
+  }
+
+  auto outputSized(uint width, uint height, uint windowWidth, uint windowHeight) -> void {
+    if (width != 0) {
+      _outputWidth = width;
+    }
+    if (height != 0) {
+      _outputHeight = height;
+    }
 
     @autoreleasepool {
       if([view lockFocusIfCanDraw]) {
+        renderer->viewport.originX = abs((windowWidth - _outputWidth) * 0.5);
+        renderer->viewport.originY = abs((windowHeight - _outputHeight) * 0.5);
+        renderer->viewport.width = width;
+        renderer->viewport.height = height;
+
         [view draw];
 
         [view unlockFocus];
@@ -201,6 +219,8 @@ private:
 
   uint _width = 0;
   uint _height = 0;
+  uint _outputWidth = 0;
+  uint _outputHeight = 0;
   uint32_t *_buffer = nullptr;
 };
 
@@ -215,7 +235,7 @@ private:
 
   video = videoPointer;
   view = mtkView;
-  [view setClearColor: MTLClearColorMake(0.0, 0.5, 0.0, 1)];
+  [view setClearColor: MTLClearColorMake(0.0, 0.0, 0.0, 1)];
 
   device = newDevice;
   commandQueue = [device newCommandQueue];
@@ -400,6 +420,7 @@ fragment float4 fragment_main(
   [renderEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
   [renderEncoder setFragmentTexture:currentTexture atIndex:0];
   [renderEncoder setFragmentSamplerState:samplerState atIndex:0];
+  [renderEncoder setViewport:viewport];
   [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
 
   [renderEncoder endEncoding];
@@ -424,7 +445,7 @@ fragment float4 fragment_main(
 }
 
 -(void) mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size {
-  video->output(0, 0);
+  video->outputSized(0, 0, size.width, size.height);
 }
 
 @end
