@@ -194,6 +194,10 @@ private:
     _ready = false;
 
     @autoreleasepool {
+      if(renderer) {
+        [renderer release];
+        renderer = nil;
+      }
       if(view) {
         [view removeFromSuperview];
         [view release];
@@ -351,7 +355,7 @@ fragment float4 fragment_main(
   samplerDescriptor.magFilter = MTLSamplerMinMagFilterNearest;
 
   // Set the mipmap filter (how to handle when using mipmaps)
-  samplerDescriptor.mipFilter = MTLSamplerMipFilterLinear; // Linear mipmap filtering
+  samplerDescriptor.mipFilter = MTLSamplerMipFilterNearest; // Linear mipmap filtering
 
   // Set texture addressing modes
   samplerDescriptor.sAddressMode = MTLSamplerAddressModeRepeat; // Repeat texture when coordinates are out of bounds
