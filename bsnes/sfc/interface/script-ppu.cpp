@@ -44,6 +44,22 @@ struct PPUAccess {
     }
   }
 
+  static auto ppu_sprite_tiledata_address() -> uint16 {
+    if (system.fastPPU()) {
+      return ppufast.io.obj.tiledataAddress;
+    } else {
+      return ppu.obj.io.tiledataAddress;
+    }
+  }
+
+  static auto ppu_sprite_nameselect() -> uint8 {
+    if (system.fastPPU()) {
+      return ppufast.io.obj.nameselect;
+    } else {
+      return ppu.obj.io.nameselect;
+    }
+  }
+
   auto cgram_read(uint8 addr) -> uint16 {
     if (system.fastPPU()) {
       return ppufast.cgram[addr];
@@ -76,7 +92,10 @@ struct PPUAccess {
   }
 
   auto vram_chr_address(uint16 chr) -> uint16 {
-    return 0x4000u + (chr << 4u);
+    uint16 tiledataAddress = ppu_sprite_tiledata_address();
+    if(chr >= 0x100u) tiledataAddress += (1 + ppu_sprite_nameselect()) << 12;
+
+    return tiledataAddress + ((chr & 0xFFu) << 4u);
   }
 
   auto vram_read_block(uint16 addr, uint offs, uint16 size, CScriptArray *output) -> void {
