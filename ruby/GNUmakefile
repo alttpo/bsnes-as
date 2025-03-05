@@ -55,7 +55,7 @@ ifeq ($(platform),windows)
 endif
 
 ifeq ($(platform),macos)
-  ruby.options += -framework IOKit
+  ruby.options += -framework IOKit -framework Cocoa -framework Carbon
   ruby.options += $(if $(findstring audio.openal,$(ruby)),-framework OpenAL)
 endif
 

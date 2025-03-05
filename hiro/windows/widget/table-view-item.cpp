@@ -41,6 +41,12 @@ auto pTableViewItem::setFocused() -> void {
   if(auto parent = _parent()) {
     parent->lock();
     ListView_SetItemState(parent->hwnd, self().offset(), LVIS_FOCUSED, LVIS_FOCUSED);
+    // scrolls the item into view if not already:
+    ListView_EnsureVisible(
+      parent->hwnd,
+      self().offset(),
+      FALSE // fPartialOK
+    );
     parent->unlock();
   }
 }

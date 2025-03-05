@@ -10,6 +10,7 @@ struct pTableViewItem : pObject {
   auto setAlignment(Alignment alignment) -> void;
   auto setBackgroundColor(Color color) -> void;
   auto setFont(const Font& font) -> void override;
+  auto setFocused() -> void override;
   auto setForegroundColor(Color color) -> void;
   auto setSelected(bool selected) -> void;
 

@@ -31,6 +31,17 @@ auto pTableViewItem::setBackgroundColor(Color color) -> void {
 }
 
 auto pTableViewItem::setFocused() -> void {
+  @autoreleasepool {
+    if(auto tableView = _parent()) {
+      CocoaTableView* scrollview = tableView->cocoaView;
+
+      NSPoint newScrollOrigin;
+      newScrollOrigin = NSMakePoint(0.0,NSMaxY([[scrollview documentView] frame])
+        -NSHeight([[scrollview contentView] bounds]));
+
+      [[scrollview documentView] scrollPoint:newScrollOrigin];
+    }
+  }
 }
 
 auto pTableViewItem::setForegroundColor(Color color) -> void {

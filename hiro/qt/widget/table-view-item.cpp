@@ -31,6 +31,13 @@ auto pTableViewItem::setBackgroundColor(Color color) -> void {
   _setState();
 }
 
+auto pTableViewItem::setFocused() -> void {
+  if(auto parent = _parent()) {
+    auto lock = parent->acquire();
+    parent->qtTableView->scrollToItem(qtItem);
+  }
+}
+
 auto pTableViewItem::setFont(const Font& font) -> void {
   _setState();
 }
