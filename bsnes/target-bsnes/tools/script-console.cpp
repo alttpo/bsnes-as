@@ -6,7 +6,44 @@ auto ScriptConsole::create() -> void {
   consoleView.setBatchable(true);
 
   nameLabel.setText("no script loaded");
-  loadButton.setText("Clear").onActivate([&] {
+  tailOption.setText("Tail").setChecked(tail).onToggle([&]{
+    tail = tailOption.checked();
+  });
+  copyButton.setText("Copy").onActivate([&] {
+#if defined(PLATFORM_WINDOWS)
+    const unsigned crlf_size = 2;
+    const char *crlf = "\r\n";
+#else
+    const unsigned crlf_size = 1;
+    const char *crlf = "\n";
+#endif
+
+    // grab selected items else select all:
+    auto batch = consoleView.batched();
+    if (batch.size() == 0) {
+      batch = consoleView.items();
+    }
+
+    // measure total length of buffer to build:
+    unsigned len = 0;
+    batch.foreach([&](const ListViewItem &item) { len += item.text().size() + crlf_size; });
+
+    // reserve the buffer:
+    string buffer;
+    buffer.reserve(len);
+
+    // append all items to the buffer:
+    batch.foreach([&](const ListViewItem &item) {
+      buffer.append(item.text());
+      buffer.append(crlf);
+    });
+    // remove trailing '\n':
+    buffer.resize(buffer.size() - crlf_size);
+
+    // paste to the pasteboard:
+    ::hiro::Pasteboard::pasteString(buffer);
+  });
+  clearButton.setText("Clear").onActivate([&] {
     clear();
   });
 }
@@ -30,8 +67,11 @@ auto ScriptConsole::appendItem(const string& msg, ::Script::MessageLevel level) 
   }
 
   consoleView.append(item);
-  // NOTE(jsd): hack to scroll the item into view
-  item.setFocused();
+
+  if (tail) {
+    // NOTE(jsd): hack to scroll the item into view
+    item.setFocused();
+  }
 }
 
 auto ScriptConsole::clear() -> void {

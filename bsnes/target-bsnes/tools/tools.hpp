@@ -187,9 +187,13 @@ struct ScriptConsole : VerticalLayout {
   auto update() -> void;
 
 public:
+  bool tail = true;
+
   HorizontalLayout informationLayout{this, Size{~0, 0}};
     Label nameLabel{&informationLayout, Size{~0, 0}};
-    Button loadButton{&informationLayout, Size{80_sx, 0}};
+    CheckLabel tailOption{&informationLayout, Size(40_sx, 0)};
+    Button copyButton{&informationLayout, Size{80_sx, 0}};
+    Button clearButton{&informationLayout, Size{80_sx, 0}};
   ListView consoleView{this, Size{~0, ~0}};
 };
 
