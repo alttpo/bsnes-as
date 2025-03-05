@@ -105,8 +105,9 @@
 
 -(void) tableViewSelectionDidChange:(NSNotification*)notification {
   if(tableView->self()->locked()) return;
+  auto rowIndexes = [content selectedRowIndexes];
   for(auto& tableViewItem : tableView->state.items) {
-    tableViewItem->state.selected = [content isRowSelected:tableViewItem->offset()];
+    tableViewItem->state.selected = [rowIndexes containsIndex:tableViewItem->offset()];
   }
   tableView->doChange();
 }
