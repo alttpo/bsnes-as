@@ -12,6 +12,7 @@
 #include "mouse.hpp"
 #include "browser-window.hpp"
 #include "message-window.hpp"
+#include "pasteboard.hpp"
 
 #include "object.hpp"
 #include "group.hpp"

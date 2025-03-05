@@ -29,13 +29,18 @@ ifeq ($(platform),macos)
     hiro.options = -framework Cocoa -framework Carbon -framework Security
   endif
 
+  ifeq ($(hiro),gtk3)
+    hiro.flags   = $(flags.cpp) -w -DHIRO_GTK=3 $(shell pkg-config --cflags gtk+-3.0 gtksourceview-3.0) -Wno-deprecated-declarations
+    hiro.options = $(shell pkg-config --libs gtk+-3.0 gtksourceview-3.0)
+  endif
+
   ifeq ($(hiro),qt5)
     ifeq ($(qt5path),)
       qt5path := "/opt/homebrew/opt/qt@5"
     endif
 
     moc = $(qt5path)/bin/moc
-    hiro.flags   = $(flags.cpp) -DHIRO_QT=5 -fPIC $(shell PKG_CONFIG_PATH="$(qt5path)/lib/pkgconfig" pkg-config --cflags Qt5Core Qt5Gui Qt5Widgets)
+    hiro.flags   = $(flags.objcpp) -DHIRO_QT=5 -fPIC $(shell PKG_CONFIG_PATH="$(qt5path)/lib/pkgconfig" pkg-config --cflags Qt5Core Qt5Gui Qt5Widgets)
     hiro.options = $(shell PKG_CONFIG_PATH="$(qt5path)/lib/pkgconfig" pkg-config --libs Qt5Core Qt5Gui Qt5Widgets)
   endif
 endif

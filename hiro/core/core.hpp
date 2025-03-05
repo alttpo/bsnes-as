@@ -415,6 +415,14 @@ struct MessageWindow {
 };
 #endif
 
+#if defined(Hiro_Pasteboard)
+struct Pasteboard {
+  Pasteboard() = delete;
+
+  static auto pasteString(const string& text = "") -> void;
+};
+#endif
+
 #include "attribute.hpp"
 
 #define Declare(Name) \

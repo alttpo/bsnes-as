@@ -7,6 +7,19 @@ namespace Math {
   static const long double Pi = 3.14159265358979323846;
 }
 
+#include <stdlib.h>
+#include <assert.h>
+#include <errno.h>
+#include <limits.h>
+#include <math.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <utime.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #if defined(PLATFORM_WINDOWS)
   #include <nall/windows/guard.hpp>
   #include <initguid.h>
@@ -29,19 +42,7 @@ namespace Math {
 #include <mutex>
 #include <thread>
 #include <utility>
-
-#include <assert.h>
-#include <errno.h>
-#include <limits.h>
-#include <math.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <utime.h>
-#include <fcntl.h>
-#include <unistd.h>
+#include <stdexcept>
 
 #include <sys/types.h>
 #include <sys/stat.h>

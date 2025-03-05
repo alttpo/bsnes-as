@@ -26,6 +26,7 @@
 #define Hiro_Mouse
 #define Hiro_BrowserWindow
 #define Hiro_MessageWindow
+#define Hiro_Pasteboard
 
 #define Hiro_Attribute
 

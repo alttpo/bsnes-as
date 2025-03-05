@@ -8,6 +8,7 @@
 #include "mouse.cpp"
 #include "browser-window.cpp"
 #include "message-window.cpp"
+#include "pasteboard.cpp"
 
 #include "object.cpp"
 #include "group.cpp"

@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include <nall/windows/guard.hpp>
 #include <winsock2.h>
 #include <windows.h>

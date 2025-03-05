@@ -26,9 +26,7 @@
   #include <nall/windows/guard.hpp>
   #include <nall/windows/registry.hpp>
   #include <nall/windows/utf8.hpp>
-#endif
-
-#if defined(DISPLAY_XORG)
+#elif defined(DISPLAY_XORG)
   #include <nall/xorg/guard.hpp>
   #include <X11/Xatom.h>
   #include <cairo.h>
@@ -46,4 +44,8 @@
     #endif
   #endif
   #include <nall/xorg/guard.hpp>
+#else
+  #include <cairo.h>
+  #include <gdk/gdk.h>
+  #include <gtk/gtk.h>
 #endif
