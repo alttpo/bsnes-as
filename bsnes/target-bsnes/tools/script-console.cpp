@@ -26,7 +26,7 @@ auto ScriptConsole::create() -> void {
 
     // measure total length of buffer to build:
     unsigned len = 0;
-    batch.foreach([&](const ListViewItem &item) { len += item.text().size() + crlf_size; });
+    batch.foreach([&](const ListViewItem &item) { len += item.text().size() + crlf_size + 4; });
 
     // reserve the buffer:
     string buffer;
@@ -34,6 +34,15 @@ auto ScriptConsole::create() -> void {
 
     // append all items to the buffer:
     batch.foreach([&](const ListViewItem &item) {
+      if (item.icon() == Icon::Prompt::Information) {
+        buffer.append("[I]\t");
+      } else if (item.icon() == Icon::Prompt::Error) {
+        buffer.append("[E]\t");
+      } else if (item.icon() == Icon::Prompt::Warning) {
+        buffer.append("[W]\t");
+      } else if (item.icon() == Icon::Prompt::Question) {
+        buffer.append("[D]\t");
+      }
       buffer.append(item.text());
       buffer.append(crlf);
     });
