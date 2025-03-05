@@ -2,7 +2,7 @@
 
 namespace hiro {
 
-auto pPasteboard::pasteString(const string& text) -> void {
+auto pPasteboard::pasteString(const mWindow& parentWindow, const string& text) -> void {
   NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 
   [pasteboard clearContents];

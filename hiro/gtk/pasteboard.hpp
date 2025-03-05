@@ -3,7 +3,7 @@
 namespace hiro {
 
 struct pPasteboard {
-  static auto pasteString(const string& text) -> void;
+  static auto pasteString(const mWindow& parentWindow, const string& text) -> void;
 };
 
 }

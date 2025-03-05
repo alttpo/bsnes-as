@@ -419,7 +419,7 @@ struct MessageWindow {
 struct Pasteboard {
   Pasteboard() = delete;
 
-  static auto pasteString(const string& text = "") -> void;
+  static auto pasteString(const mWindow& parent, const string& text = "") -> void;
 };
 #endif
 

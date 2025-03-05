@@ -50,7 +50,7 @@ auto ScriptConsole::create() -> void {
     buffer.resize(buffer.size() - crlf_size);
 
     // paste to the pasteboard:
-    ::hiro::Pasteboard::pasteString(buffer);
+    hiro::Pasteboard::pasteString(toolsWindow.self(), buffer);
   });
   clearButton.setText("Clear").onActivate([&] {
     clear();
