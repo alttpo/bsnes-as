@@ -182,17 +182,15 @@ public:
 
 struct ScriptConsole : VerticalLayout {
   auto create() -> void;
+  auto appendItem(const string& msg, ::Script::MessageLevel level = ::Script::MessageLevel::MSG_INFO) -> void;
+  auto clear() -> void;
   auto update() -> void;
 
 public:
   HorizontalLayout informationLayout{this, Size{~0, 0}};
     Label nameLabel{&informationLayout, Size{~0, 0}};
     Button loadButton{&informationLayout, Size{80_sx, 0}};
-#if 0 && defined(Hiro_SourceEdit)
-  SourceEdit consoleView{this, Size{~0, ~0}};
-#else
-  TextEdit consoleView{this, Size{~0, ~0}};
-#endif
+  ListView consoleView{this, Size{~0, ~0}};
 };
 
 struct ToolsWindow : Window {

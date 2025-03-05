@@ -5,15 +5,14 @@ auto Program::scriptMessage(const string& msg, bool alert, ::Script::MessageLeve
   auto levelName = ::Script::nameMessageLevel(level);
 
   // append to stdout:
-  printf("[%s] %.*s\n", levelName, msg.size(), msg.data());
+  if (level != ::Script::MessageLevel::MSG_INFO) {
+    printf("[%s] %.*s\n", levelName, msg.size(), msg.data());
+  } else {
+    printf("%.*s\n", msg.size(), msg.data());
+  }
 
   // append to script console:
-  scriptHostState.console.append("[");
-  scriptHostState.console.append(levelName);
-  scriptHostState.console.append("] ");
-  scriptHostState.console.append(msg);
-  scriptHostState.console.append("\n");
-  scriptConsole.update();
+  scriptConsole.appendItem(msg, level);
 
   // alert in status bar:
   if (alert) {

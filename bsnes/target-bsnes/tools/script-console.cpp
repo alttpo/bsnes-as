@@ -2,23 +2,42 @@ auto ScriptConsole::create() -> void {
   setCollapsible();
   setVisible(false);
 
-  #if 0 && defined(Hiro_SourceEdit)
-  consoleView.setFont(Font().setFamily(Font::Mono).setSize(10));
-  #else
-  consoleView.setFont(Font().setFamily(Font::Mono));
-  #endif
-  consoleView.setEditable(false);
-  consoleView.setWordWrap(false);
+  consoleView.reset();
+  consoleView.setBatchable(true);
 
   nameLabel.setText("no script loaded");
   loadButton.setText("Clear").onActivate([&] {
-    program.scriptHostState.console = "";
-    update();
+    clear();
   });
+}
+
+auto ScriptConsole::appendItem(const string& msg, ::Script::MessageLevel level) -> void {
+  auto item = ListViewItem().setText(msg);
+  switch (level) {
+    case ::Script::MessageLevel::MSG_DEBUG:
+      item.setIcon(Icon::Prompt::Question);
+      break;
+    case ::Script::MessageLevel::MSG_WARN:
+      item.setIcon(Icon::Prompt::Warning);
+      break;
+    case ::Script::MessageLevel::MSG_ERROR:
+      item.setIcon(Icon::Prompt::Error);
+      break;
+    case ::Script::MessageLevel::MSG_INFO:
+    default:
+      item.setIcon(Icon::Prompt::Information);
+      break;
+  }
+
+  consoleView.append(item);
+  // NOTE(jsd): hack to scroll the item into view
+  item.setFocused();
+}
+
+auto ScriptConsole::clear() -> void {
+  consoleView.reset();
 }
 
 auto ScriptConsole::update() -> void {
   nameLabel.setText(program.scriptHostState.location);
-  consoleView.setText(program.scriptHostState.console);
-  consoleView.setTextCursor(program.scriptHostState.console.size());
 }

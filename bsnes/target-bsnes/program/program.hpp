@@ -223,7 +223,6 @@ public:
     asIScriptEngine *engine;
 
     string location;
-    string console;
   } scriptHostState;
 
   vector<tuple<shared_pointer<HID::Device>, uint>> escapeKeys;
