@@ -61,6 +61,10 @@ auto pWindow::append(sSizable sizable) -> void {
 auto pWindow::append(sStatusBar statusBar) -> void {
 }
 
+auto pWindow::doActivate() const -> void {
+  qtWindow->setVisible(true);
+}
+
 auto pWindow::focused() const -> bool {
   return qtWindow->isActiveWindow() && !qtWindow->isMinimized();
 }
