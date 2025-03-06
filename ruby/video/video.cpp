@@ -23,7 +23,9 @@
 #endif
 
 #if defined(VIDEO_MTL)
-  #include <ruby/video/mtl.mm>
+  //#include <ruby/video/mtl.mm>
+  #include <ruby/video/metal/metal.cpp>
+  using VideoMTL = VideoMetal;
 #endif
 
 #if defined(VIDEO_WGL)
@@ -341,6 +343,7 @@ auto Video::hasMonitors() -> vector<Monitor> {
       monitor.y = rectangle.origin.y;
       monitor.width = rectangle.size.width;
       monitor.height = rectangle.size.height;
+      monitor.nativeHandle = (uintptr)screen;
 #if 0
       //getting the name of the monitor on macOS: "Think Different"
       auto screenDictionary = [screen deviceDescription];

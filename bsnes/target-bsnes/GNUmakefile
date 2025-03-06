@@ -49,6 +49,7 @@ else ifeq ($(platform),macos)
 	mkdir -p out/$(name).app/Contents/MacOS/Firmware/
 	mkdir -p out/$(name).app/Contents/MacOS/Shaders/
 	mkdir -p out/$(name).app/Contents/Resources/
+	mkdir -p out/$(name).app/Contents/Resources/Shaders/
 	mv out/$(name) out/$(name).app/Contents/MacOS/$(name)
 	install_name_tool -add_rpath @executable_path/ out/$(name).app/Contents/MacOS/bsnes
   ifeq ($(discord),true)
@@ -56,6 +57,7 @@ else ifeq ($(platform),macos)
   endif
 	cp Database/* out/$(name).app/Contents/MacOS/Database/
 	cp -r ../shaders/* out/$(name).app/Contents/MacOS/Shaders/
+	cp -r ../ruby/video/metal/Shaders.metal out/$(name).app/Contents/Resources/Shaders/
 	cp $(ui)/resource/$(name).plist out/$(name).app/Contents/Info.plist
 	sips -s format icns $(ui)/resource/$(name).png --out out/$(name).app/Contents/Resources/$(name).icns
 else ifeq ($(platform),linux)

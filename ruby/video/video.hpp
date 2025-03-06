@@ -63,6 +63,7 @@ struct Video {
     int y = 0;
     int width = 0;
     int height = 0;
+    uintptr nativeHandle = 0;
   };
   static auto monitor(string name) -> Monitor;
   static auto hasMonitors() -> vector<Monitor>;
