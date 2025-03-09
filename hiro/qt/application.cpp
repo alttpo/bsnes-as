@@ -23,18 +23,19 @@ auto pApplication::run() -> void {
 }
 
 auto pApplication::pendingEvents() -> bool {
-  return QApplication::hasPendingEvents();
+  return QAbstractEventDispatcher::instance()->hasPendingEvents();
 }
 
 auto pApplication::processEvents() -> void {
-  while(pendingEvents()) QApplication::processEvents();
+  auto dispatcher = QAbstractEventDispatcher::instance();
+  dispatcher->processEvents(QEventLoop::AllEvents);
 }
 
 auto pApplication::quit() -> void {
   QApplication::quit();
   qtApplication = nullptr;  //note: deleting QApplication will crash libQtGui
 
-#if defined(DISPLAY_XORG)
+#if defined(QT_DISPLAY_XORG)
   if(state().display) {
     if(state().screenSaverXDG && state().screenSaverWindow) {
       //this needs to run synchronously, so that XUnmapWindow() won't happen before xdg-screensaver is finished
@@ -49,7 +50,7 @@ auto pApplication::quit() -> void {
 }
 
 auto pApplication::setScreenSaver(bool screenSaver) -> void {
-  #if defined(DISPLAY_XORG)
+  #if defined(QT_DISPLAY_XORG)
   if(state().screenSaverXDG && state().screenSaverWindow) {
     invoke("xdg-screensaver", screenSaver ? "resume" : "suspend", string{"0x", hex(state().screenSaverWindow)});
   }
@@ -65,7 +66,7 @@ auto pApplication::state() -> State& {
 //obviously, it is used as sparingly as possible
 auto pApplication::synchronize() -> void {
   for(auto n : range(8)) {
-    #if HIRO_QT==4 && defined(DISPLAY_XORG)
+    #if HIRO_QT==4 && defined(QT_DISPLAY_XORG)
     QApplication::syncX();
     #elif HIRO_QT==5
     QApplication::sync();
@@ -80,7 +81,7 @@ auto pApplication::initialize() -> void {
   setenv("QTCOMPOSE", "/usr/local/lib/X11/locale/", 0);
   #endif
 
-  #if defined(DISPLAY_XORG)
+  #if defined(QT_DISPLAY_XORG)
   state().display = XOpenDisplay(nullptr);
   state().screenSaverXDG = (bool)execute("xdg-screensaver", "--version").output.find("xdg-screensaver");
 

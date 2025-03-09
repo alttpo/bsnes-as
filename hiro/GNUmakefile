@@ -67,9 +67,9 @@ ifneq ($(filter $(platform),linux bsd),)
   endif
 
   ifeq ($(hiro),qt5)
-    moc = /usr/local/lib/qt5/bin/moc
+    moc = /usr/lib/qt5/bin/moc
     hiro.flags   = $(flags.cpp) -DHIRO_QT=5 -fPIC $(shell pkg-config --cflags Qt5Core Qt5Gui Qt5Widgets)
-    hiro.options = -L/usr/local/lib -lX11 $(shell pkg-config --libs Qt5Core Qt5Gui Qt5Widgets)
+    hiro.options = -lX11 $(shell pkg-config --libs Qt5Core Qt5Gui Qt5Widgets)
   endif
 endif
 

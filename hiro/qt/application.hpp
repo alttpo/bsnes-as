@@ -15,7 +15,7 @@ struct pApplication {
   static auto synchronize() -> void;
 
   struct State {
-    #if defined(DISPLAY_XORG)
+    #if defined(QT_DISPLAY_XORG)
     XlibDisplay* display = nullptr;
     XlibWindow screenSaverWindow = 0;
     bool screenSaverXDG = false;

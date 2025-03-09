@@ -5,7 +5,7 @@ namespace hiro {
 auto pDesktop::size() -> Size {
   #if defined(DISPLAY_WINDOWS)
   return {GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN)};
-  #elif defined(DISPLAY_XORG)
+  #elif defined(QT_DISPLAY_XORG)
   auto display = XOpenDisplay(nullptr);
   int screen = DefaultScreen(display);
   XWindowAttributes attributes;
@@ -24,7 +24,7 @@ auto pDesktop::workspace() -> Geometry {
   RECT rc;
   SystemParametersInfo(SPI_GETWORKAREA, 0, &rc, 0);
   return {rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top};
-  #elif defined(DISPLAY_XORG)
+  #elif defined(QT_DISPLAY_XORG)
   auto display = XOpenDisplay(nullptr);
   int screen = DefaultScreen(display);
 
