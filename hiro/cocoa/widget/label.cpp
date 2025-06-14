@@ -16,12 +16,6 @@
 }
 
 -(void) drawRect:(NSRect)dirtyRect {
-  if(auto backgroundColor = label->backgroundColor()) {
-    NSColor* color = NSMakeColor(backgroundColor);
-    [color setFill];
-    NSRectFill(dirtyRect);
-  }
-
   NSFont* font = hiro::pFont::create(label->font(true));
   NSColor* color = [NSColor textColor];
   if(auto foregroundColor = label->foregroundColor()) {
@@ -46,6 +40,12 @@
   rect.origin.y = max(0, (geometry.height() - size.height()) * alignment.vertical());
   rect.size.width = min(geometry.width(), size.width());
   rect.size.height = min(geometry.height(), size.height());
+
+  if(auto backgroundColor = label->backgroundColor()) {
+    NSColor* color = NSMakeColor(backgroundColor);
+    [color setFill];
+    NSRectFill(rect);
+  }
 
   NSString* string = [NSString stringWithUTF8String:label->text()];
   [string drawInRect:rect withAttributes:attributes];
