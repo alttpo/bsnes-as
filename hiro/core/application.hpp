@@ -28,10 +28,12 @@ struct Application {
   struct Cocoa {
     static auto doAbout() -> void;
     static auto doActivate() -> void;
+    static auto doOpen(const string& location) -> void;
     static auto doPreferences() -> void;
     static auto doQuit() -> void;
     static auto onAbout(const function<void ()>& callback = {}) -> void;
     static auto onActivate(const function<void ()>& callback = {}) -> void;
+    static auto onOpen(const function<void (string)>& callback = {}) -> void;
     static auto onPreferences(const function<void ()>& callback = {}) -> void;
     static auto onQuit(const function<void ()>& callback = {}) -> void;
   };
@@ -56,6 +58,8 @@ struct Application {
     struct Cocoa {
       function<void ()> onAbout;
       function<void ()> onActivate;
+      function<void (string)> onOpen;
+      vector<string> pendingOpen;
       function<void ()> onPreferences;
       function<void ()> onQuit;
     } cocoa;

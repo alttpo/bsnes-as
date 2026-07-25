@@ -6,6 +6,46 @@ some rudimentary script function bindings between the bsnes emulator and AngelSc
 Download nightly binary builds here:
 https://dev.azure.com/ALttPO/alttpo/_build?definitionId=3&_a=summary&repositoryFilter=3
 
+Building on macOS
+------------------
+
+This repo builds natively on both Apple Silicon (arm64) and Intel (x86_64) Macs. The `GNUmakefile`
+build system auto-detects your platform and architecture, and macOS needs no extra dependencies
+beyond Xcode's command line tools (the UI is built directly against Cocoa; there's no GTK/Qt/Homebrew
+requirement like the Linux build has).
+
+1. Install the Xcode command line tools if you haven't already:
+   ```
+   $ xcode-select --install
+   ```
+2. Clone this repository:
+   ```
+   $ git clone https://github.com/alttpo/bsnes-as.git
+   $ cd bsnes-as
+   ```
+3. Build it:
+   ```
+   $ make -C bsnes build=performance -j$(sysctl -n hw.ncpu)
+   ```
+   This produces `bsnes/out/bsnes.app`. `build=performance` matches what the official CI builds use
+   (`-O3`); the default `local=true` adds `-march=native`, which is fine as long as you run the
+   binary on the same Mac you built it on (drop it, e.g. `make -C bsnes build=performance local=false`,
+   if you intend to copy the binary to a different machine).
+4. Run it directly from `bsnes/out/bsnes.app`, or install it system-wide:
+   ```
+   $ make -C bsnes install
+   ```
+   which copies it to `/Applications/bsnes.app` and sets up `~/Library/Application Support/bsnes/`.
+
+Note: Discord Rich Presence integration is only available on `x86_64` (there's no arm64 build of the
+Discord Game SDK bundled in `lib/`). The build system detects this automatically via `arch` and
+disables it (`-DDISCORD_DISABLE=1`) rather than failing, so this doesn't block an Apple Silicon build.
+
+A build you compile yourself is never downloaded from the internet, so it never picks up the
+`com.apple.quarantine` extended attribute and won't trigger Gatekeeper's "app is damaged" dialog. If
+you're working with a **pre-built** binary instead and hit that dialog, or ROMs won't open when
+double-clicked, see [Troubleshooting](#troubleshooting) below.
+
 Screenshots
 ---
 
@@ -90,5 +130,11 @@ Refer to [this document](angelscript.md) for details on the AngelScript interfac
 Troubleshooting
 ===
 
-For users of MacOS Catalina (10.15), be sure to extract the download archive using https://www.keka.io/en/ file
-archiver. DO NOT use the built-in "Archive Utility.app".
+**"bsnes is damaged and can't be opened"**: extract the downloaded archive with `tar` from Terminal,
+or a third-party archiver like [Keka](https://www.keka.io/en/), not the built-in "Archive
+Utility.app". If you've already extracted it, just run `xattr -cr /path/to/bsnes.app` instead of
+re-extracting.
+
+**Double-clicking a ROM doesn't open it, or opens the wrong copy of bsnes**: this usually means
+macOS has multiple old copies of bsnes registered from previous downloads. Delete old copies you no
+longer need and re-launch the one you want to keep once.

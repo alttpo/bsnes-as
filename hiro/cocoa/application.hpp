@@ -4,6 +4,7 @@
 }
 -(NSApplicationTerminateReply) applicationShouldTerminate:(NSApplication*)sender;
 -(BOOL) applicationShouldHandleReopen:(NSApplication*)application hasVisibleWindows:(BOOL)flag;
+-(void) handleOpenDocumentsEvent:(NSAppleEventDescriptor*)event withReplyEvent:(NSAppleEventDescriptor*)replyEvent;
 -(void) run:(NSTimer*)timer;
 -(void) updateInDock:(NSTimer*)timer;
 @end
