@@ -14,5 +14,135 @@
   <true/>
   <key>NSSupportsAutomaticGraphicsSwitching</key>
   <true/>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>Super Famicom ROM Image</string>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+      <key>CFBundleTypeExtensions</key>
+      <array>
+        <string>sfc</string>
+        <string>smc</string>
+      </array>
+      <key>LSItemContentTypes</key>
+      <array>
+        <string>org.byuu.bsnes-as.sfc-rom</string>
+      </array>
+      <key>LSHandlerRank</key>
+      <string>Alternate</string>
+    </dict>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>Game Boy ROM Image</string>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+      <key>CFBundleTypeExtensions</key>
+      <array>
+        <string>gb</string>
+        <string>gbc</string>
+      </array>
+      <key>LSItemContentTypes</key>
+      <array>
+        <string>org.byuu.bsnes-as.gb-rom</string>
+      </array>
+      <key>LSHandlerRank</key>
+      <string>Alternate</string>
+    </dict>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>BS-X / Sufami Turbo ROM Image</string>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+      <key>CFBundleTypeExtensions</key>
+      <array>
+        <string>bs</string>
+        <string>st</string>
+      </array>
+      <key>LSItemContentTypes</key>
+      <array>
+        <string>org.byuu.bsnes-as.bs-rom</string>
+        <string>org.byuu.bsnes-as.st-rom</string>
+      </array>
+      <key>LSHandlerRank</key>
+      <string>Alternate</string>
+    </dict>
+  </array>
+  <key>UTExportedTypeDeclarations</key>
+  <array>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>org.byuu.bsnes-as.sfc-rom</string>
+      <key>UTTypeDescription</key>
+      <string>Super Famicom ROM Image</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.data</string>
+      </array>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array>
+          <string>sfc</string>
+          <string>smc</string>
+        </array>
+      </dict>
+    </dict>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>org.byuu.bsnes-as.gb-rom</string>
+      <key>UTTypeDescription</key>
+      <string>Game Boy ROM Image</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.data</string>
+      </array>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array>
+          <string>gb</string>
+          <string>gbc</string>
+        </array>
+      </dict>
+    </dict>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>org.byuu.bsnes-as.bs-rom</string>
+      <key>UTTypeDescription</key>
+      <string>BS-X ROM Image</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.data</string>
+      </array>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array>
+          <string>bs</string>
+        </array>
+      </dict>
+    </dict>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>org.byuu.bsnes-as.st-rom</string>
+      <key>UTTypeDescription</key>
+      <string>Sufami Turbo ROM Image</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.data</string>
+      </array>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array>
+          <string>st</string>
+        </array>
+      </dict>
+    </dict>
+  </array>
 </dict>
 </plist>

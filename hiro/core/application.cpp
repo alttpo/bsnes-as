@@ -109,6 +109,14 @@ auto Application::Cocoa::doActivate() -> void {
   if(state().cocoa.onActivate) return state().cocoa.onActivate();
 }
 
+auto Application::Cocoa::doOpen(const string& location) -> void {
+  //the open-document event can arrive (via a raw Apple Event handler registered at the
+  //earliest possible moment) before the application has finished constructing its UI and
+  //registered a real onOpen callback: buffer it so it isn't silently dropped on a cold launch
+  if(state().cocoa.onOpen) return state().cocoa.onOpen(location);
+  state().cocoa.pendingOpen.append(location);
+}
+
 auto Application::Cocoa::doPreferences() -> void {
   if(state().cocoa.onPreferences) return state().cocoa.onPreferences();
 }
@@ -123,6 +131,15 @@ auto Application::Cocoa::onAbout(const function<void ()>& callback) -> void {
 
 auto Application::Cocoa::onActivate(const function<void ()>& callback) -> void {
   state().cocoa.onActivate = callback;
+}
+
+auto Application::Cocoa::onOpen(const function<void (string)>& callback) -> void {
+  state().cocoa.onOpen = callback;
+  if(callback) {
+    auto pending = move(state().cocoa.pendingOpen);
+    state().cocoa.pendingOpen = {};
+    for(auto& location : pending) callback(location);
+  }
 }
 
 auto Application::Cocoa::onPreferences(const function<void ()>& callback) -> void {
