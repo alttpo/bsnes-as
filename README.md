@@ -9,7 +9,7 @@ https://dev.azure.com/ALttPO/alttpo/_build?definitionId=3&_a=summary&repositoryF
 Building on macOS
 ------------------
 
-This repo builds natively on both Apple Silicon (arm64) and Intel (x86_64) Macs — the `GNUmakefile`
+This repo builds natively on both Apple Silicon (arm64) and Intel (x86_64) Macs. The `GNUmakefile`
 build system auto-detects your platform and architecture, and macOS needs no extra dependencies
 beyond Xcode's command line tools (the UI is built directly against Cocoa; there's no GTK/Qt/Homebrew
 requirement like the Linux build has).
@@ -37,23 +37,14 @@ requirement like the Linux build has).
    ```
    which copies it to `/Applications/bsnes.app` and sets up `~/Library/Application Support/bsnes/`.
 
-Notes:
-- Discord Rich Presence integration is only available on `x86_64` (there's no arm64 build of the
-  Discord Game SDK bundled in `lib/`) — the build system detects this automatically via `arch` and
-  disables it (`-DDISCORD_DISABLE=1`) rather than failing, so this doesn't block an Apple Silicon build.
-- A build you compile yourself isn't downloaded from the internet, so it never picks up the
-  `com.apple.quarantine` extended attribute and won't trigger Gatekeeper's "app is damaged" dialog —
-  that dialog is a downloaded-and-then-extracted-by-Archive-Utility artifact, not a build issue. If
-  you hit that dialog with a **pre-built** binary (see the MacOS Catalina section below for a version
-  of this), the fix is to extract with `tar`/a third-party archiver instead of Archive Utility.app, or
-  strip the attribute directly: `xattr -cr /path/to/bsnes.app`.
-- If you're testing multiple downloaded/rebuilt copies of this app over time, be aware that macOS's
-  LaunchServices tracks them all under the same bundle identifier (`org.byuu.bsnes`). Stale duplicate
-  registrations (e.g. old copies still sitting in `~/Downloads` or `~/.Trash`) can cause file-open
-  requests (double-clicking a ROM, "Open With") to route unpredictably. Clean up old copies you no
-  longer need, or run `lsregister -gc` (found under
-  `/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/`)
-  to garbage-collect stale entries.
+Note: Discord Rich Presence integration is only available on `x86_64` (there's no arm64 build of the
+Discord Game SDK bundled in `lib/`). The build system detects this automatically via `arch` and
+disables it (`-DDISCORD_DISABLE=1`) rather than failing, so this doesn't block an Apple Silicon build.
+
+A build you compile yourself is never downloaded from the internet, so it never picks up the
+`com.apple.quarantine` extended attribute and won't trigger Gatekeeper's "app is damaged" dialog. If
+you're working with a **pre-built** binary instead and hit that dialog, or ROMs won't open when
+double-clicked, see [Troubleshooting](#troubleshooting) below.
 
 Screenshots
 ---
@@ -139,5 +130,11 @@ Refer to [this document](angelscript.md) for details on the AngelScript interfac
 Troubleshooting
 ===
 
-For users of MacOS Catalina (10.15), be sure to extract the download archive using https://www.keka.io/en/ file
-archiver. DO NOT use the built-in "Archive Utility.app".
+**"bsnes is damaged and can't be opened"**: extract the downloaded archive with `tar` from Terminal,
+or a third-party archiver like [Keka](https://www.keka.io/en/), not the built-in "Archive
+Utility.app". If you've already extracted it, just run `xattr -cr /path/to/bsnes.app` instead of
+re-extracting.
+
+**Double-clicking a ROM doesn't open it, or opens the wrong copy of bsnes**: this usually means
+macOS has multiple old copies of bsnes registered from previous downloads. Delete old copies you no
+longer need and re-launch the one you want to keep once.
