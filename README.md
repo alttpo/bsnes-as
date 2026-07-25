@@ -6,6 +6,55 @@ some rudimentary script function bindings between the bsnes emulator and AngelSc
 Download nightly binary builds here:
 https://dev.azure.com/ALttPO/alttpo/_build?definitionId=3&_a=summary&repositoryFilter=3
 
+Building on macOS
+------------------
+
+This repo builds natively on both Apple Silicon (arm64) and Intel (x86_64) Macs — the `GNUmakefile`
+build system auto-detects your platform and architecture, and macOS needs no extra dependencies
+beyond Xcode's command line tools (the UI is built directly against Cocoa; there's no GTK/Qt/Homebrew
+requirement like the Linux build has).
+
+1. Install the Xcode command line tools if you haven't already:
+   ```
+   $ xcode-select --install
+   ```
+2. Clone this repository:
+   ```
+   $ git clone https://github.com/alttpo/bsnes-as.git
+   $ cd bsnes-as
+   ```
+3. Build it:
+   ```
+   $ make -C bsnes build=performance -j$(sysctl -n hw.ncpu)
+   ```
+   This produces `bsnes/out/bsnes.app`. `build=performance` matches what the official CI builds use
+   (`-O3`); the default `local=true` adds `-march=native`, which is fine as long as you run the
+   binary on the same Mac you built it on (drop it, e.g. `make -C bsnes build=performance local=false`,
+   if you intend to copy the binary to a different machine).
+4. Run it directly from `bsnes/out/bsnes.app`, or install it system-wide:
+   ```
+   $ make -C bsnes install
+   ```
+   which copies it to `/Applications/bsnes.app` and sets up `~/Library/Application Support/bsnes/`.
+
+Notes:
+- Discord Rich Presence integration is only available on `x86_64` (there's no arm64 build of the
+  Discord Game SDK bundled in `lib/`) — the build system detects this automatically via `arch` and
+  disables it (`-DDISCORD_DISABLE=1`) rather than failing, so this doesn't block an Apple Silicon build.
+- A build you compile yourself isn't downloaded from the internet, so it never picks up the
+  `com.apple.quarantine` extended attribute and won't trigger Gatekeeper's "app is damaged" dialog —
+  that dialog is a downloaded-and-then-extracted-by-Archive-Utility artifact, not a build issue. If
+  you hit that dialog with a **pre-built** binary (see the MacOS Catalina section below for a version
+  of this), the fix is to extract with `tar`/a third-party archiver instead of Archive Utility.app, or
+  strip the attribute directly: `xattr -cr /path/to/bsnes.app`.
+- If you're testing multiple downloaded/rebuilt copies of this app over time, be aware that macOS's
+  LaunchServices tracks them all under the same bundle identifier (`org.byuu.bsnes`). Stale duplicate
+  registrations (e.g. old copies still sitting in `~/Downloads` or `~/.Trash`) can cause file-open
+  requests (double-clicking a ROM, "Open With") to route unpredictably. Clean up old copies you no
+  longer need, or run `lsregister -gc` (found under
+  `/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/`)
+  to garbage-collect stale entries.
+
 Screenshots
 ---
 
