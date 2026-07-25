@@ -15,6 +15,17 @@
   return NO;
 }
 
+-(void) handleOpenDocumentsEvent:(NSAppleEventDescriptor*)event withReplyEvent:(NSAppleEventDescriptor*)replyEvent {
+  using hiro::Application;
+  NSAppleEventDescriptor* fileList = [event paramDescriptorForKeyword:keyDirectObject];
+  for(NSInteger i = 1; i <= [fileList numberOfItems]; i++) {
+    NSAppleEventDescriptor* item = [fileList descriptorAtIndex:i];
+    NSURL* url = [NSURL URLWithString:[item stringValue]];
+    string path = url && [url isFileURL] ? [[url path] UTF8String] : [[item stringValue] UTF8String];
+    if(path) Application::Cocoa::doOpen(path);
+  }
+}
+
 -(void) run:(NSTimer*)timer {
   using hiro::Application;
   if(Application::state().onMain) Application::doMain();
@@ -100,6 +111,19 @@ auto pApplication::initialize() -> void {
     [NSApplication sharedApplication];
     cocoaDelegate = [[CocoaDelegate alloc] init];
     [NSApp setDelegate:cocoaDelegate];
+
+    //register as early as possible (before any of the application's own, potentially slow,
+    //startup work runs) so a cold-launch "open document" Apple Event isn't missed: on a cold
+    //launch (double-click / Finder "Open With"), macOS can deliver this event before the app
+    //has finished constructing its UI, and it will not be redelivered if missed
+    [[NSAppleEventManager sharedAppleEventManager] setEventHandler:cocoaDelegate
+                                                        andSelector:@selector(handleOpenDocumentsEvent:withReplyEvent:)
+                                                      forEventClass:kCoreEventClass
+                                                         andEventID:kAEOpenDocuments];
+
+    //give the just-registered handler a chance to receive any open-document event that is
+    //already queued for this process before proceeding into the application's slow startup path
+    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.1]];
   }
 }
 

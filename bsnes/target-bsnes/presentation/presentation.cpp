@@ -279,6 +279,7 @@ auto Presentation::create() -> void {
   #if defined(PLATFORM_MACOS)
   Application::Cocoa::onAbout([&] { about.doActivate(); });
   Application::Cocoa::onActivate([&] { setFocused(); });
+  Application::Cocoa::onOpen([&](string location) { onDrop({location}); });
   Application::Cocoa::onPreferences([&] { settingsWindow.show(2); });
   Application::Cocoa::onQuit([&] { doClose(); });
   #endif
