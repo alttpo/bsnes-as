@@ -56,6 +56,9 @@ auto pWindow::append(sMenuBar menuBar) -> void {
 }
 
 auto pWindow::append(sSizable sizable) -> void {
+  //lay out the new sizable now; otherwise a sizable appended to an already-visible window
+  //keeps a zero geometry (and so stays blank) until the window is next resized or shown
+  sizable->setGeometry(self().geometry().setPosition());
 }
 
 auto pWindow::append(sStatusBar statusBar) -> void {
