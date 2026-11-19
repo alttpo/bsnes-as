@@ -26,13 +26,25 @@ auto logCallback(discord::LogLevel level, const char* message) -> void {
   platform->scriptMessage({"Discord ", levelNames[static_cast<int>(level)], ": ", message}, (level == discord::LogLevel::Error));
 }
 
+// `cb` is a handle parameter, so we own one reference to it. The returned std::function may be copied
+// any number of times by the discord SDK; a shared_ptr releases our reference exactly once, when the
+// SDK drops the last copy (after the callback runs, or when `core` is deleted).
 auto createScriptCallback(asIScriptFunction *cb) -> std::function<void(discord::Result)> {
   if (cb == nullptr) return std::function<void(discord::Result)>(nullptr);
-  return [=](discord::Result result) -> void {
-    platform->scriptInvokeFunction(cb, [=](auto ctx) {
+  std::shared_ptr<asIScriptFunction> func(cb, [](asIScriptFunction *f) { f->Release(); });
+  return [func](discord::Result result) -> void {
+    platform->scriptInvokeFunction(func.get(), [=](auto ctx) {
       ctx->SetArgDWord(0, static_cast<int>(result));
     });
   };
+}
+
+// Manager handles are raw pointers into `core` (registered NOCOUNT), and `core` is deleted when discord
+// stops running or the script unloads; a script may still hold an old handle, so verify it before use.
+auto activityManagerValid(discord::ActivityManager& self) -> bool {
+  if (core && &self == &core->ActivityManager()) return true;
+  result = discord::Result::NotRunning;
+  return false;
 }
 
 auto Register(asIScriptEngine *e) -> void {
@@ -268,14 +280,18 @@ auto Register(asIScriptEngine *e) -> void {
       ActivityManager,
       "void UpdateActivity(const Activity &in, Callback@)",
       ([](discord::ActivityManager& self, discord::Activity const& activity, asIScriptFunction *cb) {
-        self.UpdateActivity(activity, createScriptCallback(cb));
+        auto callback = createScriptCallback(cb);  // takes ownership of cb either way
+        if (!activityManagerValid(self)) return;
+        self.UpdateActivity(activity, callback);
       })
     );
     REG_LAMBDA(
       ActivityManager,
       "void ClearActivity(Callback@)",
       ([](discord::ActivityManager& self, asIScriptFunction *cb) {
-        self.ClearActivity(createScriptCallback(cb));
+        auto callback = createScriptCallback(cb);  // takes ownership of cb either way
+        if (!activityManagerValid(self)) return;
+        self.ClearActivity(callback);
       })
     );
   }

@@ -143,6 +143,16 @@ namespace Net {
   struct Address {
     addrinfo *info;
 
+    // reference counted: scripts hold `Address@` handles (resolve_* returns the first reference):
+    int ref = 1;
+    void addRef() {
+      ref++;
+    }
+    void release() {
+      if (--ref == 0)
+        delete this;
+    }
+
     // constructor:
     Address(const string *host, const string *port, int family = AF_UNSPEC, int socktype = SOCK_STREAM) {
       info = nullptr;
@@ -1216,10 +1226,10 @@ namespace Net {
       // create listening socket to accept TCP connections on:
       socket = create_socket(addr);
       if (!socket || !*socket || socket->bind(addr) < 0 || socket->listen(32) < 0) {
-        delete addr;
+        addr->release();
         return;
       }
-      delete addr;
+      addr->release();
 
       // create `array<WebSocket@>` for clients:
       clients = CScriptArray::Create(typeInfo);
@@ -1319,7 +1329,11 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   //r = e->RegisterGlobalFunction("bool throw_if_error()", asFUNCTION(Net::exception_thrown), asCALL_CDECL); assert(r >= 0 );
 
   // Address type:
-  r = e->RegisterObjectType("Address", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+  // Address is reference counted (it owns the getaddrinfo() result, which used to leak on every resolve).
+  // Functions taking an Address use auto-handles (`@+`) so AngelScript releases the argument for them.
+  r = e->RegisterObjectType("Address", 0, asOBJ_REF); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("Address", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::Address, addRef), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectBehaviour("Address", asBEHAVE_RELEASE, "void f()", asMETHOD(Net::Address, release), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterGlobalFunction("Address@ resolve_tcp(const string &in host, const string &in port)", asFUNCTION(Net::resolve_tcp), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("Address@ resolve_udp(const string &in host, const string &in port)", asFUNCTION(Net::resolve_udp), asCALL_CDECL); assert(r >= 0);
   // TODO: try opImplCast
@@ -1327,7 +1341,7 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   REG_LAMBDA(Address, "bool get_is_valid() property", ([](Net::Address& self) { return self.operator bool(); }));
 
   r = e->RegisterObjectType("Socket", 0, asOBJ_REF); assert(r >= 0);
-  r = e->RegisterObjectBehaviour("Socket", asBEHAVE_FACTORY, "Socket@ f(Address @addr)", asFUNCTION(Net::create_socket), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("Socket", asBEHAVE_FACTORY, "Socket@ f(Address@+ addr)", asFUNCTION(Net::create_socket), asCALL_CDECL); assert(r >= 0);
   REG_LAMBDA_BEHAVIOUR(Socket, asBEHAVE_ADDREF, "void f()", ([](Net::Socket& self){ self.addRef(); }));
   //r = e->RegisterObjectBehaviour("Socket", asBEHAVE_ADDREF, "void f()", asMETHOD(Net::Socket, addRef), asCALL_THISCALL); assert( r >= 0 );
   REG_LAMBDA_BEHAVIOUR(Socket, asBEHAVE_RELEASE, "void f()", ([](Net::Socket& self){ self.release(); }));
@@ -1335,8 +1349,8 @@ auto RegisterNet(asIScriptEngine *e) -> void {
 
   REG_LAMBDA(Socket, "bool get_is_valid() property", ([](Net::Socket& self) { return self.operator bool(); }));
   REG_LAMBDA(Socket, "int close()",                  ([](Net::Socket& self) { return self.close(); }));
-  REG_LAMBDA(Socket, "int connect(Address@ addr)",   ([](Net::Socket& self, const Net::Address* addr) { return self.connect(addr); }));
-  REG_LAMBDA(Socket, "int bind(Address@ addr)",      ([](Net::Socket& self, const Net::Address* addr) { return self.bind(addr); }));
+  REG_LAMBDA(Socket, "int connect(Address@+ addr)",   ([](Net::Socket& self, const Net::Address* addr) { return self.connect(addr); }));
+  REG_LAMBDA(Socket, "int bind(Address@+ addr)",     ([](Net::Socket& self, const Net::Address* addr) { return self.bind(addr); }));
   REG_LAMBDA(Socket, "int listen(int backlog)",      ([](Net::Socket& self, int backlog) { return self.listen(backlog); }));
   REG_LAMBDA(Socket, "Socket@ accept()",             ([](Net::Socket& self) -> Net::Socket* { return self.accept(); }));
 
@@ -1349,7 +1363,7 @@ auto RegisterNet(asIScriptEngine *e) -> void {
   REG_LAMBDA(Socket, "int recvfrom(int offs, int size, array<uint8> &inout buffer)",
     ([](Net::Socket& self, int offs, int size, CScriptArray* buffer) { return self.recvfrom(offs, size, buffer); })
   );
-  REG_LAMBDA(Socket, "int sendto(int offs, int size, array<uint8> &inout buffer, const Address@ addr)",
+  REG_LAMBDA(Socket, "int sendto(int offs, int size, array<uint8> &inout buffer, const Address@+ addr)",
     ([](Net::Socket& self, int offs, int size, CScriptArray* buffer, const Net::Address* addr) { return self.sendto(offs, size, buffer, addr); })
   );
 

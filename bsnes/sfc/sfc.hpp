@@ -149,7 +149,8 @@ namespace SuperFamicom {
 
   struct Script {
 #ifndef DISABLE_HIRO
-    vector<hiro::Window> windows;
+    // weak: these must not keep script windows alive; used to hide any still open at unload:
+    vector<shared_pointer_weak<hiro::mWindow>> windows;
 #endif
 
     struct {

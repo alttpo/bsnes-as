@@ -268,7 +268,9 @@ bool isGuiEnabled = false;
 
 #ifndef DISABLE_HIRO
 #  define GUI_EXPOSE_SHARED_PTR(name, className, mClassName) EXPOSE_SHARED_PTR(name, className, mClassName)
+#  define GUI_NEW(className) scriptRefNew<className>()
 #else
+#  define GUI_NEW(className) (new className())
 #  define GUI_EXPOSE_SHARED_PTR(name, className, mClassName) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(+([](className& self){ self._addRef(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ self._releaseRef(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
@@ -307,6 +309,17 @@ static auto guiVarArg(void *ref, int typeId, std::initializer_list<const char *>
 
 #define GUI_SIZABLE_TYPES {"VerticalLayout", "HorizontalLayout", "LineEdit", "Label", "Button", "Canvas", "SNESCanvas", "CheckLabel", "ComboButton", "HorizontalSlider"}
 #define GUI_OBJECT_TYPES  {"Window", "VerticalLayout", "HorizontalLayout", "LineEdit", "Label", "Button", "Canvas", "SNESCanvas", "CheckLabel", "ComboButtonItem", "ComboButton", "HorizontalSlider"}
+
+#ifndef DISABLE_HIRO
+static auto trackScriptWindow(const hiro::Window& window) -> void {
+  auto& windows = ::SuperFamicom::script.windows;
+  // drop entries for windows that no longer exist so the list doesn't grow without bound:
+  for (int i = (int)windows.size() - 1; i >= 0; i--) {
+    if (!windows[i]) windows.removeByIndex(i);
+  }
+  windows.append(shared_pointer_weak<hiro::mWindow>(window));
+}
+#endif
 
 auto RegisterGUI(asIScriptEngine *e) -> void {
   int r;
@@ -357,7 +370,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_REF_SCOPED(Geometry, hiro::Geometry);
 
 #define EXPOSE_HIRO(name) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return new hiro::name; }) ), asCALL_CDECL); assert(r >= 0); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_FACTORY, #name "@ f()", asFUNCTION( +([]{ return GUI_NEW(hiro::name); }) ), asCALL_CDECL); assert(r >= 0); \
   GUI_EXPOSE_SHARED_PTR(name, hiro::name, hiro::m##name)
 
 #define EXPOSE_HIRO_VALUE(name) \
@@ -490,24 +503,20 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // Window
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f()", asFUNCTION( +([]{
-    auto window = new hiro::Window;
+    auto window = GUI_NEW(hiro::Window);
 #ifndef DISABLE_HIRO
-#if 0
-    // keep a reference for later destruction when unloading script:
-    ::SuperFamicom::script.windows.append(*window);
-#endif
+    // keep a weak reference so the window can be closed when unloading the script:
+    trackScriptWindow(*window);
 #endif
     return window;
   }) ), asCALL_CDECL); assert(r >= 0);
   GUI_EXPOSE_SHARED_PTR(Window, hiro::Window, hiro::mWindow);
 
   r = e->RegisterObjectBehaviour("Window", asBEHAVE_FACTORY, "Window@ f(float rx, float ry, bool relative)", asFUNCTION(+([](float x, float y, bool relative) {
-    auto window = new hiro::Window;
+    auto window = GUI_NEW(hiro::Window);
 #ifndef DISABLE_HIRO
-#if 0
-    // keep a reference for later destruction when unloading script:
-    ::SuperFamicom::script.windows.append(*window);
-#endif
+    // keep a weak reference so the window can be closed when unloading the script:
+    trackScriptWindow(*window);
     if (relative) {
       window->setPosition(platform->presentationWindow(), hiro::Position{x, y});
     } else {
@@ -754,7 +763,7 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(HorizontalSlider, "void onChange(Callback @cb)",               ([](hiro::HorizontalSlider *p, asIScriptFunction *cb) { p->onChange(Callback(cb)); }));
 
   // SNESCanvas
-  r = e->RegisterObjectBehaviour("SNESCanvas", asBEHAVE_FACTORY, "SNESCanvas@ f()", asFUNCTION( +([]{ return new GUI::SNESCanvas(); }) ), asCALL_CDECL); assert(r >= 0);
+  r = e->RegisterObjectBehaviour("SNESCanvas", asBEHAVE_FACTORY, "SNESCanvas@ f()", asFUNCTION( +([]{ return GUI_NEW(GUI::SNESCanvas); }) ), asCALL_CDECL); assert(r >= 0);
   GUI_EXPOSE_SHARED_PTR(SNESCanvas, GUI::SNESCanvas, GUI::mSNESCanvas);
   EXPOSE_OBJECT(SNESCanvas, GUI::SNESCanvas);
   EXPOSE_SIZABLE(SNESCanvas, GUI::SNESCanvas);

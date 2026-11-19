@@ -225,38 +225,20 @@ namespace ScriptInterface {
   uint32_t  *emulatorPalette;
   uint      emulatorDepth;    // 24 or 30
 
-  template<class C>
-  static auto sharedPtrAddRef(shared_pointer<C> &p) {
-    p.manager->strong++;
-    //printf("%p ++ -> %d\n", (void*)&p, p.references());
-  }
+  // A script handle to a hiro object (Label, Window, ...) points at a heap-allocated ScriptRef<T>, which
+  // is-a T (a hiro shared_pointer wrapper) at offset 0, so registered methods can take `T*` directly.
+  // The ScriptRef holds exactly one ordinary strong reference to the hiro object, and counts script
+  // references separately: when the last script reference goes away the ScriptRef is deleted, which
+  // releases its strong reference the normal way. Layouts/windows holding their own copies keep the
+  // hiro object alive independently, and neither side leaks or frees the other's memory.
+  template<class T>
+  struct ScriptRef : T {
+    uint scriptRefs = 1;
+  };
 
-  // Script handles to hiro objects point at a heap-allocated shared_pointer wrapper (see the factories);
-  // script references are counted in the shared manager's strong count alongside hiro's own copies.
-  // Returns true when the last strong reference was dropped here, in which case nothing else can refer
-  // to the wrapper any more and the caller should delete it.
-  template<class C>
-  static auto sharedPtrRelease(shared_pointer<C> &p) -> bool {
-    //printf("%p -- -> %d\n", (void*)&p, p.references() - 1);
-    if (p.manager && p.manager->strong) {
-      if (p.manager->strong == 1) {
-        if(p.manager->deleter) {
-          p.manager->deleter(p.manager->pointer);
-        } else {
-          delete (C*)p.manager->pointer;
-        }
-        p.manager->pointer = nullptr;
-      }
-      if (--p.manager->strong == 0) {
-        if(p.manager->weak == 0) {
-          delete p.manager;
-        }
-        // the manager is either gone or owned by its remaining weak references now:
-        p.manager = nullptr;
-        return true;
-      }
-    }
-    return false;
+  template<class T>
+  static auto scriptRefNew() -> T* {
+    return static_cast<T*>(new ScriptRef<T>());
   }
 
   struct Callback {
@@ -351,9 +333,15 @@ namespace ScriptInterface {
     }
   };
 
+// className handles must only ever be created by scriptRefNew<className>():
 #define EXPOSE_SHARED_PTR(name, className, mClassName) \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(+([](className& self){ sharedPtrAddRef<mClassName>(self); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ if (sharedPtrRelease<mClassName>(self)) delete &self; })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(+([](className& self){ \
+    static_cast<ScriptRef<className>&>(self).scriptRefs++; \
+  })), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ \
+    auto& ref = static_cast<ScriptRef<className>&>(self); \
+    if (--ref.scriptRefs == 0) delete &ref; \
+  })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
   #include "script-bus.cpp"
   #include "script-ppu.cpp"
@@ -757,24 +745,24 @@ auto Interface::unloadScript() -> void {
   ::SuperFamicom::cpu.reset_dma_interceptor();
   ::SuperFamicom::cpu.reset_pc_callbacks();
 
-#ifndef DISABLE_HIRO
-  // Close any GUI windows:
-  for (auto window : script.windows) {
-    if (!window) continue;
-#if 0
-    window->setVisible(false);
-    window->setDismissable(true);
-    window->destruct();
-    window.reset();
-#endif
-  }
-  script.windows.reset();
-#endif
-
   // unload script:
   platform->scriptInvokeFunction(script.funcs.unload);
 
+  // drops any pending discord callbacks (and their script function references):
   ScriptInterface::DiscordInterface::reset();
+
+#ifndef DISABLE_HIRO
+  // Close any GUI windows the script left open. Removing each window's contents drops the widget tree
+  // and the script callbacks it holds; the windows themselves are destroyed once the script's handles
+  // to them are released (module discard + garbage collection below).
+  for (auto& weak : script.windows) {
+    if (auto window = weak.acquire()) {
+      window->setVisible(false);
+      window->reset();
+    }
+  }
+  script.windows.reset();
+#endif
 
   platform->scriptProfilerDisable(platform->scriptPrimaryContext());
 
@@ -785,6 +773,10 @@ auto Interface::unloadScript() -> void {
   platform->scriptEngineState.modules.reset();
   platform->scriptEngineState.main_module = nullptr;
 
+  // free the discarded script's objects now (including cyclic garbage), releasing their handles to
+  // GUI windows, sockets, arrays, etc.:
+  platform->scriptEngine()->GarbageCollect(asGC_FULL_CYCLE);
+
   script.funcs.init = nullptr;
   script.funcs.unload = nullptr;
   script.funcs.post_power = nullptr;
@@ -794,6 +786,8 @@ auto Interface::unloadScript() -> void {
   script.funcs.pre_frame = nullptr;
   script.funcs.post_frame = nullptr;
   script.funcs.palette_updated = nullptr;
+  // was left dangling into the discarded module:
+  script.funcs.idle = nullptr;
 
   // reset extra-tile data:
   ScriptInterface::extraLayer.reset();
