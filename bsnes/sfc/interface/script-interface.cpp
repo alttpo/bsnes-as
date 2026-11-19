@@ -118,16 +118,18 @@ namespace ScriptInterface {
     platform->scriptMessage(*msg);
   }
 
-  static auto array_to_string(CScriptArray *array, uint offs, uint size) -> string* {
+  // returns by value: this used to return a heap-allocated `string*` through a `string &` script
+  // return, which AngelScript copies but never frees, leaking one string per call.
+  static auto array_to_string(CScriptArray *array, uint offs, uint size) -> string {
     // avoid index out of range exception:
-    if (array->GetSize() <= offs) return new string();
-    if (array->GetSize() < offs + size) return new string();
+    if (array->GetSize() <= offs) return {};
+    if (array->GetSize() < uint64_t(offs) + size) return {};
 
     // append bytes from array:
-    auto appended = new string();
-    appended->resize(size);
+    string appended;
+    appended.resize(size);
     for (auto i : range(size)) {
-      appended->get()[i] = *(const char *)(array->At(offs + i));
+      appended.get()[i] = *(const char *)(array->At(offs + i));
     }
     return appended;
   }
@@ -229,8 +231,12 @@ namespace ScriptInterface {
     //printf("%p ++ -> %d\n", (void*)&p, p.references());
   }
 
+  // Script handles to hiro objects point at a heap-allocated shared_pointer wrapper (see the factories);
+  // script references are counted in the shared manager's strong count alongside hiro's own copies.
+  // Returns true when the last strong reference was dropped here, in which case nothing else can refer
+  // to the wrapper any more and the caller should delete it.
   template<class C>
-  static auto sharedPtrRelease(shared_pointer<C> &p) {
+  static auto sharedPtrRelease(shared_pointer<C> &p) -> bool {
     //printf("%p -- -> %d\n", (void*)&p, p.references() - 1);
     if (p.manager && p.manager->strong) {
       if (p.manager->strong == 1) {
@@ -244,65 +250,110 @@ namespace ScriptInterface {
       if (--p.manager->strong == 0) {
         if(p.manager->weak == 0) {
           delete p.manager;
-          p.manager = nullptr;
         }
+        // the manager is either gone or owned by its remaining weak references now:
+        p.manager = nullptr;
+        return true;
       }
     }
+    return false;
   }
 
   struct Callback {
     asIScriptFunction     *func = nullptr;
     asILockableSharedBool *weakRefFlag = nullptr;
     void                  *obj = nullptr;
+    asITypeInfo           *objType = nullptr;
 
+    // takes ownership of the reference to `cb` that AngelScript handed the native function:
     Callback(asIScriptFunction *cb) {
-      // if dealing with a delegate, only take a reference to the method and not its object:
-      if (cb && cb->GetFuncType() == asFUNC_DELEGATE) {
-        obj           = cb->GetDelegateObject();
-        auto objType  = cb->GetDelegateObjectType();
-        func          = cb->GetDelegateFunction();
+      if (!cb) return;
 
-        // add a weak reference to the object:
+      // if dealing with a delegate, only take a reference to the method and not its object:
+      if (cb->GetFuncType() == asFUNC_DELEGATE) {
+        obj     = cb->GetDelegateObject();
+        objType = cb->GetDelegateObjectType();
+        func    = cb->GetDelegateFunction();
+
+        // add a weak reference to the object; it is checked before every call so that we never
+        // call a method on a script object that has since been destroyed:
         weakRefFlag = platform->scriptEngine()->GetWeakRefFlagOfScriptObject(obj, objType);
-        weakRefFlag->AddRef();
+        if (weakRefFlag) {
+          weakRefFlag->AddRef();
+        }
         // keep the function:
-        func->AddRef();
+        if (func) func->AddRef();
         // release the delegate:
         cb->Release();
       } else {
         func = cb;
       }
     }
-    Callback(const Callback& other) : func(other.func), obj(other.obj), weakRefFlag(other.weakRefFlag) {
-      if (weakRefFlag) {
-        weakRefFlag->AddRef();
-      }
-      func->AddRef();
+    Callback(const Callback& other) : func(other.func), weakRefFlag(other.weakRefFlag), obj(other.obj), objType(other.objType) {
+      if (weakRefFlag) weakRefFlag->AddRef();
+      if (func) func->AddRef();
+    }
+    Callback& operator=(const Callback& other) {
+      if (this == &other) return *this;
+      if (other.weakRefFlag) other.weakRefFlag->AddRef();
+      if (other.func) other.func->AddRef();
+      release();
+      func = other.func;
+      weakRefFlag = other.weakRefFlag;
+      obj = other.obj;
+      objType = other.objType;
+      return *this;
     }
     ~Callback() {
+      release();
+    }
+
+    auto release() -> void {
       if (weakRefFlag) {
         weakRefFlag->Release();
         weakRefFlag = nullptr;
       }
-      func->Release();
-      func = nullptr;
+      if (func) {
+        func->Release();
+        func = nullptr;
+      }
       obj = nullptr;
+      objType = nullptr;
     }
 
     auto operator()() -> void {
+      if (!func) return;
+
+      // copy state to locals: the callback may replace or destroy the widget (and so this Callback)
+      // that owns it while it runs:
+      auto f = func;
+      auto o = obj;
+      auto ot = objType;
+      auto e = platform->scriptEngine();
+
+      if (o) {
+        // delegate: skip the call if its object has been destroyed:
+        if (!weakRefFlag || weakRefFlag->Get()) return;
+        // hold the object alive for the duration of the call:
+        e->AddRefScriptObject(o, ot);
+      }
+      f->AddRef();
+
       auto ctx = platform->scriptCreateContext();
-      platform->scriptInvokeFunctionWithContext(func, ctx, [=](asIScriptContext* ctx) {
+      platform->scriptInvokeFunctionWithContext(f, ctx, [o](asIScriptContext* ctx) {
         // use the script object for which the delegate applies to:
-        // TODO: what if obj == nullptr?
-        ctx->SetObject(obj);
+        if (o) ctx->SetObject(o);
       });
       ctx->Release();
+
+      f->Release();
+      if (o) e->ReleaseScriptObject(o, ot);
     }
   };
 
 #define EXPOSE_SHARED_PTR(name, className, mClassName) \
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_ADDREF,  "void f()", asFUNCTION(+([](className& self){ sharedPtrAddRef<mClassName>(self); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 ); \
-  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ sharedPtrRelease<mClassName>(self); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
+  r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ if (sharedPtrRelease<mClassName>(self)) delete &self; })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 
   #include "script-bus.cpp"
   #include "script-ppu.cpp"
@@ -501,7 +552,7 @@ auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
   r = e->RegisterObjectMethod("array<T>", "void write_arr(const ? &in array)", asFUNCTION(ScriptInterface::uint8_array_append_array), asCALL_CDECL_OBJFIRST); assert(r >= 0);
   r = e->RegisterObjectMethod("array<T>", "void write_str(const string &in other)", asFUNCTION(ScriptInterface::uint8_array_append_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-  r = e->RegisterObjectMethod("array<T>", "string &toString(uint offs, uint size) const", asFUNCTION(ScriptInterface::array_to_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
+  r = e->RegisterObjectMethod("array<T>", "string toString(uint offs, uint size) const", asFUNCTION(ScriptInterface::array_to_string), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
   {
     // string_format scoped ref type:
@@ -541,7 +592,7 @@ auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
 
     REG_LAMBDA_GLOBAL("float abs(float)", ([](float x) -> float { return fabs(x); }));
     REG_LAMBDA_GLOBAL("float sqrt(float)", ([](float x) -> float { return sqrt(x); }));
-    REG_LAMBDA_GLOBAL("float pow(float, float)", ([](float x, float y) -> int64 { return pow(x, y); }));
+    REG_LAMBDA_GLOBAL("float pow(float, float)", ([](float x, float y) -> float { return pow(x, y); }));
   }
 
   // chrono namespace to get system timestamp and monotonic time:
@@ -584,21 +635,27 @@ auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
   {
     r = e->SetDefaultNamespace("base64"); assert(r >= 0);
 
-    REG_LAMBDA_GLOBAL("string encode(uint offs, uint size, const array<uint8> &in)", ([](size_t offs, size_t size, CScriptArray* arr) -> string {
-      if (offs + size > arr->GetSize()) {
+    // NOTE: script `uint` is 32-bit; take asUINT (not size_t) so the upper half of the 64-bit argument
+    // register (not guaranteed to be zeroed on every ABI, e.g. Windows x64) is never read.
+    REG_LAMBDA_GLOBAL("string encode(uint offs, uint size, const array<uint8> &in)", ([](asUINT offs, asUINT size, CScriptArray* arr) -> string {
+      if (uint64_t(offs) + size > arr->GetSize()) {
         asGetActiveContext()->SetException("Array read would exceed its bounds");
         return {};
       }
+      if (size == 0) return {};
       return base64_encode(arr->At(offs), size);
     }));
-    REG_LAMBDA_GLOBAL("uint decode(const string &in, const array<uint8> &in, uint offs = 0)", ([](string& text, CScriptArray* arr, size_t offs) -> size_t {
+    REG_LAMBDA_GLOBAL("uint decode(const string &in, const array<uint8> &in, uint offs = 0)", ([](string& text, CScriptArray* arr, asUINT offs) -> asUINT {
       auto result = base64_decode(text);
+      if (result.size() == 0) return 0;
 
       // extend array:
       arr->Resize(offs + result.size());
 
       // copy data:
-      memory::copy(arr->At(offs), result.data(), result.size());
+      auto dest = arr->At(offs);
+      if (dest == nullptr) return 0;
+      memory::copy(dest, result.data(), result.size());
 
       return result.size();
     }));

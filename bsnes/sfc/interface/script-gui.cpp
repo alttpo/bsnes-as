@@ -274,6 +274,40 @@ bool isGuiEnabled = false;
   r = e->RegisterObjectBehaviour(#name, asBEHAVE_RELEASE, "void f()", asFUNCTION(+([](className& self){ self._releaseRef(); })), asCALL_CDECL_OBJFIRST); assert( r >= 0 )
 #endif
 
+// Resolves a `const ? &in` argument to a GUI object. AngelScript passes a pointer to the object, or, when
+// the argument expression is a handle, a pointer to the handle (flagged with asTYPEID_OBJHANDLE).
+// Only GUI types in `allowed` may be passed: anything else (e.g. a string or a script class) would
+// otherwise be reinterpreted as a hiro shared_pointer and corrupt memory.
+static auto guiVarArg(void *ref, int typeId, std::initializer_list<const char *> allowed) -> void * {
+  auto ctx = asGetActiveContext();
+  auto fail = [&](const char *msg) -> void * {
+    if (ctx) ctx->SetException(msg, true);
+    return nullptr;
+  };
+
+  if (ref == nullptr) return fail("GUI argument cannot be null");
+
+  auto engine = ctx ? ctx->GetEngine() : platform->scriptEngine();
+  auto ti = engine->GetTypeInfoById(typeId);
+  if (ti == nullptr || ti->GetNamespace() == nullptr || strcmp(ti->GetNamespace(), "GUI") != 0) {
+    return fail("GUI argument must be a GUI widget or layout");
+  }
+  bool ok = false;
+  for (auto name : allowed) {
+    if (strcmp(ti->GetName(), name) == 0) { ok = true; break; }
+  }
+  if (!ok) return fail("GUI argument is not a supported GUI type here");
+
+  if (typeId & asTYPEID_OBJHANDLE) {
+    ref = *(void **)ref;
+    if (ref == nullptr) return fail("GUI argument cannot be a null handle");
+  }
+  return ref;
+}
+
+#define GUI_SIZABLE_TYPES {"VerticalLayout", "HorizontalLayout", "LineEdit", "Label", "Button", "Canvas", "SNESCanvas", "CheckLabel", "ComboButton", "HorizontalSlider"}
+#define GUI_OBJECT_TYPES  {"Window", "VerticalLayout", "HorizontalLayout", "LineEdit", "Label", "Button", "Canvas", "SNESCanvas", "CheckLabel", "ComboButtonItem", "ComboButton", "HorizontalSlider"}
+
 auto RegisterGUI(asIScriptEngine *e) -> void {
   int r;
 
@@ -483,8 +517,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
     return window;
   })), asCALL_CDECL); assert(r >= 0);
   EXPOSE_HIRO_OBJECT(Window);
-  REG_LAMBDA(Window, "void append(const ? &in sizable)", ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->append(*sizable); }));
-  REG_LAMBDA(Window, "void remove(const ? &in sizable)", ([](hiro::Window* self, hiro::Sizable* sizable, int sizableTypeId){ self->remove(*sizable); }));
+  REG_LAMBDA(Window, "void append(const ? &in sizable)", ([](hiro::Window* self, void* ref, int sizableTypeId){
+    if (auto sizable = (hiro::Sizable*)guiVarArg(ref, sizableTypeId, GUI_SIZABLE_TYPES)) self->append(*sizable);
+  }));
+  REG_LAMBDA(Window, "void remove(const ? &in sizable)", ([](hiro::Window* self, void* ref, int sizableTypeId){
+    if (auto sizable = (hiro::Sizable*)guiVarArg(ref, sizableTypeId, GUI_SIZABLE_TYPES)) self->remove(*sizable);
+  }));
   REG_LAMBDA(Window, "void reset()",                     ([](hiro::Window* self){ self->reset(); }));
   REG_LAMBDA(Window, "void doActivate()",                ([](hiro::Window* self){ self->doActivate(); }));
 
@@ -566,8 +604,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(VerticalLayout);
   EXPOSE_HIRO_SIZABLE(VerticalLayout);
   REG_LAMBDA(VerticalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
-    ([](hiro::VerticalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){ self->append(*sizable, *size, spacing); }));
-  REG_LAMBDA(VerticalLayout, "void remove(const ? &in sizable)",        ([](hiro::VerticalLayout* p, hiro::Sizable* sizable, int sizableTypeId){ p->remove(*sizable); }));
+    ([](hiro::VerticalLayout* self, void *ref, int sizableTypeId, hiro::Size *size, float spacing){
+      if (auto sizable = (hiro::Sizable*)guiVarArg(ref, sizableTypeId, GUI_SIZABLE_TYPES)) self->append(*sizable, *size, spacing);
+    }));
+  REG_LAMBDA(VerticalLayout, "void remove(const ? &in sizable)",        ([](hiro::VerticalLayout* p, void* ref, int sizableTypeId){
+    if (auto sizable = (hiro::Sizable*)guiVarArg(ref, sizableTypeId, GUI_SIZABLE_TYPES)) p->remove(*sizable);
+  }));
   REG_LAMBDA(VerticalLayout, "void resize()",                           ([](hiro::VerticalLayout* p) { p->resize(); }));
   REG_LAMBDA(VerticalLayout, "void setAlignment(float alignment)",      ([](hiro::VerticalLayout* p, float alignment) { p->setAlignment(alignment); }));
   REG_LAMBDA(VerticalLayout, "void resetAlignment()",                   ([](hiro::VerticalLayout* p) { p->setAlignment(); }));
@@ -579,8 +621,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   EXPOSE_HIRO_OBJECT(HorizontalLayout);
   EXPOSE_HIRO_SIZABLE(HorizontalLayout);
   REG_LAMBDA(HorizontalLayout, "void append(const ? &in sizable, Size &in size, float spacing = 5.0)",
-    ([](hiro::HorizontalLayout* self, hiro::Sizable *sizable, int sizableTypeId, hiro::Size *size, float spacing){ self->append(*sizable, *size, spacing); }));
-  REG_LAMBDA(HorizontalLayout, "void remove(const ? &in sizable)",        ([](hiro::HorizontalLayout* p, hiro::Sizable* sizable, int sizableTypeId){ p->remove(*sizable); }));
+    ([](hiro::HorizontalLayout* self, void *ref, int sizableTypeId, hiro::Size *size, float spacing){
+      if (auto sizable = (hiro::Sizable*)guiVarArg(ref, sizableTypeId, GUI_SIZABLE_TYPES)) self->append(*sizable, *size, spacing);
+    }));
+  REG_LAMBDA(HorizontalLayout, "void remove(const ? &in sizable)",        ([](hiro::HorizontalLayout* p, void* ref, int sizableTypeId){
+    if (auto sizable = (hiro::Sizable*)guiVarArg(ref, sizableTypeId, GUI_SIZABLE_TYPES)) p->remove(*sizable);
+  }));
   REG_LAMBDA(HorizontalLayout, "void resize()",                           ([](hiro::HorizontalLayout* p) { p->resize(); }));
   REG_LAMBDA(HorizontalLayout, "void setAlignment(float alignment)",      ([](hiro::HorizontalLayout* p, float alignment) { p->setAlignment(alignment); }));
   REG_LAMBDA(HorizontalLayout, "void resetAlignment()",                   ([](hiro::HorizontalLayout* p) { p->setAlignment(); }));
@@ -589,8 +635,12 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
 
   // Group
   EXPOSE_HIRO(Group);
-  REG_LAMBDA(Group, "void append(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->append(*object); }));
-  REG_LAMBDA(Group, "void remove(const ? &in object)",      ([](hiro::Group* self, hiro::Object *object, int objectTypeId){ self->remove(*object); }));
+  REG_LAMBDA(Group, "void append(const ? &in object)",      ([](hiro::Group* self, void *ref, int objectTypeId){
+    if (auto object = (hiro::Object*)guiVarArg(ref, objectTypeId, GUI_OBJECT_TYPES)) self->append(*object);
+  }));
+  REG_LAMBDA(Group, "void remove(const ? &in object)",      ([](hiro::Group* self, void *ref, int objectTypeId){
+    if (auto object = (hiro::Object*)guiVarArg(ref, objectTypeId, GUI_OBJECT_TYPES)) self->remove(*object);
+  }));
   //REG_LAMBDA(Group, "Group@ get_opIndex(uint i) property",  ([](hiro::Group *p, uint i) { return new hiro::ComboButtonItem(p->object(i)); }));
   REG_LAMBDA(Group, "uint count()",                         ([](hiro::Group *p) { return p->objectCount(); }));
 

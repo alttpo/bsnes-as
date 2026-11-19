@@ -212,8 +212,9 @@ namespace Net {
   struct Socket {
     int fd = -1;
 
-    // already-created socket:
+    // already-created socket (e.g. from accept()):
     Socket(int fd) : fd(fd) {
+      ref = 1;
     }
 
     // create a new socket:
@@ -347,6 +348,7 @@ namespace Net {
     // bind to an address:
     auto bind(const Address *addr) -> int {
       if (fd < 0) return 0;
+      if (addr == nullptr || addr->info == nullptr) return -1;
 
       int rc = ::bind(fd, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " bind";
       last_error = 0;
@@ -360,6 +362,7 @@ namespace Net {
     // connect to an address:
     auto connect(const Address *addr) -> int {
       if (fd < 0) return 0;
+      if (addr == nullptr || addr->info == nullptr) return -1;
 
       int rc = ::connect(fd, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " connect";
       last_error = 0;
@@ -409,9 +412,32 @@ namespace Net {
       return conn;
     }
 
+    // validates that [offs, offs+size) lies within a uint8 script array and returns a pointer to it:
+    static auto buffer_range(CScriptArray* buffer, int offs, int size) -> uint8_t* {
+      if (buffer == nullptr) {
+        asGetActiveContext()->SetException("buffer array cannot be null", true);
+        return nullptr;
+      }
+      if (buffer->GetElementTypeId() != asTYPEID_UINT8) {
+        asGetActiveContext()->SetException("buffer array must be of type uint8[]", true);
+        return nullptr;
+      }
+      if (offs < 0 || size < 0 || uint64_t(offs) + uint64_t(size) > buffer->GetSize()) {
+        asGetActiveContext()->SetException("offset and size exceed the bounds of the buffer array", true);
+        return nullptr;
+      }
+      if (size == 0) {
+        // At(offs) is out of range when offs == GetSize(); any non-null pointer works for a 0-byte call:
+        static uint8_t empty;
+        return &empty;
+      }
+      return (uint8_t*)buffer->At(offs);
+    }
+
     // attempt to receive data:
     auto recv(int offs, int size, CScriptArray* buffer) -> int {
       if (fd < 0) return 0;
+      if (!buffer_range(buffer, offs, size)) return 0;
 
 #if !defined(PLATFORM_WINDOWS)
       int rc = ::recv(fd, buffer->At(offs), size, 0); last_error_location = LOCATION " recv";
@@ -432,6 +458,7 @@ namespace Net {
     // attempt to send data:
     auto send(int offs, int size, CScriptArray* buffer) -> int {
       if (fd < 0) return 0;
+      if (!buffer_range(buffer, offs, size)) return 0;
 
 #if !defined(PLATFORM_WINDOWS)
       int rc = ::send(fd, buffer->At(offs), size, 0); last_error_location = LOCATION " send";
@@ -451,11 +478,15 @@ namespace Net {
 
     // TODO: expose this to scripts somehow.
     struct sockaddr_storage recvaddr;
-    socklen_t recvaddrlen;
+    socklen_t recvaddrlen = sizeof(recvaddr);
 
     // attempt to receive data and record address of sender (e.g. for UDP):
     auto recvfrom(int offs, int size, CScriptArray* buffer) -> int {
       if (fd < 0) return 0;
+      if (!buffer_range(buffer, offs, size)) return 0;
+
+      // in/out parameter: must hold the size of recvaddr on input:
+      recvaddrlen = sizeof(recvaddr);
 
 #if !defined(PLATFORM_WINDOWS)
       int rc = ::recvfrom(fd, buffer->At(offs), size, 0, (struct sockaddr *)&recvaddr, &recvaddrlen); last_error_location = LOCATION " recvfrom";
@@ -476,6 +507,11 @@ namespace Net {
     // attempt to send data to specific address (e.g. for UDP):
     auto sendto(int offs, int size, CScriptArray* buffer, const Address* addr) -> int {
       if (fd < 0) return 0;
+      if (!buffer_range(buffer, offs, size)) return 0;
+      if (addr == nullptr || addr->info == nullptr) {
+        asGetActiveContext()->SetException("addr cannot be null", true);
+        return 0;
+      }
 
 #if !defined(PLATFORM_WINDOWS)
       int rc = ::sendto(fd, buffer->At(offs), size, 0, addr->info->ai_addr, addr->info->ai_addrlen); last_error_location = LOCATION " sendto";
@@ -612,10 +648,12 @@ namespace Net {
     auto get_opcode() -> uint8 { return opcode; }
     auto set_opcode(uint8 value) -> void { opcode = value; }
 
-    auto as_string() -> string* {
-      auto s = new string();
-      s->resize(bytes.size());
-      memory::copy(s->get(), bytes.data(), bytes.size());
+    // returns by value; previously returned a heap `string*` through a `string &` script return,
+    // which leaked one string per call:
+    auto as_string() -> string {
+      string s;
+      s.resize(bytes.size());
+      memory::copy(s.get(), bytes.data(), bytes.size());
       return s;
     }
 
@@ -640,6 +678,14 @@ namespace Net {
     }
 
     auto set_payload_as_array(CScriptArray *a) -> void {
+      if (a == nullptr || a->GetSize() == 0) {
+        bytes.reset();
+        return;
+      }
+      if (a->GetElementTypeId() != asTYPEID_UINT8) {
+        asGetActiveContext()->SetException("payload array must be of type uint8[]", true);
+        return;
+      }
       bytes.resize(a->GetSize());
       memory::copy(bytes.data(), a->At(0), a->GetSize());
     }
@@ -657,6 +703,10 @@ namespace Net {
       ref = 1;
     }
     ~WebSocket() {
+      if (message) {
+        message->release();
+        message = nullptr;
+      }
       socket->release();
     }
 
@@ -767,7 +817,12 @@ namespace Net {
       // For any opcode but 0 (continuation), start a new message:
       if (opcode != 0) {
         //printf("new message with opcode = %d\n", opcode);
+        if (message) message->release();
         message = new WebSocketMessage(opcode);
+      } else if (message == nullptr) {
+        // continuation frame with no message in progress; discard it:
+        frame.removeLeft(i + len);
+        return nullptr;
       }
 
       // append payload data to message buffer:
@@ -803,7 +858,14 @@ namespace Net {
     }
 
     // send a message:
+    // `msg` is a handle parameter: AngelScript hands us a reference which we must release.
     auto send(WebSocketMessage* msg) -> void {
+      if (msg == nullptr) return;
+      send_message(msg);
+      msg->release();
+    }
+
+    auto send_message(WebSocketMessage* msg) -> void {
       vector<uint8_t> outframe;
 
       uint64_t len = msg->bytes.size();
@@ -894,7 +956,9 @@ namespace Net {
 
     operator bool() { return *socket; }
 
+    // returned as a script handle, which takes ownership of one reference:
     auto get_socket() -> Socket* {
+      if (socket) socket->addRef();
       return socket;
     }
 
@@ -1069,7 +1133,14 @@ namespace Net {
   };
 
   static WebSocketHandshaker *create_web_socket_handshaker(Socket* socket) {
-    return new WebSocketHandshaker(socket);
+    if (socket == nullptr) {
+      asGetActiveContext()->SetException("socket cannot be null", true);
+      return nullptr;
+    }
+    auto h = new WebSocketHandshaker(socket);
+    // the handshaker took its own reference; release the one AngelScript handed us:
+    socket->release();
+    return h;
   }
 
   struct WebSocketServer {
@@ -1136,29 +1207,36 @@ namespace Net {
         resource = string{"/", host_port_path[1]};
       }
 
-      // resolve listening address:
+      // resolve listening address (resolve_tcp returns nullptr on failure):
       auto addr = resolve_tcp(&host, &port);
-      if (!*addr) {
-        delete addr;
+      if (!addr) {
         return;
       }
 
       // create listening socket to accept TCP connections on:
       socket = create_socket(addr);
-      if (!socket) return;
-      if (!*socket) return;
-
-      // start listening for connections:
-      if (socket->bind(addr) < 0) return;
-      if (socket->listen(32) < 0) return;
+      if (!socket || !*socket || socket->bind(addr) < 0 || socket->listen(32) < 0) {
+        delete addr;
+        return;
+      }
+      delete addr;
 
       // create `array<WebSocket@>` for clients:
       clients = CScriptArray::Create(typeInfo);
       valid = true;
     }
     ~WebSocketServer() {
+      for (auto h : handshakers) {
+        if (h) h->release();
+      }
+      handshakers.reset();
+      if (clients) {
+        clients->Release();
+        clients = nullptr;
+      }
       if (socket) {
-        delete socket;
+        // Socket is reference counted; scripts may hold handles to it:
+        socket->release();
         socket = nullptr;
       }
       valid = false;
@@ -1176,7 +1254,7 @@ namespace Net {
     operator bool() { return valid; }
 
     vector<WebSocketHandshaker*> handshakers;
-    CScriptArray* clients;
+    CScriptArray* clients = nullptr;
 
     auto process() -> int {
       int count = 0;
@@ -1185,12 +1263,15 @@ namespace Net {
       Socket* accepted = nullptr;
       while ((accepted = socket->accept()) != nullptr) {
         handshakers.append(new WebSocketHandshaker(accepted));
+        // the handshaker took its own reference:
+        accepted->release();
       }
 
       // handle requests for each open connection:
       for (auto it = handshakers.rbegin(); it != handshakers.rend(); ++it) {
         // if socket closed, remove it:
         if (!*(*it)) {
+          (*it)->release();
           handshakers.removeByIndex(it.offset());
           continue;
         }
@@ -1200,7 +1281,10 @@ namespace Net {
         // TODO: accept only resource path
         // TODO: if allowing multiple resources, need a shared instance per host:port
         if ((ws = (*it)->handshake()) != nullptr) {
+          // InsertLast takes its own reference to the handle:
           clients->InsertLast(&ws);
+          ws->release();
+          (*it)->release();
           handshakers.removeByIndex(it.offset());
           count++;
         }
@@ -1213,6 +1297,7 @@ namespace Net {
   };
 
   auto create_web_socket_server(string *uri) -> WebSocketServer* {
+    if (uri == nullptr) return nullptr;
     auto server = new WebSocketServer(*uri);
     if (!*server) {
       delete server;
@@ -1311,8 +1396,10 @@ auto RegisterNet(asIScriptEngine *e) -> void {
 
   r = e->RegisterObjectMethod("WebSocketMessage", "uint8 get_opcode() property", asMETHOD(Net::WebSocketMessage, get_opcode), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocketMessage", "void set_opcode(uint8 value) property", asMETHOD(Net::WebSocketMessage, set_opcode), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("WebSocketMessage", "string &as_string()", asMETHOD(Net::WebSocketMessage, as_string), asCALL_THISCALL); assert( r >= 0 );
-  r = e->RegisterObjectMethod("WebSocketMessage", "array<uint8> &as_array()", asMETHOD(Net::WebSocketMessage, as_array), asCALL_THISCALL); assert( r >= 0 );
+  // as_string() returns by value and as_array() returns a handle carrying the new array's reference; both
+  // used to be `&` returns of fresh heap objects, which AngelScript never frees:
+  r = e->RegisterObjectMethod("WebSocketMessage", "string as_string()", asMETHOD(Net::WebSocketMessage, as_string), asCALL_THISCALL); assert( r >= 0 );
+  r = e->RegisterObjectMethod("WebSocketMessage", "array<uint8>@ as_array()", asMETHOD(Net::WebSocketMessage, as_array), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocketMessage", "void set_payload_as_string(string &in value) property", asMETHOD(Net::WebSocketMessage, set_payload_as_string), asCALL_THISCALL); assert( r >= 0 );
   r = e->RegisterObjectMethod("WebSocketMessage", "void set_payload_as_array(array<uint8> &in value) property", asMETHOD(Net::WebSocketMessage, set_payload_as_array), asCALL_THISCALL); assert( r >= 0 );
 

@@ -328,12 +328,13 @@ auto RegisterPPUFrame(asIScriptEngine *e) -> void {
   REG_LAMBDA(Frame, "void fill(int x, int y, int w, int h)", ([](PostFrame& self, int x, int y, int w, int h) { self.fill(x, y, w, h); }));
 
   // text drawing function:
-  REG_LAMBDA(Frame, "int text(int x, int y, const string &in text)", ([](PostFrame& self, int x, int y, string &text) { self.text(x, y, text); }));
+  REG_LAMBDA(Frame, "int text(int x, int y, const string &in text)", ([](PostFrame& self, int x, int y, string &text) -> int { return self.text(x, y, text); }));
 
   // draw 4bpp paletted 8x1 row:
   REG_LAMBDA(Frame, "int draw_4bpp_8x8(int x, int y, const array<uint32> &in tiledata, const array<uint16> &in palette)",
-    ([](PostFrame& self, int x, int y, const CScriptArray *tiledata, const CScriptArray *palette) {
+    ([](PostFrame& self, int x, int y, const CScriptArray *tiledata, const CScriptArray *palette) -> int {
       self.draw_4bpp_8x8(x, y, tiledata, palette);
+      return 0;
     })
   );
 

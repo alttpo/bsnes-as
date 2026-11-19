@@ -108,10 +108,16 @@ struct PPUAccess {
       return;
     }
 
+    if (uint64(offs) + size > output->GetSize()) {
+      asGetActiveContext()->SetException("offset and size exceed the bounds of the output array", true);
+      return;
+    }
+
     auto vram = system.fastPPU() ? (uint16 *)ppufast.vram : (uint16 *)ppu.vram.data;
 
     for (uint i = 0; i < size; i++) {
-      auto tmp = vram[addr + i];
+      // wrap within the 32K-word VRAM like vram_read/vram_write do:
+      auto tmp = vram[(addr + i) & 0x7fff];
       output->SetValue(offs + i, &tmp);
     }
   }
@@ -125,7 +131,7 @@ struct PPUAccess {
       asGetActiveContext()->SetException("input array must be of type uint16[]", true);
       return;
     }
-    if (data->GetSize() < (offs + size)) {
+    if (data->GetSize() < uint64(offs) + size) {
       asGetActiveContext()->SetException("input array size not big enough to contain requested block", true);
       return;
     }
@@ -175,6 +181,11 @@ struct PPUAccess {
   } oam_objects[128];
 
   static auto oam_get_object(PPUAccess *local, uint8 index) -> PPUAccess::OAMObject* {
+    // there are only 128 OAM objects; index is a uint8:
+    if (index >= 128) {
+      asGetActiveContext()->SetException("Cannot access oam[i] where i >= 128", true);
+      return nullptr;
+    }
     PPUAccess::OAMObject oam_object;
     if (system.fastPPU()) {
       auto po = ppufast.objects[index];
@@ -201,6 +212,14 @@ struct PPUAccess {
   }
 
   static auto oam_set_object(PPUAccess *local, uint8 index, PPUAccess::OAMObject *obj) -> void {
+    if (index >= 128) {
+      asGetActiveContext()->SetException("Cannot access oam[i] where i >= 128", true);
+      return;
+    }
+    if (obj == nullptr) {
+      asGetActiveContext()->SetException("sprite cannot be null", true);
+      return;
+    }
     if (system.fastPPU()) {
       auto &po = ppufast.objects[index];
       po.x = obj->x;
@@ -235,8 +254,12 @@ struct PPUAccess {
       asGetActiveContext()->SetException("output array must be of type uint8[]", true);
       return;
     }
-    if (offs + size > output->GetSize()) {
+    if (uint64(offs) + size > output->GetSize()) {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the output array", true);
+      return;
+    }
+    if (uint32(addr) + size > 0x220) {
+      asGetActiveContext()->SetException("addr + size exceeds the bounds of OAM (0x220 bytes)", true);
       return;
     }
 
@@ -268,7 +291,13 @@ auto RegisterPPU(asIScriptEngine *e) -> void {
   REG_LAMBDA(Font, "uint get_width(uint) property",      ([](PixelFonts::Font& self, uint r) { return self.width(r); }));
 
   REG_LAMBDA_GLOBAL("uint get_fonts_count() property", ([]{ return PixelFonts::fonts.count(); }));
-  REG_LAMBDA_GLOBAL("Font @get_fonts(uint) property",  ([](uint i){ return PixelFonts::fonts[i]; }));
+  REG_LAMBDA_GLOBAL("Font @get_fonts(uint) property",  ([](uint i) -> PixelFonts::Font* {
+    if (i >= PixelFonts::fonts.count()) {
+      asGetActiveContext()->SetException("Cannot access fonts[i] where i >= fonts_count", true);
+      return nullptr;
+    }
+    return PixelFonts::fonts[i];
+  }));
 
   r = e->RegisterGlobalFunction("uint16 rgb(uint8 r, uint8 g, uint8 b)", asFUNCTION(PPUAccess::ppu_rgb), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("uint8 get_luma() property",             asFUNCTION(PPUAccess::ppu_get_luma), asCALL_CDECL); assert(r >= 0);

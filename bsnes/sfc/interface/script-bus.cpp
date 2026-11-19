@@ -27,7 +27,7 @@ struct Bus {
       asGetActiveContext()->SetException("output array must be of type uint8[]", true);
       return;
     }
-    if (offs + size > output->GetSize()) {
+    if (uint64_t(offs) + size > output->GetSize()) {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the output array", true);
       return;
     }
@@ -54,7 +54,7 @@ struct Bus {
       asGetActiveContext()->SetException("output array must be of type uint16[]", true);
       return;
     }
-    if (offs + size > output->GetSize()) {
+    if (uint64_t(offs) + size > output->GetSize()) {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the output array", true);
       return;
     }
@@ -124,7 +124,7 @@ struct Bus {
       asGetActiveContext()->SetException("input array must be of type uint8[]", true);
       return;
     }
-    if (offs + size > input->GetSize()) {
+    if (uint64_t(offs) + size > input->GetSize()) {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the input array", true);
       return;
     }
@@ -155,7 +155,7 @@ struct Bus {
       asGetActiveContext()->SetException("input array must be of type uint16[]", true);
       return;
     }
-    if (offs + size > input->GetSize()) {
+    if (uint64_t(offs) + size > input->GetSize()) {
       asGetActiveContext()->SetException("offset and size exceed the bounds of the input array", true);
       return;
     }
@@ -179,23 +179,35 @@ struct Bus {
 
   static auto map_array(const string *addr, uint32 size, uint32 mask, uint32 offset, CScriptArray *memory) -> void {
     if (!bus_valid()) {
+      if (memory) memory->Release();
+      return;
+    }
+    if (memory == nullptr) {
+      asGetActiveContext()->SetException("memory array cannot be null", true);
+      return;
+    }
+    if (memory->GetElementTypeId() != asTYPEID_UINT8) {
+      asGetActiveContext()->SetException("memory array must be of type uint8[]", true);
+      memory->Release();
       return;
     }
 
-    // this never gets released because the map read/write functions are also never released:
-    memory->AddRef();
+    // `memory` is a handle parameter so we already own one reference to it; it never gets released
+    // because the map read/write functions are also never released.
 
+    // At() returns nullptr when out of range (e.g. the script shrank the array, or mask + offset
+    // exceeds its size); treat that as open bus rather than reading/writing out of bounds:
     function<uint8 (uint, uint8)> reader = [=] (uint addr, uint8 data) -> uint8 {
       auto idx = (addr & mask) + offset;
-      //printf("read  at(0x%04x)", idx);
-      auto val = *(uint8*)memory->At(idx);
-      //printf(" -> 0x%02x\n", val);
-      return *(uint8*)memory->At(idx);
+      auto p = (uint8*)memory->At(idx);
+      if (p == nullptr) return data;
+      return *p;
     };
     function<void  (uint, uint8)> writer = [=] (uint addr, uint8 data) -> void {
       auto idx = (addr & mask) + offset;
-      //printf("write at(0x%04x), 0x%02x\n", idx, data);
-      *(uint8*)memory->At(idx) = data;
+      auto p = (uint8*)memory->At(idx);
+      if (p == nullptr) return;
+      *p = data;
     };
 
     ::SuperFamicom::bus.map(reader, writer, *addr, size);
@@ -205,19 +217,19 @@ struct Bus {
     asIScriptFunction *cb;
 
     write_interceptor(asIScriptFunction *cb) : cb(cb) {
-      auto refs = cb->AddRef();
-      //printf("ctor() this=%p cb=%p refs=%d\n", this, cb, refs);
+      if (cb) cb->AddRef();
     }
     write_interceptor(const write_interceptor& other) : cb(other.cb) {
-      auto refs = cb->AddRef();
-      //printf("copy() this=%p cb=%p refs=%d\n", this, cb, refs);
+      if (cb) cb->AddRef();
     }
-    write_interceptor(const write_interceptor&& other) : cb(other.cb) {
-      //printf("move() this=%p cb=%p\n", this, cb);
+    // a real move: the source gives up its reference (the old `const&&` overload copied the pointer
+    // without an AddRef while the source still released it in its destructor):
+    write_interceptor(write_interceptor&& other) : cb(other.cb) {
+      other.cb = nullptr;
     }
+    write_interceptor& operator=(const write_interceptor&) = delete;
     ~write_interceptor() {
-      auto refs = cb->Release();
-      //printf("dtor() this=%p cb=%p refs=%d\n", this, cb, refs);
+      if (cb) cb->Release();
     }
 
     auto operator()(uint addr, uint8 new_value, const function<uint8()> &get_old_value) -> void {
@@ -230,27 +242,32 @@ struct Bus {
     }
   };
 
+  // `cb` is a handle parameter: AngelScript hands us a reference we must release; the stored
+  // interceptor keeps its own.
   static auto add_write_interceptor(const string *addr, asIScriptFunction *cb) -> void {
-    if (!bus_valid()) {
-      return;
+    if (cb == nullptr) return;
+    if (bus_valid()) {
+      ::SuperFamicom::bus.add_write_interceptor(*addr, write_interceptor(cb));
     }
-
-    ::SuperFamicom::bus.add_write_interceptor(*addr, write_interceptor(cb));
+    cb->Release();
   }
 
   struct dma_interceptor {
     asIScriptFunction *cb;
 
     dma_interceptor(asIScriptFunction *cb) : cb(cb) {
-      cb->AddRef();
+      if (cb) cb->AddRef();
     }
     dma_interceptor(const dma_interceptor& other) : cb(other.cb) {
-      cb->AddRef();
+      if (cb) cb->AddRef();
     }
-    dma_interceptor(const dma_interceptor&& other) : cb(other.cb) {
+    // a real move (see write_interceptor):
+    dma_interceptor(dma_interceptor&& other) : cb(other.cb) {
+      other.cb = nullptr;
     }
+    dma_interceptor& operator=(const dma_interceptor&) = delete;
     ~dma_interceptor() {
-      cb->Release();
+      if (cb) cb->Release();
     }
 
     auto operator()(const CPU::DMAIntercept &dma) -> void {
@@ -261,26 +278,29 @@ struct Bus {
   };
 
   static auto register_dma_interceptor(asIScriptFunction *cb) -> void {
-    if (!bus_valid()) {
-      return;
+    if (cb == nullptr) return;
+    if (bus_valid()) {
+      ::SuperFamicom::cpu.register_dma_interceptor(dma_interceptor(cb));
     }
-
-    ::SuperFamicom::cpu.register_dma_interceptor(dma_interceptor(cb));
+    cb->Release();
   }
 
   struct pc_interceptor {
     asIScriptFunction *cb;
 
     pc_interceptor(asIScriptFunction *cb) : cb(cb) {
-      cb->AddRef();
+      if (cb) cb->AddRef();
     }
     pc_interceptor(const pc_interceptor& other) : cb(other.cb) {
-      cb->AddRef();
+      if (cb) cb->AddRef();
     }
-    pc_interceptor(const pc_interceptor&& other) : cb(other.cb) {
+    // a real move (see write_interceptor):
+    pc_interceptor(pc_interceptor&& other) : cb(other.cb) {
+      other.cb = nullptr;
     }
+    pc_interceptor& operator=(const pc_interceptor&) = delete;
     ~pc_interceptor() {
-      cb->Release();
+      if (cb) cb->Release();
     }
 
     auto operator()(uint32 addr) -> void {
@@ -291,11 +311,11 @@ struct Bus {
   };
 
   static auto register_pc_interceptor(uint32 addr, asIScriptFunction *cb) -> void {
-    if (!bus_valid()) {
-      return;
+    if (cb == nullptr) return;
+    if (bus_valid()) {
+      ::SuperFamicom::cpu.register_pc_callback(addr, pc_interceptor(cb));
     }
-
-    ::SuperFamicom::cpu.register_pc_callback(addr, pc_interceptor(cb));
+    cb->Release();
   }
 
   static auto unregister_pc_interceptor(uint32 addr) -> void {

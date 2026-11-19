@@ -134,7 +134,13 @@ auto Interface::registerScriptString() -> void {
 
   r = e->RegisterObjectMethod("string", "string slice(int beginIndex, int length = -1) const", asFUNCTION(stringSlice), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
 
-  r = e->RegisterObjectMethod("string", "int opIndex(int i) const", asFUNCTION(+([](string &s, int i){ return s[i]; })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
+  r = e->RegisterObjectMethod("string", "int opIndex(int i) const", asFUNCTION(+([](string &s, int i) -> int {
+    if (i < 0 || i >= (int)s.size()) {
+      if (auto ctx = asGetActiveContext()) ctx->SetException("string index out of bounds", true);
+      return 0;
+    }
+    return s[i];
+  })), asCALL_CDECL_OBJFIRST); assert( r >= 0 );
 
   r = e->RegisterObjectMethod("string", "strings@ split(const string &in key) const", asFUNCTION(+([](string &value, string &key) {
     return new vector<string>( value.split(key) );

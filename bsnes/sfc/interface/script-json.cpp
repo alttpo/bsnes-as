@@ -143,12 +143,19 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
     REG_LAMBDA(Value, "Object& get_object() property", ([](Value &p) -> Object& {
       if (!p.is<Object>()) {
         asGetActiveContext()->SetException(string{"JSON type mismatch; expected 'object' but found '", getJSONType(p), "'"});
+        // picojson's get<Object>() on a non-object is an assertion failure; return a scratch value instead:
+        static Object s_empty;
+        s_empty.clear();
+        return s_empty;
       }
       return p.get<Object>();
     }));
     REG_LAMBDA(Value, "Array&  get_array() property",  ([](Value &p) -> Array& {
       if (!p.is<Array>()) {
         asGetActiveContext()->SetException(string{"JSON type mismatch; expected 'array' but found '", getJSONType(p), "'"});
+        static Array s_empty;
+        s_empty.clear();
+        return s_empty;
       }
       return p.get<Array>();
     }));
@@ -201,7 +208,11 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
     REG_LAMBDA(Object, "Value& get_opIndex(const string &in) property", ([](Object &p, string& key) -> Value& {
       static Value s_null;
       auto stdKey = nallToStd(key);
-      if (p.count(stdKey) == 0) return s_null;
+      if (p.count(stdKey) == 0) {
+        // the script may have assigned through the returned reference last time; keep it null:
+        s_null = Value();
+        return s_null;
+      }
       // map::operator[] "helpfully" inserts if the key doesn't exist.
       return p[stdKey];
     }));
@@ -222,13 +233,25 @@ auto RegisterJSON(asIScriptEngine *e) -> void {
     r = e->RegisterObjectBehaviour("Array", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(value_destroy<Array>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
     r = e->RegisterObjectMethod("Array", "Array &opAssign(const Array &in)", asFUNCTION(value_assign<Array>), asCALL_CDECL_OBJFIRST); assert(r >= 0);
 
-    REG_LAMBDA(Array, "Value& get_opIndex(uint) property", ([](Array &p, size_t index) -> Value& { return p[index]; }));
-    REG_LAMBDA(Array, "void set_opIndex(uint, Value &in) property", ([](Array &p, size_t index, Value& value) -> void {
+    REG_LAMBDA(Array, "Value& get_opIndex(uint) property", ([](Array &p, asUINT index) -> Value& {
+      if (index >= p.size()) {
+        asGetActiveContext()->SetException("JSON array index out of bounds", true);
+        static Value s_null;
+        s_null = Value();
+        return s_null;
+      }
+      return p[index];
+    }));
+    REG_LAMBDA(Array, "void set_opIndex(uint, Value &in) property", ([](Array &p, asUINT index, Value& value) -> void {
+      if (index >= p.size()) {
+        asGetActiveContext()->SetException("JSON array index out of bounds", true);
+        return;
+      }
       p[index] = value;
     }));
     REG_LAMBDA(Array, "uint  get_length() const property", ([](Array &p) -> size_t { return p.size(); }));
 
-    REG_LAMBDA(Array, "void resize(uint)", ([](Array &p, size_t newSize) {
+    REG_LAMBDA(Array, "void resize(uint)", ([](Array &p, asUINT newSize) {
       p.resize(newSize);
     }));
     REG_LAMBDA(Array, "void insertLast(Value &in)", ([](Array &p, Value& value) {

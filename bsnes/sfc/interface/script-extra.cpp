@@ -212,6 +212,12 @@ auto ExtraLayer::tile_pixel(PPUfast::ExtraTile *t, int x, int y) -> void {
 
 // draw a line of text (currently ASCII only due to font restrictions)
 auto ExtraLayer::tile_text(PPUfast::ExtraTile *t, int x, int y, const string *msg) -> int {
+  // `extra.font` is a writable script handle and may have been set to null:
+  if (extraLayer.font == nullptr) {
+    asGetActiveContext()->SetException("extra.font cannot be null", true);
+    return 0;
+  }
+
   const char *c = msg->data();
 
   auto totalWidth = 0;
