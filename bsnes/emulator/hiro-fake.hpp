@@ -272,6 +272,8 @@ namespace hiro {
     auto sizable() const -> Sizable { return {}; }
     auto title() const -> string { return {}; }
     auto onSize(const function<void ()>& callback = {}) -> type& { return (void)callback, *this; };
+    auto onMove(const function<void ()>& callback = {}) -> type& { return (void)callback, *this; };
+    auto onClose(const function<void ()>& callback = {}) -> type& { return (void)callback, *this; };
     auto setBackgroundColor(Color color = {}) -> type& { return (void)color, *this; }
     auto setDismissable(bool dismissable = true) -> type& { return (void)dismissable, *this; }
     auto setDroppable(bool droppable = true) -> type& { return (void)droppable, *this; }

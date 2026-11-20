@@ -563,6 +563,28 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Window, "void set_size(const Size &in size) property",              ([](hiro::Window* self, hiro::Size &size)    { self->setSize(size); }));
 
   REG_LAMBDA(Window, "void onSize(Callback @cb)",             ([](hiro::Window *self, asIScriptFunction *cb) { self->onSize(Callback(cb)); }));
+  // onMove fires when the user moves the window; onClose fires instead of the default hide when the user closes a
+  // dismissable window so the callback must hide the window itself:
+  REG_LAMBDA(Window, "void onMove(Callback @cb)",             ([](hiro::Window *self, asIScriptFunction *cb) { self->onMove(Callback(cb)); }));
+  REG_LAMBDA(Window, "void onClose(Callback @cb)",            ([](hiro::Window *self, asIScriptFunction *cb) { self->onClose(Callback(cb)); }));
+
+#ifndef DISABLE_HIRO
+  // position of the window's frame (including title bar) relative to the presentation (main emulator) window, in the
+  // same coordinates as the relative position given to the Window constructor:
+  REG_LAMBDA(Window, "Position@ get_relativePosition() property", ([](hiro::Window* self) {
+    auto frame = self->frameGeometry();
+    auto main = platform->presentationWindow();
+    if (!main) return new hiro::Position(frame.x(), frame.y());
+    auto parent = main.frameGeometry();
+    return new hiro::Position(frame.x() - parent.x(), frame.y() - parent.y());
+  }));
+  REG_LAMBDA(Window, "void setRelativePosition(float x, float y)", ([](hiro::Window* self, float x, float y) {
+    self->setPosition(platform->presentationWindow(), hiro::Position{x, y});
+  }));
+#else
+  REG_LAMBDA(Window, "Position@ get_relativePosition() property", ([](hiro::Window* self) { return new hiro::Position(0, 0); }));
+  REG_LAMBDA(Window, "void setRelativePosition(float x, float y)", ([](hiro::Window* self, float x, float y) {}));
+#endif
 
 #if 0
   // more Window properties and functions to add:
