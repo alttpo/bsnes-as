@@ -444,6 +444,20 @@ auto RegisterGUI(asIScriptEngine *e) -> void {
   REG_LAMBDA(Position, "float get_y() property",      ([](hiro::Position& self) -> float { return self.y(); }));
   REG_LAMBDA(Position, "void  set_y(float) property", ([](hiro::Position& self, float value)    { self.setY(value); }));
 
+  // position of the main emulator window's frame on the screen, so a script can put it back where it was:
+#ifndef DISABLE_HIRO
+  REG_LAMBDA_GLOBAL("Position@ get_mainWindowPosition() property", ([]() {
+    auto frame = platform->presentationWindow().frameGeometry();
+    return new hiro::Position(frame.x(), frame.y());
+  }));
+  REG_LAMBDA_GLOBAL("void setMainWindowPosition(float x, float y)", ([](float x, float y) {
+    platform->presentationWindow().setFramePosition(hiro::Position{x, y});
+  }));
+#else
+  REG_LAMBDA_GLOBAL("Position@ get_mainWindowPosition() property", ([]() { return new hiro::Position(0, 0); }));
+  REG_LAMBDA_GLOBAL("void setMainWindowPosition(float x, float y)", ([](float x, float y) {}));
+#endif
+
   // Size value type:
   REG_LAMBDA_BEHAVIOUR(Size, asBEHAVE_FACTORY, "Size@ f(float, float)", ([](float width, float height){ return new hiro::Size(width, height); }));
   REG_LAMBDA(Size, "float get_width() property",       ([](hiro::Size& self) -> float { return self.width(); }));
