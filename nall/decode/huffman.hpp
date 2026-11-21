@@ -6,7 +6,7 @@ inline auto Huffman(array_view<uint8_t> input) -> vector<uint8_t> {
   vector<uint8_t> output;
 
   uint size = 0;
-  for(uint byte : range(8)) size |= *input++ << byte * 8;
+  for(uint byte : range(8)) size |= uint64_t(*input++) << byte * 8;
   output.reserve(size);
 
   uint byte = 0, bits = 0;

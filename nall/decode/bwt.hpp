@@ -10,11 +10,11 @@ inline auto BWT(array_view<uint8_t> input) -> vector<uint8_t> {
   vector<uint8_t> output;
 
   uint size = 0;
-  for(uint byte : range(8)) size |= *input++ << byte * 8;
+  for(uint byte : range(8)) size |= uint64_t(*input++) << byte * 8;
   output.resize(size);
 
   uint I = 0;
-  for(uint byte : range(8)) I |= *input++ << byte * 8;
+  for(uint byte : range(8)) I |= uint64_t(*input++) << byte * 8;
 
   auto suffixes = SuffixArray(input);
 

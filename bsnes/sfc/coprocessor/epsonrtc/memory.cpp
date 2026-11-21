@@ -152,7 +152,7 @@ auto EpsonRTC::load(const uint8* data) -> void {
 
   uint64 timestamp = 0;
   for(auto byte : range(8)) {
-    timestamp |= data[8 + byte] << (byte * 8);
+    timestamp |= uint64_t(data[8 + byte]) << (byte * 8);
   }
 
   uint64 diff = (uint64)time(0) - timestamp;
