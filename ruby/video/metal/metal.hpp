@@ -13,6 +13,10 @@
 #endif
 #include "ShaderTypes.h"
 
+#include <atomic>
+#include <memory>
+#include <mutex>
+
 typedef uint32_t u32;
 
 struct Metal;
@@ -42,6 +46,18 @@ static const double kVRRCorrectiveForce = 5.0;
 //If the frame queue gets above this depth, start scheduling immediate (0ms) presents.
 static const u32 kVRRImmediatePresentThreshold = 3;
 
+/// State shared with blocks that Metal and Core Animation run on their own queues. Those blocks hold a
+/// shared_ptr to it rather than a pointer to the driver, so a drawable presented after the driver is
+/// destroyed (on exit, or on a driver reload) never touches freed memory.
+struct MetalPresentState {
+  //frames handed to output() whose drawable has not yet been presented or dropped
+  std::atomic<u32> depth{0};
+
+  std::mutex lock;
+  CFTimeInterval averagePresentDuration = .016;
+  CFTimeInterval previousPresentedTime = 0;
+};
+
 struct Metal {
   auto setShader(const string& pathname) -> void;
   auto clear() -> void;
@@ -64,7 +80,7 @@ struct Metal {
   u32 outputHeight = 0;
   double _outputX = 0;
   double _outputY = 0;
-  u32 depth = 0;
+  std::shared_ptr<MetalPresentState> _present = std::make_shared<MetalPresentState>();
   
   dispatch_queue_t _renderQueue = nullptr;
   
@@ -73,8 +89,6 @@ struct Metal {
   vector_uint2 _viewportSize;
   
   CFTimeInterval _presentInterval = .016;
-  CFTimeInterval averagePresentDuration = .016;
-  CFTimeInterval previousPresentedTime = 0;
   u32 frameCount = 0;
   CFTimeInterval _refreshRateHint = 60;
   

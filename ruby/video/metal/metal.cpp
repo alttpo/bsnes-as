@@ -155,7 +155,8 @@ struct VideoMetal : VideoDriver, Metal {
         if (_refreshRateHint != 0) {
           _presentInterval = (1.0 / _refreshRateHint);
           NSLog(@"Refresh rate hint changed to %lf", _refreshRateHint);
-          averagePresentDuration = _presentInterval;
+          std::lock_guard<std::mutex> guard(_present->lock);
+          _present->averagePresentDuration = _presentInterval;
         } else {
           _presentInterval = minimumInterval;
         }
@@ -198,6 +199,7 @@ struct VideoMetal : VideoDriver, Metal {
   }
 
   auto clear() -> void override {
+    if (!_ready) return;
     dispatch_sync(_renderQueue, ^{
       id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
       MTLRenderPassDescriptor *drawableRenderPassDescriptor = view.currentRenderPassDescriptor;
@@ -306,6 +308,7 @@ struct VideoMetal : VideoDriver, Metal {
   }
 
   auto output(u32 width, u32 height) -> void override {
+    if (!_ready) return;
     if (width <= 0 || height <= 0) {
       return;
     }
@@ -313,7 +316,7 @@ struct VideoMetal : VideoDriver, Metal {
     /// Synchronously copy the current framebuffer to a Metal texture, then call into the render dispatch queue
     /// either synchronously or asynchronously depending on whether blocking is on and VRR is supported.
 
-    if (depth >= kMaxSourceBuffersInFlight) {
+    if (_present->depth >= kMaxSourceBuffersInFlight) {
       //if we are running very behind, drop this frame
       return;
     }
@@ -335,7 +338,7 @@ struct VideoMetal : VideoDriver, Metal {
       [sourceTexture replaceRegion:MTLRegionMake2D(0, 0, sourceWidth, sourceHeight) mipmapLevel:0 withBytes:buffer bytesPerRow:bytesPerRow];
       
       if (@available(macOS 10.15.4, *)) {
-        depth++;
+        _present->depth++;
       }
       
       /// Only block with `dispatch_sync` if blocking enabled and VRR not supported, or if the threaded renderer
@@ -365,9 +368,16 @@ private:
     
     dispatch_semaphore_wait(_semaphore, DISPATCH_TIME_FOREVER);
 
+    //output() counted this frame in depth; the presented handler uncounts it once its drawable is presented
+    //or dropped. Every path below that ends without registering that handler must uncount it here instead,
+    //or depth creeps up until output() drops every frame and the picture freezes.
+    bool presentPending = false;
+
     id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
     
-    if (commandBuffer != nil) {
+    if (commandBuffer == nil) {
+      dispatch_semaphore_signal(_semaphore);
+    } else {
       __block dispatch_semaphore_t block_sema = _semaphore;
       
       [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
@@ -435,16 +445,19 @@ private:
           
           id<CAMetalDrawable> drawable = view.currentDrawable;
           
-          if (@available(macOS 10.15.4, *)) {
-            [drawable addPresentedHandler:^(id<MTLDrawable> drawable) {
-             self.drawableWasPresented(drawable);
-             depth--;
-             }];
-          }
-          
           auto targetPresentDuration = determineNextPresentDuration();
           
           if (drawable != nil) {
+            if (@available(macOS 10.15.4, *)) {
+              //capture the shared state, not this: the handler can run after the driver is destroyed
+              std::shared_ptr<MetalPresentState> present = _present;
+              [drawable addPresentedHandler:^(id<MTLDrawable> drawable) {
+                drawableWasPresented(*present, drawable);
+                present->depth--;
+              }];
+              presentPending = true;
+            }
+
             if (_blocking) {
               //_blocking is not enabled unless 10.15.4 is available, so ignore availability warnings here
 #pragma clang diagnostic push
@@ -465,20 +478,28 @@ private:
         }
       }
     }
+
+    if (!presentPending) {
+      if (@available(macOS 10.15.4, *)) {
+        _present->depth--;
+      }
+    }
   }
   
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunguarded-availability-new"
-  auto drawableWasPresented(id<MTLDrawable> drawable) -> void {
+  //runs on a Core Animation queue, possibly after the driver is gone: touch only the shared state
+  static auto drawableWasPresented(MetalPresentState& present, id<MTLDrawable> drawable) -> void {
     if (drawable.presentedTime == 0) { return; }
-    if (previousPresentedTime <= 0) {
-     previousPresentedTime = drawable.presentedTime;
+    std::lock_guard<std::mutex> guard(present.lock);
+    if (present.previousPresentedTime <= 0) {
+      present.previousPresentedTime = drawable.presentedTime;
     }
-    CFTimeInterval presentationDuration = drawable.presentedTime - previousPresentedTime;
+    CFTimeInterval presentationDuration = drawable.presentedTime - present.previousPresentedTime;
     const double alpha = kPresentIntervalRollingAverageWeight;
 
-    averagePresentDuration = (presentationDuration * alpha) + (averagePresentDuration * (1.0 - alpha));
-    previousPresentedTime = drawable.presentedTime;
+    present.averagePresentDuration = (presentationDuration * alpha) + (present.averagePresentDuration * (1.0 - alpha));
+    present.previousPresentedTime = drawable.presentedTime;
   }
 #pragma clang diagnostic pop
   
@@ -490,12 +511,17 @@ private:
     /// function is "nudge" the system to display our frame early, but not immediately, in an attempt to correct for running
     /// behind. If in this process we get more than 3 frames behind, we start requesting immediate presents.
     
+    CFTimeInterval averagePresentDuration;
+    {
+      std::lock_guard<std::mutex> guard(_present->lock);
+      averagePresentDuration = _present->averagePresentDuration;
+    }
     CFTimeInterval targetPresentDuration = _presentInterval;
     CFTimeInterval differenceFromTarget = _presentInterval - averagePresentDuration;
     if (-differenceFromTarget >= (_presentInterval * kVRRCorrectiveTolerance)) {
       targetPresentDuration = _presentInterval + (differenceFromTarget * kVRRCorrectiveForce);
     }
-    if (depth > kVRRImmediatePresentThreshold) {
+    if (_present->depth > kVRRImmediatePresentThreshold) {
       return 0;
     } else {
       return targetPresentDuration;
@@ -618,6 +644,15 @@ private:
 
   auto terminate() -> void {
     _ready = false;
+
+    //finish any frame still queued by output(); its block captured this
+    if (_renderQueue) {
+      dispatch_sync(_renderQueue, ^{});
+      dispatch_release(_renderQueue);
+      _renderQueue = nullptr;
+    }
+    //presented handlers of the old view's drawables keep the old state alive and update only it
+    _present = std::make_shared<MetalPresentState>();
     
     _commandQueue = nullptr;
     _library = nullptr;
