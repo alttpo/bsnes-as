@@ -49,7 +49,7 @@ struct Settings : Markup::Node {
   struct Input {
     string driver;
     uint frequency = 5;
-    string defocus = "Pause";
+    string defocus = "Allow";
     struct Turbo {
       uint frequency = 4;
     } turbo;
