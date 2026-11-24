@@ -170,6 +170,9 @@ auto Interface::registerScriptString() -> void {
   r = e->RegisterGlobalFunction("string fmtDouble(double value)", asFUNCTION(+([](double value) { return string(value); })), asCALL_CDECL); assert(r >= 0);
   r = e->RegisterGlobalFunction("string fmtBool(bool value)", asFUNCTION(+([](bool value) { return string(value); })), asCALL_CDECL); assert(r >= 0);
 
+  // SHA-256 of a string's bytes as 64 lowercase hex digits:
+  REG_LAMBDA_GLOBAL("string sha256(const string &in data)", ([](string &data) -> string { return Hash::SHA256(data).digest(); })); assert(r >= 0);
+
   // format functions:
   REG_LAMBDA_GLOBAL("string pad(int64 value, int64 precision = 0, int padchar = ' ')", ([](int64_t value, int64_t precision, int padchar) -> string { return pad(value, precision, padchar); })); assert(r >= 0);
   REG_LAMBDA_GLOBAL("string padu(uint64 value, int64 precision = 0, int padchar = ' ')", ([](uint64_t value, int64_t precision, int padchar) -> string { return pad(value, precision, padchar); })); assert(r >= 0);
