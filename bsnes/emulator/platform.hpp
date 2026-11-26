@@ -26,6 +26,8 @@ struct Platform : Script::Platform {
   virtual auto inputRumble(uint port, uint device, uint input, bool enable) -> void {}
   virtual auto dipSettings(Markup::Node node) -> uint { return 0; }
   virtual auto notify(string text) -> void {}
+  // the folder scripts' UserSettings::load/save use:
+  virtual auto userSettingsPath() -> string { return {Path::userSettings(), "bsnes/"}; }
 
 #ifndef DISABLE_HIRO
   virtual auto presentationWindow() -> hiro::Window { return {}; }

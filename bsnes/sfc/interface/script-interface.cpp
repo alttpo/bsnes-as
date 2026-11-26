@@ -657,9 +657,26 @@ auto Interface::registerScriptDefs(::Script::Platform *scriptPlatform) -> void {
 }
 
 auto Interface::loadScript(string location) -> void {
+  if (!compileScript(location)) return;
+
+  // enable profiler:
+  platform->scriptProfilerEnable(platform->scriptPrimaryContext());
+
+  platform->scriptInvokeFunction(script.funcs.init);
+  if (loaded()) {
+    platform->scriptInvokeFunction(script.funcs.cartridge_loaded);
+    platform->scriptInvokeFunction(script.funcs.post_power, [](auto ctx) {
+      ctx->SetArgByte(0, false); // reset = false
+    });
+  }
+}
+
+// compiles the script at `location` (a .as file, or a directory whose *.as files all go into one module) into the main
+// module and binds the script's entry points without running any of them; returns false if it fails to compile.
+auto Interface::compileScript(string location) -> bool {
   int r;
 
-  if (!inode::exists(location)) return;
+  if (!inode::exists(location)) return false;
 
   if (platform->scriptEngineState.modules) {
     unloadScript();
@@ -694,7 +711,9 @@ auto Interface::loadScript(string location) -> void {
       r = main_module->AddScriptSection(filename, scriptSource.begin(), scriptSource.length());
       if (r < 0) {
         platform->scriptMessage({"Loading ", filename, " failed"});
-        return;
+        main_module->Discard();
+        platform->scriptEngineState.main_module = nullptr;
+        return false;
       }
     }
 
@@ -710,7 +729,12 @@ auto Interface::loadScript(string location) -> void {
 
   // compile module:
   r = main_module->Build();
-  assert(r >= 0);
+  if (r < 0) {
+    // the compiler has already reported the errors through the message callback:
+    main_module->Discard();
+    platform->scriptEngineState.main_module = nullptr;
+    return false;
+  }
 
   // track main module:
   platform->scriptEngineState.modules.append(main_module);
@@ -727,16 +751,7 @@ auto Interface::loadScript(string location) -> void {
   script.funcs.palette_updated = main_module->GetFunctionByDecl("void palette_updated()");
   script.funcs.idle = main_module->GetFunctionByDecl("void idle()");
 
-  // enable profiler:
-  platform->scriptProfilerEnable(platform->scriptPrimaryContext());
-
-  platform->scriptInvokeFunction(script.funcs.init);
-  if (loaded()) {
-    platform->scriptInvokeFunction(script.funcs.cartridge_loaded);
-    platform->scriptInvokeFunction(script.funcs.post_power, [](auto ctx) {
-      ctx->SetArgByte(0, false); // reset = false
-    });
-  }
+  return true;
 }
 
 auto Interface::unloadScript() -> void {

@@ -22,6 +22,10 @@ struct Configuration {
     } serialization;
   } system;
 
+  struct Controller {
+    bool allowOppositeDirections = false;
+  } controller;
+
   struct Video {
     bool blurEmulation = true;
     bool colorEmulation = true;

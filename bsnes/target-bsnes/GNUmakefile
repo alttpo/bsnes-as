@@ -15,15 +15,15 @@ include $(discord.path)/GNUmakefile
 
 objects += ui-bsnes ui-program ui-input ui-presentation
 objects += ui-settings ui-tools ui-resource
-objects := $(objects:%=obj/%.o)
+objects := $(objects:%=$(object.path)/%.o)
 
-obj/ui-bsnes.o: $(ui)/bsnes.cpp
-obj/ui-program.o: $(ui)/program/program.cpp
-obj/ui-input.o: $(ui)/input/input.cpp
-obj/ui-presentation.o: $(ui)/presentation/presentation.cpp
-obj/ui-settings.o: $(ui)/settings/settings.cpp
-obj/ui-tools.o: $(ui)/tools/tools.cpp
-obj/ui-resource.o: $(ui)/resource/resource.cpp
+$(object.path)/ui-bsnes.o: $(ui)/bsnes.cpp
+$(object.path)/ui-program.o: $(ui)/program/program.cpp
+$(object.path)/ui-input.o: $(ui)/input/input.cpp
+$(object.path)/ui-presentation.o: $(ui)/presentation/presentation.cpp
+$(object.path)/ui-settings.o: $(ui)/settings/settings.cpp
+$(object.path)/ui-tools.o: $(ui)/tools/tools.cpp
+$(object.path)/ui-resource.o: $(ui)/resource/resource.cpp
 
 all: $(objects) $(hiro.objects) $(ruby.objects) $(angel.objects) $(discord.objects)
 	$(info Linking out/$(name) ...)

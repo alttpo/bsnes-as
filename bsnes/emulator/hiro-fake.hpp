@@ -166,19 +166,26 @@ namespace hiro {
       return *this;
     }
 
-    auto enabled(bool recursive = false) const -> bool { return (void)recursive, false; }
+    // the stubs keep what scripts set on them so scripts that read their widgets back (e.g. to save settings) see
+    // their own values:
+    bool _enabled = true;
+    bool _visible = false;
+    string _text;
+    bool _checked = false;
+
+    auto enabled(bool recursive = false) const -> bool { return (void)recursive, _enabled; }
     auto focused() const -> bool { return false; }
     auto font(bool recursive = false) const -> Font { (void)recursive; return {}; }
     auto offset() const -> int { return 0; }
-    auto visible(bool recursive = false) const -> bool { return (void)recursive, false; }
+    auto visible(bool recursive = false) const -> bool { return (void)recursive, _visible; }
 
     auto remove() -> type& { return *this; }
     auto reset() -> type& { return *this; }
 
-    auto setEnabled(bool enabled = true) -> type& { return (void)enabled, *this; }
+    auto setEnabled(bool enabled = true) -> type& { _enabled = enabled; return *this; }
     auto setFocused() -> type& { return *this; }
     auto setFont(const Font& font = {}) -> type& { return (void)font, *this; };
-    auto setVisible(bool visible = true) -> type& { return (void)visible, *this; }
+    auto setVisible(bool visible = true) -> type& { _visible = visible; return *this; }
 
     //auto setParent(mObject* parent = nullptr, int offset = -1) -> type& { return (void)parent, (void)offset, *this; };
   };
@@ -257,6 +264,7 @@ namespace hiro {
     using Object::remove;
 
     auto append(sSizable sizable) -> type& { (void)sizable; return *this; }
+    auto doActivate() const -> void {}
     auto backgroundColor() const -> Color { return {}; }
     auto dismissable() const -> bool { return false; }
     auto frameGeometry() const -> Geometry { return {}; }
@@ -475,8 +483,8 @@ namespace hiro {
     auto setBackgroundColor(Color color = {}) -> type& { return *this; }
     auto setEditable(bool editable = true) -> type& { return *this; }
     auto setForegroundColor(Color color = {}) -> type& { return *this; }
-    auto setText(const string& text = "") -> type& { return *this; }
-    auto text() const -> string { return {}; }
+    auto setText(const string& text = "") -> type& { _text = text; return *this; }
+    auto text() const -> string { return _text; }
   };
   //struct LineEdit : sLineEdit, mLineEdit {
   //  DefineShared(LineEdit);
@@ -492,8 +500,8 @@ namespace hiro {
     auto setAlignment(Alignment alignment = {}) -> type& { return *this; }
     auto setBackgroundColor(Color color = {}) -> type& { return *this; }
     auto setForegroundColor(Color color = {}) -> type& { return *this; }
-    auto setText(const string& text = "") -> type& { return *this; }
-    auto text() const -> string { return {}; }
+    auto setText(const string& text = "") -> type& { _text = text; return *this; }
+    auto text() const -> string { return _text; }
   };
   //struct Label : sLabel, mLabel {
   //  DefineShared(Label);
@@ -511,8 +519,8 @@ namespace hiro {
     auto setBordered(bool bordered = true) -> type& { return *this; }
     auto setIcon(const image& icon = {}) -> type& { return *this; }
     auto setOrientation(Orientation orientation = Orientation::Horizontal) -> type& { return *this; }
-    auto setText(const string& text = "") -> type& { return *this; }
-    auto text() const -> string { return {}; }
+    auto setText(const string& text = "") -> type& { _text = text; return *this; }
+    auto text() const -> string { return _text; }
   };
   //struct Button : sButton, mButton {
   //  DefineShared(Button);
@@ -552,12 +560,12 @@ namespace hiro {
   struct CheckLabel : Widget {
     Define(CheckLabel);
 
-    auto checked() const -> bool { return false; }
+    auto checked() const -> bool { return _checked; }
     auto doToggle() const -> void {}
     auto onToggle(const function<void ()>& callback = {}) -> type& { return *this; }
-    auto setChecked(bool checked = true) -> type& { return *this; }
-    auto setText(const string& text = "") -> type& { return *this; }
-    auto text() const -> string { return {}; }
+    auto setChecked(bool checked = true) -> type& { _checked = checked; return *this; }
+    auto setText(const string& text = "") -> type& { _text = text; return *this; }
+    auto text() const -> string { return _text; }
   };
   //struct CheckLabel : sCheckLabel, mCheckLabel {
   //  DefineShared(CheckLabel);

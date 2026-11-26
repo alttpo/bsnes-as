@@ -24,6 +24,12 @@ ifeq ($(script_profiler),true)
   flags += -DAS_PROFILER_ENABLE -DAS_PROFILER_PERIOD_MICROSECONDS=101
 endif
 
+# the headless target builds the core without hiro (-DDISABLE_HIRO), which changes the layout of types every object
+# shares, so it keeps its objects apart from the GUI build's:
+ifeq ($(target),headless)
+  object.path := obj-headless
+endif
+
 nall.path := ../nall
 include $(nall.path)/GNUmakefile
 
@@ -59,12 +65,12 @@ endif
 
 objects := libco emulator filter lzma script-platform script-profiler
 
-obj/libco.o: ../libco/libco.c
-obj/emulator.o: emulator/emulator.cpp
-obj/filter.o: filter/filter.cpp
-obj/lzma.o: lzma/lzma.cpp
-obj/script-platform.o: script/script-platform.cpp
-obj/script-profiler.o: script/script-profiler.cpp
+$(object.path)/libco.o: ../libco/libco.c
+$(object.path)/emulator.o: emulator/emulator.cpp
+$(object.path)/filter.o: filter/filter.cpp
+$(object.path)/lzma.o: lzma/lzma.cpp
+$(object.path)/script-platform.o: script/script-platform.cpp
+$(object.path)/script-profiler.o: script/script-profiler.cpp
 
 include sfc/GNUmakefile
 include gb/GNUmakefile
@@ -72,8 +78,8 @@ include processor/GNUmakefile
 
 ui := target-$(target)
 include $(ui)/GNUmakefile
--include obj/*.d
+-include $(object.path)/*.d
 
 clean:
-	$(call rdelete,obj/*)
+	$(call rdelete,$(object.path)/*)
 	$(call rdelete,out/*)

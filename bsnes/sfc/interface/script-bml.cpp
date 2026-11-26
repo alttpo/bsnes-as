@@ -46,12 +46,12 @@ auto RegisterBML(asIScriptEngine *e) -> void {
     r = e->SetDefaultNamespace("UserSettings"); assert(r >= 0);
 
     REG_LAMBDA_GLOBAL("BML::Node load(const string &in path)", ([](string &path) {
-      auto document = BML::unserialize(file::read({Path::userSettings(), "bsnes/", path}));
+      auto document = BML::unserialize(file::read({platform->userSettingsPath(), path}));
       return document;
     }));
 
     REG_LAMBDA_GLOBAL("void save(const string &in path, const BML::Node &in document)", ([](string &path, Node &p) {
-      file::write({Path::userSettings(), "bsnes/", path}, BML::serialize(p));
+      file::write({platform->userSettingsPath(), path}, BML::serialize(p));
     }));
   }
 

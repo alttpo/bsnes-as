@@ -19,9 +19,9 @@ else ifeq ($(platform), tvos-arm64)
 endif
 
 objects := libretro $(objects)
-objects := $(patsubst %,obj/%.o,$(objects))
+objects := $(patsubst %,$(object.path)/%.o,$(objects))
 
-obj/libretro.o: target-libretro/libretro.cpp
+$(object.path)/libretro.o: target-libretro/libretro.cpp
 
 all-objects := $(objects) $(angel.objects) $(discord.objects)
 

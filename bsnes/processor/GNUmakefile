@@ -8,10 +8,10 @@ objects += $(if $(findstring spc700,$(processors)),processor-spc700)
 objects += $(if $(findstring upd96050,$(processors)),processor-upd96050)
 objects += $(if $(findstring wdc65816,$(processors)),processor-wdc65816)
 
-obj/processor-arm7tdmi.o: processor/arm7tdmi/arm7tdmi.cpp
-obj/processor-gsu.o:      processor/gsu/gsu.cpp
-obj/processor-hg51b.o:    processor/hg51b/hg51b.cpp
-obj/processor-sm83.o:     processor/sm83/sm83.cpp
-obj/processor-spc700.o:   processor/spc700/spc700.cpp
-obj/processor-upd96050.o: processor/upd96050/upd96050.cpp
-obj/processor-wdc65816.o: processor/wdc65816/wdc65816.cpp
+$(object.path)/processor-arm7tdmi.o: processor/arm7tdmi/arm7tdmi.cpp
+$(object.path)/processor-gsu.o:      processor/gsu/gsu.cpp
+$(object.path)/processor-hg51b.o:    processor/hg51b/hg51b.cpp
+$(object.path)/processor-sm83.o:     processor/sm83/sm83.cpp
+$(object.path)/processor-spc700.o:   processor/spc700/spc700.cpp
+$(object.path)/processor-upd96050.o: processor/upd96050/upd96050.cpp
+$(object.path)/processor-wdc65816.o: processor/wdc65816/wdc65816.cpp
